@@ -22,45 +22,49 @@ var (
 	}
 )
 
-// initializeConfig sets up logging and loads the tenancy OCID.
 func initializeConfig(cmd *cobra.Command, args []string) error {
-
 	if debugMode {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("debug logging enabled")
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
+	// TENANCY-ID: flag > ENV OCI_CLI_TENANCY > ENV OCI_TENANCY_NAME > OCI config file
+	switch {
+	case cmd.Flags().Changed(FlagNameTenancyID):
+		tenancyID := viper.GetString(FlagNameTenancyID)
+		logrus.Debugf("using tenancy OCID from falg %s: %s", EnvOCITenancy, tenancyID)
 
-	//--------------------------------tenancy OCID from OCI config file-----------------------------------------------//
+	case os.Getenv(EnvOCITenancy) != "":
+		tenancyID := os.Getenv(EnvOCITenancy)
+		viper.Set(FlagNameTenancyID, tenancyID)
+		logrus.Debugf("using tenancy OCID from env %s: %s", EnvOCITenancy, tenancyID)
 
-	tenancyErr := setUpTenancyFromOciConfigFile()
-	if tenancyErr != nil {
-		return fmt.Errorf("could not load tenancy OCID: %w", tenancyErr)
+	case os.Getenv(EnvOCITenancyName) != "":
+		name := os.Getenv(EnvOCITenancyName)
+		tenancyID, err := config.LookUpTenancyID(name)
+		if err != nil {
+			return fmt.Errorf("could not look up tenancy ID for %q: %w", name, err)
+		}
+		viper.Set(FlagNameTenancyID, tenancyID)
+		logrus.Debugf("using tenancy OCID for env name %q: %s", name, tenancyID)
+
+	default:
+		if err := setUpTenancyFromOciConfigFile(); err != nil {
+			return fmt.Errorf("could not load tenancy OCID: %w", err)
+		}
 	}
 
-	//--------------------------------tenancy OCID from OCI_CLI_TENANCY env-------------------------------------------//
+	// COMPARTMENT: flag > ENV OCI_COMPARTMENT
+	switch {
+	case cmd.Flags().Changed(FlagNameCompartment):
+		comp := viper.GetString(FlagNameCompartment)
+		logrus.Debugf("using compartment from flag: %s", comp)
 
-	// Overwrite tenancy OCID with the value of OCI_CLI_TENANCY, if set.
-	_, err := bindTenancyIDFromEnv()
-	if err != nil {
-		return fmt.Errorf("could not load tenancy OCID: %w", err)
-	}
-
-	//-------------------------------tenancy OCID from OCI_TENANCY_NAME env-------------------------------------------//
-
-	// Overwrite tenancy OCID with the value of OCI_CLI_TENANCY, if set.
-	_, err = setTenancyIDFromEnvName()
-	if err != nil {
-		return fmt.Errorf("could not load tenancy OCID: %w", err)
-	}
-
-	//-------------------------------tenancy OCID from OCI_COMPARTMENT env---------------------------------------------//
-
-	// Overwrite the compartment name with the value of OCI_COMPARTMENT, if set.
-	_, err = setCompartmentNameFromEnv()
-	if err != nil {
-		return fmt.Errorf("could not set comaprtmetn name from ENV: %w", err)
+	case os.Getenv(EnvOCICompartment) != "":
+		comp := os.Getenv(EnvOCICompartment)
+		viper.Set(FlagNameCompartment, comp)
+		logrus.Debugf("using compartment from env %s: %s", EnvOCICompartment, comp)
 	}
 
 	return nil
@@ -77,71 +81,30 @@ func setUpTenancyFromOciConfigFile() error {
 	return nil
 }
 
-// bindTenancyFromEnv checks OCI_CLI_TENANCY and, if present,
-// injects its value into viper under "tenancy-id".
-// Returns true if we found & set the env-var, false otherwise.
-func bindTenancyIDFromEnv() (bool, error) {
-	tenancyID, exists := os.LookupEnv(EnvOCITenancy)
-	if !exists {
-		return false, nil
-	}
-	// set the actual OCID value into viper (the highest precedence)
-	viper.Set(FlagNameTenancyID, tenancyID)
-	logrus.Debugf("setting tenancy OCID from env %s: %s", EnvOCITenancy, tenancyID)
-	logrus.Debugf("overwritten tenancy OCID from env: %v", exists)
-	return true, nil
-}
-
-// setTenancyIDFromEnvName sets the tenancy ID based on the `OCI_TENANCY_NAME` environment variable if it's defined.
-func setTenancyIDFromEnvName() (bool, error) {
-	tenancyName, exists := os.LookupEnv(EnvOCITenancyName)
-	if !exists {
-		return false, nil
-	}
-	// If OCI_TENANCY_NAME is set, look up the tenancy ID from the tenancy map
-	tenancyID, err := config.LookUpTenancyID(tenancyName)
-	if err != nil {
-		return false, fmt.Errorf("could not look up tenancy ID: %w", err)
-	}
-	logrus.Debug("using tenancy OCID: ", tenancyID)
-	viper.Set(FlagNameTenancyID, tenancyID)
-	return true, nil
-}
-
-// If OCI_COMPARTMENT is set, set the compartment name
-func setCompartmentNameFromEnv() (bool, error) {
-	compartmentName, exists := os.LookupEnv(EnvOCICompartment)
-	if !exists {
-		return false, nil
-	}
-
-	err := viper.BindEnv("compartment", EnvOCICompartment)
-	if err != nil {
-		return false, fmt.Errorf("could not bind env: %w", err)
-	}
-	logrus.Debugf("setting compartment from env %s: %s", EnvOCICompartment, compartmentName)
-	logrus.Debugf("overwritten compartment from env: %v", exists)
-	return true, nil
-}
-
 // init configures persistent flags and binds them to viper for managing application settings.
 func init() {
 	// debug flag
-	rootCmd.PersistentFlags().BoolVarP(&debugMode, FlagNameDebug, FlagShortDebug, false, FlagDescDebug)
-	var flagTenancyId string
-	rootCmd.PersistentFlags().StringVarP(&flagTenancyId, FlagNameTenancyID, FlagShortTenancyID, "", FlagDescTenancyID)
+	rootCmd.PersistentFlags().
+		BoolVarP(&debugMode, FlagNameDebug, FlagShortDebug, false, FlagDescDebug)
 
-	var flagCompartmentName string
-	rootCmd.PersistentFlags().StringVarP(&flagCompartmentName, FlagNameCompartment, FlagShortCompartment, "", FlagDescCompartment)
+	// tenancy and compartment flags
+	rootCmd.PersistentFlags().
+		StringP(FlagNameTenancyID, FlagShortTenancyID, "", FlagDescTenancyID)
+	rootCmd.PersistentFlags().
+		StringP(FlagNameCompartment, FlagShortCompartment, "", FlagDescCompartment)
 
-	//_ = viper.BindPFlag(FlagNameTenancyID, rootCmd.PersistentFlags().Lookup(FlagNameTenancyID))
-	//_ = viper.BindPFlag(FlagNameCompartment, rootCmd.PersistentFlags().Lookup(FlagNameCompartment))
+	// bind flags to viper keys
+	_ = viper.BindPFlag(FlagNameTenancyID, rootCmd.PersistentFlags().Lookup(FlagNameTenancyID))
+	_ = viper.BindPFlag(FlagNameCompartment, rootCmd.PersistentFlags().Lookup(FlagNameCompartment))
+
+	// allow ENV overrides, e.g., OCI_CLI_TENANCY, OCI_TENANCY_NAME, OCI_COMPARTMENT
+	viper.SetEnvPrefix("OCI")
+	viper.AutomaticEnv()
+
 }
 
 // Execute runs the CLI.
 func Execute() {
-	viper.SetEnvPrefix("OCI")
-	viper.AutomaticEnv()
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Error(err)
 		os.Exit(1)
