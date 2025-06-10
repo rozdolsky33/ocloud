@@ -32,9 +32,6 @@ jobs:
       - name: Install Staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
 
-      - name: Verify environment
-        run: make check-env
-
       - name: Build project
         run: |
           make clean
