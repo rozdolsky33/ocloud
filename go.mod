@@ -5,6 +5,7 @@ go 1.24.3
 require (
 	github.com/oracle/oci-go-sdk/v65 v65.93.0
 	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 )

@@ -1,42 +1,55 @@
 package config
 
 import (
-	"fmt"
-	"os"
+	"path/filepath"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
-	"github.com/spf13/viper"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"os"
 )
 
-// ConfigProvider is the OCI SDK auth provider
-var ConfigProvider common.ConfigurationProvider
+const (
+	defaultProfile = "DEFAULT"
+	envProfileKey  = "OCI_CLI_PROFILE"
+	configDir      = ".oci"
+	configFile     = "config"
+)
 
-// CompartmentID holds the OCID for the target compartment
-var CompartmentID string
+// LoadOCIConfig picks the profile from env or default, and logs at debug level.
+func LoadOCIConfig() common.ConfigurationProvider {
+	profile := GetOCIProfile()
+	if profile == defaultProfile {
+		logrus.Debug("using default profile")
+		return common.DefaultConfigProvider()
+	}
 
-// InitAuth sets up tenancy/profile/region/env for the SDK without requiring a compartment
-func InitAuth() error {
-	if t := viper.GetString("tenancy"); t != "" {
-		os.Setenv("OCI_TENANCY", t)
-	}
-	if p := viper.GetString("profile"); p != "" {
-		os.Setenv("OCI_PROFILE", p)
-	}
-	if r := viper.GetString("region"); r != "" {
-		os.Setenv("OCI_REGION", r)
-	}
-	ConfigProvider = common.DefaultConfigProvider()
-	return nil
+	logrus.Debugf("using profile %s", profile)
+	path := filepath.Join(userHomeDir(), configDir, configFile)
+	return common.CustomProfileConfigProvider(path, profile)
 }
 
-// Init runs full init: auth + compartment check
-func Init() error {
-	if err := InitAuth(); err != nil {
-		return err
+// GetOCIProfile returns OCI_CLI_PROFILE or "DEFAULT".
+func GetOCIProfile() string {
+	if p := os.Getenv(envProfileKey); p != "" {
+		return p
 	}
-	CompartmentID = viper.GetString("compartment")
-	if CompartmentID == "" {
-		return fmt.Errorf("compartment OCID must be set (flag -c or env OCI_COMPARTMENT)")
+	return defaultProfile
+}
+
+// GetTenancyOCID fetches the tenancy OCID (error on failure).
+func GetTenancyOCID() (string, error) {
+	id, err := LoadOCIConfig().TenancyOCID()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to retrieve tenancy OCID from OCI config")
 	}
-	return nil
+	return id, nil
+}
+
+func userHomeDir() string {
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	return dir
 }
