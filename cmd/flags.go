@@ -67,7 +67,7 @@ const (
 	FlagDescUser              = "User name"
 	FlagDescTenancyID         = "Tenancy OCID"
 	FlagDescTenancyName       = "Tenancy name"
-	FlagDescCompartment       = "Compartment OCID"
+	FlagDescCompartment       = "Compartment Name"
 	FlagDescOKEName           = "OKE cluster name"
 	FlagDescLocalFwPort       = "Local firewall port"
 	FlagDescHostFwPort        = "Host firewall port"
