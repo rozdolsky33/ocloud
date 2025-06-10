@@ -21,6 +21,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Checkout Wiki
+        uses: actions/checkout@v4
+        with:
+          repository: rozdolsky33/ocloud.wiki
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: .github/wiki
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
