@@ -97,17 +97,3 @@ type FlagConfig struct {
 	Default     interface{}
 	Description string
 }
-
-/**
-The main improvements in this refactoring are:
-1. Constants are now grouped logically by their purpose (flag names, shorthands, descriptions, etc.)
-2. Consistent naming convention using proper Go naming standards (e.g., `FlagNameList` instead of) `flagList`
-3. Introduction of a `FlagConfig` struct to encapsulate flag configuration
-4. New `getSearchFlags` function that returns flag configurations, making it easier to maintain and extend
-5. Enhanced function that handles different flag types dynamically `addCommonSearchFlags`
-6. Better documentation with clear grouping and purpose descriptions
-7. Removed redundant constants and consolidated related ones
-8. More type safety through the use of structured types instead of loose constants
-
-These changes make the code more maintainable, self-documenting, and easier to extend in the future. The use of structured types also helps catch potential errors at compile-time rather than runtime.
-*/
