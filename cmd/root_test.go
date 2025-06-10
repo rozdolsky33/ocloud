@@ -97,7 +97,7 @@ func TestInitializeConfigWithoutDebugMode(t *testing.T) {
 	assert.Equal(t, logrus.InfoLevel, logrus.GetLevel())
 }
 
-// TestInitializeConfigWithTenancyFlag tests that tenancy ID from flag is used
+// TestInitializeConfigWithTenancyFlag tests that tenancy ID from a flag is used
 func TestInitializeConfigWithTenancyFlag(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -119,7 +119,7 @@ func TestInitializeConfigWithTenancyFlag(t *testing.T) {
 	assert.Equal(t, testTenancyID, viper.GetString(FlagNameTenancyID))
 }
 
-// TestInitializeConfigWithTenancyEnv tests that tenancy ID from environment is used
+// TestInitializeConfigWithTenancyEnv tests that tenancy ID from the environment is used
 func TestInitializeConfigWithTenancyEnv(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -140,7 +140,7 @@ func TestInitializeConfigWithTenancyEnv(t *testing.T) {
 	assert.Equal(t, testTenancyID, viper.GetString(FlagNameTenancyID))
 }
 
-// TestInitializeConfigWithCompartmentFlag tests that compartment from flag is used
+// TestInitializeConfigWithCompartmentFlag tests that compartment from a flag is used
 func TestInitializeConfigWithCompartmentFlag(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -162,7 +162,7 @@ func TestInitializeConfigWithCompartmentFlag(t *testing.T) {
 	assert.Equal(t, testCompartment, viper.GetString(FlagNameCompartment))
 }
 
-// TestInitializeConfigWithCompartmentEnv tests that compartment from environment is used
+// TestInitializeConfigWithCompartmentEnv tests that compartment from the environment is used
 func TestInitializeConfigWithCompartmentEnv(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -216,7 +216,7 @@ func TestExecute(t *testing.T) {
 
 		// Create a mock command that will succeed
 		rootCmd = &cobra.Command{
-			Use:          "mock",
+			Use: "mock",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return nil
 			},

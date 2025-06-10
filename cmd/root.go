@@ -12,7 +12,9 @@ import (
 
 var (
 	debugMode bool
-	rootCmd   = &cobra.Command{
+
+	// rootCmd represents the base command used to interact with Oracle Cloud Infrastructure through the CLI.
+	rootCmd = &cobra.Command{
 		Use:               "ocloud",
 		Short:             "Interact with Oracle Cloud Infrastructure",
 		PersistentPreRunE: initializeConfig,
@@ -26,6 +28,7 @@ var (
 	osExit = os.Exit
 )
 
+// initializeConfig configures logging levels and loads OCI tenancy or compartment details from flags, environment, or config files.
 func initializeConfig(cmd *cobra.Command, args []string) error {
 	if debugMode {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -74,6 +77,8 @@ func initializeConfig(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// setUpTenancyFromOciConfigFile loads the tenancy OCID from an OCI config file and sets it as the default value in viper.
+// Returns an error if the tenancy OCID cannot be retrieved or there is an issue with the OCI config file.
 func setUpTenancyFromOciConfigFile() error {
 	tenancyID, err := config.GetTenancyOCID()
 	if err != nil {

@@ -33,7 +33,7 @@ func setupTest(t *testing.T) func() {
 				os.Setenv(key, value)
 			}
 		}
-		// Remove temporary directory
+		// Remove the temporary directory
 		os.RemoveAll(tempDir)
 	}
 }
@@ -185,7 +185,7 @@ func TestLoadOCIConfig(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	// Test with default profile
+	// Test with the default profile
 	os.Unsetenv(envProfileKey)
 	provider := LoadOCIConfig()
 	assert.IsType(t, common.DefaultConfigProvider(), provider)
@@ -208,14 +208,14 @@ func TestUserHomeDir(t *testing.T) {
 
 // TestGetTenancyOCID tests the GetTenancyOCID function
 func TestGetTenancyOCID(t *testing.T) {
-	// Save original mock function
+	// Save the original mock function
 	originalMock := MockGetTenancyOCID
 	defer func() {
 		// Restore original mock function
 		MockGetTenancyOCID = originalMock
 	}()
 
-	// Set up mock function for testing
+	// Set up a mock function for testing
 	expectedTenancyID := "mock-tenancy-ocid-for-test"
 	MockGetTenancyOCID = func() (string, error) {
 		return expectedTenancyID, nil

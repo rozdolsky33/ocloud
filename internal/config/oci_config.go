@@ -19,16 +19,21 @@ var (
 	MockLookUpTenancyID func(tenancyName string) (string, error)
 )
 
+// DefaultTenancyMapPath defines the default file path for the OCI tenancy map configuration in the user's home directory.
 var DefaultTenancyMapPath = filepath.Join(userHomeDir(), ".oci", "tenancy-map.yaml")
 
 const (
-	defaultProfile    = "DEFAULT"
-	envProfileKey     = "OCI_CLI_PROFILE"
-	configDir         = ".oci"
-	configFile        = "config"
+	defaultProfile = "DEFAULT"
+	envProfileKey  = "OCI_CLI_PROFILE"
+	configDir      = ".oci"
+	configFile     = "config"
+
+	// EnvTenancyMapPath is the environment variable key used to specify the file path for the OCI tenancy map configuration.
 	EnvTenancyMapPath = "OCI_TENANCY_MAP_PATH"
 )
 
+// OciTenancyEnvironment represents the configuration for an OCI tenancy environment.
+// It includes details such as environment, tenancy, tenancy ID, realm, compartments, and regions.
 type OciTenancyEnvironment struct {
 	Environment  string `yaml:"environment"`
 	Tenancy      string `yaml:"tenancy"`
@@ -142,6 +147,7 @@ func ensureFile(path string) error {
 	return nil
 }
 
+// userHomeDir returns the path to the current user's home directory or exits if unable to determine it.
 func userHomeDir() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {
