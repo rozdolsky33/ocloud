@@ -8,7 +8,6 @@ on:
       - 'feature/*'
     paths-ignore:
       - 'README.md'
-      - 'Formula/**'
   pull_request:
     paths-ignore:
       - 'README.md'
@@ -26,13 +25,39 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24
+          go-version: '1.24.x'
           cache: true
+
+      - name: Run go vet
+        run: go vet ./...
 
       - name: Install Staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
 
+      - name: Run staticcheck
+        run: staticcheck ./...
+
+      - name: Install golint
+        run: go install golang.org/x/lint/golint@latest
+
+      - name: Run golint
+        run: golint ./...
+
+      - name: Run tests
+        run: go test -race -vet=off ./...
+
+      - name: Update coverage report
+        uses: ncruces/go-coverage-report@v0.3.0
+        with:
+          report: true
+          chart: true
+          amend: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_REPORT_COV }}
+        continue-on-error: true
+
       - name: Build project
         run: |
           make clean
+          make test
           make build
