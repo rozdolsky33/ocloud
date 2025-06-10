@@ -1,0 +1,41 @@
+name: CI Build
+
+on:
+  push:
+    branches:
+      - "main"
+      - 'feature-*'
+      - 'feature/*'
+    paths-ignore:
+      - 'README.md'
+      - 'Formula/**'
+  pull_request:
+    paths-ignore:
+      - 'README.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23
+          cache: true
+
+      - name: Install Staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Verify environment
+        run: make check-env
+
+      - name: Build project
+        run: |
+          make clean
+          make build

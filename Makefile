@@ -28,7 +28,7 @@ install:
 
 test:
 	@echo "Running tests..."
-	@$(GO) test ./...
+	@$(GO) test -v -count=1 ./... -cover
 
 fmt:
 	@echo "Formatting code..."

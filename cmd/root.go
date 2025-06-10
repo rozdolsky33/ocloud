@@ -19,7 +19,11 @@ var (
 		Run: func(cmd *cobra.Command, args []string) {
 			_ = cmd.Help()
 		},
+		SilenceErrors: true, // Don't print errors (we'll handle them)
+		SilenceUsage:  true, // Don't print usage on error
 	}
+	// osExit is a variable to allow mocking in tests
+	osExit = os.Exit
 )
 
 func initializeConfig(cmd *cobra.Command, args []string) error {
@@ -33,7 +37,7 @@ func initializeConfig(cmd *cobra.Command, args []string) error {
 	switch {
 	case cmd.Flags().Changed(FlagNameTenancyID):
 		tenancyID := viper.GetString(FlagNameTenancyID)
-		logrus.Debugf("using tenancy OCID from falg %s: %s", EnvOCITenancy, tenancyID)
+		logrus.Debugf("using tenancy OCID from falg %s: %s", FlagNameTenancyID, tenancyID)
 
 	case os.Getenv(EnvOCITenancy) != "":
 		tenancyID := os.Getenv(EnvOCITenancy)
@@ -107,6 +111,6 @@ func init() {
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Error(err)
-		os.Exit(1)
+		osExit(1)
 	}
 }

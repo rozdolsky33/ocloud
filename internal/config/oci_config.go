@@ -11,6 +11,14 @@ import (
 	"os"
 )
 
+// For testing purposes
+var (
+	// MockGetTenancyOCID allows tests to override the GetTenancyOCID function
+	MockGetTenancyOCID func() (string, error)
+	// MockLookUpTenancyID allows tests to override the LookUpTenancyID function
+	MockLookUpTenancyID func(tenancyName string) (string, error)
+)
+
 var DefaultTenancyMapPath = filepath.Join(userHomeDir(), ".oci", "tenancy-map.yaml")
 
 const (
@@ -53,6 +61,12 @@ func GetOCIProfile() string {
 
 // GetTenancyOCID fetches the tenancy OCID (error on failure).
 func GetTenancyOCID() (string, error) {
+	// Use mock function if set (for testing)
+	if MockGetTenancyOCID != nil {
+		return MockGetTenancyOCID()
+	}
+
+	// Normal implementation
 	id, err := LoadOCIConfig().TenancyOCID()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to retrieve tenancy OCID from OCI config")
@@ -63,6 +77,12 @@ func GetTenancyOCID() (string, error) {
 // LookUpTenancyID locates the OCID for a given tenancy name.
 // It returns an error if the map cannot be loaded or if the name isn't found.
 func LookUpTenancyID(tenancyName string) (string, error) {
+	// Use mock function if set (for testing)
+	if MockLookUpTenancyID != nil {
+		return MockLookUpTenancyID(tenancyName)
+	}
+
+	// Normal implementation
 	path := tenancyMapPath()
 	logrus.Debugf("looking up tenancy %q in map %s", tenancyName, path)
 
