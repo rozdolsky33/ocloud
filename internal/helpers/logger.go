@@ -78,7 +78,7 @@ func getSlogLevel(s string) (slog.Level, error) {
 	}
 }
 
-// For end users, klog messages are mostly useless. We set it to error level unless debug logging is enabled.
+// For end users, klog messages are mostly useless. I set it to the error level unless debug logging is enabled.
 func getKlogLevel(l slog.Level) slog.Level {
 	if l < slog.LevelInfo {
 		return l
