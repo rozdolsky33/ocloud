@@ -29,13 +29,13 @@ func setupTest(t *testing.T) func() {
 
 	// Save original mock functions
 	originalGetTenancyOCID := config.MockGetTenancyOCID
-	originalLookUpTenancyID := config.MockLookUpTenancyID
+	originalLookupTenancyID := config.MockLookupTenancyID
 
 	// Set up mock functions for testing
 	config.MockGetTenancyOCID = func() (string, error) {
 		return "mock-tenancy-ocid", nil
 	}
-	config.MockLookUpTenancyID = func(tenancyName string) (string, error) {
+	config.MockLookupTenancyID = func(tenancyName string) (string, error) {
 		return "mock-tenancy-ocid-for-" + tenancyName, nil
 	}
 
@@ -52,7 +52,7 @@ func setupTest(t *testing.T) func() {
 
 		// Restore original mock functions
 		config.MockGetTenancyOCID = originalGetTenancyOCID
-		config.MockLookUpTenancyID = originalLookUpTenancyID
+		config.MockLookupTenancyID = originalLookupTenancyID
 
 		viper.Reset()
 	}
@@ -71,7 +71,7 @@ func TestInitializeConfigWithDebugMode(t *testing.T) {
 	cmd := &cobra.Command{}
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -90,7 +90,7 @@ func TestInitializeConfigWithoutDebugMode(t *testing.T) {
 	cmd := &cobra.Command{}
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -112,7 +112,7 @@ func TestInitializeConfigWithTenancyFlag(t *testing.T) {
 	cmd.Flags().Set(FlagNameTenancyID, testTenancyID)
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -133,7 +133,7 @@ func TestInitializeConfigWithTenancyEnv(t *testing.T) {
 	os.Setenv(EnvOCITenancy, testTenancyID)
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -155,7 +155,7 @@ func TestInitializeConfigWithCompartmentFlag(t *testing.T) {
 	cmd.Flags().Set(FlagNameCompartment, testCompartment)
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -176,7 +176,7 @@ func TestInitializeConfigWithCompartmentEnv(t *testing.T) {
 	os.Setenv(EnvOCICompartment, testCompartment)
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -274,7 +274,7 @@ func TestInitializeConfigWithTenancyName(t *testing.T) {
 	os.Setenv(EnvOCITenancyName, testTenancyName)
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify results
 	assert.NoError(t, err)
@@ -303,7 +303,7 @@ func TestInitializeConfigPriority(t *testing.T) {
 	os.Setenv(EnvOCITenancy, envTenancyID)
 
 	// Call the function
-	err := initializeConfig(cmd, []string{})
+	err := initConfig(cmd, []string{})
 
 	// Verify that flag value is used (the highest priority)
 	assert.NoError(t, err)
@@ -319,7 +319,7 @@ func TestInitializeConfigPriority(t *testing.T) {
 	cmd.Flags().String(FlagNameTenancyID, "", "")
 
 	// Call the function
-	err = initializeConfig(cmd, []string{})
+	err = initConfig(cmd, []string{})
 
 	// Verify that the environment variable is used
 	assert.NoError(t, err)

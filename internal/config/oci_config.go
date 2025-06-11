@@ -15,12 +15,12 @@ import (
 var (
 	// MockGetTenancyOCID allows tests to override the GetTenancyOCID function
 	MockGetTenancyOCID func() (string, error)
-	// MockLookUpTenancyID allows tests to override the LookUpTenancyID function
-	MockLookUpTenancyID func(tenancyName string) (string, error)
+	// MockLookupTenancyID allows tests to override the LookupTenancyID function
+	MockLookupTenancyID func(tenancyName string) (string, error)
 )
 
 // DefaultTenancyMapPath defines the default file path for the OCI tenancy map configuration in the user's home directory.
-var DefaultTenancyMapPath = filepath.Join(userHomeDir(), ".oci", "tenancy-map.yaml")
+var DefaultTenancyMapPath = filepath.Join(getUserHomeDir(), ".oci", "tenancy-map.yaml")
 
 const (
 	defaultProfile = "DEFAULT"
@@ -32,17 +32,6 @@ const (
 	EnvTenancyMapPath = "OCI_TENANCY_MAP_PATH"
 )
 
-// OciTenancyEnvironment represents the configuration for an OCI tenancy environment.
-// It includes details such as environment, tenancy, tenancy ID, realm, compartments, and regions.
-type OciTenancyEnvironment struct {
-	Environment  string `yaml:"environment"`
-	Tenancy      string `yaml:"tenancy"`
-	TenancyId    string `yaml:"tenancy_id"`
-	Realm        string `yaml:"realm"`
-	Compartments string `yaml:"compartments"`
-	Regions      string `yaml:"regions"`
-}
-
 // LoadOCIConfig picks the profile from env or default, and logs at debug level.
 func LoadOCIConfig() common.ConfigurationProvider {
 	profile := GetOCIProfile()
@@ -52,7 +41,7 @@ func LoadOCIConfig() common.ConfigurationProvider {
 	}
 
 	logrus.Debugf("using profile %s", profile)
-	path := filepath.Join(userHomeDir(), configDir, configFile)
+	path := filepath.Join(getUserHomeDir(), configDir, configFile)
 	return common.CustomProfileConfigProvider(path, profile)
 }
 
@@ -79,12 +68,12 @@ func GetTenancyOCID() (string, error) {
 	return id, nil
 }
 
-// LookUpTenancyID locates the OCID for a given tenancy name.
+// LookupTenancyID locates the OCID for a given tenancy name.
 // It returns an error if the map cannot be loaded or if the name isn't found.
-func LookUpTenancyID(tenancyName string) (string, error) {
+func LookupTenancyID(tenancyName string) (string, error) {
 	// Use mock function if set (for testing)
-	if MockLookUpTenancyID != nil {
-		return MockLookUpTenancyID(tenancyName)
+	if MockLookupTenancyID != nil {
+		return MockLookupTenancyID(tenancyName)
 	}
 
 	// Normal implementation
@@ -98,25 +87,25 @@ func LookUpTenancyID(tenancyName string) (string, error) {
 
 	for _, env := range tenancies {
 		if env.Tenancy == tenancyName {
-			logrus.Debugf("found tenancy %q => OCID %s", tenancyName, env.TenancyId)
-			return env.TenancyId, nil
+			logrus.Debugf("found tenancy %q => OCID %s", tenancyName, env.TenancyID)
+			return env.TenancyID, nil
 		}
 	}
 
 	lookupErr := fmt.Errorf("tenancy %q not found in %s", tenancyName, path)
 	logrus.Warnf("tenancy lookup failed: %v", lookupErr)
-	return "", errors.Wrap(lookupErr, "tenancy lookup failed")
+	return "", errors.Wrap(lookupErr, "tenancy lookup failed - please check that the tenancy name is correct and exists in the mapping file")
 }
 
 // LoadTenancyMap loads the tenancy mapping from disk at tenancyMapPath.
 // It logs debug information and returns a slice of OciTenancyEnvironment.
-func LoadTenancyMap() ([]OciTenancyEnvironment, error) {
+func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 	path := tenancyMapPath()
 	logrus.Debugf("loading tenancy map from %s", path)
 
 	if err := ensureFile(path); err != nil {
 		logrus.Warnf("tenancy mapping file not found: %v", err)
-		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s)", path)
+		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup", path)
 	}
 
 	data, err := os.ReadFile(path)
@@ -125,10 +114,10 @@ func LoadTenancyMap() ([]OciTenancyEnvironment, error) {
 		return nil, errors.Wrapf(err, "failed to read tenancy mapping file (%s)", path)
 	}
 
-	var tenancies []OciTenancyEnvironment
+	var tenancies []OCITenancyEnvironment
 	if err := yaml.Unmarshal(data, &tenancies); err != nil {
 		logrus.Errorf("failed to parse tenancy mapping file %s: %v", path, err)
-		return nil, errors.Wrapf(err, "failed to parse tenancy mapping file (%s)", path)
+		return nil, errors.Wrapf(err, "failed to parse tenancy mapping file (%s) - please check that the file is valid YAML", path)
 	}
 
 	logrus.Debugf("loaded %d tenancy mapping entries", len(tenancies))
@@ -147,8 +136,8 @@ func ensureFile(path string) error {
 	return nil
 }
 
-// userHomeDir returns the path to the current user's home directory or exits if unable to determine it.
-func userHomeDir() string {
+// getUserHomeDir returns the path to the current user's home directory or exits if unable to determine it.
+func getUserHomeDir() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {
 		logrus.Fatal(err)

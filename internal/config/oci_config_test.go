@@ -127,7 +127,7 @@ func TestLoadTenancyMap(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, tenancies, 1)
 	assert.Equal(t, "test-tenancy", tenancies[0].Tenancy)
-	assert.Equal(t, "ocid1.tenancy.oc1..test", tenancies[0].TenancyId)
+	assert.Equal(t, "ocid1.tenancy.oc1..test", tenancies[0].TenancyID)
 
 	// Test loading an invalid tenancy map (invalid YAML)
 	invalidMapFile := filepath.Join(tempDir, "invalid-tenancy-map.yaml")
@@ -144,8 +144,8 @@ func TestLoadTenancyMap(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestLookUpTenancyID tests the LookUpTenancyID function
-func TestLookUpTenancyID(t *testing.T) {
+// TestLookupTenancyID tests the LookupTenancyID function
+func TestLookupTenancyID(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
@@ -171,12 +171,12 @@ func TestLookUpTenancyID(t *testing.T) {
 	os.Setenv(EnvTenancyMapPath, validMapFile)
 
 	// Test looking up an existing tenancy
-	tenancyID, err := LookUpTenancyID("test-tenancy")
+	tenancyID, err := LookupTenancyID("test-tenancy")
 	assert.NoError(t, err)
 	assert.Equal(t, "ocid1.tenancy.oc1..test", tenancyID)
 
 	// Test looking up a non-existent tenancy
-	_, err = LookUpTenancyID("non-existent-tenancy")
+	_, err = LookupTenancyID("non-existent-tenancy")
 	assert.Error(t, err)
 }
 
@@ -198,11 +198,11 @@ func TestLoadOCIConfig(t *testing.T) {
 	assert.NotNil(t, provider)
 }
 
-// TestUserHomeDir tests the userHomeDir function
+// TestUserHomeDir tests the getUserHomeDir function
 func TestUserHomeDir(t *testing.T) {
 	// This is a simple test to ensure the function doesn't panic
 	// We can't easily test the actual return value as it depends on the system
-	dir := userHomeDir()
+	dir := getUserHomeDir()
 	assert.NotEmpty(t, dir)
 }
 
