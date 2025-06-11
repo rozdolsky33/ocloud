@@ -13,13 +13,27 @@ import (
 )
 
 var (
-	LogLevel         string
-	LogLevelMsg      = "Set the log verbosity. Supported values are: debug, info, warn, and error."
-	CmdLogger        logr.Logger
-	ColoredOutput    bool
+	// Logger is the package-level logger
+	// It should be initialized using InitLogger before use
+	Logger logr.Logger
+
+	// LogLevel sets the verbosity level for logging
+	LogLevel string
+
+	// LogLevelMsg provides help text for the log-level flag
+	LogLevelMsg = "Set the log verbosity. Supported values are: debug, info, warn, and error."
+
+	// CmdLogger is the logger used by command-line operations
+	CmdLogger logr.Logger
+
+	// ColoredOutput determines whether log output should be colored
+	ColoredOutput bool
+
+	// ColoredOutputMsg provides help text for the color flag
 	ColoredOutputMsg = "Enable colored log messages."
 )
 
+// SetLogger initializes the loggers based on the current LogLevel and ColoredOutput settings
 func SetLogger() error {
 	l, err := getSlogLevel(LogLevel)
 	if err != nil {
@@ -37,6 +51,18 @@ func SetLogger() error {
 	return nil
 }
 
+// InitLogger initializes the package-level logger
+// If no logger is provided, it creates a default one
+func InitLogger(logger logr.Logger) {
+	Logger = logger
+	if Logger.GetSink() == nil {
+		// If no logger is provided, or it has a nil sink, create a default one
+		slogger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		Logger = logr.FromSlogHandler(slogger.Handler())
+	}
+}
+
+// getSlogLevel converts a string log level to a slog.Level
 func getSlogLevel(s string) (slog.Level, error) {
 	switch strings.ToLower(s) {
 	case "debug":

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/helpers"
 	"gopkg.in/yaml.v3"
 	"path/filepath"
 
@@ -35,11 +36,11 @@ const (
 func LoadOCIConfig() common.ConfigurationProvider {
 	profile := GetOCIProfile()
 	if profile == defaultProfile {
-		Logger.V(1).Info("using default profile")
+		helpers.Logger.V(1).Info("using default profile")
 		return common.DefaultConfigProvider()
 	}
 
-	Logger.V(1).Info("using profile", "profile", profile)
+	helpers.Logger.V(1).Info("using profile", "profile", profile)
 	path := filepath.Join(getUserHomeDir(), configDir, configFile)
 	return common.CustomProfileConfigProvider(path, profile)
 }
@@ -77,7 +78,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 	// Normal implementation
 	path := tenancyMapPath()
-	Logger.V(1).Info("looking up tenancy in map", "tenancy", tenancyName, "path", path)
+	helpers.Logger.V(1).Info("looking up tenancy in map", "tenancy", tenancyName, "path", path)
 
 	tenancies, err := LoadTenancyMap()
 	if err != nil {
@@ -86,13 +87,13 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 	for _, env := range tenancies {
 		if env.Tenancy == tenancyName {
-			Logger.V(1).Info("found tenancy", "tenancy", tenancyName, "tenancyID", env.TenancyID)
+			helpers.Logger.V(1).Info("found tenancy", "tenancy", tenancyName, "tenancyID", env.TenancyID)
 			return env.TenancyID, nil
 		}
 	}
 
 	lookupErr := fmt.Errorf("tenancy %q not found in %s", tenancyName, path)
-	Logger.Info("tenancy lookup failed", "error", lookupErr)
+	helpers.Logger.Info("tenancy lookup failed", "error", lookupErr)
 	return "", errors.Wrap(lookupErr, "tenancy lookup failed - please check that the tenancy name is correct and exists in the mapping file")
 }
 
@@ -100,26 +101,26 @@ func LookupTenancyID(tenancyName string) (string, error) {
 // It logs debug information and returns a slice of OciTenancyEnvironment.
 func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 	path := tenancyMapPath()
-	Logger.V(1).Info("loading tenancy map", "path", path)
+	helpers.Logger.V(1).Info("loading tenancy map", "path", path)
 
 	if err := ensureFile(path); err != nil {
-		Logger.Info("tenancy mapping file not found", "error", err)
+		helpers.Logger.Info("tenancy mapping file not found", "error", err)
 		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup", path)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		Logger.Error(err, "failed to read tenancy mapping file", "path", path)
+		helpers.Logger.Error(err, "failed to read tenancy mapping file", "path", path)
 		return nil, errors.Wrapf(err, "failed to read tenancy mapping file (%s)", path)
 	}
 
 	var tenancies []OCITenancyEnvironment
 	if err := yaml.Unmarshal(data, &tenancies); err != nil {
-		Logger.Error(err, "failed to parse tenancy mapping file", "path", path)
+		helpers.Logger.Error(err, "failed to parse tenancy mapping file", "path", path)
 		return nil, errors.Wrapf(err, "failed to parse tenancy mapping file (%s) - please check that the file is valid YAML", path)
 	}
 
-	Logger.V(1).Info("loaded tenancy mapping entries", "count", len(tenancies))
+	helpers.Logger.V(1).Info("loaded tenancy mapping entries", "count", len(tenancies))
 	return tenancies, nil
 }
 
@@ -139,7 +140,7 @@ func ensureFile(path string) error {
 func getUserHomeDir() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {
-		Logger.Error(err, "failed to get user home directory")
+		helpers.Logger.Error(err, "failed to get user home directory")
 		os.Exit(1)
 	}
 	return dir
@@ -148,7 +149,7 @@ func getUserHomeDir() string {
 // tenancyMapPath returns either the overridden path or the default.
 func tenancyMapPath() string {
 	if p := os.Getenv(EnvTenancyMapPath); p != "" {
-		Logger.V(1).Info("using tenancy map from env", "path", p)
+		helpers.Logger.V(1).Info("using tenancy map from env", "path", p)
 		return p
 	}
 	return DefaultTenancyMapPath

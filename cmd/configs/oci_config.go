@@ -2,7 +2,7 @@ package configs
 
 import (
 	"fmt"
-	"github.com/rozdolsky33/ocloud/cmd/helpers"
+	"github.com/rozdolsky33/ocloud/internal/helpers"
 	"os"
 
 	"github.com/rozdolsky33/ocloud/internal/config"

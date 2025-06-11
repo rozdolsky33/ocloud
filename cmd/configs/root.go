@@ -1,8 +1,7 @@
 package configs
 
 import (
-	"github.com/rozdolsky33/ocloud/cmd/helpers"
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/internal/helpers"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -27,9 +26,8 @@ func preConfigE(cmd *cobra.Command, args []string) error {
 	if err := helpers.SetLogger(); err != nil {
 		return err
 	}
-
 	// Initialize the internal/config logger with the CmdLogger
-	config.InitLogger(helpers.CmdLogger)
+	helpers.InitLogger(helpers.CmdLogger)
 
 	return nil
 }
