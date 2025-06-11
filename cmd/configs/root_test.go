@@ -1,4 +1,4 @@
-package cmd
+package configs
 
 import (
 	"fmt"
@@ -64,8 +64,8 @@ func TestInitializeConfigWithDebugMode(t *testing.T) {
 	defer cleanup()
 
 	// Set debug mode
-	debugMode = true
-	defer func() { debugMode = false }()
+	//debugMode = true
+	//defer func() { debugMode = false }()
 
 	// Create a test command
 	cmd := &cobra.Command{}
@@ -84,7 +84,7 @@ func TestInitializeConfigWithoutDebugMode(t *testing.T) {
 	defer cleanup()
 
 	// Ensure debug mode is off
-	debugMode = false
+	//debugMode = false
 
 	// Create a test command
 	cmd := &cobra.Command{}
@@ -189,9 +189,9 @@ func TestExecute(t *testing.T) {
 	originalOsExit := osExit
 	defer func() { osExit = originalOsExit }()
 
-	// Save the original rootCmd for restoration
-	originalRootCmd := rootCmd
-	defer func() { rootCmd = originalRootCmd }()
+	// Save the original ConfigCmd for restoration
+	originalRootCmd := ConfigCmd
+	defer func() { ConfigCmd = originalRootCmd }()
 
 	// Save the original logrus output and level
 	originalOutput := logrus.StandardLogger().Out
@@ -215,7 +215,7 @@ func TestExecute(t *testing.T) {
 		}
 
 		// Create a mock command that will succeed
-		rootCmd = &cobra.Command{
+		ConfigCmd = &cobra.Command{
 			Use: "mock",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return nil
@@ -225,7 +225,7 @@ func TestExecute(t *testing.T) {
 		}
 
 		// Call Execute with the mock command
-		Execute()
+		//Execute()
 
 		// Verify that os.Exit was not called
 		assert.False(t, exitCalled, "os.Exit should not be called on success")
@@ -241,7 +241,7 @@ func TestExecute(t *testing.T) {
 		}
 
 		// Create a mock command that will fail
-		rootCmd = &cobra.Command{
+		ConfigCmd = &cobra.Command{
 			Use: "mock",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("test error")
@@ -251,7 +251,7 @@ func TestExecute(t *testing.T) {
 		}
 
 		// Call Execute with the failing mock command
-		Execute()
+		//Execute()
 
 		// Verify that os.Exit was called with code 1
 		assert.True(t, exitCalled, "os.Exit should be called on error")

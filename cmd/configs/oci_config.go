@@ -1,7 +1,8 @@
-package cmd
+package configs
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/cmd/helpers"
 	"os"
 
 	"github.com/rozdolsky33/ocloud/internal/config"
@@ -12,12 +13,16 @@ import (
 
 // initConfig configures logging levels and loads OCI tenancy or compartment details from flags, environment, or config files.
 func initConfig(cmd *cobra.Command, args []string) error {
-	if debugMode {
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debug("debug logging enabled")
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-	}
+
+	logger := helpers.CmdLogger
+	logger.Info("initializing config")
+
+	//if debugMode {
+	//	logrus.SetLevel(logrus.DebugLevel)
+	//	logrus.Debug("debug logging enabled")
+	//} else {
+	//	logrus.SetLevel(logrus.InfoLevel)
+	//}
 	// TENANCY-ID: flag > ENV OCI_CLI_TENANCY > ENV OCI_TENANCY_NAME > OCI config file
 	switch {
 	case cmd.Flags().Changed(FlagNameTenancyID):

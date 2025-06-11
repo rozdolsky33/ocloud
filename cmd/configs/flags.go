@@ -1,4 +1,4 @@
-package cmd
+package configs
 
 // FlagNames defines the string constants for flag names
 const (
