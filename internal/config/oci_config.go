@@ -7,7 +7,6 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -36,11 +35,11 @@ const (
 func LoadOCIConfig() common.ConfigurationProvider {
 	profile := GetOCIProfile()
 	if profile == defaultProfile {
-		logrus.Debug("using default profile")
+		Logger.V(1).Info("using default profile")
 		return common.DefaultConfigProvider()
 	}
 
-	logrus.Debugf("using profile %s", profile)
+	Logger.V(1).Info("using profile", "profile", profile)
 	path := filepath.Join(getUserHomeDir(), configDir, configFile)
 	return common.CustomProfileConfigProvider(path, profile)
 }
@@ -78,7 +77,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 	// Normal implementation
 	path := tenancyMapPath()
-	logrus.Debugf("looking up tenancy %q in map %s", tenancyName, path)
+	Logger.V(1).Info("looking up tenancy in map", "tenancy", tenancyName, "path", path)
 
 	tenancies, err := LoadTenancyMap()
 	if err != nil {
@@ -87,13 +86,13 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 	for _, env := range tenancies {
 		if env.Tenancy == tenancyName {
-			logrus.Debugf("found tenancy %q => OCID %s", tenancyName, env.TenancyID)
+			Logger.V(1).Info("found tenancy", "tenancy", tenancyName, "tenancyID", env.TenancyID)
 			return env.TenancyID, nil
 		}
 	}
 
 	lookupErr := fmt.Errorf("tenancy %q not found in %s", tenancyName, path)
-	logrus.Warnf("tenancy lookup failed: %v", lookupErr)
+	Logger.Info("tenancy lookup failed", "error", lookupErr)
 	return "", errors.Wrap(lookupErr, "tenancy lookup failed - please check that the tenancy name is correct and exists in the mapping file")
 }
 
@@ -101,26 +100,26 @@ func LookupTenancyID(tenancyName string) (string, error) {
 // It logs debug information and returns a slice of OciTenancyEnvironment.
 func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 	path := tenancyMapPath()
-	logrus.Debugf("loading tenancy map from %s", path)
+	Logger.V(1).Info("loading tenancy map", "path", path)
 
 	if err := ensureFile(path); err != nil {
-		logrus.Warnf("tenancy mapping file not found: %v", err)
+		Logger.Info("tenancy mapping file not found", "error", err)
 		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup", path)
 	}
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		logrus.Errorf("failed to read tenancy mapping file %s: %v", path, err)
+		Logger.Error(err, "failed to read tenancy mapping file", "path", path)
 		return nil, errors.Wrapf(err, "failed to read tenancy mapping file (%s)", path)
 	}
 
 	var tenancies []OCITenancyEnvironment
 	if err := yaml.Unmarshal(data, &tenancies); err != nil {
-		logrus.Errorf("failed to parse tenancy mapping file %s: %v", path, err)
+		Logger.Error(err, "failed to parse tenancy mapping file", "path", path)
 		return nil, errors.Wrapf(err, "failed to parse tenancy mapping file (%s) - please check that the file is valid YAML", path)
 	}
 
-	logrus.Debugf("loaded %d tenancy mapping entries", len(tenancies))
+	Logger.V(1).Info("loaded tenancy mapping entries", "count", len(tenancies))
 	return tenancies, nil
 }
 
@@ -140,7 +139,8 @@ func ensureFile(path string) error {
 func getUserHomeDir() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {
-		logrus.Fatal(err)
+		Logger.Error(err, "failed to get user home directory")
+		os.Exit(1)
 	}
 	return dir
 }
@@ -148,7 +148,7 @@ func getUserHomeDir() string {
 // tenancyMapPath returns either the overridden path or the default.
 func tenancyMapPath() string {
 	if p := os.Getenv(EnvTenancyMapPath); p != "" {
-		logrus.Debugf("using tenancy map from env: %s", p)
+		Logger.V(1).Info("using tenancy map from env", "path", p)
 		return p
 	}
 	return DefaultTenancyMapPath

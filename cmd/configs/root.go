@@ -2,6 +2,7 @@ package configs
 
 import (
 	"github.com/rozdolsky33/ocloud/cmd/helpers"
+	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,7 +24,14 @@ var (
 )
 
 func preConfigE(cmd *cobra.Command, args []string) error {
-	return helpers.SetLogger()
+	if err := helpers.SetLogger(); err != nil {
+		return err
+	}
+
+	// Initialize the internal/config logger with the CmdLogger
+	config.InitLogger(helpers.CmdLogger)
+
+	return nil
 }
 
 // init configures persistent flags and binds them to viper for managing application settings.

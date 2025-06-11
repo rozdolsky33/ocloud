@@ -6,33 +6,24 @@ import (
 	"os"
 
 	"github.com/rozdolsky33/ocloud/internal/config"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 // initConfig configures logging levels and loads OCI tenancy or compartment details from flags, environment, or config files.
 func initConfig(cmd *cobra.Command, args []string) error {
-
 	logger := helpers.CmdLogger
 	logger.Info("initializing config")
-
-	//if debugMode {
-	//	logrus.SetLevel(logrus.DebugLevel)
-	//	logrus.Debug("debug logging enabled")
-	//} else {
-	//	logrus.SetLevel(logrus.InfoLevel)
-	//}
 	// TENANCY-ID: flag > ENV OCI_CLI_TENANCY > ENV OCI_TENANCY_NAME > OCI config file
 	switch {
 	case cmd.Flags().Changed(FlagNameTenancyID):
 		tenancyID := viper.GetString(FlagNameTenancyID)
-		logrus.Debugf("using tenancy OCID from falg %s: %s", FlagNameTenancyID, tenancyID)
+		logger.V(1).Info("using tenancy OCID from flag", "flag", FlagNameTenancyID, "tenancyID", tenancyID)
 
 	case os.Getenv(EnvOCITenancy) != "":
 		tenancyID := os.Getenv(EnvOCITenancy)
 		viper.Set(FlagNameTenancyID, tenancyID)
-		logrus.Debugf("using tenancy OCID from env %s: %s", EnvOCITenancy, tenancyID)
+		logger.V(1).Info("using tenancy OCID from env", "env", EnvOCITenancy, "tenancyID", tenancyID)
 
 	case os.Getenv(EnvOCITenancyName) != "":
 		name := os.Getenv(EnvOCITenancyName)
@@ -41,7 +32,7 @@ func initConfig(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("could not look up tenancy ID for %q: %w", name, err)
 		}
 		viper.Set(FlagNameTenancyID, tenancyID)
-		logrus.Debugf("using tenancy OCID for env name %q: %s", name, tenancyID)
+		logger.V(1).Info("using tenancy OCID for env name", "name", name, "tenancyID", tenancyID)
 
 	default:
 		if err := loadTenancyOCID(); err != nil {
@@ -53,12 +44,12 @@ func initConfig(cmd *cobra.Command, args []string) error {
 	switch {
 	case cmd.Flags().Changed(FlagNameCompartment):
 		comp := viper.GetString(FlagNameCompartment)
-		logrus.Debugf("using compartment from flag: %s", comp)
+		logger.V(1).Info("using compartment from flag", "compartment", comp)
 
 	case os.Getenv(EnvOCICompartment) != "":
 		comp := os.Getenv(EnvOCICompartment)
 		viper.Set(FlagNameCompartment, comp)
-		logrus.Debugf("using compartment from env %s: %s", EnvOCICompartment, comp)
+		logger.V(1).Info("using compartment from env", "env", EnvOCICompartment, "compartment", comp)
 	}
 
 	return nil
@@ -71,7 +62,8 @@ func loadTenancyOCID() error {
 	if err != nil {
 		return fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
-	logrus.Debugf("using tenancy OCID from OCI config file: %s", tenancyID)
+	logger := helpers.CmdLogger
+	logger.V(1).Info("using tenancy OCID from OCI config file", "tenancyID", tenancyID)
 	viper.SetDefault(FlagNameTenancyID, tenancyID)
 
 	return nil
