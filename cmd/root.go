@@ -3,10 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/rozdolsky33/ocloud/cmd/configuration"
-	"github.com/rozdolsky33/ocloud/cmd/instance"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/rozdolsky33/ocloud/cmd/instance"
+	"github.com/rozdolsky33/ocloud/internal/config"
 )
 
 var rootCmd = &cobra.Command{
@@ -16,7 +18,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	configuration.InitGlobalFlags(rootCmd)
+	config.InitGlobalFlags(rootCmd)
 	rootCmd.AddCommand(instance.InstanceCmd)
 }
 
