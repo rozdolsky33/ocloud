@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/rozdolsky33/ocloud/cmd/configs"
 	"github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,10 +15,10 @@ import (
 func setupTest(t *testing.T) func() {
 	// Save original environment variables to restore later
 	originalEnvVars := map[string]string{
-		configs.EnvOCITenancy:     os.Getenv(configs.EnvOCITenancy),
-		configs.EnvOCITenancyName: os.Getenv(configs.EnvOCITenancyName),
-		configs.EnvOCICompartment: os.Getenv(configs.EnvOCICompartment),
-		configs.EnvOCIRegion:      os.Getenv(configs.EnvOCIRegion),
+		EnvOCITenancy:     os.Getenv(EnvOCITenancy),
+		EnvOCITenancyName: os.Getenv(EnvOCITenancyName),
+		EnvOCICompartment: os.Getenv(EnvOCICompartment),
+		EnvOCIRegion:      os.Getenv(EnvOCIRegion),
 	}
 
 	// Reset viper for each test
@@ -70,15 +69,15 @@ func TestInitGlobalFlags(t *testing.T) {
 	InitGlobalFlags(cmd)
 
 	// Verify that flags were added
-	tenancyFlag := cmd.PersistentFlags().Lookup(configs.FlagNameTenancyID)
+	tenancyFlag := cmd.PersistentFlags().Lookup(FlagNameTenancyID)
 	assert.NotNil(t, tenancyFlag)
-	assert.Equal(t, configs.FlagShortTenancyID, tenancyFlag.Shorthand)
-	assert.Equal(t, configs.FlagDescTenancyID, tenancyFlag.Usage)
+	assert.Equal(t, FlagShortTenancyID, tenancyFlag.Shorthand)
+	assert.Equal(t, FlagDescTenancyID, tenancyFlag.Usage)
 
-	compartmentFlag := cmd.PersistentFlags().Lookup(configs.FlagNameCompartment)
+	compartmentFlag := cmd.PersistentFlags().Lookup(FlagNameCompartment)
 	assert.NotNil(t, compartmentFlag)
-	assert.Equal(t, configs.FlagShortCompartment, compartmentFlag.Shorthand)
-	assert.Equal(t, configs.FlagDescCompartment, compartmentFlag.Usage)
+	assert.Equal(t, FlagShortCompartment, compartmentFlag.Shorthand)
+	assert.Equal(t, FlagDescCompartment, compartmentFlag.Usage)
 
 	// Verify that viper is set up correctly
 	assert.Equal(t, "OCI", viper.GetEnvPrefix())
@@ -92,7 +91,7 @@ func TestLoadTenancyOCID(t *testing.T) {
 	// Test successful retrieval
 	err := loadTenancyOCID()
 	assert.NoError(t, err)
-	assert.Equal(t, "mock-tenancy-ocid", viper.GetString(configs.FlagNameTenancyID))
+	assert.Equal(t, "mock-tenancy-ocid", viper.GetString(FlagNameTenancyID))
 
 	// Test error case
 	config.MockGetTenancyOCID = func() (string, error) {
@@ -109,15 +108,15 @@ func TestTenancyIDFromFlag(t *testing.T) {
 
 	// Create a test command with flags
 	cmd := &cobra.Command{}
-	cmd.Flags().String(configs.FlagNameTenancyID, "", "")
+	cmd.Flags().String(FlagNameTenancyID, "", "")
 
 	// Set the flag as changed and set a value
 	testTenancyID := "test-tenancy-id"
-	viper.Set(configs.FlagNameTenancyID, testTenancyID)
-	cmd.Flags().Set(configs.FlagNameTenancyID, testTenancyID)
+	viper.Set(FlagNameTenancyID, testTenancyID)
+	cmd.Flags().Set(FlagNameTenancyID, testTenancyID)
 
 	// Verify that viper has the correct value
-	assert.Equal(t, testTenancyID, viper.GetString(configs.FlagNameTenancyID))
+	assert.Equal(t, testTenancyID, viper.GetString(FlagNameTenancyID))
 }
 
 // TestTenancyIDFromEnv tests that tenancy ID from the environment is used
@@ -127,14 +126,14 @@ func TestTenancyIDFromEnv(t *testing.T) {
 
 	// Create a test command with flags
 	cmd := &cobra.Command{}
-	cmd.Flags().String(configs.FlagNameTenancyID, "", "")
+	cmd.Flags().String(FlagNameTenancyID, "", "")
 
 	// Set environment variable
 	testTenancyID := "env-tenancy-id"
-	os.Setenv(configs.EnvOCITenancy, testTenancyID)
+	os.Setenv(EnvOCITenancy, testTenancyID)
 
 	// Verify that the environment variable is set
-	assert.Equal(t, testTenancyID, os.Getenv(configs.EnvOCITenancy))
+	assert.Equal(t, testTenancyID, os.Getenv(EnvOCITenancy))
 }
 
 // TestCompartmentFromFlag tests that compartment from a flag is used
@@ -144,15 +143,15 @@ func TestCompartmentFromFlag(t *testing.T) {
 
 	// Create a test command with flags
 	cmd := &cobra.Command{}
-	cmd.Flags().String(configs.FlagNameCompartment, "", "")
+	cmd.Flags().String(FlagNameCompartment, "", "")
 
 	// Set the flag as changed and set a value
 	testCompartment := "test-compartment"
-	viper.Set(configs.FlagNameCompartment, testCompartment)
-	cmd.Flags().Set(configs.FlagNameCompartment, testCompartment)
+	viper.Set(FlagNameCompartment, testCompartment)
+	cmd.Flags().Set(FlagNameCompartment, testCompartment)
 
-	// Verify that viper has the correct value
-	assert.Equal(t, testCompartment, viper.GetString(configs.FlagNameCompartment))
+	// Verify that the viper has the correct value
+	assert.Equal(t, testCompartment, viper.GetString(FlagNameCompartment))
 }
 
 // TestCompartmentFromEnv tests that compartment from the environment is used
@@ -162,12 +161,12 @@ func TestCompartmentFromEnv(t *testing.T) {
 
 	// Create a test command with flags
 	cmd := &cobra.Command{}
-	cmd.Flags().String(configs.FlagNameCompartment, "", "")
+	cmd.Flags().String(FlagNameCompartment, "", "")
 
 	// Set environment variable
 	testCompartment := "env-compartment"
-	os.Setenv(configs.EnvOCICompartment, testCompartment)
+	os.Setenv(EnvOCICompartment, testCompartment)
 
 	// Verify that the environment variable is set
-	assert.Equal(t, testCompartment, os.Getenv(configs.EnvOCICompartment))
+	assert.Equal(t, testCompartment, os.Getenv(EnvOCICompartment))
 }

@@ -1,4 +1,4 @@
-package configs
+package configuration
 
 // FlagNames defines the string constants for flag names
 const (
