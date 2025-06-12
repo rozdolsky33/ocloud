@@ -1,0 +1,46 @@
+# golangci-lint configuration
+# See https://golangci-lint.run/usage/configuration/ for details
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - bin
+
+linters:
+  enable:
+    - govet        # Examines Go source code and reports suspicious constructs
+    - staticcheck  # Comprehensive static analysis tool
+    - errcheck     # Checks for unchecked errors
+    - ineffassign  # Detects ineffectual assignments
+    - misspell     # Finds commonly misspelled English words
+    - goimports    # Checks import statements are formatted correctly
+    - gosimple     # Simplifies code
+    - unused       # Checks for unused constants, variables, functions and types
+    - gofmt        # Checks if code was gofmt-ed
+    - revive       # Fast, configurable, extensible, flexible, and beautiful linter for Go
+    - exportloopref # Checks for pointers to enclosing loop variables
+
+linters-settings:
+  govet:
+    check-shadowing: true
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+        arguments:
+          - "checkPrivateReceivers"
+          - "disableStutteringCheck"
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - dupl
+  max-issues-per-linter: 0
+  max-same-issues: 0
