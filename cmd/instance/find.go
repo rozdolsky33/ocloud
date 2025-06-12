@@ -2,7 +2,7 @@ package instance
 
 import (
 	"fmt"
-	"github.com/rozdolsky33/ocloud/pkg/flags"
+	"github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
 
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 		},
 	}
 
-	flags.ImageDetailsFlag.AddBoolFlag(cmd)
+	config.ImageDetailsFlag.AddBoolFlag(cmd)
 
 	return cmd
 }
@@ -34,6 +34,6 @@ func doFindInstances(cmd *cobra.Command, appCtx *app.AppContext, namePattern str
 	logger.CmdLogger.V(1).Info("Running instance find command", "pattern", namePattern)
 	fmt.Println("Finding instances with name pattern:", namePattern)
 
-	showImageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)
+	showImageDetails, _ := cmd.Flags().GetBool(config.FlagNameImageDetails)
 	return compute.FindInstances(appCtx, namePattern, showImageDetails)
 }
