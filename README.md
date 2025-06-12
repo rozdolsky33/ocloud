@@ -14,7 +14,8 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 - Interact with Oracle Cloud Infrastructure resources
 - Support for multiple tenancies and compartments
 - Configuration via environment variables, flags, or OCI config file
-- Debug mode for troubleshooting
+- Colored logging with configurable verbosity levels
+- Modular architecture for easy extension
 
 ## Installation
 
@@ -82,51 +83,107 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 
 ## Command-Line Flags
 
+### Global Flags
+
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--debug` | `-d` | Enable debug logging |
+| `--log-level` | | Set the log verbosity (debug, info, warn, error) |
+| `--color` | | Enable colored log messages |
 | `--tenancy-id` | `-t` | Tenancy OCID |
+| `--tenancy-name` | | Tenancy name |
 | `--compartment` | `-c` | Compartment name |
-| `--list` | `-l` | List all resources |
-| `--find` | `-f` | Find resources by name pattern search |
-| `--create` | `-r` | Create a resource |
-| `--type` | `-y` | Resource type |
+
+### Instance Command Flags
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--list` | `-l` | List all instances |
+| `--find` | `-f` | Find instances by name pattern |
+| `--image-details` | `-i` | Show image details |
 
 Additional flags are available for specific operations. Use `ocloud --help` to see all available options.
 
 ## Usage Examples
 
+### Command Structure
+
+OCloud uses a subcommand structure:
+
+```
+ocloud [global flags] <command> [command flags] [arguments]
+```
+
 ### Basic Usage
 
 ```bash
 # Show help
-ocloud
+ocloud --help
 
-# Enable debug mode
-ocloud --debug
+# Show instance command help
+ocloud instance --help
 
-# List resources in a specific compartment
-ocloud --compartment my-compartment --list
+# Enable debug logging with colored output
+ocloud --log-level debug --color instance list
+```
+
+### Working with Instances
+
+```bash
+# List all instances in a compartment
+ocloud --compartment my-compartment instance list
+
+# List all instances using the old flag syntax (for backward compatibility)
+ocloud --compartment my-compartment instance -l
+
+# Find instances by name pattern
+ocloud --compartment my-compartment instance find "web-server"
+
+# Find instances with image details
+ocloud --compartment my-compartment instance find "web-server" --image-details
 ```
 
 ### Working with Different Tenancies
 
 ```bash
 # Use a specific tenancy by OCID
-ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa...
+ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... instance list
 
 # Use a tenancy by name (requires tenancy map)
+ocloud --tenancy-name my-production-tenancy instance list
+
+# Use environment variables
 export OCI_TENANCY_NAME=my-production-tenancy
-ocloud
+ocloud instance list
 ```
 
 ## Development
 
 ### Project Structure
 
+The project follows a modern Go application structure:
+
 - `cmd/`: Command-line interface implementation
-- `internal/`: Internal packages
+  - `root.go`: Root command and global flags
+  - `instance/`: Instance-related commands
+    - `root.go`: Instance command and flags
+    - `list.go`: List instances command
+    - `find.go`: Find instances command
+- `internal/`: Internal packages (not intended for external use)
+  - `app/`: Application context and core functionality
   - `config/`: Configuration handling
+  - `logger/`: Logging setup and utilities
+  - `oci/`: OCI client factories
+- `pkg/`: Public packages (can be imported by other projects)
+  - `resources/`: Resource operations implementation
+
+## Error Handling
+
+OCloud provides detailed error messages and supports different verbosity levels:
+
+- `--log-level info`: Shows standard information (default)
+- `--log-level debug`: Shows detailed debugging information
+- `--log-level warn`: Shows only warnings and errors
+- `--log-level error`: Shows only errors
 
 ### Development Commands
 
@@ -145,4 +202,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contributing
 
-[Contribution guidelines]
+Contributions are welcome! Please feel free to submit a Pull Request.

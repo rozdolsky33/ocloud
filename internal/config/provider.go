@@ -1,8 +1,14 @@
-package cmd
+package config
+
+import (
+	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
 
 // FlagNames defines the string constants for flag names
 const (
-	FlagNameDebug             = "debug"
+	FlagNameLogLevel          = "log-level"
 	FlagNameList              = "list"
 	FlagNameFind              = "find"
 	FlagNameTenancyID         = "tenancy-id"
@@ -28,7 +34,6 @@ const (
 
 // FlagShorthand defines single-character aliases for flags
 const (
-	FlagShortDebug             = "d"
 	FlagShortList              = "l"
 	FlagShortFind              = "f"
 	FlagShortTenancyID         = "t"
@@ -53,7 +58,7 @@ const (
 
 // FlagDescriptions contains help text for flags
 const (
-	FlagDescDebug             = "Enable debug logging"
+	FlagDescLogLevel          = "Set the log verbosity. Supported values are: debug, info, warn, and error."
 	FlagDescList              = "List all resources"
 	FlagDescFind              = "Find resources by name pattern search"
 	FlagDescCreate            = "Create a resource"
@@ -65,13 +70,13 @@ const (
 	FlagDescPublicKey         = "Public key file path"
 	FlagDescInstanceID        = "Instance OCID"
 	FlagDescUser              = "User name"
-	FlagDescTenancyID         = "Tenancy OCID"
+	FlagDescTenancyID         = "OCI tenancy OCID"
 	FlagDescTenancyName       = "Tenancy name"
-	FlagDescCompartment       = "Compartment Name"
+	FlagDescCompartment       = "OCI compartment name"
 	FlagDescOKEName           = "OKE cluster name"
 	FlagDescLocalFwPort       = "Local firewall port"
 	FlagDescHostFwPort        = "Host firewall port"
-	FlagDescImageDetails      = "Image details"
+	FlagDescImageDetails      = "Show image details"
 	FlagDescFindByName        = "Find resources by name pattern search"
 	FlagDescFindByStatement   = "Find resources by statement"
 	FlagDescIncludeStatements = "Include statements"
@@ -96,4 +101,21 @@ type FlagConfig struct {
 	Shorthand   string
 	Default     interface{}
 	Description string
+}
+
+// InitGlobalFlags initializes global CLI flags and binds them to environment variables for configuration.
+func InitGlobalFlags(root *cobra.Command) {
+	root.PersistentFlags().StringVarP(&logger.LogLevel, FlagNameLogLevel, "", "info", logger.LogLevelMsg)
+	root.PersistentFlags().BoolVar(&logger.ColoredOutput, "color", false, logger.ColoredOutputMsg)
+	root.PersistentFlags().StringP(FlagNameTenancyID, FlagShortTenancyID, "", FlagDescTenancyID)
+	root.PersistentFlags().StringP(FlagNameTenancyName, "", "", FlagDescTenancyName)
+	root.PersistentFlags().StringP(FlagNameCompartment, FlagShortCompartment, "", FlagDescCompartment)
+
+	_ = viper.BindPFlag(FlagNameTenancyID, root.PersistentFlags().Lookup(FlagNameTenancyID))
+	_ = viper.BindPFlag(FlagNameTenancyName, root.PersistentFlags().Lookup(FlagNameTenancyName))
+	_ = viper.BindPFlag(FlagNameCompartment, root.PersistentFlags().Lookup(FlagNameCompartment))
+
+	// allow ENV overrides, e.g., OCI_CLI_TENANCY, OCI_TENANCY_NAME, OCI_COMPARTMENT
+	viper.SetEnvPrefix("OCI")
+	viper.AutomaticEnv()
 }
