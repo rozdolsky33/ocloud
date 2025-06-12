@@ -1,3 +1,7 @@
+// Package flags defines flag constants, shorthands, and descriptions for the CLI.
+//
+//go:generate go run ./generator/main/main
+//go:generate go run ./generator/main/main.go
 package flags
 
 import (
