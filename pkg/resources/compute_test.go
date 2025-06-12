@@ -4,11 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci"
 )
 
 // Setup test environment
@@ -21,10 +21,10 @@ func setupTest(t *testing.T) {
 func TestListInstances(t *testing.T) {
 	setupTest(t)
 
-	// Create a mock AppContext
+	// Create a mock AppContext with our mock provider
 	mockCtx := &app.AppContext{
 		Ctx:             context.Background(),
-		Provider:        common.DefaultConfigProvider(),
+		Provider:        oci.NewMockConfigurationProvider(),
 		CompartmentID:   "mock-compartment-id",
 		CompartmentName: "mock-compartment",
 	}
@@ -41,10 +41,10 @@ func TestListInstances(t *testing.T) {
 func TestFindInstances(t *testing.T) {
 	setupTest(t)
 
-	// Create a mock AppContext
+	// Create a mock AppContext with our mock provider
 	mockCtx := &app.AppContext{
 		Ctx:             context.Background(),
-		Provider:        common.DefaultConfigProvider(),
+		Provider:        oci.NewMockConfigurationProvider(),
 		CompartmentID:   "mock-compartment-id",
 		CompartmentName: "mock-compartment",
 	}
