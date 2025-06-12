@@ -25,13 +25,7 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 			logger.CmdLogger.V(1).Info("Running instance find command", "pattern", namePattern)
 			fmt.Println("Finding instances with name pattern:", namePattern)
 
-			return resources.FindInstances(
-				appCtx.Ctx,
-				appCtx.Provider,
-				appCtx.CompartmentID,
-				namePattern,
-				showImageDetails,
-			)
+			return resources.FindInstances(appCtx, namePattern, showImageDetails)
 		},
 	}
 

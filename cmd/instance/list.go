@@ -20,7 +20,7 @@ func newListCmd(appCtx *app.AppContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logger.CmdLogger.V(1).Info("Running instance list command")
 			fmt.Println("Listing instances in compartment:", appCtx.CompartmentName)
-			return resources.ListInstances(appCtx.Ctx, appCtx.Provider, appCtx.CompartmentID)
+			return resources.ListInstances(appCtx)
 		},
 	}
 
