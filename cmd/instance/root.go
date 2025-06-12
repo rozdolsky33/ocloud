@@ -27,7 +27,10 @@ var InstanceCmd = &cobra.Command{
 
 		switch {
 		case list:
-			compute.ListInstances()
+			err := compute.ListInstances(app)
+			if err != nil {
+				return err
+			}
 
 		//case find != "":
 		//	resources.FindInstances(
