@@ -1,7 +1,6 @@
-package resources
+package compute
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,10 +22,10 @@ func TestListInstances(t *testing.T) {
 
 	// Create a mock AppContext with our mock provider
 	mockCtx := &app.AppContext{
-		Ctx:             context.Background(),
 		Provider:        oci.NewMockConfigurationProvider(),
 		CompartmentID:   "mock-compartment-id",
 		CompartmentName: "mock-compartment",
+		Logger:          logger.CmdLogger,
 	}
 
 	// Test successful case
@@ -43,10 +42,10 @@ func TestFindInstances(t *testing.T) {
 
 	// Create a mock AppContext with our mock provider
 	mockCtx := &app.AppContext{
-		Ctx:             context.Background(),
 		Provider:        oci.NewMockConfigurationProvider(),
 		CompartmentID:   "mock-compartment-id",
 		CompartmentName: "mock-compartment",
+		Logger:          logger.CmdLogger,
 	}
 
 	// Test successful case

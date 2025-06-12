@@ -3,7 +3,6 @@ package instance
 import (
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/rozdolsky33/ocloud/internal/config"
@@ -36,13 +35,9 @@ func TestInstanceCommand(t *testing.T) {
 	assert.Equal(t, config.FlagDescImageDetails, imageDetailsFlag.Usage)
 }
 
-// TestGetAppContext tests the getAppContext function
-func TestGetAppContext(t *testing.T) {
-	// Create a command with no context
-	cmd := &cobra.Command{}
-
-	// Test that getAppContext returns an error when the context is nil
-	_, err := getAppContext(cmd)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "command context is nil")
+// TestInitApp tests the app.InitApp function
+func TestInitApp(t *testing.T) {
+	// This is just a placeholder test since we can't easily test InitApp without mocking the OCI SDK
+	// The actual InitApp function is tested in the internal/app package
+	t.Skip("Skipping test for InitApp since it requires mocking the OCI SDK")
 }

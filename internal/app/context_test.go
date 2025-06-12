@@ -191,10 +191,10 @@ func TestResolveCompartmentID(t *testing.T) {
 	}
 }
 
-// TestNewAppContextComponents tests the components of NewAppContext
-// We can't easily test the full NewAppContext function without mocking the OCI SDK,
+// TestInitAppComponents tests the components of InitApp
+// We can't easily test the full InitApp function without mocking the OCI SDK,
 // so we'll test the individual components that we can test
-func TestNewAppContextComponents(t *testing.T) {
+func TestInitAppComponents(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
@@ -229,6 +229,6 @@ func TestNewAppContextComponents(t *testing.T) {
 	// We can't easily test ResolveCompartmentID without mocking the identity client,
 	// so we'll skip that part
 
-	// The actual NewAppContext function is hard to test without extensive mocking
+	// The actual InitApp function is hard to test without extensive mocking
 	// of the OCI SDK, which is beyond the scope of this test
 }

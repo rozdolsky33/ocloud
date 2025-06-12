@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/spf13/cobra"
@@ -14,22 +15,23 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
-// AppContext represents the application context containing OCI configuration, tenancy, and compartment information.
-// AppContext holds the application-wide OCI configuration and resolved IDs.
+// AppContext represents the application with all its clients, configuration, and resolved IDs.
+// It holds all the components needed for command execution.
 type AppContext struct {
-	Ctx             context.Context
 	Provider        common.ConfigurationProvider
 	IdentityClient  identity.IdentityClient
 	TenancyID       string
 	TenancyName     string
 	CompartmentName string
 	CompartmentID   string
+	Logger          logr.Logger
 }
 
-// NewAppContext initializes AppContext, resolves tenancy & compartment IDs, and builds OCI clients.
-func NewAppContext(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
+// InitApp initializes the AppContext with all clients, logger, and resolved IDs.
+// It's a one-shot bootstrap function that returns a struct with everything needed.
+func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	log := logger.CmdLogger
-	log.Info("Initializing application context")
+	log.Info("Initializing application")
 
 	// Load OCI config & create provider
 	prov := config.LoadOCIConfig()
@@ -47,11 +49,11 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command) (*AppContext, error)
 	}
 
 	// Build base AppContext
-	appCtx := &AppContext{
-		Ctx:             ctx,
+	app := &AppContext{
 		Provider:        prov,
 		IdentityClient:  idClient,
 		CompartmentName: viper.GetString(config.FlagNameCompartment),
+		Logger:          logger.CmdLogger,
 	}
 
 	// Resolve Tenancy ID
@@ -59,22 +61,22 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command) (*AppContext, error)
 	if err != nil {
 		return nil, err
 	}
-	appCtx.TenancyID = tenancyID
+	app.TenancyID = tenancyID
 
 	// Resolve Tenancy Name
 	tenancyName := ResolveTenancyName(cmd, tenancyID)
 	if tenancyName != "" {
-		appCtx.TenancyName = tenancyName
+		app.TenancyName = tenancyName
 	}
 
 	// Resolve Compartment ID
-	compID, err := ResolveCompartmentID(ctx, appCtx.TenancyID, appCtx.CompartmentName, appCtx.IdentityClient)
+	compID, err := ResolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve compartment ID: %w", err)
 	}
-	appCtx.CompartmentID = compID
+	app.CompartmentID = compID
 
-	return appCtx, nil
+	return app, nil
 }
 
 // ResolveTenancyID resolves the tenancy OCID from various sources in order of precedence:

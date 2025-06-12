@@ -87,19 +87,18 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--log-level` | | Set the log verbosity (debug, info, warn, error) |
-| `--color` | | Enable colored log messages |
-| `--tenancy-id` | `-t` | Tenancy OCID |
-| `--tenancy-name` | | Tenancy name |
-| `--compartment` | `-c` | Compartment name |
+| `--tenancy-id` | `-t` | OCI tenancy OCID |
+| `--tenancy-name` |  | Tenancy name |
+| `--log-level` |  | Set the log verbosity. Supported values are: debug, info, warn, and error. |
+| `--compartment` | `-c` | OCI compartment name |
 
 ### Instance Command Flags
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--list` | `-l` | List all instances |
-| `--find` | `-f` | Find instances by name pattern |
+| `--find` | `-f` | Find resources by name pattern search |
 | `--image-details` | `-i` | Show image details |
+| `--list` | `-l` | List all resources |
 
 Additional flags are available for specific operations. Use `ocloud --help` to see all available options.
 
@@ -194,7 +193,22 @@ OCloud provides detailed error messages and supports different verbosity levels:
 | `make test` | Run tests |
 | `make fmt` | Format code |
 | `make vet` | Run go vet |
+| `make lint` | Run golangci-lint |
+| `make generate` | Run go generate to update generated code |
 | `make clean` | Clean build artifacts |
+
+### Code Quality and Drift Guard
+
+OCloud uses several tools to maintain code quality and prevent drift between flag definitions, documentation, and code:
+
+1. **golangci-lint**: A fast, parallel runner for Go linters. It helps catch issues like unused variables, formatting errors, and more. The configuration is in `.golangci.yml`.
+
+2. **go generate**: Used to keep flag constants, documentation, and code in sync. When flag definitions are changed in `pkg/flags/flags.go`, running `make generate` will automatically update the flag tables in this README.
+
+To ensure your changes maintain code quality and consistency:
+
+1. Run `make lint` before committing to check for code quality issues
+2. Run `make generate` after modifying flag definitions to update documentation
 
 ## License
 

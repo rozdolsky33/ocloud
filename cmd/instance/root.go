@@ -1,15 +1,17 @@
 package instance
 
 import (
-	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
 	"github.com/spf13/cobra"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/pkg/resources"
 )
+
+// Store the application context to avoid double initialization
+var appContext *app.AppContext
 
 // InstanceCmd is the root command for instance-related operations
 var InstanceCmd = &cobra.Command{
@@ -22,9 +24,9 @@ var InstanceCmd = &cobra.Command{
 }
 
 func init() {
-	InstanceCmd.Flags().BoolP(config.FlagNameList, config.FlagShortList, false, config.FlagDescList)
-	InstanceCmd.Flags().StringP(config.FlagNameFind, config.FlagShortFind, "", config.FlagDescFind)
-	InstanceCmd.Flags().BoolP(config.FlagNameImageDetails, config.FlagShortImageDetails, false, config.FlagDescImageDetails)
+	config.ListFlag.AddBoolFlag(InstanceCmd)
+	config.FindFlag.AddStringFlag(InstanceCmd)
+	config.ImageDetailsFlag.AddBoolFlag(InstanceCmd)
 }
 
 // setupInstanceContext initializes logging, creates AppContext, and registers subcommands.
@@ -33,26 +35,30 @@ func setupInstanceContext(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	return initializeCommandContext(cmd)
+}
+
+// initializeCommandContext handles logger initialization, AppContext creation, and subcommand registration.
+func initializeCommandContext(cmd *cobra.Command) error {
 	// Initialize logger
 	if err := logger.SetLogger(); err != nil {
 		return err
 	}
 	logger.InitLogger(logger.CmdLogger)
 
-	// Create and inject AppContext
+	// Create AppContext
 	ctx := cmd.Context()
-	appCtx, err := app.NewAppContext(ctx, cmd)
+	var err error
+	appContext, err = app.InitApp(ctx, cmd)
 	if err != nil {
-		return fmt.Errorf("initializing app context: %w", err)
+		return fmt.Errorf("initializing app: %w", err)
 	}
-	ctx = context.WithValue(ctx, "appCtx", appCtx)
-	cmd.SetContext(ctx)
 
 	// Register list/find as subcommands for newer usage
 	if cmd.Name() == "instance" && len(cmd.Commands()) == 0 {
 		cmd.AddCommand(
-			newListCmd(appCtx),
-			newFindCmd(appCtx),
+			newListCmd(appContext),
+			newFindCmd(appContext),
 		)
 	}
 	return nil
@@ -60,11 +66,15 @@ func setupInstanceContext(cmd *cobra.Command, args []string) error {
 
 // executeInstanceCommand handles the old flag syntax for backward compatibility.
 func executeInstanceCommand(cmd *cobra.Command, args []string) error {
-	appCtx, err := getAppContext(cmd)
-	if err != nil {
-		return err
+	// Use the already initialized AppContext
+	if appContext == nil {
+		return fmt.Errorf("app context not initialized")
 	}
+	return doInstanceCommand(cmd, appContext)
+}
 
+// doInstanceCommand handles the actual execution of instance commands based on config.
+func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 	list, _ := cmd.Flags().GetBool(config.FlagNameList)
 	find, _ := cmd.Flags().GetString(config.FlagNameFind)
 	imageDetails, _ := cmd.Flags().GetBool(config.FlagNameImageDetails)
@@ -72,26 +82,13 @@ func executeInstanceCommand(cmd *cobra.Command, args []string) error {
 	switch {
 	case list:
 		fmt.Println("Listing instances in compartment:", appCtx.CompartmentName)
-		return resources.ListInstances(appCtx)
+		return compute.ListInstances(appCtx)
 
 	case find != "":
 		fmt.Println("Finding instances with name pattern:", find)
-		return resources.FindInstances(appCtx, find, imageDetails)
+		return compute.FindInstances(appCtx, find, imageDetails)
 
 	default:
 		return cmd.Help()
 	}
-}
-
-// getAppContext retrieves the AppContext from the command's context or returns an error.
-func getAppContext(cmd *cobra.Command) (*app.AppContext, error) {
-	ctx := cmd.Context()
-	if ctx == nil {
-		return nil, fmt.Errorf("command context is nil")
-	}
-	appCtx, ok := ctx.Value("appCtx").(*app.AppContext)
-	if !ok || appCtx == nil {
-		return nil, fmt.Errorf("app context not found in command context")
-	}
-	return appCtx, nil
 }

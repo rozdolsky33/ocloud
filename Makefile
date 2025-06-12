@@ -4,12 +4,13 @@
 GO        := go
 BIN       := ocloud
 BUILD_DIR := bin
+GOLANGCI_LINT := golangci-lint
 
 # Default target
 .DEFAULT_GOAL := help
 
 # Targets
-.PHONY: all build run install test fmt vet clean help
+.PHONY: all build run install test fmt vet lint clean help generate
 
 all: build
 
@@ -38,6 +39,14 @@ vet:
 	@echo "Vet code..."
 	@$(GO) vet ./...
 
+lint:
+	@echo "Linting code..."
+	@$(GOLANGCI_LINT) run --no-config ./...
+
+generate:
+	@echo "Generating code..."
+	@$(GO) generate ./...
+
 clean:
 	@echo "Cleaning up..."
 	@rm -rf $(BUILD_DIR)
@@ -53,5 +62,7 @@ help:
 	@echo "  test           Runs all tests"
 	@echo "  fmt            Formats Go source files"
 	@echo "  vet            Runs go vet on the code"
+	@echo "  lint           Runs golangci-lint on the code"
+	@echo "  generate       Runs go generate to update generated code"
 	@echo "  clean          Removes build artifacts"
 	@echo "  help           Displays this help message"
