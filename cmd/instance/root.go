@@ -33,6 +33,11 @@ func setupInstanceContext(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	return initializeCommandContext(cmd)
+}
+
+// initializeCommandContext handles logger initialization, AppContext creation, and subcommand registration.
+func initializeCommandContext(cmd *cobra.Command) error {
 	// Initialize logger
 	if err := logger.SetLogger(); err != nil {
 		return err
@@ -46,8 +51,8 @@ func setupInstanceContext(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("initializing app: %w", err)
 	}
 
-	// Store AppContext in command's context for backward compatibility
-	// This will be removed in future versions
+	// Store AppContext in command's context for backward compatibility and exploration mode
+	// This will be removed in future versions.
 	ctx = context.WithValue(ctx, "appCtx", application)
 	cmd.SetContext(ctx)
 
@@ -67,7 +72,11 @@ func executeInstanceCommand(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	return doInstanceCommand(cmd, appCtx)
+}
 
+// doInstanceCommand handles the actual execution of instance commands based on flags.
+func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 	list, _ := cmd.Flags().GetBool(flags.FlagNameList)
 	find, _ := cmd.Flags().GetString(flags.FlagNameFind)
 	imageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)

@@ -20,16 +20,20 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			namePattern := args[0]
-			logger.CmdLogger.V(1).Info("Running instance find command", "pattern", namePattern)
-			fmt.Println("Finding instances with name pattern:", namePattern)
-
-			showImageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)
-			return compute.FindInstances(appCtx, namePattern, showImageDetails)
+			return doFindInstances(cmd, appCtx, args[0])
 		},
 	}
 
 	flags.ImageDetailsFlag.AddBoolFlag(cmd)
 
 	return cmd
+}
+
+// doFindInstances handles the actual execution of the find command
+func doFindInstances(cmd *cobra.Command, appCtx *app.AppContext, namePattern string) error {
+	logger.CmdLogger.V(1).Info("Running instance find command", "pattern", namePattern)
+	fmt.Println("Finding instances with name pattern:", namePattern)
+
+	showImageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)
+	return compute.FindInstances(appCtx, namePattern, showImageDetails)
 }

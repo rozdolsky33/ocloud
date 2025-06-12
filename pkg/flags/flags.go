@@ -146,30 +146,6 @@ var (
 	}
 )
 
-// Global flags
-var (
-	TenancyIDFlag = Flag{
-		Name:        FlagNameTenancyID,
-		Shorthand:   FlagShortTenancyID,
-		Default:     "",
-		Description: FlagDescTenancyID,
-	}
-
-	TenancyNameFlag = Flag{
-		Name:        FlagNameTenancyName,
-		Shorthand:   "",
-		Default:     "",
-		Description: FlagDescTenancyName,
-	}
-
-	CompartmentFlag = Flag{
-		Name:        FlagNameCompartment,
-		Shorthand:   FlagShortCompartment,
-		Default:     "",
-		Description: FlagDescCompartment,
-	}
-)
-
 // InitGlobalFlags initializes global CLI flags and binds them to environment variables for configuration.
 func InitGlobalFlags(root *cobra.Command) {
 	root.PersistentFlags().StringVarP(&logger.LogLevel, FlagNameLogLevel, "", "info", logger.LogLevelMsg)
