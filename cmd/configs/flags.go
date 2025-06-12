@@ -2,7 +2,7 @@ package configs
 
 // FlagNames defines the string constants for flag names
 const (
-	FlagNameDebug             = "debug"
+	FlagNameLogLevel          = "log-level"
 	FlagNameList              = "list"
 	FlagNameFind              = "find"
 	FlagNameTenancyID         = "tenancy-id"
@@ -28,7 +28,7 @@ const (
 
 // FlagShorthand defines single-character aliases for flags
 const (
-	FlagShortDebug             = "d"
+	FlagShortLogLevel          = "l"
 	FlagShortList              = "l"
 	FlagShortFind              = "f"
 	FlagShortTenancyID         = "t"
@@ -53,7 +53,7 @@ const (
 
 // FlagDescriptions contains help text for flags
 const (
-	FlagDescDebug             = "Enable debug logging"
+	FlagDescLogLevel          = "Set the log verbosity. Supported values are: debug, info, warn, and error."
 	FlagDescList              = "List all resources"
 	FlagDescFind              = "Find resources by name pattern search"
 	FlagDescCreate            = "Create a resource"
@@ -65,9 +65,9 @@ const (
 	FlagDescPublicKey         = "Public key file path"
 	FlagDescInstanceID        = "Instance OCID"
 	FlagDescUser              = "User name"
-	FlagDescTenancyID         = "Tenancy OCID"
+	FlagDescTenancyID         = "OCI tenancy OCID"
 	FlagDescTenancyName       = "Tenancy name"
-	FlagDescCompartment       = "Compartment Name"
+	FlagDescCompartment       = "OCI compartment name"
 	FlagDescOKEName           = "OKE cluster name"
 	FlagDescLocalFwPort       = "Local firewall port"
 	FlagDescHostFwPort        = "Host firewall port"
