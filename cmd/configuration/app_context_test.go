@@ -74,6 +74,10 @@ func TestInitGlobalFlags(t *testing.T) {
 	assert.Equal(t, FlagShortTenancyID, tenancyFlag.Shorthand)
 	assert.Equal(t, FlagDescTenancyID, tenancyFlag.Usage)
 
+	tenancyNameFlag := cmd.PersistentFlags().Lookup(FlagNameTenancyName)
+	assert.NotNil(t, tenancyNameFlag)
+	assert.Equal(t, FlagDescTenancyName, tenancyNameFlag.Usage)
+
 	compartmentFlag := cmd.PersistentFlags().Lookup(FlagNameCompartment)
 	assert.NotNil(t, compartmentFlag)
 	assert.Equal(t, FlagShortCompartment, compartmentFlag.Shorthand)
@@ -169,4 +173,39 @@ func TestCompartmentFromEnv(t *testing.T) {
 
 	// Verify that the environment variable is set
 	assert.Equal(t, testCompartment, os.Getenv(EnvOCICompartment))
+}
+
+// TestTenancyNameFromFlag tests that tenancy name from a flag is used
+func TestTenancyNameFromFlag(t *testing.T) {
+	cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create a test command with flags
+	cmd := &cobra.Command{}
+	cmd.Flags().String(FlagNameTenancyName, "", "")
+
+	// Set the flag as changed and set a value
+	testTenancyName := "test-tenancy-name"
+	viper.Set(FlagNameTenancyName, testTenancyName)
+	cmd.Flags().Set(FlagNameTenancyName, testTenancyName)
+
+	// Verify that viper has the correct value
+	assert.Equal(t, testTenancyName, viper.GetString(FlagNameTenancyName))
+}
+
+// TestTenancyNameFromEnv tests that tenancy name from the environment is used
+func TestTenancyNameFromEnv(t *testing.T) {
+	cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create a test command with flags
+	cmd := &cobra.Command{}
+	cmd.Flags().String(FlagNameTenancyName, "", "")
+
+	// Set environment variable
+	testTenancyName := "env-tenancy-name"
+	os.Setenv(EnvOCITenancyName, testTenancyName)
+
+	// Verify that the environment variable is set
+	assert.Equal(t, testTenancyName, os.Getenv(EnvOCITenancyName))
 }

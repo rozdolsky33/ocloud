@@ -29,9 +29,11 @@ func InitGlobalFlags(root *cobra.Command) {
 	root.PersistentFlags().StringVarP(&helpers.LogLevel, FlagNameLogLevel, "", "info", helpers.LogLevelMsg)
 	root.PersistentFlags().BoolVar(&helpers.ColoredOutput, "color", false, helpers.ColoredOutputMsg)
 	root.PersistentFlags().StringP(FlagNameTenancyID, FlagShortTenancyID, "", FlagDescTenancyID)
+	root.PersistentFlags().StringP(FlagNameTenancyName, "", "", FlagDescTenancyName)
 	root.PersistentFlags().StringP(FlagNameCompartment, FlagShortCompartment, "", FlagDescCompartment)
 
 	_ = viper.BindPFlag(FlagNameTenancyID, root.PersistentFlags().Lookup(FlagNameTenancyID))
+	_ = viper.BindPFlag(FlagNameTenancyName, root.PersistentFlags().Lookup(FlagNameTenancyName))
 	_ = viper.BindPFlag(FlagNameCompartment, root.PersistentFlags().Lookup(FlagNameCompartment))
 
 	// allow ENV overrides, e.g., OCI_CLI_TENANCY, OCI_TENANCY_NAME, OCI_COMPARTMENT
@@ -69,6 +71,7 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 
 	// Resolve Tenancy OCID: flag > ENV OCI_CLI_TENANCY > ENV OCI_TENANCY_NAME > OCI config file
 	var tenancyID string
+	var tenancyName string
 	envTenancy := os.Getenv(EnvOCITenancy)
 	envTenancyName := os.Getenv(EnvOCITenancyName)
 
@@ -77,10 +80,26 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 		tenancyID = viper.GetString(FlagNameTenancyID)
 		logger.V(1).Info("using tenancy OCID from flag", "tenancyID", tenancyID)
 
+		// Check if the tenancy name is provided as a flag
+		if cmd.Flags().Changed(FlagNameTenancyName) {
+			tenancyName = viper.GetString(FlagNameTenancyName)
+			logger.V(1).Info("using tenancy name from flag", "tenancyName", tenancyName)
+		} else if envTenancyName != "" {
+			// Use tenancy name from the environment if available
+			tenancyName = envTenancyName
+			logger.V(1).Info("using tenancy name from env", "tenancyName", tenancyName)
+		}
+
 	case envTenancy != "":
 		tenancyID = envTenancy
 		viper.Set(FlagNameTenancyID, tenancyID)
 		logger.V(1).Info("using tenancy OCID from env", "tenancyID", tenancyID)
+
+		// Check if a tenancy name is provided in the environment
+		if envTenancyName != "" {
+			tenancyName = envTenancyName
+			logger.V(1).Info("using tenancy name from env", "tenancyName", tenancyName)
+		}
 
 	case envTenancyName != "":
 		lookupID, err := config.LookupTenancyID(envTenancyName)
@@ -88,7 +107,9 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 			return nil, fmt.Errorf("could not look up tenancy ID for %q: %w", envTenancyName, err)
 		}
 		tenancyID = lookupID
+		tenancyName = envTenancyName
 		viper.Set(FlagNameTenancyID, tenancyID)
+		viper.Set(FlagNameTenancyName, tenancyName)
 		logger.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", tenancyID)
 
 	default:
@@ -99,8 +120,24 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 		}
 		tenancyID = fileID
 		logger.V(1).Info("using tenancy OCID from config file", "tenancyID", tenancyID)
+
+		// Try to find a tenancy name from a mapping file if available
+		tenancies, err := config.LoadTenancyMap()
+		if err == nil {
+			for _, env := range tenancies {
+				if env.TenancyID == tenancyID {
+					tenancyName = env.Tenancy
+					logger.V(1).Info("found tenancy name from mapping file", "tenancyName", tenancyName)
+					break
+				}
+			}
+		}
 	}
 	viper.Set(FlagNameTenancyID, tenancyID)
+	if tenancyName != "" {
+		viper.Set(FlagNameTenancyName, tenancyName)
+		appCtx.TenancyName = tenancyName
+	}
 	appCtx.TenancyID = tenancyID
 
 	// Resolve Compartment OCID using helper
@@ -128,6 +165,12 @@ func fetchTenancyOCID() error {
 }
 
 func fetchCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, idClient identity.IdentityClient) (string, error) {
+	// If the compartment name is not set, use tenancy ID as fallback
+	if compartmentName == "" {
+		helpers.CmdLogger.V(1).Info("compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
+		return tenancyOCID, nil
+	}
+
 	// prepare the base request
 	req := identity.ListCompartmentsRequest{
 		CompartmentId:          &tenancyOCID,
