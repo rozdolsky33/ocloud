@@ -2,6 +2,7 @@ package instance
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config"
 
 	"github.com/spf13/cobra"
 
@@ -29,7 +30,7 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&showImageDetails, "image-details", "i", false, "Show image details")
+	cmd.Flags().BoolVarP(&showImageDetails, config.FlagNameImageDetails, config.FlagShortImageDetails, false, config.FlagDescImageDetails)
 
 	return cmd
 }

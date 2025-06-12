@@ -86,6 +86,9 @@ func executeInstanceCommand(cmd *cobra.Command, args []string) error {
 // getAppContext retrieves the AppContext from the command's context or returns an error.
 func getAppContext(cmd *cobra.Command) (*app.AppContext, error) {
 	ctx := cmd.Context()
+	if ctx == nil {
+		return nil, fmt.Errorf("command context is nil")
+	}
 	appCtx, ok := ctx.Value("appCtx").(*app.AppContext)
 	if !ok || appCtx == nil {
 		return nil, fmt.Errorf("app context not found in command context")
