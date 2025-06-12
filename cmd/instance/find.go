@@ -15,9 +15,11 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 	var showImageDetails bool
 
 	cmd := &cobra.Command{
-		Use:   "find [name]",
-		Short: "Find instances by name pattern",
-		Args:  cobra.ExactArgs(1),
+		Use:           "find [name]",
+		Short:         "Find instances by name pattern",
+		Args:          cobra.ExactArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			namePattern := args[0]
 			logger.CmdLogger.V(1).Info("Running instance find command", "pattern", namePattern)
@@ -25,6 +27,7 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 
 			return resources.FindInstances(
 				appCtx.Ctx,
+				appCtx.Provider,
 				appCtx.CompartmentID,
 				namePattern,
 				showImageDetails,

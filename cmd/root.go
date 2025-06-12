@@ -12,9 +12,10 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "ocloud",
-	Short: "Interact with Oracle Cloud Infrastructure",
-	Long:  "",
+	Use:          "ocloud",
+	Short:        "Interact with Oracle Cloud Infrastructure",
+	Long:         "",
+	SilenceUsage: true,
 }
 
 func init() {

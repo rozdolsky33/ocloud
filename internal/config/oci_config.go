@@ -28,7 +28,6 @@ const (
 	envProfileKey  = "OCI_CLI_PROFILE"
 	configDir      = ".oci"
 	configFile     = "config"
-
 	// EnvTenancyMapPath is the environment variable key used to specify the file path for the OCI tenancy map configuration.
 	EnvTenancyMapPath = "OCI_TENANCY_MAP_PATH"
 )
@@ -106,7 +105,7 @@ func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 
 	if err := ensureFile(path); err != nil {
 		logger.Logger.Info("tenancy mapping file not found", "error", err)
-		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup", path)
+		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup. To set up the mapping file, create a YAML file at %s or set the %s environment variable to point to your mapping file. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1", path, DefaultTenancyMapPath, EnvTenancyMapPath)
 	}
 
 	data, err := os.ReadFile(path)

@@ -104,11 +104,15 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 	if envTenancyName := os.Getenv(config.EnvOCITenancyName); envTenancyName != "" {
 		lookupID, err := config.LookupTenancyID(envTenancyName)
 		if err != nil {
-			return "", fmt.Errorf("could not look up tenancy ID for %q: %w", envTenancyName, err)
+			// Log the error but continue with the next method of resolving the tenancy ID
+			log.Info("could not look up tenancy ID for tenancy name, continuing with other methods", "tenancyName", envTenancyName, "error", err)
+			// Add a more detailed message about how to set up the mapping file
+			log.Info("To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
+		} else {
+			log.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
+			viper.Set(config.FlagNameTenancyID, lookupID)
+			return lookupID, nil
 		}
-		log.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
-		viper.Set(config.FlagNameTenancyID, lookupID)
-		return lookupID, nil
 	}
 
 	// Load from an OCI config file as a last resort
