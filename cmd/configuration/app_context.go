@@ -3,13 +3,15 @@ package configuration
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
-	"github.com/rozdolsky33/ocloud/internal/config"
-	"github.com/rozdolsky33/ocloud/internal/helpers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
+
+	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/internal/helpers"
 )
 
 // AppContext represents the application context containing OCI configuration, tenancy, and compartment information.
@@ -54,6 +56,7 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 	if err != nil {
 		return nil, fmt.Errorf("creating identity client: %w", err)
 	}
+
 	// Optional region override
 	if region, ok := os.LookupEnv(EnvOCIRegion); ok {
 		idClient.SetRegion(region)
@@ -65,83 +68,24 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 		Ctx:             ctx,
 		Provider:        prov,
 		IdentityClient:  idClient,
-		TenancyName:     viper.GetString(FlagNameTenancyName),
 		CompartmentName: viper.GetString(FlagNameCompartment),
 	}
 
-	// Resolve Tenancy OCID: flag > ENV OCI_CLI_TENANCY > ENV OCI_TENANCY_NAME > OCI config file
-	var tenancyID string
-	var tenancyName string
-	envTenancy := os.Getenv(EnvOCITenancy)
-	envTenancyName := os.Getenv(EnvOCITenancyName)
-
-	switch {
-	case cmd.Flags().Changed(FlagNameTenancyID):
-		tenancyID = viper.GetString(FlagNameTenancyID)
-		logger.V(1).Info("using tenancy OCID from flag", "tenancyID", tenancyID)
-
-		// Check if the tenancy name is provided as a flag
-		if cmd.Flags().Changed(FlagNameTenancyName) {
-			tenancyName = viper.GetString(FlagNameTenancyName)
-			logger.V(1).Info("using tenancy name from flag", "tenancyName", tenancyName)
-		} else if envTenancyName != "" {
-			// Use tenancy name from the environment if available
-			tenancyName = envTenancyName
-			logger.V(1).Info("using tenancy name from env", "tenancyName", tenancyName)
-		}
-
-	case envTenancy != "":
-		tenancyID = envTenancy
-		viper.Set(FlagNameTenancyID, tenancyID)
-		logger.V(1).Info("using tenancy OCID from env", "tenancyID", tenancyID)
-
-		// Check if a tenancy name is provided in the environment
-		if envTenancyName != "" {
-			tenancyName = envTenancyName
-			logger.V(1).Info("using tenancy name from env", "tenancyName", tenancyName)
-		}
-
-	case envTenancyName != "":
-		lookupID, err := config.LookupTenancyID(envTenancyName)
-		if err != nil {
-			return nil, fmt.Errorf("could not look up tenancy ID for %q: %w", envTenancyName, err)
-		}
-		tenancyID = lookupID
-		tenancyName = envTenancyName
-		viper.Set(FlagNameTenancyID, tenancyID)
-		viper.Set(FlagNameTenancyName, tenancyName)
-		logger.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", tenancyID)
-
-	default:
-		// load from OCI config file
-		fileID, err := config.GetTenancyOCID()
-		if err != nil {
-			return nil, fmt.Errorf("could not load tenancy OCID: %w", err)
-		}
-		tenancyID = fileID
-		logger.V(1).Info("using tenancy OCID from config file", "tenancyID", tenancyID)
-
-		// Try to find a tenancy name from a mapping file if available
-		tenancies, err := config.LoadTenancyMap()
-		if err == nil {
-			for _, env := range tenancies {
-				if env.TenancyID == tenancyID {
-					tenancyName = env.Tenancy
-					logger.V(1).Info("found tenancy name from mapping file", "tenancyName", tenancyName)
-					break
-				}
-			}
-		}
-	}
-	viper.Set(FlagNameTenancyID, tenancyID)
-	if tenancyName != "" {
-		viper.Set(FlagNameTenancyName, tenancyName)
-		appCtx.TenancyName = tenancyName
+	// Resolve Tenancy ID
+	tenancyID, err := ResolveTenancyID(cmd)
+	if err != nil {
+		return nil, err
 	}
 	appCtx.TenancyID = tenancyID
 
-	// Resolve Compartment OCID using helper
-	compID, err := fetchCompartmentID(appCtx.Ctx, appCtx.TenancyID, appCtx.CompartmentName, appCtx.IdentityClient)
+	// Resolve Tenancy Name
+	tenancyName := ResolveTenancyName(cmd, tenancyID)
+	if tenancyName != "" {
+		appCtx.TenancyName = tenancyName
+	}
+
+	// Resolve Compartment ID
+	compID, err := ResolveCompartmentID(ctx, appCtx.TenancyID, appCtx.CompartmentName, appCtx.TenancyName, appCtx.IdentityClient)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve compartment ID: %w", err)
 	}
@@ -150,21 +94,92 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command, _ []string) (*AppCon
 	return appCtx, nil
 }
 
-// fetchTenancyOCID loads the tenancy OCID from an OCI config file and sets it as the default value in viper.
-// Returns an error if the tenancy OCID cannot be retrieved or there is an issue with the OCI config file.
-func fetchTenancyOCID() error {
+// ResolveTenancyID resolves the tenancy OCID from various sources in order of precedence:
+// 1. Command line flag
+// 2. Environment variable
+// 3. Tenancy name lookup (if tenancy name is provided)
+// 4. OCI config file
+// Returns the tenancy ID or an error if it cannot be resolved.
+func ResolveTenancyID(cmd *cobra.Command) (string, error) {
+	logger := helpers.CmdLogger
+
+	// Check if tenancy ID is provided as a flag
+	if cmd.Flags().Changed(FlagNameTenancyID) {
+		tenancyID := viper.GetString(FlagNameTenancyID)
+		logger.V(1).Info("using tenancy OCID from flag", "tenancyID", tenancyID)
+		return tenancyID, nil
+	}
+
+	// Check if tenancy ID is provided as an environment variable
+	if envTenancy := os.Getenv(EnvOCITenancy); envTenancy != "" {
+		logger.V(1).Info("using tenancy OCID from env", "tenancyID", envTenancy)
+		viper.Set(FlagNameTenancyID, envTenancy)
+		return envTenancy, nil
+	}
+
+	// Check if tenancy name is provided as an environment variable
+	if envTenancyName := os.Getenv(EnvOCITenancyName); envTenancyName != "" {
+		lookupID, err := config.LookupTenancyID(envTenancyName)
+		if err != nil {
+			return "", fmt.Errorf("could not look up tenancy ID for %q: %w", envTenancyName, err)
+		}
+		logger.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
+		viper.Set(FlagNameTenancyID, lookupID)
+		return lookupID, nil
+	}
+
+	// Load from OCI config file as a last resort
 	tenancyID, err := config.GetTenancyOCID()
 	if err != nil {
-		return fmt.Errorf("could not load tenancy OCID: %w", err)
+		return "", fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
-	logger := helpers.CmdLogger
-	logger.V(1).Info("using tenancy OCID from OCI config file", "tenancyID", tenancyID)
-	viper.SetDefault(FlagNameTenancyID, tenancyID)
+	logger.V(1).Info("using tenancy OCID from config file", "tenancyID", tenancyID)
+	viper.Set(FlagNameTenancyID, tenancyID)
 
-	return nil
+	return tenancyID, nil
 }
 
-func fetchCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, idClient identity.IdentityClient) (string, error) {
+// ResolveTenancyName resolves the tenancy name from various sources in order of precedence:
+// 1. Command line flag
+// 2. Environment variable
+// 3. Tenancy mapping file lookup (using tenancy ID)
+// Returns the tenancy name or an empty string if it cannot be resolved.
+func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
+	logger := helpers.CmdLogger
+
+	// Check if tenancy name is provided as a flag
+	if cmd.Flags().Changed(FlagNameTenancyName) {
+		tenancyName := viper.GetString(FlagNameTenancyName)
+		logger.V(1).Info("using tenancy name from flag", "tenancyName", tenancyName)
+		return tenancyName
+	}
+
+	// Check if tenancy name is provided as an environment variable
+	if envTenancyName := os.Getenv(EnvOCITenancyName); envTenancyName != "" {
+		logger.V(1).Info("using tenancy name from env", "tenancyName", envTenancyName)
+		viper.Set(FlagNameTenancyName, envTenancyName)
+		return envTenancyName
+	}
+
+	// Try to find a tenancy name from a mapping file if available
+	tenancies, err := config.LoadTenancyMap()
+	if err == nil {
+		for _, env := range tenancies {
+			if env.TenancyID == tenancyID {
+				logger.V(1).Info("found tenancy name from mapping file", "tenancyName", env.Tenancy)
+				viper.Set(FlagNameTenancyName, env.Tenancy)
+				return env.Tenancy
+			}
+		}
+	}
+
+	return ""
+}
+
+// ResolveCompartmentID returns the OCID of the compartment whose name matches
+// `compartmentName` under the given tenancy. It searches all active compartments
+// in the tenancy subtree.
+func ResolveCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, tenancyName string, idClient identity.IdentityClient) (string, error) {
 	// If the compartment name is not set, use tenancy ID as fallback
 	if compartmentName == "" {
 		helpers.CmdLogger.V(1).Info("compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)

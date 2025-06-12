@@ -87,21 +87,26 @@ func TestInitGlobalFlags(t *testing.T) {
 	assert.Equal(t, "OCI", viper.GetEnvPrefix())
 }
 
-// TestLoadTenancyOCID tests the fetchTenancyOCID function
-func TestLoadTenancyOCID(t *testing.T) {
+// TestResolveTenancyID tests the ResolveTenancyID function
+func TestResolveTenancyID(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	// Test successful retrieval
-	err := fetchTenancyOCID()
+	// Create a test command
+	cmd := &cobra.Command{}
+	cmd.Flags().String(FlagNameTenancyID, "", "")
+
+	// Test successful retrieval from config file
+	tenancyID, err := ResolveTenancyID(cmd)
 	assert.NoError(t, err)
+	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 	assert.Equal(t, "mock-tenancy-ocid", viper.GetString(FlagNameTenancyID))
 
 	// Test error case
 	config.MockGetTenancyOCID = func() (string, error) {
 		return "", fmt.Errorf("mock error")
 	}
-	err = fetchTenancyOCID()
+	_, err = ResolveTenancyID(cmd)
 	assert.Error(t, err)
 }
 
@@ -175,37 +180,47 @@ func TestCompartmentFromEnv(t *testing.T) {
 	assert.Equal(t, testCompartment, os.Getenv(EnvOCICompartment))
 }
 
-// TestTenancyNameFromFlag tests that tenancy name from a flag is used
-func TestTenancyNameFromFlag(t *testing.T) {
+// TestResolveTenancyName tests the ResolveTenancyName function
+func TestResolveTenancyName(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
-	// Create a test command with flags
+	// Create a test command
 	cmd := &cobra.Command{}
 	cmd.Flags().String(FlagNameTenancyName, "", "")
 
-	// Set the flag as changed and set a value
+	// Test with flag
 	testTenancyName := "test-tenancy-name"
 	viper.Set(FlagNameTenancyName, testTenancyName)
 	cmd.Flags().Set(FlagNameTenancyName, testTenancyName)
+	cmd.Flags().Changed(FlagNameTenancyName)
 
-	// Verify that viper has the correct value
-	assert.Equal(t, testTenancyName, viper.GetString(FlagNameTenancyName))
-}
+	tenancyName := ResolveTenancyName(cmd, "mock-tenancy-ocid")
+	assert.Equal(t, testTenancyName, tenancyName)
 
-// TestTenancyNameFromEnv tests that tenancy name from the environment is used
-func TestTenancyNameFromEnv(t *testing.T) {
-	cleanup := setupTest(t)
-	defer cleanup()
-
-	// Create a test command with flags
-	cmd := &cobra.Command{}
+	// Reset
+	cmd = &cobra.Command{}
 	cmd.Flags().String(FlagNameTenancyName, "", "")
+	viper.Reset()
+	viper.SetEnvPrefix("OCI")
+	viper.AutomaticEnv()
 
-	// Set environment variable
-	testTenancyName := "env-tenancy-name"
-	os.Setenv(EnvOCITenancyName, testTenancyName)
+	// Test with environment variable
+	envTenancyName := "env-tenancy-name"
+	os.Setenv(EnvOCITenancyName, envTenancyName)
 
-	// Verify that the environment variable is set
-	assert.Equal(t, testTenancyName, os.Getenv(EnvOCITenancyName))
+	tenancyName = ResolveTenancyName(cmd, "mock-tenancy-ocid")
+	assert.Equal(t, envTenancyName, tenancyName)
+
+	// Reset
+	os.Unsetenv(EnvOCITenancyName)
+	viper.Reset()
+	viper.SetEnvPrefix("OCI")
+	viper.AutomaticEnv()
+
+	// Test with mapping file (mock)
+	// This is already tested in the config package, so we'll just verify the function returns empty string
+	// when no mapping is found
+	tenancyName = ResolveTenancyName(cmd, "unknown-tenancy-id")
+	assert.Equal(t, "", tenancyName)
 }
