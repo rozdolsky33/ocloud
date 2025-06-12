@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/pkg/flags"
 )
 
 // TestInstanceCommand tests the basic structure of the instance command
@@ -20,20 +20,20 @@ func TestInstanceCommand(t *testing.T) {
 	assert.NotNil(t, InstanceCmd.RunE)
 
 	// Test that the flags are added
-	listFlag := InstanceCmd.Flags().Lookup(config.FlagNameList)
+	listFlag := InstanceCmd.Flags().Lookup(flags.FlagNameList)
 	assert.NotNil(t, listFlag, "list flag should be added")
-	assert.Equal(t, config.FlagShortList, listFlag.Shorthand)
-	assert.Equal(t, config.FlagDescList, listFlag.Usage)
+	assert.Equal(t, flags.FlagShortList, listFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescList, listFlag.Usage)
 
-	findFlag := InstanceCmd.Flags().Lookup(config.FlagNameFind)
+	findFlag := InstanceCmd.Flags().Lookup(flags.FlagNameFind)
 	assert.NotNil(t, findFlag, "find flag should be added")
-	assert.Equal(t, config.FlagShortFind, findFlag.Shorthand)
-	assert.Equal(t, config.FlagDescFind, findFlag.Usage)
+	assert.Equal(t, flags.FlagShortFind, findFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescFind, findFlag.Usage)
 
-	imageDetailsFlag := InstanceCmd.Flags().Lookup(config.FlagNameImageDetails)
+	imageDetailsFlag := InstanceCmd.Flags().Lookup(flags.FlagNameImageDetails)
 	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added")
-	assert.Equal(t, config.FlagShortImageDetails, imageDetailsFlag.Shorthand)
-	assert.Equal(t, config.FlagDescImageDetails, imageDetailsFlag.Usage)
+	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
 }
 
 // TestGetAppContext tests the getAppContext function

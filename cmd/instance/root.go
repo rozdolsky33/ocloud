@@ -3,7 +3,7 @@ package instance
 import (
 	"context"
 	"fmt"
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/pkg/flags"
 	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
 	"github.com/spf13/cobra"
 
@@ -22,9 +22,9 @@ var InstanceCmd = &cobra.Command{
 }
 
 func init() {
-	InstanceCmd.Flags().BoolP(config.FlagNameList, config.FlagShortList, false, config.FlagDescList)
-	InstanceCmd.Flags().StringP(config.FlagNameFind, config.FlagShortFind, "", config.FlagDescFind)
-	InstanceCmd.Flags().BoolP(config.FlagNameImageDetails, config.FlagShortImageDetails, false, config.FlagDescImageDetails)
+	flags.ListFlag.AddBoolFlag(InstanceCmd)
+	flags.FindFlag.AddStringFlag(InstanceCmd)
+	flags.ImageDetailsFlag.AddBoolFlag(InstanceCmd)
 }
 
 // setupInstanceContext initializes logging, creates AppContext, and registers subcommands.
@@ -39,20 +39,23 @@ func setupInstanceContext(cmd *cobra.Command, args []string) error {
 	}
 	logger.InitLogger(logger.CmdLogger)
 
-	// Create and inject AppContext
+	// Create AppContext
 	ctx := cmd.Context()
-	appCtx, err := app.NewAppContext(ctx, cmd)
+	application, err := app.InitApp(ctx, cmd)
 	if err != nil {
-		return fmt.Errorf("app context: %w", err)
+		return fmt.Errorf("initializing app: %w", err)
 	}
-	ctx = context.WithValue(ctx, "appCtx", appCtx)
+
+	// Store AppContext in command's context for backward compatibility
+	// This will be removed in future versions
+	ctx = context.WithValue(ctx, "appCtx", application)
 	cmd.SetContext(ctx)
 
 	// Register list/find as subcommands for newer usage
 	if cmd.Name() == "instance" && len(cmd.Commands()) == 0 {
 		cmd.AddCommand(
-			newListCmd(appCtx),
-			newFindCmd(appCtx),
+			newListCmd(application),
+			newFindCmd(application),
 		)
 	}
 	return nil
@@ -65,9 +68,9 @@ func executeInstanceCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	list, _ := cmd.Flags().GetBool(config.FlagNameList)
-	find, _ := cmd.Flags().GetString(config.FlagNameFind)
-	imageDetails, _ := cmd.Flags().GetBool(config.FlagNameImageDetails)
+	list, _ := cmd.Flags().GetBool(flags.FlagNameList)
+	find, _ := cmd.Flags().GetString(flags.FlagNameFind)
+	imageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)
 
 	switch {
 	case list:

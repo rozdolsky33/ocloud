@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/spf13/cobra"
@@ -12,24 +13,26 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/pkg/flags"
 )
 
-// AppContext represents the application context containing OCI configuration, tenancy, and compartment information.
-// AppContext holds the application-wide OCI configuration and resolved IDs.
+// AppContext represents the application with all its clients, configuration, and resolved IDs.
+// It holds all the components needed for command execution.
 type AppContext struct {
-	Ctx             context.Context
 	Provider        common.ConfigurationProvider
 	IdentityClient  identity.IdentityClient
 	TenancyID       string
 	TenancyName     string
 	CompartmentName string
 	CompartmentID   string
+	Logger          logr.Logger
 }
 
-// NewAppContext initializes AppContext, resolves tenancy & compartment IDs, and builds OCI clients.
-func NewAppContext(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
+// InitApp initializes the AppContext with all clients, logger, and resolved IDs.
+// It's a one-shot bootstrap function that returns a struct with everything needed.
+func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	log := logger.CmdLogger
-	log.Info("Initializing application context")
+	log.Info("Initializing application")
 
 	// Load OCI config & create provider
 	prov := config.LoadOCIConfig()
@@ -47,11 +50,11 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command) (*AppContext, error)
 	}
 
 	// Build base AppContext
-	appCtx := &AppContext{
-		Ctx:             ctx,
+	app := &AppContext{
 		Provider:        prov,
 		IdentityClient:  idClient,
-		CompartmentName: viper.GetString(config.FlagNameCompartment),
+		CompartmentName: viper.GetString(flags.FlagNameCompartment),
+		Logger:          logger.CmdLogger,
 	}
 
 	// Resolve Tenancy ID
@@ -59,22 +62,22 @@ func NewAppContext(ctx context.Context, cmd *cobra.Command) (*AppContext, error)
 	if err != nil {
 		return nil, err
 	}
-	appCtx.TenancyID = tenancyID
+	app.TenancyID = tenancyID
 
 	// Resolve Tenancy Name
 	tenancyName := ResolveTenancyName(cmd, tenancyID)
 	if tenancyName != "" {
-		appCtx.TenancyName = tenancyName
+		app.TenancyName = tenancyName
 	}
 
 	// Resolve Compartment ID
-	compID, err := ResolveCompartmentID(ctx, appCtx.TenancyID, appCtx.CompartmentName, appCtx.IdentityClient)
+	compID, err := ResolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve compartment ID: %w", err)
 	}
-	appCtx.CompartmentID = compID
+	app.CompartmentID = compID
 
-	return appCtx, nil
+	return app, nil
 }
 
 // ResolveTenancyID resolves the tenancy OCID from various sources in order of precedence:
@@ -87,8 +90,8 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 	log := logger.CmdLogger
 
 	// Check if tenancy ID is provided as a flag
-	if cmd.Flags().Changed(config.FlagNameTenancyID) {
-		tenancyID := viper.GetString(config.FlagNameTenancyID)
+	if cmd.Flags().Changed(flags.FlagNameTenancyID) {
+		tenancyID := viper.GetString(flags.FlagNameTenancyID)
 		log.V(1).Info("using tenancy OCID from flag", "tenancyID", tenancyID)
 		return tenancyID, nil
 	}
@@ -96,7 +99,7 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 	// Check if tenancy ID is provided as an environment variable
 	if envTenancy := os.Getenv(config.EnvOCITenancy); envTenancy != "" {
 		log.V(1).Info("using tenancy OCID from env", "tenancyID", envTenancy)
-		viper.Set(config.FlagNameTenancyID, envTenancy)
+		viper.Set(flags.FlagNameTenancyID, envTenancy)
 		return envTenancy, nil
 	}
 
@@ -110,7 +113,7 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 			log.Info("To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
 		} else {
 			log.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
-			viper.Set(config.FlagNameTenancyID, lookupID)
+			viper.Set(flags.FlagNameTenancyID, lookupID)
 			return lookupID, nil
 		}
 	}
@@ -121,7 +124,7 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 		return "", fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
 	log.V(1).Info("using tenancy OCID from config file", "tenancyID", tenancyID)
-	viper.Set(config.FlagNameTenancyID, tenancyID)
+	viper.Set(flags.FlagNameTenancyID, tenancyID)
 
 	return tenancyID, nil
 }
@@ -135,8 +138,8 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	log := logger.CmdLogger
 
 	// Check if the tenancy name is provided as a flag
-	if cmd.Flags().Changed(config.FlagNameTenancyName) {
-		tenancyName := viper.GetString(config.FlagNameTenancyName)
+	if cmd.Flags().Changed(flags.FlagNameTenancyName) {
+		tenancyName := viper.GetString(flags.FlagNameTenancyName)
 		log.V(1).Info("using tenancy name from flag", "tenancyName", tenancyName)
 		return tenancyName
 	}
@@ -144,7 +147,7 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	// Check if the tenancy name is provided as an environment variable
 	if envTenancyName := os.Getenv(config.EnvOCITenancyName); envTenancyName != "" {
 		log.V(1).Info("using tenancy name from env", "tenancyName", envTenancyName)
-		viper.Set(config.FlagNameTenancyName, envTenancyName)
+		viper.Set(flags.FlagNameTenancyName, envTenancyName)
 		return envTenancyName
 	}
 
@@ -154,7 +157,7 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 		for _, env := range tenancies {
 			if env.TenancyID == tenancyID {
 				log.V(1).Info("found tenancy name from mapping file", "tenancyName", env.Tenancy)
-				viper.Set(config.FlagNameTenancyName, env.Tenancy)
+				viper.Set(flags.FlagNameTenancyName, env.Tenancy)
 				return env.Tenancy
 			}
 		}

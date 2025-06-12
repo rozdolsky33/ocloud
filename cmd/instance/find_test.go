@@ -1,24 +1,25 @@
 package instance
 
 import (
-	"context"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/pkg/flags"
 )
 
 // TestNewFindCmd tests the newFindCmd function
 func TestNewFindCmd(t *testing.T) {
 	// Create a mock AppContext
-	mockCtx := &app.AppContext{
-		Ctx: context.Background(),
+	mockApp := &app.AppContext{
+		// Initialize with minimal required fields for the test
+		Logger: logr.Discard(),
 	}
 
 	// Call the function
-	cmd := newFindCmd(mockCtx)
+	cmd := newFindCmd(mockApp)
 
 	// Test that the command is properly configured
 	assert.Equal(t, "find", cmd.Name())
@@ -36,8 +37,8 @@ func TestNewFindCmd(t *testing.T) {
 	assert.Error(t, cmd.Args(cmd, []string{"test-pattern", "extra-arg"}))
 
 	// Test that the flags are added
-	imageDetailsFlag := cmd.Flags().Lookup(config.FlagNameImageDetails)
+	imageDetailsFlag := cmd.Flags().Lookup(flags.FlagNameImageDetails)
 	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added")
-	assert.Equal(t, config.FlagShortImageDetails, imageDetailsFlag.Shorthand)
-	assert.Equal(t, config.FlagDescImageDetails, imageDetailsFlag.Usage)
+	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
 }

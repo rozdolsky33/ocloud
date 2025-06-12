@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/rozdolsky33/ocloud/cmd/instance"
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/pkg/flags"
 )
 
 var rootCmd = &cobra.Command{
@@ -19,7 +19,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	config.InitGlobalFlags(rootCmd)
+	flags.InitGlobalFlags(rootCmd)
 	rootCmd.AddCommand(instance.InstanceCmd)
 }
 

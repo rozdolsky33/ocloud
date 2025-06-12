@@ -1,9 +1,9 @@
 package instance
 
 import (
-	"context"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -12,12 +12,13 @@ import (
 // TestNewListCmd tests the newListCmd function
 func TestNewListCmd(t *testing.T) {
 	// Create a mock AppContext
-	mockCtx := &app.AppContext{
-		Ctx: context.Background(),
+	mockApp := &app.AppContext{
+		// Initialize with minimal required fields for the test
+		Logger: logr.Discard(),
 	}
 
 	// Call the function
-	cmd := newListCmd(mockCtx)
+	cmd := newListCmd(mockApp)
 
 	// Test that the command is properly configured
 	assert.Equal(t, "list", cmd.Name())
