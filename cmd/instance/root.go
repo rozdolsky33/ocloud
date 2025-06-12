@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
 	"github.com/spf13/cobra"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/pkg/resources"
 )
 
 // InstanceCmd is the root command for instance-related operations
@@ -43,7 +43,7 @@ func setupInstanceContext(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	appCtx, err := app.NewAppContext(ctx, cmd)
 	if err != nil {
-		return fmt.Errorf("initializing app context: %w", err)
+		return fmt.Errorf("app context: %w", err)
 	}
 	ctx = context.WithValue(ctx, "appCtx", appCtx)
 	cmd.SetContext(ctx)
@@ -72,11 +72,11 @@ func executeInstanceCommand(cmd *cobra.Command, args []string) error {
 	switch {
 	case list:
 		fmt.Println("Listing instances in compartment:", appCtx.CompartmentName)
-		return resources.ListInstances(appCtx)
+		return compute.ListInstances(appCtx)
 
 	case find != "":
 		fmt.Println("Finding instances with name pattern:", find)
-		return resources.FindInstances(appCtx, find, imageDetails)
+		return compute.FindInstances(appCtx, find, imageDetails)
 
 	default:
 		return cmd.Help()
