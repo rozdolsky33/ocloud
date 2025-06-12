@@ -13,13 +13,13 @@ var InstanceCmd = &cobra.Command{
 	Short:   "Find and list OCI instances",
 	PreRunE: preConfigE,
 	RunE: func(cmd *cobra.Command, args []string) error {
-
-		app, err := configuration.NewAppContext(cmd, args)
+		ctx := cmd.Context()
+		app, err := configuration.NewAppContext(ctx, cmd, args)
 		if err != nil {
 			return err
 		}
 		fmt.Println("Running instance command")
-		fmt.Println("Compartment: ", app.Compartment)
+		fmt.Println("Compartment: ", app.CompartmentName)
 
 		list, _ := cmd.Flags().GetBool("list")
 		//find, _ := cmd.Flags().GetString("find")

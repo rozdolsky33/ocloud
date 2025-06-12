@@ -83,13 +83,13 @@ func TestInitGlobalFlags(t *testing.T) {
 	assert.Equal(t, "OCI", viper.GetEnvPrefix())
 }
 
-// TestLoadTenancyOCID tests the loadTenancyOCID function
+// TestLoadTenancyOCID tests the fetchTenancyOCID function
 func TestLoadTenancyOCID(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
 
 	// Test successful retrieval
-	err := loadTenancyOCID()
+	err := fetchTenancyOCID()
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", viper.GetString(FlagNameTenancyID))
 
@@ -97,7 +97,7 @@ func TestLoadTenancyOCID(t *testing.T) {
 	config.MockGetTenancyOCID = func() (string, error) {
 		return "", fmt.Errorf("mock error")
 	}
-	err = loadTenancyOCID()
+	err = fetchTenancyOCID()
 	assert.Error(t, err)
 }
 
