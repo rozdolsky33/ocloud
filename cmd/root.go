@@ -3,15 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
-
-	"github.com/spf13/cobra"
-
 	"github.com/rozdolsky33/ocloud/cmd/compute"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/spf13/cobra"
+	"os"
+	"strings"
 )
 
 // NewRootCmd creates a new root command with all subcommands attached
@@ -42,7 +40,6 @@ func Execute(ctx context.Context) {
 		SilenceUsage: true,
 	}
 
-	// Initialize global flags on the temporary root
 	flags.AddGlobalFlags(tempRoot)
 
 	setLogLevel(tempRoot)

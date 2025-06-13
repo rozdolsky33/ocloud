@@ -2,14 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"log/slog"
-	"os"
-	"strings"
-
-	"github.com/cnoe-io/idpbuilder/pkg/logger"
 	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
+	"log/slog"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"strings"
 )
 
 var (
@@ -53,7 +51,7 @@ func SetLogger() error {
 		GLOBAL_VERBOSITY = 0
 	}
 
-	slogger := slog.New(logger.NewHandler(os.Stderr, logger.Options{Level: l, Colored: ColoredOutput}))
+	slogger := slog.New(NewHandler(os.Stderr, Options{Level: l, Colored: ColoredOutput}))
 	kslogger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: getKlogLevel(l)}))
 	baseLogger := logr.FromSlogHandler(slogger.Handler())
 	klogger := logr.FromSlogHandler(kslogger.Handler())
