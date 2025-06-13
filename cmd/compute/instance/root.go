@@ -1,7 +1,6 @@
 package instance
 
 import (
-	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
@@ -43,14 +42,12 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 	switch {
 	case list:
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command")
-		fmt.Println("Listing instances in compartment:", appCtx.CompartmentName)
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName)
 		return compute.ListInstances(appCtx)
 
 	case find != "":
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find)
-		fmt.Println("Finding instances with name pattern:", find)
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName)
 		return compute.FindInstances(appCtx, find, imageDetails)
 
 	default:

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
+	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -12,21 +14,159 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
 
+// Service encapsulates OCI compute/network clients and config.
+// It provides methods to list and find instances without printing directly.
+type Service struct {
+	compute       core.ComputeClient
+	network       core.VirtualNetworkClient
+	logger        logr.Logger
+	compartmentID string
+}
+
+// NewService constructs a compute Service, wiring up clients once.
+func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Service, error) {
+	cc, err := oci.NewComputeClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compute client: %w", err)
+	}
+	nc, err := oci.NewNetworkClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create network client: %w", err)
+	}
+
+	return &Service{
+		compute:       cc,
+		network:       nc,
+		logger:        appCtx.Logger,
+		compartmentID: appCtx.CompartmentID,
+	}, nil
+}
+
+// List retrieves all running instances in the compartment.
+func (s *Service) List(ctx context.Context) ([]Instance, error) {
+	logger.VerboseInfo(s.logger, 1, "listing instances...")
+	var all []Instance
+	page := ""
+
+	for {
+		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
+			CompartmentId:  &s.compartmentID,
+			LifecycleState: core.InstanceLifecycleStateRunning,
+			Page:           &page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("listing instances: %w", err)
+		}
+
+		for _, oc := range resp.Items {
+			inst := mapToInstance(oc)
+
+			// enrich IP & Subnet
+			err := s.enrichVnic(ctx, &inst, oc.Id)
+			if err != nil {
+				logger.VerboseInfo(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
+			}
+
+			all = append(all, inst)
+		}
+
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = *resp.OpcNextPage
+	}
+
+	logger.VerboseInfo(s.logger, 2, "found instances", "count", len(all))
+	return all, nil
+}
+
+// Find searches instances by name pattern.
+func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) {
+	logger.VerboseInfo(s.logger, 1, "finding instances", "pattern", pattern)
+
+	all, err := s.List(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("listing instances: %w", err)
+	}
+
+	var matched []Instance
+	for _, inst := range all {
+		if strings.Contains(strings.ToLower(inst.Name), strings.ToLower(pattern)) {
+			matched = append(matched, inst)
+		}
+	}
+
+	logger.VerboseInfo(s.logger, 2, "found matching instances", "pattern", pattern, "count", len(matched))
+	return matched, nil
+}
+
+// enrichVnic queries attachments and sets IP/Subnet on the model.
+func (s *Service) enrichVnic(ctx context.Context, inst *Instance, instanceID *string) error {
+	logger.VerboseInfo(s.logger, 3, "enriching VNIC info", "instanceID", *instanceID)
+
+	vaResp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
+		CompartmentId: &s.compartmentID,
+		InstanceId:    instanceID,
+	})
+	if err != nil {
+		return fmt.Errorf("listing VNIC attachments: %w", err)
+	}
+
+	for _, attach := range vaResp.Items {
+		vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
+		if err != nil {
+			logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err)
+			continue
+		}
+		if vnic.IsPrimary != nil && *vnic.IsPrimary {
+			inst.IP = *vnic.PrivateIp
+			inst.SubnetID = *vnic.SubnetId
+			return nil
+		}
+	}
+
+	return fmt.Errorf("no primary VNIC found")
+}
+
+// mapToInstance maps SDK Instance to local model.
+func mapToInstance(oc core.Instance) Instance {
+	return Instance{
+		Name: *oc.DisplayName,
+		ID:   *oc.Id,
+		IP:   "", // to be filled later
+		Placement: Placement{
+			Region:             *oc.Region,
+			AvailabilityDomain: *oc.AvailabilityDomain,
+			FaultDomain:        *oc.FaultDomain,
+		},
+		Resources: Resources{
+			VCPUs:    *oc.ShapeConfig.Vcpus,
+			MemoryGB: *oc.ShapeConfig.MemoryInGBs,
+		},
+		Shape:           *oc.Shape,
+		ImageID:         *oc.ImageId,
+		SubnetID:        "", // to be filled later
+		State:           oc.LifecycleState,
+		CreatedAt:       *oc.TimeCreated,
+		OperatingSystem: "", // added per TODO
+	}
+}
+
 // ListInstances lists all instances in the configured compartment using the provided application.
 // It uses the pre-initialized compute client from the AppContext struct.
 func ListInstances(appCtx *app.AppContext) error {
 	// Use VerboseInfo to ensure debug logs work with shorthand flags
 	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()")
 
-	client, err := oci.NewComputeClient(appCtx.Provider)
+	service, err := NewService(appCtx.Provider, appCtx)
 	if err != nil {
-		return fmt.Errorf("creating compute client: %w", err)
+		return fmt.Errorf("creating compute service: %w", err)
 	}
 
 	ctx := context.Background()
-	instances, err := FetchInstances(ctx, client, appCtx)
+	instances, err := service.List(ctx)
 	if err != nil {
-		return fmt.Errorf("fetching instances: %w", err)
+		return fmt.Errorf("listing instances: %w", err)
 	}
 
 	// Display instance information
@@ -59,27 +199,19 @@ func displayInstances(instances []Instance) {
 // - namePattern: The pattern used to match instance names.
 // - showImageDetails: A flag indicating whether to include image details in the output.
 // Returns an error if the operation fails.
-func FindInstances(application *app.AppContext, namePattern string, showImageDetails bool) error {
+func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails bool) error {
 	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(application.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails)
+	logger.VerboseInfo(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails)
 
-	client, err := oci.NewComputeClient(application.Provider)
+	service, err := NewService(appCtx.Provider, appCtx)
 	if err != nil {
-		return fmt.Errorf("creating compute client: %w", err)
+		return fmt.Errorf("creating compute service: %w", err)
 	}
 
 	ctx := context.Background()
-	instances, err := FetchInstances(ctx, client, application)
+	matchedInstances, err := service.Find(ctx, namePattern)
 	if err != nil {
-		return fmt.Errorf("fetching instances: %w", err)
-	}
-
-	// Filter instances by name pattern
-	var matchedInstances []Instance
-	for _, inst := range instances {
-		if strings.Contains(strings.ToLower(inst.Name), strings.ToLower(namePattern)) {
-			matchedInstances = append(matchedInstances, inst)
-		}
+		return fmt.Errorf("finding instances: %w", err)
 	}
 
 	// Display matched instances
@@ -96,119 +228,4 @@ func FindInstances(application *app.AppContext, namePattern string, showImageDet
 
 	displayInstances(matchedInstances)
 	return nil
-}
-
-// FetchInstances retrieves all running instances from the specified compartment
-// and enriches them with network information.
-func FetchInstances(ctx context.Context, computeClient core.ComputeClient, appCtx *app.AppContext) ([]Instance, error) {
-	// Create a VNets client
-	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
-	if err != nil {
-		return nil, fmt.Errorf("creating network client: %w", err)
-	}
-
-	// Fetch basic instance information
-	instances, err := listInstances(ctx, computeClient, appCtx.CompartmentID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Enrich instances with network information
-	for i := range instances {
-		if err := enrichInstanceWithNetworkInfo(ctx, computeClient, networkClient, &instances[i], appCtx.CompartmentID); err != nil {
-			return nil, fmt.Errorf("enriching instance %s with network info: %w", instances[i].ID, err)
-		}
-	}
-
-	return instances, nil
-}
-
-// listInstances retrieves all running instances from the specified compartment.
-func listInstances(ctx context.Context, client core.ComputeClient, compartmentID string) ([]Instance, error) {
-	var instances []Instance
-	page := ""
-
-	for {
-		resp, err := client.ListInstances(ctx, core.ListInstancesRequest{
-			CompartmentId:  &compartmentID,
-			LifecycleState: core.InstanceLifecycleStateRunning,
-			Page:           &page,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("listing instances: %w", err)
-		}
-
-		for _, oc := range resp.Items {
-			inst := mapToInstance(oc)
-			instances = append(instances, inst)
-		}
-
-		if resp.OpcNextPage == nil {
-			break
-		}
-		page = *resp.OpcNextPage
-	}
-
-	return instances, nil
-}
-
-// enrichInstanceWithNetworkInfo adds network-related information to the instance.
-func enrichInstanceWithNetworkInfo(
-	ctx context.Context,
-	computeClient core.ComputeClient,
-	networkClient core.VirtualNetworkClient,
-	instance *Instance,
-	compartmentID string,
-) error {
-	// Get the VNIC attachments for this instance
-	vaResp, err := computeClient.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
-		CompartmentId: &compartmentID,
-		InstanceId:    &instance.ID,
-	})
-	if err != nil {
-		return fmt.Errorf("listing VNIC attachments: %w", err)
-	}
-
-	// Find the primary VNIC
-	for _, attachment := range vaResp.Items {
-		vnicResp, err := networkClient.GetVnic(ctx, core.GetVnicRequest{
-			VnicId: attachment.VnicId,
-		})
-		if err != nil {
-			return fmt.Errorf("getting VNIC details: %w", err)
-		}
-
-		// Use the primary VNIC for the instance's network information
-		if vnicResp.IsPrimary != nil && *vnicResp.IsPrimary {
-			instance.IP = *vnicResp.PrivateIp
-			instance.SubnetID = *vnicResp.SubnetId
-			return nil
-		}
-	}
-
-	return nil
-}
-
-// mapToInstance transforms the OCI SDK Instance into our local Instance type.
-func mapToInstance(oc core.Instance) Instance {
-	return Instance{
-		Name: *oc.DisplayName,
-		ID:   *oc.Id,
-		IP:   "", // to be filled later
-		Placement: Placement{
-			Region:             *oc.Region,
-			AvailabilityDomain: *oc.AvailabilityDomain,
-			FaultDomain:        *oc.FaultDomain,
-		},
-		Resources: Resources{
-			VCPUs:    *oc.ShapeConfig.Vcpus,
-			MemoryGB: *oc.ShapeConfig.MemoryInGBs,
-		},
-		Shape:           *oc.Shape,
-		ImageID:         *oc.ImageId,
-		SubnetID:        "", // to be filled later
-		State:           oc.LifecycleState,
-		CreatedAt:       *oc.TimeCreated,
-		OperatingSystem: "", // added per TODO
-	}
 }
