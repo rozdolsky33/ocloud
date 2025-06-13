@@ -12,6 +12,7 @@ type Instance struct {
 	IP              string
 	ImageID         string
 	SubnetID        string
+	Shape           string
 	State           core.InstanceLifecycleStateEnum
 	CreatedAt       common.SDKTime
 	OperatingSystem string
