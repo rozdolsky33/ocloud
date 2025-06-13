@@ -44,7 +44,6 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 
 // List retrieves all running instances in the compartment.
 func (s *Service) List(ctx context.Context) ([]Instance, error) {
-	logger.VerboseInfo(s.logger, 1, "listing instances...")
 	var all []Instance
 	page := ""
 
