@@ -1,13 +1,5 @@
-// Package config defines flag constants, shorthands, and descriptions for the CLI.
-//
-//go:generate go run ./generator/main/main.go
-package config
-
-import (
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-)
+// Package flags defines flag types and domain-specific flag collections for the CLI.
+package flags
 
 // FlagNames defines the string constants for flag names
 const (
@@ -33,6 +25,8 @@ const (
 	FlagNameFindByName        = "find-by-name"
 	FlagNameFindByStatement   = "find-by-statements"
 	FlagNameIncludeStatements = "include-statements"
+	FlagNameHelp              = "help"
+	FlagNameColor             = "color"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -57,6 +51,7 @@ const (
 	FlagShortFindByName        = "n"
 	FlagShortFindByStatement   = "s"
 	FlagShortIncludeStatements = "a"
+	FlagShortHelp              = "h"
 )
 
 // FlagDescriptions contains help text for flags
@@ -83,85 +78,31 @@ const (
 	FlagDescFindByName        = "Find resources by name pattern search"
 	FlagDescFindByStatement   = "Find resources by statement"
 	FlagDescIncludeStatements = "Include statements"
+	FlagDescHelp              = "help for ocloud (shorthand: -h)"
+	FlagDescColor             = "Enable colored output"
 )
 
-// Flag represents a command flag configuration
-type Flag struct {
-	Name        string
-	Shorthand   string
-	Default     interface{}
-	Description string
-}
-
-// AddBoolFlag adds a boolean flag to the command
-func (f Flag) AddBoolFlag(cmd *cobra.Command) *bool {
-	var value bool
-	if defaultVal, ok := f.Default.(bool); ok {
-		value = defaultVal
-	}
-	cmd.Flags().BoolVarP(&value, f.Name, f.Shorthand, value, f.Description)
-	return &value
-}
-
-// AddStringFlag adds a string flag to the command
-func (f Flag) AddStringFlag(cmd *cobra.Command) *string {
-	var value string
-	if defaultVal, ok := f.Default.(string); ok {
-		value = defaultVal
-	}
-	cmd.Flags().StringVarP(&value, f.Name, f.Shorthand, value, f.Description)
-	return &value
-}
-
-// AddIntFlag adds an integer flag to the command
-func (f Flag) AddIntFlag(cmd *cobra.Command) *int {
-	var value int
-	if defaultVal, ok := f.Default.(int); ok {
-		value = defaultVal
-	}
-	cmd.Flags().IntVarP(&value, f.Name, f.Shorthand, value, f.Description)
-	return &value
-}
-
-// Define flag configurations for reuse across commands
-
-// Instance flags
-var (
-	ListFlag = Flag{
-		Name:        FlagNameList,
-		Shorthand:   FlagShortList,
-		Default:     false,
-		Description: FlagDescList,
-	}
-
-	FindFlag = Flag{
-		Name:        FlagNameFind,
-		Shorthand:   FlagShortFind,
-		Default:     "",
-		Description: FlagDescFind,
-	}
-
-	ImageDetailsFlag = Flag{
-		Name:        FlagNameImageDetails,
-		Shorthand:   FlagShortImageDetails,
-		Default:     false,
-		Description: FlagDescImageDetails,
-	}
+// Flag values and defaults
+const (
+	FlagValueTrue     = "true"
+	FlagValueInfo     = "info"
+	FlagValueHelpMode = "help-mode"
 )
 
-// InitGlobalFlags initializes global CLI flags and binds them to environment variables for configuration.
-func InitGlobalFlags(root *cobra.Command) {
-	root.PersistentFlags().StringVarP(&logger.LogLevel, FlagNameLogLevel, "", "info", logger.LogLevelMsg)
-	root.PersistentFlags().BoolVar(&logger.ColoredOutput, "color", false, logger.ColoredOutputMsg)
-	root.PersistentFlags().StringP(FlagNameTenancyID, FlagShortTenancyID, "", FlagDescTenancyID)
-	root.PersistentFlags().StringP(FlagNameTenancyName, "", "", FlagDescTenancyName)
-	root.PersistentFlags().StringP(FlagNameCompartment, FlagShortCompartment, "", FlagDescCompartment)
+// Flag prefixes and special strings
+const (
+	FlagPrefixShortHelp  = "-h"
+	FlagPrefixLongHelp   = "--help"
+	FlagPrefixLogLevel   = "--log-level"
+	FlagPrefixLogLevelEq = "--log-level="
+	FlagPrefixColor      = "--color"
+	CobraAnnotationKey   = "cobra_annotation_flag_set_by_cobra"
+)
 
-	_ = viper.BindPFlag(FlagNameTenancyID, root.PersistentFlags().Lookup(FlagNameTenancyID))
-	_ = viper.BindPFlag(FlagNameTenancyName, root.PersistentFlags().Lookup(FlagNameTenancyName))
-	_ = viper.BindPFlag(FlagNameCompartment, root.PersistentFlags().Lookup(FlagNameCompartment))
-
-	// allow ENV overrides, e.g., OCI_CLI_TENANCY, OCI_TENANCY_NAME, OCI_COMPARTMENT
-	viper.SetEnvPrefix("OCI")
-	viper.AutomaticEnv()
-}
+// Environment variables
+const (
+	EnvOCITenancy     = "OCI_CLI_TENANCY"
+	EnvOCITenancyName = "OCI_TENANCY_NAME"
+	EnvOCICompartment = "OCI_COMPARTMENT"
+	EnvOCIRegion      = "OCI_REGION"
+)

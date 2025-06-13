@@ -1,11 +1,7 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
-[![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/oloud?sort=semver)
-[![Go Coverage](https://github.com/rozdolsky33/ocloud/wiki/coverage.svg)](https://raw.githack.com/wiki/rozdolsky33/ocloud/coverage.html)
-[![Version](https://img.shields.io/badge/goversion-1.24.x-blue.svg)](https://golang.org)
 <a href="https://golang.org"><img src="https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square" alt="Built with GoLang"></a>
-[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
-[![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
+[![Version](https://img.shields.io/badge/goversion-1.24.3-blue.svg)](https://golang.org)
+[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](LICENSE)
 
 OCloud is a command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for common OCI operations with a focus on usability and automation.
 
@@ -21,7 +17,7 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 ### Prerequisites
 
-- Go 1.24 or later
+- Go 1.24.3 or later
 - Oracle Cloud Infrastructure account
 - OCI SDK configuration (typically in `~/.oci/config`)
 
@@ -29,7 +25,7 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/rozdolsky33/ocloud.git
+   git clone <repository-url>
    cd ocloud
    ```
 
@@ -118,41 +114,41 @@ ocloud [global flags] <command> [command flags] [arguments]
 # Show help
 ocloud --help
 
-# Show instance command help
-ocloud instance --help
+# Show compute instance command help
+ocloud compute instance --help
 
 # Enable debug logging with colored output
-ocloud --log-level debug --color instance list
+ocloud --log-level debug --color compute instance --list
 ```
 
 ### Working with Instances
 
 ```bash
 # List all instances in a compartment
-ocloud --compartment my-compartment instance list
+ocloud --compartment my-compartment compute instance --list
 
-# List all instances using the old flag syntax (for backward compatibility)
-ocloud --compartment my-compartment instance -l
+# List all instances using the shorthand flag syntax
+ocloud --compartment my-compartment compute instance -l
 
 # Find instances by name pattern
-ocloud --compartment my-compartment instance find "web-server"
+ocloud --compartment my-compartment compute instance --find "web-server"
 
 # Find instances with image details
-ocloud --compartment my-compartment instance find "web-server" --image-details
+ocloud --compartment my-compartment compute instance --find "web-server" --image-details
 ```
 
 ### Working with Different Tenancies
 
 ```bash
 # Use a specific tenancy by OCID
-ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... instance list
+ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... compute instance --list
 
 # Use a tenancy by name (requires tenancy map)
-ocloud --tenancy-name my-production-tenancy instance list
+ocloud --tenancy-name my-production-tenancy compute instance --list
 
 # Use environment variables
 export OCI_TENANCY_NAME=my-production-tenancy
-ocloud instance list
+ocloud compute instance --list
 ```
 
 ## Development
@@ -163,17 +159,22 @@ The project follows a modern Go application structure:
 
 - `cmd/`: Command-line interface implementation
   - `root.go`: Root command and global flags
-  - `instance/`: Instance-related commands
-    - `root.go`: Instance command and flags
-    - `list.go`: List instances command
-    - `find.go`: Find instances command
+  - `compute/`: Compute-related commands
+    - `root.go`: Compute command and flags
+    - `instance/`: Instance-related commands
+      - `root.go`: Instance command and flags
 - `internal/`: Internal packages (not intended for external use)
   - `app/`: Application context and core functionality
   - `config/`: Configuration handling
+    - `flags/`: CLI flag definitions and handling
   - `logger/`: Logging setup and utilities
   - `oci/`: OCI client factories
 - `pkg/`: Public packages (can be imported by other projects)
   - `resources/`: Resource operations implementation
+    - `compute/`: Compute resource operations
+    - `database/`: Database resource operations
+    - `identity/`: Identity resource operations
+    - `network/`: Network resource operations
 
 ## Error Handling
 
@@ -203,7 +204,7 @@ OCloud uses several tools to maintain code quality and prevent drift between fla
 
 1. **golangci-lint**: A fast, parallel runner for Go linters. It helps catch issues like unused variables, formatting errors, and more. The configuration is in `.golangci.yml`.
 
-2. **go generate**: Used to keep flag constants, documentation, and code in sync. When flag definitions are changed in `pkg/flags/flags.go`, running `make generate` will automatically update the flag tables in this README.
+2. **go generate**: Used to keep flag constants, documentation, and code in sync. When flag definitions are changed in `internal/config/flags/`, running `make generate` will automatically update the flag tables in this README.
 
 To ensure your changes maintain code quality and consistency:
 

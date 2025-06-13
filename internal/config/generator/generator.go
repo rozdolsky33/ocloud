@@ -41,12 +41,12 @@ func GenerateReadmeTable(flagInfos []FlagInfo, title string) string {
 
 // ExtractFlagConstants extracts flag constants from the config package.
 func ExtractFlagConstants(configDir string) (map[string][]FlagInfo, error) {
-	// Parse the flags.go file
+	// Parse the flags/constants.go file
 	fset := token.NewFileSet()
-	flagsFile := filepath.Join(configDir, "flags.go")
+	flagsFile := filepath.Join(configDir, "flags", "constants.go")
 	node, err := parser.ParseFile(fset, flagsFile, nil, parser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse flags.go: %w", err)
+		return nil, fmt.Errorf("failed to parse flags/constants.go: %w", err)
 	}
 
 	// Extract flag names, shorthands, and descriptions
