@@ -11,12 +11,12 @@ import (
 var (
 	LogLevelFlag = StringFlag{
 		Name:    FlagNameLogLevel,
-		Default: "info",
+		Default: FlagValueInfo,
 		Usage:   FlagDescLogLevel,
 	}
 
 	ColorFlag = BoolFlag{
-		Name:    "color",
+		Name:    FlagNameColor,
 		Default: false,
 		Usage:   logger.ColoredOutputMsg,
 	}

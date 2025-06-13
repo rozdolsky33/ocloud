@@ -25,6 +25,8 @@ const (
 	FlagNameFindByName        = "find-by-name"
 	FlagNameFindByStatement   = "find-by-statements"
 	FlagNameIncludeStatements = "include-statements"
+	FlagNameHelp              = "help"
+	FlagNameColor             = "color"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -49,6 +51,7 @@ const (
 	FlagShortFindByName        = "n"
 	FlagShortFindByStatement   = "s"
 	FlagShortIncludeStatements = "a"
+	FlagShortHelp              = "h"
 )
 
 // FlagDescriptions contains help text for flags
@@ -75,6 +78,25 @@ const (
 	FlagDescFindByName        = "Find resources by name pattern search"
 	FlagDescFindByStatement   = "Find resources by statement"
 	FlagDescIncludeStatements = "Include statements"
+	FlagDescHelp              = "help for ocloud (shorthand: -h)"
+	FlagDescColor             = "Enable colored output"
+)
+
+// Flag values and defaults
+const (
+	FlagValueTrue     = "true"
+	FlagValueInfo     = "info"
+	FlagValueHelpMode = "help-mode"
+)
+
+// Flag prefixes and special strings
+const (
+	FlagPrefixShortHelp  = "-h"
+	FlagPrefixLongHelp   = "--help"
+	FlagPrefixLogLevel   = "--log-level"
+	FlagPrefixLogLevelEq = "--log-level="
+	FlagPrefixColor      = "--color"
+	CobraAnnotationKey   = "cobra_annotation_flag_set_by_cobra"
 )
 
 // Environment variables

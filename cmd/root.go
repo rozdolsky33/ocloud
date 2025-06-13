@@ -24,6 +24,10 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 	// Initialize global flags
 	flags.AddGlobalFlags(rootCmd)
 
+	// Add a custom help flag with a more descriptive message
+	rootCmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, flags.FlagDescHelp)
+	_ = rootCmd.Flags().SetAnnotation(flags.FlagNameHelp, flags.CobraAnnotationKey, []string{flags.FlagValueTrue})
+
 	// Add subcommands, passing in the AppContext
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
 
@@ -44,12 +48,7 @@ func Execute(ctx context.Context) {
 
 	setLogLevel(tempRoot)
 
-	// One-shot bootstrap of AppContext
-	appCtx, err := app.InitApp(ctx, tempRoot)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error initializing application: %v\n", err)
-		os.Exit(1)
-	}
+	appCtx := hasHelpFlag(ctx, tempRoot)
 
 	// Create the real root command with the AppContext
 	root := NewRootCmd(appCtx)
@@ -59,6 +58,36 @@ func Execute(ctx context.Context) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func hasHelpFlag(ctx context.Context, tempRoot *cobra.Command) *app.AppContext {
+	// Check if help flag is present
+	isHelpRequested := false
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixShortHelp || arg == flags.FlagPrefixLongHelp || arg == flags.FlagNameHelp {
+			isHelpRequested = true
+			break
+		}
+	}
+
+	var appCtx *app.AppContext
+	var err error
+
+	if isHelpRequested {
+		// If help is requested, create a minimal AppContext without cloud configuration
+		appCtx = &app.AppContext{
+			Logger:          logger.CmdLogger,
+			CompartmentName: flags.FlagValueHelpMode, // Set a dummy value to avoid nil pointer issues
+		}
+	} else {
+		// One-shot bootstrap of AppContext
+		appCtx, err = app.InitApp(ctx, tempRoot)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error initializing application: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	return appCtx
 }
 
 func setLogLevel(tempRoot *cobra.Command) {
@@ -72,7 +101,7 @@ func setLogLevel(tempRoot *cobra.Command) {
 		logger.LogLevel = logLevelFlag.Value.String()
 		if logger.LogLevel == "" {
 			// If not set, use the default value
-			logger.LogLevel = "info"
+			logger.LogLevel = flags.FlagValueInfo
 		}
 	}
 
@@ -81,20 +110,20 @@ func setLogLevel(tempRoot *cobra.Command) {
 	// This ensures that the log level is set correctly regardless of whether
 	// the full command or shorthand flags are used
 	for i, arg := range os.Args {
-		if arg == "--log-level" && i+1 < len(os.Args) {
+		if arg == flags.FlagPrefixLogLevel && i+1 < len(os.Args) {
 			logger.LogLevel = os.Args[i+1]
 			break
-		} else if strings.HasPrefix(arg, "--log-level=") {
-			logger.LogLevel = strings.TrimPrefix(arg, "--log-level=")
+		} else if strings.HasPrefix(arg, flags.FlagPrefixLogLevelEq) {
+			logger.LogLevel = strings.TrimPrefix(arg, flags.FlagPrefixLogLevelEq)
 			break
 		}
 	}
 	// Set the colored output from the flag value
-	colorFlag := tempRoot.PersistentFlags().Lookup("color")
+	colorFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameColor)
 	if colorFlag != nil {
 		// Use the value from the parsed flag
 		colorValue := colorFlag.Value.String()
-		logger.ColoredOutput = colorValue == "true"
+		logger.ColoredOutput = colorValue == flags.FlagValueTrue
 	}
 
 	// This is a Hack!
@@ -102,7 +131,7 @@ func setLogLevel(tempRoot *cobra.Command) {
 	// This ensures that the color setting is set correctly regardless of whether
 	// the full command or shorthand flags are used
 	for _, arg := range os.Args {
-		if arg == "--color" {
+		if arg == flags.FlagPrefixColor {
 			logger.ColoredOutput = true
 			break
 		}
