@@ -2,6 +2,7 @@ package instance
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
 
 	"github.com/spf13/cobra"
@@ -22,12 +23,14 @@ func newListCmd(appCtx *app.AppContext) *cobra.Command {
 		},
 	}
 
+	flags.AddListFlags(cmd)
+
 	return cmd
 }
 
 // doListInstances handles the actual execution of the list command
 func doListInstances(appCtx *app.AppContext) error {
-	logger.CmdLogger.V(1).Info("Running instance list command")
+	logger.CmdLogger.V(3).Info("Running instance list command")
 	fmt.Println("Listing instances in compartment:", appCtx.CompartmentName)
 	return compute.ListInstances(appCtx)
 }

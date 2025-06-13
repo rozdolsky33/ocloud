@@ -31,7 +31,7 @@ func newFindCmd(appCtx *app.AppContext) *cobra.Command {
 
 // doFindInstances handles the actual execution of the find command
 func doFindInstances(cmd *cobra.Command, appCtx *app.AppContext, namePattern string) error {
-	logger.CmdLogger.V(1).Info("Running instance find command", "pattern", namePattern)
+	logger.CmdLogger.V(3).Info("Running instance find command", "pattern", namePattern)
 	fmt.Println("Finding instances with name pattern:", namePattern)
 
 	showImageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)

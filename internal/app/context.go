@@ -46,7 +46,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	// Optional region override
 	if region, ok := os.LookupEnv(flags.EnvOCIRegion); ok {
 		idClient.SetRegion(region)
-		log.V(1).Info("overriding region from env", "region", region)
+		log.V(3).Info("overriding region from env", "region", region)
 	}
 
 	// Build base AppContext
@@ -92,13 +92,13 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 	// Check if tenancy ID is provided as a flag
 	if cmd.Flags().Changed(flags.FlagNameTenancyID) {
 		tenancyID := viper.GetString(flags.FlagNameTenancyID)
-		log.V(1).Info("using tenancy OCID from flag", "tenancyID", tenancyID)
+		log.V(3).Info("using tenancy OCID from flag", "tenancyID", tenancyID)
 		return tenancyID, nil
 	}
 
 	// Check if tenancy ID is provided as an environment variable
 	if envTenancy := os.Getenv(flags.EnvOCITenancy); envTenancy != "" {
-		log.V(1).Info("using tenancy OCID from env", "tenancyID", envTenancy)
+		log.V(3).Info("using tenancy OCID from env", "tenancyID", envTenancy)
 		viper.Set(flags.FlagNameTenancyID, envTenancy)
 		return envTenancy, nil
 	}
@@ -112,7 +112,7 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 			// Add a more detailed message about how to set up the mapping file
 			log.Info("To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
 		} else {
-			log.V(1).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
+			log.V(3).Info("using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
 			viper.Set(flags.FlagNameTenancyID, lookupID)
 			return lookupID, nil
 		}
@@ -123,7 +123,7 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
-	log.V(1).Info("using tenancy OCID from config file", "tenancyID", tenancyID)
+	log.V(3).Info("using tenancy OCID from config file", "tenancyID", tenancyID)
 	viper.Set(flags.FlagNameTenancyID, tenancyID)
 
 	return tenancyID, nil
@@ -140,13 +140,13 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	// Check if the tenancy name is provided as a flag
 	if cmd.Flags().Changed(flags.FlagNameTenancyName) {
 		tenancyName := viper.GetString(flags.FlagNameTenancyName)
-		log.V(1).Info("using tenancy name from flag", "tenancyName", tenancyName)
+		log.V(3).Info("using tenancy name from flag", "tenancyName", tenancyName)
 		return tenancyName
 	}
 
 	// Check if the tenancy name is provided as an environment variable
 	if envTenancyName := os.Getenv(flags.EnvOCITenancyName); envTenancyName != "" {
-		log.V(1).Info("using tenancy name from env", "tenancyName", envTenancyName)
+		log.V(3).Info("using tenancy name from env", "tenancyName", envTenancyName)
 		viper.Set(flags.FlagNameTenancyName, envTenancyName)
 		return envTenancyName
 	}
@@ -156,7 +156,7 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	if err == nil {
 		for _, env := range tenancies {
 			if env.TenancyID == tenancyID {
-				log.V(1).Info("found tenancy name from mapping file", "tenancyName", env.Tenancy)
+				log.V(3).Info("found tenancy name from mapping file", "tenancyName", env.Tenancy)
 				viper.Set(flags.FlagNameTenancyName, env.Tenancy)
 				return env.Tenancy
 			}
@@ -172,7 +172,7 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 func ResolveCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, idClient identity.IdentityClient) (string, error) {
 	// If the compartment name is not set, use tenancy ID as fallback
 	if compartmentName == "" {
-		logger.CmdLogger.V(1).Info("compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
+		logger.CmdLogger.V(3).Info("compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
 		return tenancyOCID, nil
 	}
 

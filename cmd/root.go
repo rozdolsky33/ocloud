@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -51,25 +50,20 @@ func Execute(ctx context.Context) {
 	// Set the logger level from the flag value
 	logLevelFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameLogLevel)
 	if logLevelFlag != nil {
-		// Override the default value if --log-level is specified
-		for i, arg := range os.Args {
-			if arg == "--log-level" && i+1 < len(os.Args) {
-				logger.LogLevel = os.Args[i+1]
-				break
-			} else if strings.HasPrefix(arg, "--log-level=") {
-				logger.LogLevel = strings.TrimPrefix(arg, "--log-level=")
-				break
-			}
+		// Use the value from the parsed flag
+		logger.LogLevel = logLevelFlag.Value.String()
+		if logger.LogLevel == "" {
+			// If not set, use the default value
+			logger.LogLevel = "info"
 		}
 	}
 
 	// Set the colored output from the flag value
-	// Check for --color flag in command line arguments
-	for _, arg := range os.Args {
-		if arg == "--color" {
-			logger.ColoredOutput = true
-			break
-		}
+	colorFlag := tempRoot.PersistentFlags().Lookup("color")
+	if colorFlag != nil {
+		// Use the value from the parsed flag
+		colorValue := colorFlag.Value.String()
+		logger.ColoredOutput = colorValue == "true"
 	}
 
 	// Initialize logger

@@ -9,7 +9,7 @@ import (
 // ListInstances lists all instances in the configured compartment using the provided application.
 // It uses the pre-initialized compute client from the AppContext struct.
 func ListInstances(application *app.AppContext) error {
-	application.Logger.V(1).Info("ListInstances()")
+	application.Logger.V(3).Info("ListInstances()")
 
 	// Use the pre-initialized compute client from the AppContext struct
 	// No need to create a new client
@@ -29,7 +29,7 @@ func ListInstances(application *app.AppContext) error {
 // - showImageDetails: A flag indicating whether to include image details in the output.
 // Returns an error if the operation fails.
 func FindInstances(application *app.AppContext, namePattern string, showImageDetails bool) error {
-	application.Logger.V(1).Info("FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails)
+	application.Logger.V(3).Info("FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails)
 
 	// Use the pre-initialized compute and network clients from the AppContext struct
 	// No need to create new clients

@@ -54,11 +54,9 @@ var globalFlags = []Flag{
 // AddGlobalFlags adds all global flags to the given command
 func AddGlobalFlags(cmd *cobra.Command) {
 	// Add global flags as persistent flags
-	cmd.PersistentFlags().StringP(LogLevelFlag.Name, LogLevelFlag.Shorthand, LogLevelFlag.Default, LogLevelFlag.Usage)
-	cmd.PersistentFlags().BoolP(ColorFlag.Name, ColorFlag.Shorthand, ColorFlag.Default, ColorFlag.Usage)
-	cmd.PersistentFlags().StringP(TenancyIDFlag.Name, TenancyIDFlag.Shorthand, TenancyIDFlag.Default, TenancyIDFlag.Usage)
-	cmd.PersistentFlags().StringP(TenancyNameFlag.Name, TenancyNameFlag.Shorthand, TenancyNameFlag.Default, TenancyNameFlag.Usage)
-	cmd.PersistentFlags().StringP(CompartmentFlag.Name, CompartmentFlag.Shorthand, CompartmentFlag.Default, CompartmentFlag.Usage)
+	for _, f := range globalFlags {
+		f.Apply(cmd.PersistentFlags())
+	}
 
 	// Bind flags to viper for configuration
 	_ = viper.BindPFlag(FlagNameTenancyID, cmd.PersistentFlags().Lookup(FlagNameTenancyID))

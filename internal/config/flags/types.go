@@ -3,6 +3,7 @@ package flags
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // BoolFlag represents a boolean command flag configuration
@@ -18,6 +19,11 @@ func (f BoolFlag) Add(cmd *cobra.Command) {
 	cmd.Flags().BoolP(f.Name, f.Shorthand, f.Default, f.Usage)
 }
 
+// Apply adds the boolean flag to the given flag set
+func (f BoolFlag) Apply(flags *pflag.FlagSet) {
+	flags.BoolP(f.Name, f.Shorthand, f.Default, f.Usage)
+}
+
 // StringFlag represents a string command flag configuration
 type StringFlag struct {
 	Name      string
@@ -29,6 +35,11 @@ type StringFlag struct {
 // Add adds the string flag to the command
 func (f StringFlag) Add(cmd *cobra.Command) {
 	cmd.Flags().StringP(f.Name, f.Shorthand, f.Default, f.Usage)
+}
+
+// Apply adds the string flag to the given flag set
+func (f StringFlag) Apply(flags *pflag.FlagSet) {
+	flags.StringP(f.Name, f.Shorthand, f.Default, f.Usage)
 }
 
 // IntFlag represents an integer command flag configuration
@@ -44,7 +55,13 @@ func (f IntFlag) Add(cmd *cobra.Command) {
 	cmd.Flags().IntP(f.Name, f.Shorthand, f.Default, f.Usage)
 }
 
+// Apply adds the integer flag to the given flag set
+func (f IntFlag) Apply(flags *pflag.FlagSet) {
+	flags.IntP(f.Name, f.Shorthand, f.Default, f.Usage)
+}
+
 // Flag is an interface that all flag types must implement
 type Flag interface {
 	Add(*cobra.Command)
+	Apply(*pflag.FlagSet)
 }
