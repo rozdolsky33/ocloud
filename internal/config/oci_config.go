@@ -21,7 +21,15 @@ var (
 )
 
 // DefaultTenancyMapPath defines the default file path for the OCI tenancy map configuration in the user's home directory.
-var DefaultTenancyMapPath = filepath.Join(getUserHomeDir(), ".oci", "tenancy-map.yaml")
+// If the home directory cannot be determined, it falls back to an empty string.
+var DefaultTenancyMapPath = func() string {
+	dir, err := getUserHomeDir()
+	if err != nil {
+		logger.VerboseInfo(logger.Logger, 1, "failed to get user home directory for tenancy map path", "error", err)
+		return ""
+	}
+	return filepath.Join(dir, ".oci", "tenancy-map.yaml")
+}()
 
 const (
 	defaultProfile = "DEFAULT"
@@ -33,6 +41,7 @@ const (
 )
 
 // LoadOCIConfig picks the profile from env or default, and logs at debug level.
+// If there's an error getting the home directory, it falls back to the default provider.
 func LoadOCIConfig() common.ConfigurationProvider {
 	profile := GetOCIProfile()
 	if profile == defaultProfile {
@@ -41,7 +50,14 @@ func LoadOCIConfig() common.ConfigurationProvider {
 	}
 
 	logger.VerboseInfo(logger.Logger, 3, "using profile", "profile", profile)
-	path := filepath.Join(getUserHomeDir(), configDir, configFile)
+
+	homeDir, err := getUserHomeDir()
+	if err != nil {
+		logger.Logger.Error(err, "failed to get user home directory for config path, falling back to default provider")
+		return common.DefaultConfigProvider()
+	}
+
+	path := filepath.Join(homeDir, configDir, configFile)
 	return common.CustomProfileConfigProvider(path, profile)
 }
 
@@ -136,14 +152,14 @@ func ensureFile(path string) error {
 	return nil
 }
 
-// getUserHomeDir returns the path to the current user's home directory or exits if unable to determine it.
-func getUserHomeDir() string {
+// getUserHomeDir returns the path to the current user's home directory or an error if unable to determine it.
+func getUserHomeDir() (string, error) {
 	dir, err := os.UserHomeDir()
 	if err != nil {
 		logger.Logger.Error(err, "failed to get user home directory")
-		os.Exit(1)
+		return "", fmt.Errorf("getting user home directory: %w", err)
 	}
-	return dir
+	return dir, nil
 }
 
 // tenancyMapPath returns either the overridden path or the default.

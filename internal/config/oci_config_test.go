@@ -202,7 +202,8 @@ func TestLoadOCIConfig(t *testing.T) {
 func TestUserHomeDir(t *testing.T) {
 	// This is a simple test to ensure the function doesn't panic
 	// We can't easily test the actual return value as it depends on the system
-	dir := getUserHomeDir()
+	dir, err := getUserHomeDir()
+	assert.NoError(t, err)
 	assert.NotEmpty(t, dir)
 }
 

@@ -34,8 +34,9 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 	return rootCmd
 }
 
-// Execute runs the root command with the given context
-func Execute(ctx context.Context) {
+// Execute runs the root command with the given context.
+// It now returns an error instead of exiting directly.
+func Execute(ctx context.Context) error {
 	// Create a temporary root command for bootstrapping
 	tempRoot := &cobra.Command{
 		Use:          "ocloud",
@@ -46,29 +47,42 @@ func Execute(ctx context.Context) {
 
 	flags.AddGlobalFlags(tempRoot)
 
-	setLogLevel(tempRoot)
+	if err := setLogLevel(tempRoot); err != nil {
+		return fmt.Errorf("setting log level: %w", err)
+	}
 
-	appCtx := hasHelpFlag(ctx, tempRoot)
+	appCtx, err := initializeAppContext(ctx, tempRoot)
+	if err != nil {
+		return fmt.Errorf("initializing app context: %w", err)
+	}
 
 	// Create the real root command with the AppContext
 	root := NewRootCmd(appCtx)
 
+	// Add PersistentPreRunE to handle setup before any command
+	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// Optional: more setup before any command
+		return nil
+	}
+
+	// Switch to RunE for the root command
+	root.RunE = func(cmd *cobra.Command, args []string) error {
+		return cmd.Help() // Default behavior is to show help
+	}
+
 	// Execute the command
 	if err := root.ExecuteContext(ctx); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err // Will be handled in main
 	}
+
+	return nil
 }
 
-func hasHelpFlag(ctx context.Context, tempRoot *cobra.Command) *app.AppContext {
-	// Check if help flag is present
-	isHelpRequested := false
-	for _, arg := range os.Args {
-		if arg == flags.FlagPrefixShortHelp || arg == flags.FlagPrefixLongHelp || arg == flags.FlagNameHelp {
-			isHelpRequested = true
-			break
-		}
-	}
+// initializeAppContext checks for help-related flags and initializes the AppContext accordingly.
+// It returns an error instead of exiting directly.
+func initializeAppContext(ctx context.Context, tempRoot *cobra.Command) (*app.AppContext, error) {
+	// Check if a help flag is present
+	isHelpRequested := hasHelpFlag(os.Args)
 
 	var appCtx *app.AppContext
 	var err error
@@ -83,14 +97,26 @@ func hasHelpFlag(ctx context.Context, tempRoot *cobra.Command) *app.AppContext {
 		// One-shot bootstrap of AppContext
 		appCtx, err = app.InitApp(ctx, tempRoot)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error initializing application: %v\n", err)
-			os.Exit(1)
+			return nil, fmt.Errorf("initializing application: %w", err)
 		}
 	}
-	return appCtx
+	return appCtx, nil
 }
 
-func setLogLevel(tempRoot *cobra.Command) {
+// hasHelpFlag checks if any help-related flags are present in the arguments.
+func hasHelpFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == flags.FlagPrefixShortHelp || arg == flags.FlagPrefixLongHelp || arg == flags.FlagNameHelp {
+			return true
+		}
+	}
+	return false
+}
+
+// // Hacky!
+// setLogLevel sets the logging level and colored output based on command-line flags or default values.
+// It ensures consistent log settings, initializes the logger, and applies settings globally.
+func setLogLevel(tempRoot *cobra.Command) error {
 	// Parse the flags to get the log level
 	tempRoot.ParseFlags(os.Args)
 
@@ -139,10 +165,11 @@ func setLogLevel(tempRoot *cobra.Command) {
 
 	// Initialize logger
 	if err := logger.SetLogger(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error initializing logger: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("initializing logger: %w", err)
 	}
 
 	// Initialize package-level logger with the same logger instance
 	logger.InitLogger(logger.CmdLogger)
+
+	return nil
 }
