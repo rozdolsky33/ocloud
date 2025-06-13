@@ -19,7 +19,7 @@ func NewComputeCmd(appCtx *app.AppContext) *cobra.Command {
 	}
 
 	// Add a custom help flag with a more descriptive message
-	cmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, "help for compute (shorthand: -h)")
+	cmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, flags.FlagDescHelp)
 	_ = cmd.Flags().SetAnnotation(flags.FlagNameHelp, flags.CobraAnnotationKey, []string{"true"})
 
 	// Add subcommands, passing in the AppContext
