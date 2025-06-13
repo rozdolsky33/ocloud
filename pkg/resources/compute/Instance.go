@@ -194,7 +194,7 @@ func displayInstances(instances []Instance) {
 // FindInstances searches for instances in the OCI compartment matching the given name pattern.
 // It uses the pre-initialized compute and network clients from the AppContext struct.
 // Parameters:
-// - application: The application with all clients, logger, and resolved IDs.
+// - appCtx: The application with all clients, logger, and resolved IDs.
 // - namePattern: The pattern used to match instance names.
 // - showImageDetails: A flag indicating whether to include image details in the output.
 // Returns an error if the operation fails.
