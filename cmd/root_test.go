@@ -22,9 +22,15 @@ func TestRootCommand(t *testing.T) {
 	assert.Equal(t, "Interact with Oracle Cloud Infrastructure", rootCmd.Short)
 	assert.True(t, rootCmd.SilenceUsage)
 
-	// Test that the instance command is added as a subcommand
-	instanceCmd := findSubcommand(rootCmd, "instance")
-	assert.NotNil(t, instanceCmd, "instance command should be added as a subcommand")
+	// Test that the compute command is added as a subcommand
+	computeCmd := findSubcommand(rootCmd, "compute")
+	assert.NotNil(t, computeCmd, "compute command should be added as a subcommand")
+
+	// Test that the instance command is added as a subcommand of the compute command
+	if computeCmd != nil {
+		instanceCmd := findSubcommand(computeCmd, "instance")
+		assert.NotNil(t, instanceCmd, "instance command should be added as a subcommand of the compute command")
+	}
 }
 
 // findSubcommand is a helper function to find a subcommand by name

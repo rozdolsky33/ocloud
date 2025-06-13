@@ -47,8 +47,8 @@ func SetLogger() error {
 	// Set the global verbosity level based on the log level
 	switch strings.ToLower(LogLevel) {
 	case "debug":
-		// Turn on all verbose levels 0..5
-		GLOBAL_VERBOSITY = 5
+		// Turn on all verbose levels 0..10 to ensure all debug logs are shown
+		GLOBAL_VERBOSITY = 10
 	default:
 		GLOBAL_VERBOSITY = 0
 	}

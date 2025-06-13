@@ -3,6 +3,7 @@ package instance
 import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
 	"github.com/spf13/cobra"
 
@@ -14,6 +15,8 @@ func NewInstanceCmd(appCtx *app.AppContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "instance",
 		Short:         "Find and list OCI instances",
+		Long:          "Find and list OCI instances using flags. Use --list or -l to list all instances, or --find or -f to find instances by name pattern.",
+		Example:       "  ocloud compute instance --list\n  ocloud compute instance -l\n  ocloud compute instance --find myinstance\n  ocloud compute instance -f myinstance",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -23,12 +26,6 @@ func NewInstanceCmd(appCtx *app.AppContext) *cobra.Command {
 
 	// Add all instance-related flags to the command
 	flags.AddInstanceFlags(cmd)
-
-	// Add subcommands
-	cmd.AddCommand(
-		newListCmd(appCtx),
-		newFindCmd(appCtx),
-	)
 
 	return cmd
 }
@@ -41,10 +38,14 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 
 	switch {
 	case list:
+		// Use VerboseInfo to ensure debug logs work with shorthand flags
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command")
 		fmt.Println("Listing instances in compartment:", appCtx.CompartmentName)
 		return compute.ListInstances(appCtx)
 
 	case find != "":
+		// Use VerboseInfo to ensure debug logs work with shorthand flags
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find)
 		fmt.Println("Finding instances with name pattern:", find)
 		return compute.FindInstances(appCtx, find, imageDetails)
 

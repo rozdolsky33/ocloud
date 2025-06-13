@@ -43,13 +43,5 @@ func AddInstanceFlags(cmd *cobra.Command) {
 	}
 }
 
-// AddListFlags adds flags specific to the instance list command
-func AddListFlags(cmd *cobra.Command) {
-	ListFlag.Add(cmd)
-}
-
-// AddFindFlags adds flags specific to the instance find command
-func AddFindFlags(cmd *cobra.Command) {
-	FindFlag.Add(cmd)
-	ImageDetailsFlag.Add(cmd)
-}
+// These functions were removed as part of the refactoring to use only flags
+// and not subcommands for the instance command.

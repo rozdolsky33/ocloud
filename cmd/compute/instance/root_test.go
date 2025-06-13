@@ -20,6 +20,8 @@ func TestInstanceCommand(t *testing.T) {
 	// Test that the instance command is properly configured
 	assert.Equal(t, "instance", cmd.Use)
 	assert.Equal(t, "Find and list OCI instances", cmd.Short)
+	assert.Equal(t, "Find and list OCI instances using flags. Use --list or -l to list all instances, or --find or -f to find instances by name pattern.", cmd.Long)
+	assert.Equal(t, "  ocloud compute instance --list\n  ocloud compute instance -l\n  ocloud compute instance --find myinstance\n  ocloud compute instance -f myinstance", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	assert.NotNil(t, cmd.RunE)

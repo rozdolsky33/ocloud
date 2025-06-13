@@ -118,41 +118,41 @@ ocloud [global flags] <command> [command flags] [arguments]
 # Show help
 ocloud --help
 
-# Show instance command help
-ocloud instance --help
+# Show compute instance command help
+ocloud compute instance --help
 
 # Enable debug logging with colored output
-ocloud --log-level debug --color instance list
+ocloud --log-level debug --color compute instance --list
 ```
 
 ### Working with Instances
 
 ```bash
 # List all instances in a compartment
-ocloud --compartment my-compartment instance list
+ocloud --compartment my-compartment compute instance --list
 
-# List all instances using the old flag syntax (for backward compatibility)
-ocloud --compartment my-compartment instance -l
+# List all instances using the shorthand flag syntax
+ocloud --compartment my-compartment compute instance -l
 
 # Find instances by name pattern
-ocloud --compartment my-compartment instance find "web-server"
+ocloud --compartment my-compartment compute instance --find "web-server"
 
 # Find instances with image details
-ocloud --compartment my-compartment instance find "web-server" --image-details
+ocloud --compartment my-compartment compute instance --find "web-server" --image-details
 ```
 
 ### Working with Different Tenancies
 
 ```bash
 # Use a specific tenancy by OCID
-ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... instance list
+ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... compute instance --list
 
 # Use a tenancy by name (requires tenancy map)
-ocloud --tenancy-name my-production-tenancy instance list
+ocloud --tenancy-name my-production-tenancy compute instance --list
 
 # Use environment variables
 export OCI_TENANCY_NAME=my-production-tenancy
-ocloud instance list
+ocloud compute instance --list
 ```
 
 ## Development
@@ -163,10 +163,10 @@ The project follows a modern Go application structure:
 
 - `cmd/`: Command-line interface implementation
   - `root.go`: Root command and global flags
-  - `instance/`: Instance-related commands
-    - `root.go`: Instance command and flags
-    - `list.go`: List instances command
-    - `find.go`: Find instances command
+  - `compute/`: Compute-related commands
+    - `root.go`: Compute command and flags
+    - `instance/`: Instance-related commands
+      - `root.go`: Instance command and flags
 - `internal/`: Internal packages (not intended for external use)
   - `app/`: Application context and core functionality
   - `config/`: Configuration handling
