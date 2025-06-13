@@ -5,34 +5,40 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
 // TestInstanceCommand tests the basic structure of the instance command
 func TestInstanceCommand(t *testing.T) {
+	// Create a mock AppContext
+	appCtx := &app.AppContext{}
+
+	// Create a new instance command
+	cmd := NewInstanceCmd(appCtx)
+
 	// Test that the instance command is properly configured
-	assert.Equal(t, "instance", InstanceCmd.Use)
-	assert.Equal(t, "Find and list OCI instances", InstanceCmd.Short)
-	assert.True(t, InstanceCmd.SilenceUsage)
-	assert.True(t, InstanceCmd.SilenceErrors)
-	assert.NotNil(t, InstanceCmd.PreRunE)
-	assert.NotNil(t, InstanceCmd.RunE)
+	assert.Equal(t, "instance", cmd.Use)
+	assert.Equal(t, "Find and list OCI instances", cmd.Short)
+	assert.True(t, cmd.SilenceUsage)
+	assert.True(t, cmd.SilenceErrors)
+	assert.NotNil(t, cmd.RunE)
 
 	// Test that the flags are added
-	listFlag := InstanceCmd.Flags().Lookup(config.FlagNameList)
+	listFlag := cmd.Flags().Lookup(flags.FlagNameList)
 	assert.NotNil(t, listFlag, "list flag should be added")
-	assert.Equal(t, config.FlagShortList, listFlag.Shorthand)
-	assert.Equal(t, config.FlagDescList, listFlag.Usage)
+	assert.Equal(t, flags.FlagShortList, listFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescList, listFlag.Usage)
 
-	findFlag := InstanceCmd.Flags().Lookup(config.FlagNameFind)
+	findFlag := cmd.Flags().Lookup(flags.FlagNameFind)
 	assert.NotNil(t, findFlag, "find flag should be added")
-	assert.Equal(t, config.FlagShortFind, findFlag.Shorthand)
-	assert.Equal(t, config.FlagDescFind, findFlag.Usage)
+	assert.Equal(t, flags.FlagShortFind, findFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescFind, findFlag.Usage)
 
-	imageDetailsFlag := InstanceCmd.Flags().Lookup(config.FlagNameImageDetails)
+	imageDetailsFlag := cmd.Flags().Lookup(flags.FlagNameImageDetails)
 	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added")
-	assert.Equal(t, config.FlagShortImageDetails, imageDetailsFlag.Shorthand)
-	assert.Equal(t, config.FlagDescImageDetails, imageDetailsFlag.Usage)
+	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
 }
 
 // TestInitApp tests the app.InitApp function

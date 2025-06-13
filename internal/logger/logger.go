@@ -48,6 +48,7 @@ func SetLogger() error {
 	klog.SetLogger(klogger)
 	ctrl.SetLogger(logger)
 	CmdLogger = logger
+
 	return nil
 }
 

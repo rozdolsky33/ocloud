@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
 // TestNewFindCmd tests the newFindCmd function
@@ -37,8 +37,8 @@ func TestNewFindCmd(t *testing.T) {
 	assert.Error(t, cmd.Args(cmd, []string{"test-pattern", "extra-arg"}))
 
 	// Test that the flags are added
-	imageDetailsFlag := cmd.Flags().Lookup(config.FlagNameImageDetails)
+	imageDetailsFlag := cmd.Flags().Lookup(flags.FlagNameImageDetails)
 	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added")
-	assert.Equal(t, config.FlagShortImageDetails, imageDetailsFlag.Shorthand)
-	assert.Equal(t, config.FlagDescImageDetails, imageDetailsFlag.Usage)
+	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
 }

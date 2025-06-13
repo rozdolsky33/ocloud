@@ -5,10 +5,18 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/rozdolsky33/ocloud/internal/app"
 )
 
 // TestRootCommand tests the basic structure of the root command
 func TestRootCommand(t *testing.T) {
+	// Create a mock AppContext
+	appCtx := &app.AppContext{}
+
+	// Create a new root command
+	rootCmd := NewRootCmd(appCtx)
+
 	// Test that the root command is properly configured
 	assert.Equal(t, "ocloud", rootCmd.Use)
 	assert.Equal(t, "Interact with Oracle Cloud Infrastructure", rootCmd.Short)
