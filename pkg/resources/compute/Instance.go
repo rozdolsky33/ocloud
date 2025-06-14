@@ -3,6 +3,7 @@ package compute
 import (
 	"context"
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/printer"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -169,27 +170,27 @@ func ListInstances(appCtx *app.AppContext) error {
 	}
 
 	// Display instance information
-	displayInstances(instances)
+	PrintInstancesTable(instances, appCtx.TenancyName, appCtx.CompartmentName)
 
 	return nil
 }
 
-// displayInstances prints formatted instance information to the console.
-func displayInstances(instances []Instance) {
-	fmt.Println("\nInstances:")
-	for _, inst := range instances {
-		fmt.Println()
-		fmt.Println("Name:", inst.Name)
-		fmt.Println("ID:", inst.ID)
-		fmt.Printf("Private IP: %s AD: %s\tFD: %s\tRegion: %s\n",
-			inst.IP, inst.Placement.AvailabilityDomain, inst.Placement.FaultDomain, inst.Placement.Region)
-		fmt.Printf("Shape: %s\tMemory: %dGB\tvCPUs: %d\n",
-			inst.Shape, int(inst.Resources.MemoryGB), inst.Resources.VCPUs)
-		fmt.Println("State:", inst.State)
-		fmt.Println("Created:", inst.CreatedAt)
-		fmt.Println("Subnet ID: ", inst.SubnetID)
-	}
-}
+//// displayInstances prints formatted instance information to the console.
+//func displayInstances(instances []Instance) {
+//	fmt.Println("\nInstances:")
+//	for _, inst := range instances {
+//		fmt.Println()
+//		fmt.Println("Name:", inst.Name)
+//		fmt.Println("ID:", inst.ID)
+//		fmt.Printf("Private IP: %s AD: %s\tFD: %s\tRegion: %s\n",
+//			inst.IP, inst.Placement.AvailabilityDomain, inst.Placement.FaultDomain, inst.Placement.Region)
+//		fmt.Printf("Shape: %s\tMemory: %dGB\tvCPUs: %d\n",
+//			inst.Shape, int(inst.Resources.MemoryGB), inst.Resources.VCPUs)
+//		fmt.Println("State:", inst.State)
+//		fmt.Println("Created:", inst.CreatedAt)
+//		fmt.Println("Subnet ID: ", inst.SubnetID)
+//	}
+//}
 
 // FindInstances searches for instances in the OCI compartment matching the given name pattern.
 // It uses the pre-initialized compute and network clients from the AppContext struct.
@@ -225,6 +226,58 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 		fmt.Println("Image details functionality not yet implemented")
 	}
 
-	displayInstances(matchedInstances)
+	PrintInstancesTable(matchedInstances, appCtx.TenancyName, appCtx.CompartmentName)
 	return nil
+}
+
+func PrintInstancesTable(instances []Instance, tenancyName string, compartmentName string) {
+	// Create a table printer with the tenancy name as the title
+	tablePrinter := printer.NewTablePrinter(tenancyName)
+
+	// Convert instances to a format suitable for the printer
+	if len(instances) == 0 {
+		fmt.Println("No instances found.")
+		return
+	}
+
+	// Print each instance as a key-value table with a title
+	for _, instance := range instances {
+		// Create a title with a tenancy name, compartment name, and instance name
+		title := fmt.Sprintf("%s: %s: %s", tenancyName, compartmentName, instance.Name)
+
+		// Create a map with the instance data
+		instanceData := map[string]string{
+			"ID":         instance.ID,
+			"AD":         instance.Placement.AvailabilityDomain,
+			"FD":         instance.Placement.FaultDomain,
+			"Region":     instance.Placement.Region,
+			"Shape":      instance.Shape,
+			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
+			"Created":    instance.CreatedAt.String(),
+			"Subnet ID":  instance.SubnetID,
+			"Name":       instance.Name,
+			"Private IP": instance.IP,
+			"Memory":     fmt.Sprintf("%d GB", int(instance.Resources.MemoryGB)),
+			"State":      string(instance.State),
+		}
+
+		// Define the order of keys to match the example
+		orderedKeys := []string{
+			"ID",
+			"AD",
+			"FD",
+			"Region",
+			"Shape",
+			"vCPUs",
+			"Created",
+			"Subnet ID",
+			"Name",
+			"Private IP",
+			"Memory",
+			"State",
+		}
+
+		// Print the table with ordered keys
+		tablePrinter.PrintKeyValueTableWithTitleOrdered(title, instanceData, orderedKeys)
+	}
 }
