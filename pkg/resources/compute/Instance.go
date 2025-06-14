@@ -183,7 +183,7 @@ func displayInstances(instances []Instance) {
 		fmt.Println("ID:", inst.ID)
 		fmt.Printf("Private IP: %s AD: %s\tFD: %s\tRegion: %s\n",
 			inst.IP, inst.Placement.AvailabilityDomain, inst.Placement.FaultDomain, inst.Placement.Region)
-		fmt.Printf("Shape: %s\tMemory: %d GB\tvCPUs: %d\n",
+		fmt.Printf("Shape: %s\tMemory: %dGB\tvCPUs: %d\n",
 			inst.Shape, int(inst.Resources.MemoryGB), inst.Resources.VCPUs)
 		fmt.Println("State:", inst.State)
 		fmt.Println("Created:", inst.CreatedAt)
