@@ -2,6 +2,7 @@ package printer
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/app"
 	"os"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -75,7 +76,7 @@ func (p *TablePrinter) PrintKeyValueTableWithTitle(title string, data map[string
 
 // PrintKeyValueTableWithTitleOrdered prints data in a key-value table format with a custom title
 // and in the order specified by the key slice
-func (p *TablePrinter) PrintKeyValueTableWithTitleOrdered(tenancyName, compartmentName, instanceName string, data map[string]string, keys []string) {
+func (p *TablePrinter) PrintKeyValueTableWithTitleOrdered(appCtx *app.AppContext, instanceName string, data map[string]string, keys []string) {
 	if len(data) == 0 {
 		fmt.Println("No data to display.")
 		return
@@ -87,8 +88,8 @@ func (p *TablePrinter) PrintKeyValueTableWithTitleOrdered(tenancyName, compartme
 	t.Style().Title.Align = text.AlignCenter
 
 	// Color the different parts of the title
-	coloredTenancy := text.Colors{text.FgMagenta}.Sprint(tenancyName)
-	coloredCompartment := text.Colors{text.FgCyan}.Sprint(compartmentName)
+	coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
+	coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
 	coloredInstance := text.Colors{text.FgBlue}.Sprint(instanceName)
 
 	// Combine the colored parts into a single title

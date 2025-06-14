@@ -258,6 +258,6 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext) {
 		}
 
 		// Print the table with ordered keys and colored title components
-		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx.TenancyName, appCtx.CompartmentName, instance.Name, instanceData, orderedKeys)
+		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, instance.Name, instanceData, orderedKeys)
 	}
 }
