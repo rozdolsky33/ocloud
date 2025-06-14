@@ -170,27 +170,10 @@ func ListInstances(appCtx *app.AppContext) error {
 	}
 
 	// Display instance information
-	PrintInstancesTable(instances, appCtx.TenancyName, appCtx.CompartmentName)
+	PrintInstancesTable(instances, appCtx)
 
 	return nil
 }
-
-//// displayInstances prints formatted instance information to the console.
-//func displayInstances(instances []Instance) {
-//	fmt.Println("\nInstances:")
-//	for _, inst := range instances {
-//		fmt.Println()
-//		fmt.Println("Name:", inst.Name)
-//		fmt.Println("ID:", inst.ID)
-//		fmt.Printf("Private IP: %s AD: %s\tFD: %s\tRegion: %s\n",
-//			inst.IP, inst.Placement.AvailabilityDomain, inst.Placement.FaultDomain, inst.Placement.Region)
-//		fmt.Printf("Shape: %s\tMemory: %dGB\tvCPUs: %d\n",
-//			inst.Shape, int(inst.Resources.MemoryGB), inst.Resources.VCPUs)
-//		fmt.Println("State:", inst.State)
-//		fmt.Println("Created:", inst.CreatedAt)
-//		fmt.Println("Subnet ID: ", inst.SubnetID)
-//	}
-//}
 
 // FindInstances searches for instances in the OCI compartment matching the given name pattern.
 // It uses the pre-initialized compute and network clients from the AppContext struct.
@@ -226,13 +209,13 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 		fmt.Println("Image details functionality not yet implemented")
 	}
 
-	PrintInstancesTable(matchedInstances, appCtx.TenancyName, appCtx.CompartmentName)
+	PrintInstancesTable(matchedInstances, appCtx)
 	return nil
 }
 
-func PrintInstancesTable(instances []Instance, tenancyName string, compartmentName string) {
+func PrintInstancesTable(instances []Instance, appCtx *app.AppContext) {
 	// Create a table printer with the tenancy name as the title
-	tablePrinter := printer.NewTablePrinter(tenancyName)
+	tablePrinter := printer.NewTablePrinter(appCtx.TenancyName)
 
 	// Convert instances to a format suitable for the printer
 	if len(instances) == 0 {
@@ -242,9 +225,6 @@ func PrintInstancesTable(instances []Instance, tenancyName string, compartmentNa
 
 	// Print each instance as a key-value table with a title
 	for _, instance := range instances {
-		// Create a title with a tenancy name, compartment name, and instance name
-		title := fmt.Sprintf("%s: %s: %s", tenancyName, compartmentName, instance.Name)
-
 		// Create a map with the instance data
 		instanceData := map[string]string{
 			"ID":         instance.ID,
@@ -277,7 +257,7 @@ func PrintInstancesTable(instances []Instance, tenancyName string, compartmentNa
 			"State",
 		}
 
-		// Print the table with ordered keys
-		tablePrinter.PrintKeyValueTableWithTitleOrdered(title, instanceData, orderedKeys)
+		// Print the table with ordered keys and colored title components
+		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx.TenancyName, appCtx.CompartmentName, instance.Name, instanceData, orderedKeys)
 	}
 }

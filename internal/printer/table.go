@@ -75,7 +75,7 @@ func (p *TablePrinter) PrintKeyValueTableWithTitle(title string, data map[string
 
 // PrintKeyValueTableWithTitleOrdered prints data in a key-value table format with a custom title
 // and in the order specified by the key slice
-func (p *TablePrinter) PrintKeyValueTableWithTitleOrdered(title string, data map[string]string, keys []string) {
+func (p *TablePrinter) PrintKeyValueTableWithTitleOrdered(tenancyName, compartmentName, instanceName string, data map[string]string, keys []string) {
 	if len(data) == 0 {
 		fmt.Println("No data to display.")
 		return
@@ -85,6 +85,14 @@ func (p *TablePrinter) PrintKeyValueTableWithTitleOrdered(title string, data map
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleRounded)
 	t.Style().Title.Align = text.AlignCenter
+
+	// Color the different parts of the title
+	coloredTenancy := text.Colors{text.FgMagenta}.Sprint(tenancyName)
+	coloredCompartment := text.Colors{text.FgCyan}.Sprint(compartmentName)
+	coloredInstance := text.Colors{text.FgBlue}.Sprint(instanceName)
+
+	// Combine the colored parts into a single title
+	title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
 	t.SetTitle(title)
 
 	// Set header
