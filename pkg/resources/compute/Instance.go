@@ -7,7 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 
@@ -15,15 +14,6 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
-
-// Service encapsulates OCI compute/network clients and config.
-// It provides methods to list and find instances without printing directly.
-type Service struct {
-	compute       core.ComputeClient
-	network       core.VirtualNetworkClient
-	logger        logr.Logger
-	compartmentID string
-}
 
 // NewService constructs a compute Service, wiring up clients once.
 func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Service, error) {
@@ -299,12 +289,11 @@ func mapToInstance(oc core.Instance) Instance {
 			VCPUs:    *oc.ShapeConfig.Vcpus,
 			MemoryGB: *oc.ShapeConfig.MemoryInGBs,
 		},
-		Shape:           *oc.Shape,
-		ImageID:         *oc.ImageId,
-		SubnetID:        "", // to be filled later
-		State:           oc.LifecycleState,
-		CreatedAt:       *oc.TimeCreated,
-		OperatingSystem: "", // added per TODO
+		Shape:     *oc.Shape,
+		ImageID:   *oc.ImageId,
+		SubnetID:  "", // to be filled later
+		State:     oc.LifecycleState,
+		CreatedAt: *oc.TimeCreated,
 	}
 }
 

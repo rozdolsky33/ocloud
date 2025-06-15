@@ -1,9 +1,19 @@
 package compute
 
 import (
+	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 )
+
+// Service encapsulates OCI compute/network clients and config.
+// It provides methods to list and find instances without printing directly.
+type Service struct {
+	compute       core.ComputeClient
+	network       core.VirtualNetworkClient
+	logger        logr.Logger
+	compartmentID string
+}
 
 // Instance represents a VM instance in the cloud.
 type Instance struct {
