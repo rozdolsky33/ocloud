@@ -44,12 +44,18 @@ type Resources struct {
 	MemoryGB float32
 }
 
-// Define a struct to hold VNIC information
+// VnicInfo Define a struct to hold VNIC information
 type VnicInfo struct {
 	InstanceID string
 	Ip         string
 	SubnetID   string
 	Err        error
+}
+
+// JSONResponse Create a response structure that includes instances and pagination info
+type JSONResponse struct {
+	Instances  []Instance      `json:"instances"`
+	Pagination *PaginationInfo `json:"pagination,omitempty"`
 }
 
 // PaginationInfo holds information about the current page and total results

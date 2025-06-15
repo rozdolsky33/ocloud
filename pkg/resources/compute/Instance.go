@@ -89,7 +89,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 		nextPageToken = *resp.OpcNextPage
 		logger.VerboseInfo(s.logger, 3, "Next page token", "token", nextPageToken)
 
-		// Continue fetching all pages to get accurate total count
+		// Continue fetching all pages to get an accurate total count
 		page = nextPageToken
 	}
 
@@ -114,7 +114,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 
 		// Adjust indices if they're out of bounds
 		if startIdx >= len(all) {
-			// If the requested page is beyond available data, return empty result
+			// If the requested page is beyond available data, return an empty result
 			logger.VerboseInfo(s.logger, 3, "Requested page is beyond available data",
 				"startIdx", startIdx,
 				"totalInstances", len(all))
@@ -131,7 +131,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 		logger.VerboseInfo(s.logger, 3, "Extracted page of instances",
 			"pageSize", len(paginatedInstances))
 
-		// Update instance map to only include instances in the current page
+		// Update the instance map to only include instances in the current page
 		newInstanceMap := make(map[string]*Instance)
 		for i := range paginatedInstances {
 			newInstanceMap[paginatedInstances[i].ID] = &paginatedInstances[i]
@@ -494,26 +494,7 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo, useJSON bool) {
 	// If JSON output is requested, print instances as JSON
 	if useJSON {
-		// Create a response structure that includes instances and pagination info
-		type JSONResponse struct {
-			Instances  []Instance      `json:"instances"`
-			Pagination *PaginationInfo `json:"pagination,omitempty"`
-		}
-
-		response := JSONResponse{
-			Instances:  instances,
-			Pagination: pagination,
-		}
-
-		// Marshal the response to JSON
-		jsonData, err := json.MarshalIndent(response, "", "  ")
-		if err != nil {
-			appCtx.Logger.Error(err, "Failed to marshal instances to JSON")
-			return
-		}
-
-		// Print the JSON data
-		fmt.Println(string(jsonData))
+		marshalInstancesToJSON(instances, appCtx, pagination)
 		return
 	}
 
@@ -600,4 +581,22 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, paginatio
 				"limit", pagination.Limit)
 		}
 	}
+}
+
+func marshalInstancesToJSON(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo) {
+	response := JSONResponse{
+		Instances:  instances,
+		Pagination: pagination,
+	}
+
+	// Marshal the response to JSON
+	jsonData, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		appCtx.Logger.Error(err, "Failed to marshal instances to JSON")
+		return
+	}
+
+	// Print the JSON data
+	fmt.Println(string(jsonData))
+	return
 }
