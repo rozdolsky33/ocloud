@@ -9,7 +9,6 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/spf13/cobra"
 	"os"
-	"strings"
 )
 
 // NewRootCmd creates a new root command with all subcommands attached
@@ -120,30 +119,49 @@ func setLogLevel(tempRoot *cobra.Command) error {
 	// Parse the flags to get the log level
 	tempRoot.ParseFlags(os.Args)
 
-	// Set the logger level from the flag value
-	logLevelFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameLogLevel)
-	if logLevelFlag != nil {
-		// Use the value from the parsed flag
-		logger.LogLevel = logLevelFlag.Value.String()
-		if logger.LogLevel == "" {
-			// If not set, use the default value
-			logger.LogLevel = flags.FlagValueInfo
+	// Check for debug flag first - it takes precedence over log-level
+	debugFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameDebug)
+	if debugFlag != nil && debugFlag.Value.String() == flags.FlagValueTrue {
+		// If debug flag is set, set log level to debug
+		logger.LogLevel = "debug"
+	} else {
+		// Otherwise, use the log-level flag
+		logLevelFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameLogLevel)
+		if logLevelFlag != nil {
+			// Use the value from the parsed flag
+			logger.LogLevel = logLevelFlag.Value.String()
+			if logger.LogLevel == "" {
+				// If not set, use the default value
+				logger.LogLevel = flags.FlagValueInfo
+			}
 		}
+
+		// This is a Hack!
+		// Check if --log-level flag is explicitly set in the command line arguments
+		// This ensures that the log level is set correctly regardless of whether
+		// the full command or shorthand flags are used
+		//for i, arg := range os.Args {
+		//	if arg == flags.FlagPrefixLogLevel && i+1 < len(os.Args) {
+		//		logger.LogLevel = os.Args[i+1]
+		//		break
+		//	} else if strings.HasPrefix(arg, flags.FlagPrefixLogLevelEq) {
+		//		logger.LogLevel = strings.TrimPrefix(arg, flags.FlagPrefixLogLevelEq)
+		//		break
+		//	}
+		//}
 	}
 
 	// This is a Hack!
-	//Check if --log-level flag is explicitly set in the command line arguments
-	// This ensures that the log level is set correctly regardless of whether
+	// Check if -d or --debug flag is explicitly set in the command line arguments
+	// This ensures that debug mode is set correctly regardless of whether
 	// the full command or shorthand flags are used
-	for i, arg := range os.Args {
-		if arg == flags.FlagPrefixLogLevel && i+1 < len(os.Args) {
-			logger.LogLevel = os.Args[i+1]
-			break
-		} else if strings.HasPrefix(arg, flags.FlagPrefixLogLevelEq) {
-			logger.LogLevel = strings.TrimPrefix(arg, flags.FlagPrefixLogLevelEq)
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixDebug || arg == flags.FlagPrefixShortDebug {
+			logger.LogLevel = "debug"
 			break
 		}
 	}
+
 	// Set the colored output from the flag value
 	colorFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameColor)
 	if colorFlag != nil {

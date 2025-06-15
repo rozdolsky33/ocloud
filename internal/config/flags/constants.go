@@ -4,6 +4,7 @@ package flags
 // FlagNames defines the string constants for flag names
 const (
 	FlagNameLogLevel          = "log-level"
+	FlagNameDebug             = "debug"
 	FlagNameList              = "list"
 	FlagNameFind              = "find"
 	FlagNameTenancyID         = "tenancy-id"
@@ -52,11 +53,13 @@ const (
 	FlagShortFindByStatement   = "s"
 	FlagShortIncludeStatements = "a"
 	FlagShortHelp              = "h"
+	FlagShortDebug             = "d"
 )
 
 // FlagDescriptions contains help text for flags
 const (
-	FlagDescLogLevel          = "Set the log verbosity. Supported values are: debug, info, warn, and error."
+	FlagDescLogLevel          = "Set the log verbosity debug,"
+	FlagDescDebug             = "Enable debug logging"
 	FlagDescList              = "List all resources"
 	FlagDescFind              = "Find resources by name pattern search"
 	FlagDescCreate            = "Create a resource"
@@ -96,6 +99,8 @@ const (
 	FlagPrefixLogLevel   = "--log-level"
 	FlagPrefixLogLevelEq = "--log-level="
 	FlagPrefixColor      = "--color"
+	FlagPrefixDebug      = "--debug"
+	FlagPrefixShortDebug = "-d"
 	CobraAnnotationKey   = "cobra_annotation_flag_set_by_cobra"
 )
 

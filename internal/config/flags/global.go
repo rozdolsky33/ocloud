@@ -15,6 +15,13 @@ var (
 		Usage:   FlagDescLogLevel,
 	}
 
+	DebugFlag = BoolFlag{
+		Name:      FlagNameDebug,
+		Shorthand: FlagShortDebug,
+		Default:   false,
+		Usage:     FlagDescDebug,
+	}
+
 	ColorFlag = BoolFlag{
 		Name:    FlagNameColor,
 		Default: false,
@@ -45,6 +52,7 @@ var (
 // globalFlags is a slice of all global flags for batch registration
 var globalFlags = []Flag{
 	LogLevelFlag,
+	DebugFlag,
 	ColorFlag,
 	TenancyIDFlag,
 	TenancyNameFlag,
