@@ -2,7 +2,6 @@ package compute
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"strings"
@@ -201,7 +200,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 		// Process VNIC attachments sequentially
 		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
 
-		// For each instance, find its primary VNIC
+		// For each instance, find its primary VNIC Time complexity O(N * M)
 		for instanceID, attachments := range vnicAttachmentsByInstance {
 			// Skip if we don't have this instance in our map
 			if _, ok := instanceMap[instanceID]; !ok {
@@ -241,7 +240,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 		var wg sync.WaitGroup
 		vnicChan := make(chan VnicInfo, len(instanceMap))
 
-		// For each instance, find its primary VNIC
+		// For each instance, find its primary VNIC Time complexity O(N * M)
 		for instanceID, attachments := range vnicAttachmentsByInstance {
 			// Skip if we don't have this instance in our map
 			if _, ok := instanceMap[instanceID]; !ok {
@@ -589,14 +588,7 @@ func marshalInstancesToJSON(instances []Instance, appCtx *app.AppContext, pagina
 		Pagination: pagination,
 	}
 
-	// Marshal the response to JSON
-	jsonData, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		appCtx.Logger.Error(err, "Failed to marshal instances to JSON")
-		return
-	}
-
-	// Print the JSON data
-	fmt.Println(string(jsonData))
+	// Use the printer package to marshal the response to JSON
+	printer.MarshalToJSON(response, appCtx)
 	return
 }
