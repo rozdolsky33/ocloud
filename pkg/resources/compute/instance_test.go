@@ -31,7 +31,7 @@ func TestListInstances(t *testing.T) {
 	}
 
 	// Test successful case
-	err := ListInstances(mockCtx)
+	err := ListInstances(mockCtx, 20, 1, false)
 	assert.NoError(t, err)
 
 	// Test error case (can't easily test this without mocking the oci package)
@@ -53,11 +53,11 @@ func TestFindInstances(t *testing.T) {
 	}
 
 	// Test successful case
-	err := FindInstances(mockCtx, "test-pattern", false)
+	err := FindInstances(mockCtx, "test-pattern", false, false)
 	assert.NoError(t, err)
 
 	// Test with image details
-	err = FindInstances(mockCtx, "test-pattern", true)
+	err = FindInstances(mockCtx, "test-pattern", true, false)
 	assert.NoError(t, err)
 
 	// Test error case (can't easily test this without mocking the oci package)

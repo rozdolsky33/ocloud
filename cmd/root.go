@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/cmd/compute"
+	"github.com/rozdolsky33/ocloud/cmd/version"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -29,6 +30,12 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 
 	// Add subcommands, passing in the AppContext
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
+
+	// Add version command
+	rootCmd.AddCommand(version.NewVersionCmd())
+
+	// Add version flag
+	version.AddVersionFlag(rootCmd)
 
 	return rootCmd
 }
@@ -60,6 +67,11 @@ func Execute(ctx context.Context) error {
 
 	// Add PersistentPreRunE to handle setup before any command
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// Check for version flag
+		if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
+			version.PrintVersion()
+			os.Exit(0)
+		}
 		// Optional: more setup before any command
 		return nil
 	}

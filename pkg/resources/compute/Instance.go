@@ -150,12 +150,18 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 		}
 	}
 
+	// Calculate if there are more pages after the current page
+	hasNextPage := false
+	if pageNum*limit < totalCount {
+		hasNextPage = true
+	}
+
 	logger.VerboseInfo(s.logger, 2, "Completed instance listing with pagination",
 		"returnedCount", len(paginatedInstances),
 		"totalCount", totalCount,
 		"page", pageNum,
 		"limit", limit,
-		"hasNextPage", nextPageToken != "")
+		"hasNextPage", hasNextPage)
 	return paginatedInstances, totalCount, nextPageToken, nil
 }
 
@@ -467,7 +473,7 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 	// Display matched instances
 	if len(matchedInstances) == 0 {
 		if useJSON {
-			// Return empty JSON array if no instances found
+			// Return an empty JSON array if no instances found
 			fmt.Println(`{"instances": [], "pagination": null}`)
 		} else {
 			fmt.Printf("No instances found matching pattern: %s\n", namePattern)
@@ -566,10 +572,16 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, paginatio
 
 	// Log pagination information if available
 	if pagination != nil {
-		// Log pagination information at INFO level
+		// Calculate the total records displayed so far
+		totalRecordsDisplayed := pagination.CurrentPage * pagination.Limit
+		if totalRecordsDisplayed > pagination.TotalCount {
+			totalRecordsDisplayed = pagination.TotalCount
+		}
+
+		// Log pagination information at the INFO level
 		appCtx.Logger.Info("--- Pagination Information ---",
 			"page", pagination.CurrentPage,
-			"records", fmt.Sprintf("%d/%d", len(instances), pagination.TotalCount),
+			"records", fmt.Sprintf("%d/%d", totalRecordsDisplayed, pagination.TotalCount),
 			"limit", pagination.Limit)
 
 		// Add debug logs for navigation hints
@@ -580,7 +592,8 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, paginatio
 				"limit", pagination.Limit)
 		}
 
-		if len(instances) == pagination.Limit && len(instances) < pagination.TotalCount {
+		// Check if there are more pages after the current page
+		if pagination.CurrentPage*pagination.Limit < pagination.TotalCount {
 			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
 				"action", "next page",
 				"page", pagination.CurrentPage+1,

@@ -5,6 +5,8 @@ GO        := go
 BIN       := ocloud
 BUILD_DIR := bin
 GOLANGCI_LINT := golangci-lint
+PKG       := github.com/rozdolsky33/ocloud
+VERSION   ?= $(shell git describe --tags --always --dirty)
 
 # Default target
 .DEFAULT_GOAL := help
@@ -17,7 +19,7 @@ all: build
 build:
 	@echo "Building $(BIN)..."
 	@mkdir -p $(BUILD_DIR)
-	@$(GO) build -o $(BUILD_DIR)/$(BIN) .
+	@$(GO) build -ldflags "-X $(PKG)/cmd/version.version=$(VERSION)" -o $(BUILD_DIR)/$(BIN) .
 
 run: build
 	@echo "Running $(BIN)..."
