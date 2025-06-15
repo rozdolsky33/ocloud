@@ -27,6 +27,20 @@ var (
 		Default:   false,
 		Usage:     FlagDescImageDetails,
 	}
+
+	LimitFlag = IntFlag{
+		Name:      FlagNameLimit,
+		Shorthand: FlagShortLimit,
+		Default:   20,
+		Usage:     FlagDescLimit,
+	}
+
+	PageFlag = IntFlag{
+		Name:      FlagNamePage,
+		Shorthand: FlagShortPage,
+		Default:   1,
+		Usage:     FlagDescPage,
+	}
 )
 
 // instanceFlags is a slice of all instance-related flags for batch registration
@@ -34,6 +48,8 @@ var instanceFlags = []Flag{
 	ListFlag,
 	FindFlag,
 	ImageDetailsFlag,
+	LimitFlag,
+	PageFlag,
 }
 
 // AddInstanceFlags adds all instance-related flags to the given command

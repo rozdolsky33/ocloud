@@ -51,3 +51,11 @@ type VnicInfo struct {
 	SubnetID   string
 	Err        error
 }
+
+// PaginationInfo holds information about the current page and total results
+type PaginationInfo struct {
+	CurrentPage   int
+	TotalCount    int
+	Limit         int
+	NextPageToken string
+}

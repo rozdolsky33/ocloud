@@ -35,12 +35,19 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 	}, nil
 }
 
-// List retrieves all running instances in the compartment.
-func (s *Service) List(ctx context.Context) ([]Instance, error) {
+// List retrieves instances in the compartment with pagination support.
+func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
+	// Log input parameters at debug level
+	logger.VerboseInfo(s.logger, 3, "List() called with pagination parameters",
+		"limit", limit,
+		"pageNum", pageNum)
+
 	var all []Instance
 	page := ""
 	var instanceIDs []string
 	instanceMap := make(map[string]*Instance)
+	totalCount := 0
+	var nextPageToken string
 
 	// Step 1: Fetch all instances
 	for {
@@ -50,9 +57,10 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 			Page:           &page,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("listing instances: %w", err)
+			return nil, 0, "", fmt.Errorf("listing instances: %w", err)
 		}
 
+		// Add instances to our collection
 		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
 			all = append(all, inst)
@@ -65,14 +73,80 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 			instanceMap[*oc.Id] = &all[len(all)-1]
 		}
 
+		// Keep track of total count
+		totalCount = len(all)
+
+		// Log the number of instances fetched so far
+		logger.VerboseInfo(s.logger, 3, "Fetched instances",
+			"count", len(resp.Items),
+			"totalSoFar", totalCount)
+
+		// If we've collected enough instances for the requested page, or there are no more pages, break
 		if resp.OpcNextPage == nil {
+			logger.VerboseInfo(s.logger, 3, "No more pages available")
 			break
 		}
-		page = *resp.OpcNextPage
+
+		// Save the next page token
+		nextPageToken = *resp.OpcNextPage
+		logger.VerboseInfo(s.logger, 3, "Next page token", "token", nextPageToken)
+
+		// If we're not collecting all instances for pagination, break after the first page
+		if limit > 0 {
+			logger.VerboseInfo(s.logger, 3, "Stopping after first page due to limit", "limit", limit)
+			break
+		}
+
+		page = nextPageToken
 	}
 
-	// Step 2: Fetch all VNIC attachments for the compartment in bulk
-	if len(all) > 0 {
+	// Apply pagination if requested
+	paginatedInstances := all
+	if limit > 0 && pageNum > 0 {
+		logger.VerboseInfo(s.logger, 3, "Applying pagination",
+			"pageNum", pageNum,
+			"limit", limit,
+			"totalInstances", len(all))
+
+		// Calculate start and end indices for the requested page
+		startIdx := (pageNum - 1) * limit
+		endIdx := startIdx + limit
+
+		logger.VerboseInfo(s.logger, 3, "Calculated pagination indices",
+			"startIdx", startIdx,
+			"endIdx", endIdx)
+
+		// Adjust indices if they're out of bounds
+		if startIdx >= len(all) {
+			// If the requested page is beyond available data, return empty result
+			logger.VerboseInfo(s.logger, 3, "Requested page is beyond available data",
+				"startIdx", startIdx,
+				"totalInstances", len(all))
+			return []Instance{}, totalCount, nextPageToken, nil
+		}
+		if endIdx > len(all) {
+			endIdx = len(all)
+			logger.VerboseInfo(s.logger, 3, "Adjusted end index to match available data",
+				"endIdx", endIdx)
+		}
+
+		// Extract the requested page
+		paginatedInstances = all[startIdx:endIdx]
+		logger.VerboseInfo(s.logger, 3, "Extracted page of instances",
+			"pageSize", len(paginatedInstances))
+
+		// Update instance map to only include instances in the current page
+		newInstanceMap := make(map[string]*Instance)
+		for i := range paginatedInstances {
+			newInstanceMap[paginatedInstances[i].ID] = &paginatedInstances[i]
+		}
+		instanceMap = newInstanceMap
+		logger.VerboseInfo(s.logger, 3, "Updated instance map for current page",
+			"mapSize", len(instanceMap))
+	}
+
+	// Step 2: Fetch VNIC attachments for the instances in the current page
+	if len(instanceMap) > 0 {
 		err := s.enrichInstancesWithVnics(ctx, instanceMap)
 		if err != nil {
 			logger.VerboseInfo(s.logger, 1, "error enriching instances with VNICs", "error", err)
@@ -80,8 +154,13 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 		}
 	}
 
-	logger.VerboseInfo(s.logger, 2, "found instances", "count", len(all))
-	return all, nil
+	logger.VerboseInfo(s.logger, 2, "Completed instance listing with pagination",
+		"returnedCount", len(paginatedInstances),
+		"totalCount", totalCount,
+		"page", pageNum,
+		"limit", limit,
+		"hasNextPage", nextPageToken != "")
+	return paginatedInstances, totalCount, nextPageToken, nil
 }
 
 // enrichInstancesWithVnics fetches VNIC attachments for all instances in bulk
@@ -339,11 +418,11 @@ func mapToInstance(oc core.Instance) Instance {
 	}
 }
 
-// ListInstances lists all instances in the configured compartment using the provided application.
-// It uses the pre-initialized compute client from the AppContext struct.
-func ListInstances(appCtx *app.AppContext) error {
+// ListInstances lists instances in the configured compartment using the provided application.
+// It uses the pre-initialized compute client from the AppContext struct and supports pagination.
+func ListInstances(appCtx *app.AppContext, limit int, page int) error {
 	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()")
+	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page)
 
 	service, err := NewService(appCtx.Provider, appCtx)
 	if err != nil {
@@ -351,13 +430,18 @@ func ListInstances(appCtx *app.AppContext) error {
 	}
 
 	ctx := context.Background()
-	instances, err := service.List(ctx)
+	instances, totalCount, nextPageToken, err := service.List(ctx, limit, page)
 	if err != nil {
 		return fmt.Errorf("listing instances: %w", err)
 	}
 
-	// Display instance information
-	PrintInstancesTable(instances, appCtx)
+	// Display instance information with pagination details
+	PrintInstancesTable(instances, appCtx, &PaginationInfo{
+		CurrentPage:   page,
+		TotalCount:    totalCount,
+		Limit:         limit,
+		NextPageToken: nextPageToken,
+	})
 
 	return nil
 }
@@ -396,17 +480,23 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 		fmt.Println("Image details functionality not yet implemented")
 	}
 
-	PrintInstancesTable(matchedInstances, appCtx)
+	PrintInstancesTable(matchedInstances, appCtx, nil)
 	return nil
 }
 
-func PrintInstancesTable(instances []Instance, appCtx *app.AppContext) {
+func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo) {
 	// Create a table printer with the tenancy name as the title
 	tablePrinter := printer.NewTablePrinter(appCtx.TenancyName)
 
 	// Convert instances to a format suitable for the printer
 	if len(instances) == 0 {
 		fmt.Println("No instances found.")
+		if pagination != nil && pagination.TotalCount > 0 {
+			fmt.Printf("Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
+			if pagination.CurrentPage > 1 {
+				fmt.Printf("Try a lower page number (e.g., --page %d)\n", pagination.CurrentPage-1)
+			}
+		}
 		return
 	}
 
@@ -446,5 +536,29 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext) {
 
 		// Print the table with ordered keys and colored title components
 		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, instance.Name, instanceData, orderedKeys)
+	}
+
+	// Log pagination information if available
+	if pagination != nil {
+		// Log pagination information at INFO level
+		appCtx.Logger.Info("--- Pagination Information ---",
+			"page", pagination.CurrentPage,
+			"records", fmt.Sprintf("%d/%d", len(instances), pagination.TotalCount),
+			"limit", pagination.Limit)
+
+		// Add debug logs for navigation hints
+		if pagination.CurrentPage > 1 {
+			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
+				"action", "previous page",
+				"page", pagination.CurrentPage-1,
+				"limit", pagination.Limit)
+		}
+
+		if len(instances) == pagination.Limit && len(instances) < pagination.TotalCount {
+			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
+				"action", "next page",
+				"page", pagination.CurrentPage+1,
+				"limit", pagination.Limit)
+		}
 	}
 }

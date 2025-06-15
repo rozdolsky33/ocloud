@@ -41,9 +41,22 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 
 	switch {
 	case list:
+		// Get pagination parameters
+		limit, err := cmd.Flags().GetInt(flags.FlagNameLimit)
+		if err != nil {
+			// Use default if flag not found
+			limit = 20
+		}
+
+		page, err := cmd.Flags().GetInt(flags.FlagNamePage)
+		if err != nil {
+			// Use default if flag not found
+			page = 1
+		}
+
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName)
-		return compute.ListInstances(appCtx)
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page)
+		return compute.ListInstances(appCtx, limit, page)
 
 	case find != "":
 		// Use VerboseInfo to ensure debug logs work with shorthand flags

@@ -29,6 +29,8 @@ const (
 	FlagNameHelp               = "help"
 	FlagNameColor              = "color"
 	FlagNameDisableConcurrency = "disable-concurrency"
+	FlagNameLimit              = "limit"
+	FlagNamePage               = "page"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -56,6 +58,8 @@ const (
 	FlagShortHelp               = "h"
 	FlagShortDebug              = "d"
 	FlagShortDisableConcurrency = "x"
+	FlagShortLimit              = "m"
+	FlagShortPage               = "p"
 )
 
 // FlagDescriptions contains help text for flags
@@ -84,8 +88,9 @@ const (
 	FlagDescFindByStatement    = "Find resources by statement"
 	FlagDescIncludeStatements  = "Include statements"
 	FlagDescHelp               = "help for ocloud (shorthand: -h)"
-	FlagDescColor              = "Enable colored output"
 	FlagDescDisableConcurrency = "Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting)"
+	FlagDescLimit              = "Maximum number of records to display per page (default: 20)"
+	FlagDescPage               = "Page number to display (default: 1)"
 )
 
 // Flag values and defaults

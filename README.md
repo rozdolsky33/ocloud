@@ -96,6 +96,8 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `--find` | `-f` | Find resources by name pattern search |
 | `--image-details` | `-i` | Show image details |
 | `--list` | `-l` | List all resources |
+| `--limit` | `-m` | Maximum number of records to display per page (default: 20) |
+| `--page` | `-p` | Page number to display (default: 1) |
 
 Additional flags are available for specific operations. Use `ocloud --help` to see all available options.
 
@@ -142,6 +144,18 @@ ocloud --compartment my-compartment -x compute instance --list
 
 # Enable concurrency using the full flag name
 ocloud --compartment my-compartment --disable-concurrency compute instance --find "web-server"
+
+# List instances with pagination (default: 20 records per page)
+ocloud --compartment my-compartment compute instance --list
+
+# List instances with custom page size
+ocloud --compartment my-compartment compute instance --list --limit 10
+
+# Navigate to a specific page
+ocloud --compartment my-compartment compute instance --list --page 2
+
+# Combine pagination parameters
+ocloud --compartment my-compartment compute instance --list --limit 5 --page 3
 ```
 
 ### Working with Different Tenancies

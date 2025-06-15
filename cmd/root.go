@@ -135,20 +135,6 @@ func setLogLevel(tempRoot *cobra.Command) error {
 				logger.LogLevel = flags.FlagValueInfo
 			}
 		}
-
-		// This is a Hack!
-		// Check if --log-level flag is explicitly set in the command line arguments
-		// This ensures that the log level is set correctly regardless of whether
-		// the full command or shorthand flags are used
-		//for i, arg := range os.Args {
-		//	if arg == flags.FlagPrefixLogLevel && i+1 < len(os.Args) {
-		//		logger.LogLevel = os.Args[i+1]
-		//		break
-		//	} else if strings.HasPrefix(arg, flags.FlagPrefixLogLevelEq) {
-		//		logger.LogLevel = strings.TrimPrefix(arg, flags.FlagPrefixLogLevelEq)
-		//		break
-		//	}
-		//}
 	}
 
 	// This is a Hack!
