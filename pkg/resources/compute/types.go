@@ -32,3 +32,11 @@ type Resources struct {
 	VCPUs    int
 	MemoryGB float32
 }
+
+// Define a struct to hold VNIC information
+type VnicInfo struct {
+	InstanceID string
+	Ip         string
+	SubnetID   string
+	Err        error
+}

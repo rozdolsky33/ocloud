@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"strings"
+	"sync"
 
 	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -47,7 +48,10 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 func (s *Service) List(ctx context.Context) ([]Instance, error) {
 	var all []Instance
 	page := ""
+	var instanceIDs []string
+	instanceMap := make(map[string]*Instance)
 
+	// Step 1: Fetch all instances
 	for {
 		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
 			CompartmentId:  &s.compartmentID,
@@ -60,14 +64,14 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 
 		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
-
-			// enrich IP & Subnet
-			err := s.enrichVnic(ctx, &inst, oc.Id)
-			if err != nil {
-				logger.VerboseInfo(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
-			}
-
 			all = append(all, inst)
+
+			// Store instance ID for bulk VNIC attachment lookup
+			instanceIDs = append(instanceIDs, *oc.Id)
+
+			// Store a reference to the instance in the map for easy lookup
+			// We need to get the address of the instance in the slice
+			instanceMap[*oc.Id] = &all[len(all)-1]
 		}
 
 		if resp.OpcNextPage == nil {
@@ -76,40 +80,190 @@ func (s *Service) List(ctx context.Context) ([]Instance, error) {
 		page = *resp.OpcNextPage
 	}
 
+	// Step 2: Fetch all VNIC attachments for the compartment in bulk
+	if len(all) > 0 {
+		err := s.enrichInstancesWithVnics(ctx, instanceMap)
+		if err != nil {
+			logger.VerboseInfo(s.logger, 1, "error enriching instances with VNICs", "error", err)
+			// Continue with the instances we have, even if VNIC enrichment failed
+		}
+	}
+
 	logger.VerboseInfo(s.logger, 2, "found instances", "count", len(all))
 	return all, nil
+}
+
+// enrichInstancesWithVnics fetches VNIC attachments for all instances in bulk
+// and updates the instances with their primary VNIC information.
+func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[string]*Instance) error {
+	// Create a map to store VNIC attachments by instance ID
+	vnicAttachmentsByInstance := make(map[string][]core.VnicAttachment)
+
+	// Fetch all VNIC attachments for the compartment
+	page := ""
+	for {
+		vaResp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
+			CompartmentId: &s.compartmentID,
+			Page:          &page,
+		})
+		if err != nil {
+			return fmt.Errorf("listing VNIC attachments: %w", err)
+		}
+
+		// Group VNIC attachments by instance ID
+		for _, attach := range vaResp.Items {
+			if attach.InstanceId != nil {
+				instanceID := *attach.InstanceId
+				vnicAttachmentsByInstance[instanceID] = append(vnicAttachmentsByInstance[instanceID], attach)
+			}
+		}
+
+		if vaResp.OpcNextPage == nil {
+			break
+		}
+		page = *vaResp.OpcNextPage
+	}
+
+	// Process VNIC attachments for each instance
+	// Use a wait group to process VNICs in parallel
+	var wg sync.WaitGroup
+	vnicChan := make(chan VnicInfo, len(instanceMap))
+
+	// For each instance, find its primary VNIC
+	for instanceID, attachments := range vnicAttachmentsByInstance {
+		// Skip if we don't have this instance in our map
+		if _, ok := instanceMap[instanceID]; !ok {
+			continue
+		}
+
+		// Process each instance's VNIC attachments in a separate goroutine
+		for _, attach := range attachments {
+			wg.Add(1)
+			go func(instanceID string, attach core.VnicAttachment) {
+				defer wg.Done()
+
+				// Skip if VNIC ID is nil
+				if attach.VnicId == nil {
+					return
+				}
+
+				// Get VNIC details
+				vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
+				if err != nil {
+					logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
+					return
+				}
+
+				// Check if this is the primary VNIC
+				if vnic.IsPrimary != nil && *vnic.IsPrimary {
+					vnicChan <- VnicInfo{
+						InstanceID: instanceID,
+						Ip:         *vnic.PrivateIp,
+						SubnetID:   *vnic.SubnetId,
+					}
+				}
+			}(instanceID, attach)
+		}
+	}
+
+	// Close the channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(vnicChan)
+	}()
+
+	// Process results from the channel
+	for info := range vnicChan {
+		if instance, ok := instanceMap[info.InstanceID]; ok {
+			instance.IP = info.Ip
+			instance.SubnetID = info.SubnetID
+		}
+	}
+
+	return nil
 }
 
 // Find searches instances by name pattern.
 func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) {
 	logger.VerboseInfo(s.logger, 1, "finding instances", "pattern", pattern)
 
-	all, err := s.List(ctx)
+	// Check if the pattern is an exact match for a display name
+	// If so, we can use the server-side filtering for better performance
+	exactMatchResp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
+		CompartmentId:  &s.compartmentID,
+		LifecycleState: core.InstanceLifecycleStateRunning,
+		DisplayName:    &pattern,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("listing instances: %w", err)
+		return nil, fmt.Errorf("listing instances with exact name match: %w", err)
 	}
 
-	var matched []Instance
-	for _, inst := range all {
-		if strings.Contains(strings.ToLower(inst.Name), strings.ToLower(pattern)) {
+	// If we found an exact match, return it
+	if len(exactMatchResp.Items) > 0 {
+		var matched []Instance
+		for _, oc := range exactMatchResp.Items {
+			inst := mapToInstance(oc)
+			// enrich IP & Subnet
+			err := s.enrichVnic(ctx, &inst, oc.Id)
+			if err != nil {
+				logger.VerboseInfo(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
+			}
 			matched = append(matched, inst)
 		}
+		logger.VerboseInfo(s.logger, 2, "found exact matching instances", "pattern", pattern, "count", len(matched))
+		return matched, nil
 	}
 
-	logger.VerboseInfo(s.logger, 2, "found matching instances", "pattern", pattern, "count", len(matched))
+	// If no exact match, we need to do a partial match
+	// We'll use pagination to avoid loading all instances at once
+	var matched []Instance
+	page := ""
+
+	for {
+		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
+			CompartmentId:  &s.compartmentID,
+			LifecycleState: core.InstanceLifecycleStateRunning,
+			Page:           &page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("listing instances for partial name match: %w", err)
+		}
+
+		for _, oc := range resp.Items {
+			// Check if the display name contains the pattern (case-insensitive)
+			if strings.Contains(strings.ToLower(*oc.DisplayName), strings.ToLower(pattern)) {
+				inst := mapToInstance(oc)
+				// enrich IP & Subnet
+				err := s.enrichVnic(ctx, &inst, oc.Id)
+				if err != nil {
+					logger.VerboseInfo(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
+				}
+				matched = append(matched, inst)
+			}
+		}
+
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = *resp.OpcNextPage
+	}
+
+	logger.VerboseInfo(s.logger, 2, "found partial matching instances", "pattern", pattern, "count", len(matched))
 	return matched, nil
 }
 
 // enrichVnic queries attachments and sets IP/Subnet on the model.
+// This is a best-effort operation - if no primary VNIC is found, the instance
+// will be returned with empty IP/Subnet fields rather than failing.
 func (s *Service) enrichVnic(ctx context.Context, inst *Instance, instanceID *string) error {
-	logger.VerboseInfo(s.logger, 3, "enriching VNIC info", "instanceID", *instanceID)
-
 	vaResp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
 		CompartmentId: &s.compartmentID,
 		InstanceId:    instanceID,
 	})
 	if err != nil {
-		return fmt.Errorf("listing VNIC attachments: %w", err)
+		// Log the error but don't fail the entire operation
+		logger.VerboseInfo(s.logger, 1, "error listing VNIC attachments", "instanceID", *instanceID, "error", err)
+		return nil
 	}
 
 	for _, attach := range vaResp.Items {
@@ -125,7 +279,9 @@ func (s *Service) enrichVnic(ctx context.Context, inst *Instance, instanceID *st
 		}
 	}
 
-	return fmt.Errorf("no primary VNIC found")
+	// If no primary VNIC is found, log a warning but don't fail the operation
+	logger.VerboseInfo(s.logger, 1, "no primary VNIC found for instance", "instanceID", *instanceID)
+	return nil
 }
 
 // mapToInstance maps SDK Instance to local model.
