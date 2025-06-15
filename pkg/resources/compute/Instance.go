@@ -27,10 +27,11 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 	}
 
 	return &Service{
-		compute:       cc,
-		network:       nc,
-		logger:        appCtx.Logger,
-		compartmentID: appCtx.CompartmentID,
+		compute:            cc,
+		network:            nc,
+		logger:             appCtx.Logger,
+		compartmentID:      appCtx.CompartmentID,
+		disableConcurrency: appCtx.DisableConcurrency,
 	}, nil
 }
 
@@ -114,59 +115,100 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 		page = *vaResp.OpcNextPage
 	}
 
-	// Process VNIC attachments for each instance
-	// Use a wait group to process VNICs in parallel
-	var wg sync.WaitGroup
-	vnicChan := make(chan VnicInfo, len(instanceMap))
+	// Check if concurrency is disabled
+	if s.disableConcurrency {
+		// Process VNIC attachments sequentially
+		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
 
-	// For each instance, find its primary VNIC
-	for instanceID, attachments := range vnicAttachmentsByInstance {
-		// Skip if we don't have this instance in our map
-		if _, ok := instanceMap[instanceID]; !ok {
-			continue
-		}
+		// For each instance, find its primary VNIC
+		for instanceID, attachments := range vnicAttachmentsByInstance {
+			// Skip if we don't have this instance in our map
+			if _, ok := instanceMap[instanceID]; !ok {
+				continue
+			}
 
-		// Process each instance's VNIC attachments in a separate goroutine
-		for _, attach := range attachments {
-			wg.Add(1)
-			go func(instanceID string, attach core.VnicAttachment) {
-				defer wg.Done()
-
+			// Process each instance's VNIC attachments sequentially
+			for _, attach := range attachments {
 				// Skip if VNIC ID is nil
 				if attach.VnicId == nil {
-					return
+					continue
 				}
 
 				// Get VNIC details
 				vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
 				if err != nil {
 					logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
-					return
+					continue
 				}
 
 				// Check if this is the primary VNIC
 				if vnic.IsPrimary != nil && *vnic.IsPrimary {
-					vnicChan <- VnicInfo{
-						InstanceID: instanceID,
-						Ip:         *vnic.PrivateIp,
-						SubnetID:   *vnic.SubnetId,
+					if instance, ok := instanceMap[instanceID]; ok {
+						instance.IP = *vnic.PrivateIp
+						instance.SubnetID = *vnic.SubnetId
 					}
+					// Found primary VNIC, no need to check other attachments for this instance
+					break
 				}
-			}(instanceID, attach)
+			}
 		}
-	}
+	} else {
+		// Process VNIC attachments in parallel (default behavior)
+		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
 
-	// Close the channel when all goroutines are done
-	go func() {
-		wg.Wait()
-		close(vnicChan)
-	}()
+		// Use a wait group to process VNICs in parallel
+		var wg sync.WaitGroup
+		vnicChan := make(chan VnicInfo, len(instanceMap))
 
-	// Process results from the channel
-	for info := range vnicChan {
-		if instance, ok := instanceMap[info.InstanceID]; ok {
-			instance.IP = info.Ip
-			instance.SubnetID = info.SubnetID
+		// For each instance, find its primary VNIC
+		for instanceID, attachments := range vnicAttachmentsByInstance {
+			// Skip if we don't have this instance in our map
+			if _, ok := instanceMap[instanceID]; !ok {
+				continue
+			}
+
+			// Process each instance's VNIC attachments in a separate goroutine
+			for _, attach := range attachments {
+				wg.Add(1)
+				go func(instanceID string, attach core.VnicAttachment) {
+					defer wg.Done()
+
+					// Skip if VNIC ID is nil
+					if attach.VnicId == nil {
+						return
+					}
+
+					// Get VNIC details
+					vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
+					if err != nil {
+						logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
+						return
+					}
+
+					// Check if this is the primary VNIC
+					if vnic.IsPrimary != nil && *vnic.IsPrimary {
+						vnicChan <- VnicInfo{
+							InstanceID: instanceID,
+							Ip:         *vnic.PrivateIp,
+							SubnetID:   *vnic.SubnetId,
+						}
+					}
+				}(instanceID, attach)
+			}
+		}
+
+		// Close the channel when all goroutines are done
+		go func() {
+			wg.Wait()
+			close(vnicChan)
+		}()
+
+		// Process results from the channel
+		for info := range vnicChan {
+			if instance, ok := instanceMap[info.InstanceID]; ok {
+				instance.IP = info.Ip
+				instance.SubnetID = info.SubnetID
+			}
 		}
 	}
 

@@ -87,6 +87,7 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `--tenancy-name` |  | Tenancy name |
 | `--log-level` |  | Set the log verbosity. Supported values are: debug, info, warn, and error. |
 | `--compartment` | `-c` | OCI compartment name |
+| `--disable-concurrency` | `-x` | Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting) |
 
 ### Instance Command Flags
 
@@ -135,6 +136,12 @@ ocloud --compartment my-compartment compute instance --find "web-server"
 
 # Find instances with image details
 ocloud --compartment my-compartment compute instance --find "web-server" --image-details
+
+# Enable concurrency for faster processing (may hit rate limits)
+ocloud --compartment my-compartment -x compute instance --list
+
+# Enable concurrency using the full flag name
+ocloud --compartment my-compartment --disable-concurrency compute instance --find "web-server"
 ```
 
 ### Working with Different Tenancies

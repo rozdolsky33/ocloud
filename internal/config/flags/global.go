@@ -47,6 +47,13 @@ var (
 		Default:   "",
 		Usage:     FlagDescCompartment,
 	}
+
+	DisableConcurrencyFlag = BoolFlag{
+		Name:      FlagNameDisableConcurrency,
+		Shorthand: FlagShortDisableConcurrency,
+		Default:   true,
+		Usage:     FlagDescDisableConcurrency,
+	}
 )
 
 // globalFlags is a slice of all global flags for batch registration
@@ -57,6 +64,7 @@ var globalFlags = []Flag{
 	TenancyIDFlag,
 	TenancyNameFlag,
 	CompartmentFlag,
+	DisableConcurrencyFlag,
 }
 
 // AddGlobalFlags adds all global flags to the given command

@@ -19,13 +19,14 @@ import (
 // AppContext represents the application with all its clients, configuration, and resolved IDs.
 // It holds all the components needed for command execution.
 type AppContext struct {
-	Provider        common.ConfigurationProvider
-	IdentityClient  identity.IdentityClient
-	TenancyID       string
-	TenancyName     string
-	CompartmentName string
-	CompartmentID   string
-	Logger          logr.Logger
+	Provider           common.ConfigurationProvider
+	IdentityClient     identity.IdentityClient
+	TenancyID          string
+	TenancyName        string
+	CompartmentName    string
+	CompartmentID      string
+	Logger             logr.Logger
+	DisableConcurrency bool
 }
 
 // InitApp initializes the AppContext with all clients, logger, and resolved IDs.
@@ -50,11 +51,34 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	}
 
 	// Build base AppContext
+	disableConcurrency, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
+
+	// Check if the flag was explicitly set on the command line
+	flagExplicitlySet := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
+
+	// Direct check for -x flag in command line arguments
+	xFlagPresent := false
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixShortDisableConcurrency || arg == flags.FlagPrefixDisableConcurrency {
+			xFlagPresent = true
+			break
+		}
+	}
+
+	// If -x flag is present, enable concurrency
+	if xFlagPresent {
+		disableConcurrency = false
+	} else if !flagExplicitlySet {
+		// If not explicitly set, use the default (true = concurrency disabled)
+		disableConcurrency = true
+	}
+
 	app := &AppContext{
-		Provider:        prov,
-		IdentityClient:  idClient,
-		CompartmentName: viper.GetString(flags.FlagNameCompartment),
-		Logger:          logger.CmdLogger,
+		Provider:           prov,
+		IdentityClient:     idClient,
+		CompartmentName:    viper.GetString(flags.FlagNameCompartment),
+		Logger:             logger.CmdLogger,
+		DisableConcurrency: disableConcurrency,
 	}
 
 	// Resolve Tenancy ID
