@@ -17,7 +17,7 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 ### Prerequisites
 
-- Go 1.24.3 or later
+- Go 1.24.3 or later (Note: This is a future Go version. The project is configured for this version, but you may need to use the latest stable Go version for now)
 - Oracle Cloud Infrastructure account
 - OCI SDK configuration (typically in `~/.oci/config`)
 
@@ -25,7 +25,7 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/rozdolsky33/ocloud.git
    cd ocloud
    ```
 
