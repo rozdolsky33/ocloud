@@ -49,7 +49,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	totalCount := 0
 	var nextPageToken string
 
-	// Step 1: Fetch all instances
+	// Step 1: Fetch instances for the requested page and get the total count
 	for {
 		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
 			CompartmentId:  &s.compartmentID,
@@ -73,15 +73,12 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 			instanceMap[*oc.Id] = &all[len(all)-1]
 		}
 
-		// Keep track of total count
-		totalCount = len(all)
-
 		// Log the number of instances fetched so far
 		logger.VerboseInfo(s.logger, 3, "Fetched instances",
 			"count", len(resp.Items),
-			"totalSoFar", totalCount)
+			"totalSoFar", len(all))
 
-		// If we've collected enough instances for the requested page, or there are no more pages, break
+		// If there are no more pages, break
 		if resp.OpcNextPage == nil {
 			logger.VerboseInfo(s.logger, 3, "No more pages available")
 			break
@@ -91,14 +88,12 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 		nextPageToken = *resp.OpcNextPage
 		logger.VerboseInfo(s.logger, 3, "Next page token", "token", nextPageToken)
 
-		// If we're not collecting all instances for pagination, break after the first page
-		if limit > 0 {
-			logger.VerboseInfo(s.logger, 3, "Stopping after first page due to limit", "limit", limit)
-			break
-		}
-
+		// Continue fetching all pages to get accurate total count
 		page = nextPageToken
 	}
+
+	// Set the total count to the total number of instances fetched
+	totalCount = len(all)
 
 	// Apply pagination if requested
 	paginatedInstances := all
@@ -290,7 +285,6 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 			}
 		}
 	}
-
 	return nil
 }
 
