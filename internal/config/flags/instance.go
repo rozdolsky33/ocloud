@@ -41,6 +41,13 @@ var (
 		Default:   1,
 		Usage:     FlagDescPage,
 	}
+
+	JSONFlag = BoolFlag{
+		Name:      FlagNameJSON,
+		Shorthand: FlagShortJSON,
+		Default:   false,
+		Usage:     FlagDescJSON,
+	}
 )
 
 // instanceFlags is a slice of all instance-related flags for batch registration
@@ -50,6 +57,7 @@ var instanceFlags = []Flag{
 	ImageDetailsFlag,
 	LimitFlag,
 	PageFlag,
+	JSONFlag,
 }
 
 // AddInstanceFlags adds all instance-related flags to the given command

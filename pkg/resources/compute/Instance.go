@@ -2,6 +2,7 @@ package compute
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"strings"
@@ -414,9 +415,9 @@ func mapToInstance(oc core.Instance) Instance {
 
 // ListInstances lists instances in the configured compartment using the provided application.
 // It uses the pre-initialized compute client from the AppContext struct and supports pagination.
-func ListInstances(appCtx *app.AppContext, limit int, page int) error {
+func ListInstances(appCtx *app.AppContext, limit int, page int, useJSON bool) error {
 	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page)
+	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page, "json", useJSON)
 
 	service, err := NewService(appCtx.Provider, appCtx)
 	if err != nil {
@@ -435,7 +436,7 @@ func ListInstances(appCtx *app.AppContext, limit int, page int) error {
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
-	})
+	}, useJSON)
 
 	return nil
 }
@@ -446,10 +447,11 @@ func ListInstances(appCtx *app.AppContext, limit int, page int) error {
 // - appCtx: The application with all clients, logger, and resolved IDs.
 // - namePattern: The pattern used to match instance names.
 // - showImageDetails: A flag indicating whether to include image details in the output.
+// - useJSON: A flag indicating whether to output information in JSON format.
 // Returns an error if the operation fails.
-func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails bool) error {
+func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails bool, useJSON bool) error {
 	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails)
+	logger.VerboseInfo(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails, "json", useJSON)
 
 	service, err := NewService(appCtx.Provider, appCtx)
 	if err != nil {
@@ -464,7 +466,12 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 
 	// Display matched instances
 	if len(matchedInstances) == 0 {
-		fmt.Printf("No instances found matching pattern: %s\n", namePattern)
+		if useJSON {
+			// Return empty JSON array if no instances found
+			fmt.Println(`{"instances": [], "pagination": null}`)
+		} else {
+			fmt.Printf("No instances found matching pattern: %s\n", namePattern)
+		}
 		return nil
 	}
 
@@ -474,11 +481,36 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 		fmt.Println("Image details functionality not yet implemented")
 	}
 
-	PrintInstancesTable(matchedInstances, appCtx, nil)
+	PrintInstancesTable(matchedInstances, appCtx, nil, useJSON)
 	return nil
 }
 
-func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo) {
+func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo, useJSON bool) {
+	// If JSON output is requested, print instances as JSON
+	if useJSON {
+		// Create a response structure that includes instances and pagination info
+		type JSONResponse struct {
+			Instances  []Instance      `json:"instances"`
+			Pagination *PaginationInfo `json:"pagination,omitempty"`
+		}
+
+		response := JSONResponse{
+			Instances:  instances,
+			Pagination: pagination,
+		}
+
+		// Marshal the response to JSON
+		jsonData, err := json.MarshalIndent(response, "", "  ")
+		if err != nil {
+			appCtx.Logger.Error(err, "Failed to marshal instances to JSON")
+			return
+		}
+
+		// Print the JSON data
+		fmt.Println(string(jsonData))
+		return
+	}
+
 	// Create a table printer with the tenancy name as the title
 	tablePrinter := printer.NewTablePrinter(appCtx.TenancyName)
 

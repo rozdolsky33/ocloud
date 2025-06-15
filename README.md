@@ -95,6 +95,7 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 |------|-------|-------------|
 | `--find` | `-f` | Find resources by name pattern search |
 | `--image-details` | `-i` | Show image details |
+| `--json` | `-j` | Output information in JSON format |
 | `--list` | `-l` | List all resources |
 | `--limit` | `-m` | Maximum number of records to display per page (default: 20) |
 | `--page` | `-p` | Page number to display (default: 1) |
@@ -139,6 +140,15 @@ ocloud --compartment my-compartment compute instance --find "web-server"
 # Find instances with image details
 ocloud --compartment my-compartment compute instance --find "web-server" --image-details
 
+# Output instance information in JSON format
+ocloud --compartment my-compartment compute instance --list --json
+
+# Output instance information in JSON format using shorthand flags
+ocloud --compartment my-compartment compute instance -l -j
+
+# Find instances and output results in JSON format
+ocloud --compartment my-compartment compute instance --find "web-server" --json
+
 # Enable concurrency for faster processing (may hit rate limits)
 ocloud --compartment my-compartment -x compute instance --list
 
@@ -156,6 +166,9 @@ ocloud --compartment my-compartment compute instance --list --page 2
 
 # Combine pagination parameters
 ocloud --compartment my-compartment compute instance --list --limit 5 --page 3
+
+# Combine JSON output with pagination
+ocloud --compartment my-compartment compute instance --list --limit 5 --page 2 --json
 ```
 
 ### Working with Different Tenancies

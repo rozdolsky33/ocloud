@@ -31,6 +31,7 @@ const (
 	FlagNameDisableConcurrency = "disable-concurrency"
 	FlagNameLimit              = "limit"
 	FlagNamePage               = "page"
+	FlagNameJSON               = "json"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -60,6 +61,7 @@ const (
 	FlagShortDisableConcurrency = "x"
 	FlagShortLimit              = "m"
 	FlagShortPage               = "p"
+	FlagShortJSON               = "j"
 )
 
 // FlagDescriptions contains help text for flags
@@ -91,6 +93,7 @@ const (
 	FlagDescDisableConcurrency = "Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting)"
 	FlagDescLimit              = "Maximum number of records to display per page (default: 20)"
 	FlagDescPage               = "Page number to display (default: 1)"
+	FlagDescJSON               = "Output information in JSON format"
 )
 
 // Flag values and defaults

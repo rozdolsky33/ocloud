@@ -38,6 +38,7 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 	list, _ := cmd.Flags().GetBool(flags.FlagNameList)
 	find, _ := cmd.Flags().GetString(flags.FlagNameFind)
 	imageDetails, _ := cmd.Flags().GetBool(flags.FlagNameImageDetails)
+	useJSON, _ := cmd.Flags().GetBool(flags.FlagNameJSON)
 
 	switch {
 	case list:
@@ -55,13 +56,13 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 		}
 
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page)
-		return compute.ListInstances(appCtx, limit, page)
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
+		return compute.ListInstances(appCtx, limit, page, useJSON)
 
 	case find != "":
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName)
-		return compute.FindInstances(appCtx, find, imageDetails)
+		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName, "json", useJSON)
+		return compute.FindInstances(appCtx, find, imageDetails, useJSON)
 
 	default:
 		return cmd.Help()
