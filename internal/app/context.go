@@ -44,7 +44,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 
 	overrideRegionIfNeeded(identityClient)
 
-	enableConcurrency := determineConcurrency(cmd)
+	enableConcurrency := concurrency(cmd)
 
 	appCtx := &AppContext{
 		Provider:          provider,
@@ -55,7 +55,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	}
 
 	if err := resolveTenancyAndCompartment(ctx, cmd, appCtx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("resolving tenancy and compartment: %w", err)
 	}
 
 	return appCtx, nil
@@ -69,9 +69,9 @@ func overrideRegionIfNeeded(client identity.IdentityClient) {
 	}
 }
 
-// determineConcurrency determines if concurrency is enabled or disabled based on command flags and arguments.
-// Returns true if concurrency is enabled, otherwise false.
-func determineConcurrency(cmd *cobra.Command) bool {
+// concurrency determines whether concurrency is enabled based on command flags and specific CLI arguments.
+// Returns true if concurrency is enabled, or false if explicitly disabled via flags or defaults to disabled.
+func concurrency(cmd *cobra.Command) bool {
 	disable, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
 	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
 
@@ -88,22 +88,25 @@ func determineConcurrency(cmd *cobra.Command) bool {
 	return true // default to disabled
 }
 
-func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, app *AppContext) error {
+// resolveTenancyAndCompartment resolves the tenancy ID, tenancy name, and compartment ID for the application context.
+// It uses various sources such as CLI flags, environment variables, mapping files, and OCI configuration.
+// Updates the provided AppContext with the resolved IDs and names. Returns an error if resolution fails.
+func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, appCtx *AppContext) error {
 	tenancyID, err := resolveTenancyID(cmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not resolve tenancy ID: %w", err)
 	}
-	app.TenancyID = tenancyID
+	appCtx.TenancyID = tenancyID
 
-	if name := resolveTenancyName(cmd, tenancyID); name != "" {
-		app.TenancyName = name
+	if name := resolveTenancyName(cmd, appCtx.TenancyID); name != "" {
+		appCtx.TenancyName = name
 	}
 
-	compID, err := resolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient) //TODO:
+	compID, err := resolveCompartmentID(ctx, appCtx)
 	if err != nil {
 		return fmt.Errorf("could not resolve compartment ID: %w", err)
 	}
-	app.CompartmentID = compID
+	appCtx.CompartmentID = compID
 
 	return nil
 }
@@ -194,7 +197,11 @@ func resolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 // resolveCompartmentID returns the OCID of the compartment whose name matches
 // `compartmentName` under the given tenancy. It searches all active compartments
 // in the tenancy subtree.
-func resolveCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, idClient identity.IdentityClient) (string, error) {
+func resolveCompartmentID(ctx context.Context, appCtx *AppContext) (string, error) {
+	compartmentName := appCtx.CompartmentName
+	idClient := appCtx.IdentityClient
+	tenancyOCID := appCtx.TenancyID
+
 	// If the compartment name is not set, use tenancy ID as fallback
 	if compartmentName == "" {
 		logger.LogWithLevel(logger.CmdLogger, 3, "compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
