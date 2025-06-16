@@ -99,7 +99,7 @@ func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, app *
 		app.TenancyName = name
 	}
 
-	compID, err := resolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient)
+	compID, err := resolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient) //TODO:
 	if err != nil {
 		return fmt.Errorf("could not resolve compartment ID: %w", err)
 	}
@@ -115,18 +115,16 @@ func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, app *
 // 4. OCI config file
 // Returns the tenancy ID or an error if it cannot be resolved.
 func resolveTenancyID(cmd *cobra.Command) (string, error) {
-	log := logger.CmdLogger
-
 	// Check if tenancy ID is provided as a flag
 	if cmd.Flags().Changed(flags.FlagNameTenancyID) {
 		tenancyID := viper.GetString(flags.FlagNameTenancyID)
-		logger.LogWithLevel(log, 3, "using tenancy OCID from flag", "tenancyID", tenancyID)
+		logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID from flag", "tenancyID", tenancyID)
 		return tenancyID, nil
 	}
 
 	// Check if tenancy ID is provided as an environment variable
 	if envTenancy := os.Getenv(flags.EnvOCITenancy); envTenancy != "" {
-		logger.LogWithLevel(log, 3, "using tenancy OCID from env", "tenancyID", envTenancy)
+		logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID from env", "tenancyID", envTenancy)
 		viper.Set(flags.FlagNameTenancyID, envTenancy)
 		return envTenancy, nil
 	}
@@ -136,11 +134,11 @@ func resolveTenancyID(cmd *cobra.Command) (string, error) {
 		lookupID, err := config.LookupTenancyID(envTenancyName)
 		if err != nil {
 			// Log the error but continue with the next method of resolving the tenancy ID
-			log.Info("could not look up tenancy ID for tenancy name, continuing with other methods", "tenancyName", envTenancyName, "error", err)
+			logger.LogWithLevel(logger.CmdLogger, 3, "could not look up tenancy ID for tenancy name, continuing with other methods", "tenancyName", envTenancyName, "error", err)
 			// Add a more detailed message about how to set up the mapping file
-			log.Info("To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
+			logger.LogWithLevel(logger.CmdLogger, 3, "To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
 		} else {
-			logger.LogWithLevel(log, 3, "using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
+			logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
 			viper.Set(flags.FlagNameTenancyID, lookupID)
 			return lookupID, nil
 		}
@@ -151,7 +149,7 @@ func resolveTenancyID(cmd *cobra.Command) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
-	logger.LogWithLevel(log, 3, "using tenancy OCID from config file", "tenancyID", tenancyID)
+	logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID from config file", "tenancyID", tenancyID)
 	viper.Set(flags.FlagNameTenancyID, tenancyID)
 
 	return tenancyID, nil
@@ -163,18 +161,17 @@ func resolveTenancyID(cmd *cobra.Command) (string, error) {
 // 3. Tenancy mapping file lookup (using tenancy ID)
 // Returns the tenancy name or an empty string if it cannot be resolved.
 func resolveTenancyName(cmd *cobra.Command, tenancyID string) string {
-	log := logger.CmdLogger
 
 	// Check if the tenancy name is provided as a flag
 	if cmd.Flags().Changed(flags.FlagNameTenancyName) {
 		tenancyName := viper.GetString(flags.FlagNameTenancyName)
-		logger.LogWithLevel(log, 3, "using tenancy name from flag", "tenancyName", tenancyName)
+		logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy name from flag", "tenancyName", tenancyName)
 		return tenancyName
 	}
 
 	// Check if the tenancy name is provided as an environment variable
 	if envTenancyName := os.Getenv(flags.EnvOCITenancyName); envTenancyName != "" {
-		logger.LogWithLevel(log, 3, "using tenancy name from env", "tenancyName", envTenancyName)
+		logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy name from env", "tenancyName", envTenancyName)
 		viper.Set(flags.FlagNameTenancyName, envTenancyName)
 		return envTenancyName
 	}
@@ -184,7 +181,7 @@ func resolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	if err == nil {
 		for _, env := range tenancies {
 			if env.TenancyID == tenancyID {
-				logger.LogWithLevel(log, 3, "found tenancy name from mapping file", "tenancyName", env.Tenancy)
+				logger.LogWithLevel(logger.CmdLogger, 3, "found tenancy name from mapping file", "tenancyName", env.Tenancy)
 				viper.Set(flags.FlagNameTenancyName, env.Tenancy)
 				return env.Tenancy
 			}

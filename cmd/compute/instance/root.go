@@ -26,10 +26,6 @@ func NewInstanceCmd(appCtx *app.AppContext) *cobra.Command {
 	// Add all instance-related flags to the command
 	flags.AddInstanceFlags(cmd)
 
-	// Add a custom help flag with a more descriptive message
-	cmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, flags.FlagDescHelp)
-	_ = cmd.Flags().SetAnnotation(flags.FlagNameHelp, flags.CobraAnnotationKey, []string{"true"})
-
 	return cmd
 }
 

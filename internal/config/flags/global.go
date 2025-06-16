@@ -54,6 +54,13 @@ var (
 		Default:   false,
 		Usage:     FlagDescDisableConcurrency,
 	}
+
+	HelpFlag = BoolFlag{
+		Name:      FlagNameHelp,
+		Shorthand: FlagShortHelp,
+		Default:   false,
+		Usage:     FlagDescHelp,
+	}
 )
 
 // globalFlags is a slice of all global flags for batch registration
@@ -65,6 +72,7 @@ var globalFlags = []Flag{
 	TenancyNameFlag,
 	CompartmentFlag,
 	DisableConcurrencyFlag,
+	HelpFlag,
 }
 
 // AddGlobalFlags adds all global flags to the given command
@@ -73,6 +81,9 @@ func AddGlobalFlags(cmd *cobra.Command) {
 	for _, f := range globalFlags {
 		f.Apply(cmd.PersistentFlags())
 	}
+
+	// Set annotation for help flag
+	_ = cmd.PersistentFlags().SetAnnotation(FlagNameHelp, CobraAnnotationKey, []string{FlagValueTrue})
 
 	// Bind flags to viper for configuration
 	_ = viper.BindPFlag(FlagNameTenancyID, cmd.PersistentFlags().Lookup(FlagNameTenancyID))

@@ -24,10 +24,6 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 	// Initialize global flags
 	flags.AddGlobalFlags(rootCmd)
 
-	// Add a custom help flag with a more descriptive message
-	rootCmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, flags.FlagDescHelp)
-	_ = rootCmd.Flags().SetAnnotation(flags.FlagNameHelp, flags.CobraAnnotationKey, []string{flags.FlagValueTrue})
-
 	// Add subcommands, passing in the AppContext
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
 
@@ -138,7 +134,7 @@ func setLogLevel(tempRoot *cobra.Command) error {
 		}
 	}
 	tempRoot.ParseFlags(os.Args)
-	// Parse the flags to get the log level Should be this, but for some reason it prevents parsing flags int give an error
+	// Parse the flags to get the log level Should be approach, but for some reason it prevents parsing flags and give an error
 	//if err: = tempRoot.ParseFlags(os.Args); err != nil {
 	//	return fmt.Errorf("parsing flags: %w", err)
 	//}
