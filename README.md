@@ -1,7 +1,10 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
+[![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/releaserozdolsky33/ocloud?sort=semver)
+[![Version](https://img.shields.io/badge/goversion-1.23.x-blue.svg)](https://golang.org)
 <a href="https://golang.org"><img src="https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square" alt="Built with GoLang"></a>
-[![Version](https://img.shields.io/badge/goversion-1.20+-blue.svg)](https://golang.org)
-[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](LICENSE)
+[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
+[![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
 
 OCloud is a command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for common OCI operations with a focus on usability and automation.
 
@@ -15,13 +18,21 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 ## Installation
 
+OCloud can be installed in several ways:
+
+- Using Homebrew (macOS and Linux)
+- Downloading pre-built binaries
+- Building from source
+
+For detailed installation instructions for all platforms, see the [Installation Guide](docs/installation.md).
+
 ### Prerequisites
 
-- Go 1.20 or later
+- Go 1.21 or later
 - Oracle Cloud Infrastructure account
 - OCI SDK configuration (typically in `~/.oci/config`)
 
-### From Source
+### Quick Start: Build From Source
 
 1. Clone the repository:
    ```bash
