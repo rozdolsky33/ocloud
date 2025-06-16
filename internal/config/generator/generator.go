@@ -7,7 +7,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
+	"os"
+
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -129,7 +130,7 @@ func ExtractFlagConstants(configDir string) (map[string][]FlagInfo, error) {
 // UpdateReadme updates the README.md file with generated flag tables.
 func UpdateReadme(readmePath string, flagInfos map[string][]FlagInfo) error {
 	// Read the README file
-	content, err := ioutil.ReadFile(readmePath)
+	content, err := os.ReadFile(readmePath)
 	if err != nil {
 		return fmt.Errorf("failed to read README.md: %w", err)
 	}
@@ -147,5 +148,5 @@ func UpdateReadme(readmePath string, flagInfos map[string][]FlagInfo) error {
 	newContent = instancePattern.ReplaceAllString(newContent, instanceTable)
 
 	// Write the updated content back to the README file
-	return ioutil.WriteFile(readmePath, []byte(newContent), 0644)
+	return os.WriteFile(readmePath, []byte(newContent), 0644)
 }

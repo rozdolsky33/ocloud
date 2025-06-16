@@ -53,9 +53,17 @@ func setupTest(t *testing.T) func() {
 		// Restore original environment variables
 		for key, value := range originalEnvVars {
 			if value == "" {
-				os.Unsetenv(key)
+				err := os.Unsetenv(key)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			} else {
-				os.Setenv(key, value)
+				err := os.Setenv(key, value)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 		}
 
@@ -79,7 +87,10 @@ func TestResolveTenancyID(t *testing.T) {
 
 	// Test case 1: Tenancy ID from flag
 	// Need to mark the flag as changed and set the value in viper
-	cmd.Flags().Set(flags.FlagNameTenancyID, "flag-tenancy-ocid")
+	err := cmd.Flags().Set(flags.FlagNameTenancyID, "flag-tenancy-ocid")
+	if err != nil {
+		return
+	}
 	// This is a hack to mark the flag as changed
 	cmd.Flag(flags.FlagNameTenancyID).Changed = true
 	// Set the value in viper
@@ -91,7 +102,11 @@ func TestResolveTenancyID(t *testing.T) {
 	// Test case 2: Tenancy ID from environment variable
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
-	os.Setenv(flags.EnvOCITenancy, "env-tenancy-ocid")
+	err = os.Setenv(flags.EnvOCITenancy, "env-tenancy-ocid")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "env-tenancy-ocid", tenancyID)
@@ -99,8 +114,16 @@ func TestResolveTenancyID(t *testing.T) {
 	// Test case 3: Tenancy ID from tenancy name lookup
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
-	os.Unsetenv(flags.EnvOCITenancy)
-	os.Setenv(flags.EnvOCITenancyName, "mock-tenancy-name")
+	err = os.Unsetenv(flags.EnvOCITenancy)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = os.Setenv(flags.EnvOCITenancyName, "mock-tenancy-name")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
@@ -108,7 +131,11 @@ func TestResolveTenancyID(t *testing.T) {
 	// Test case 4: Tenancy ID from OCI config
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
-	os.Unsetenv(flags.EnvOCITenancyName)
+	err = os.Unsetenv(flags.EnvOCITenancyName)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
@@ -116,7 +143,11 @@ func TestResolveTenancyID(t *testing.T) {
 	// Test case 5: Error case - tenancy name lookup fails but continues to OCI config
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
-	os.Setenv(flags.EnvOCITenancyName, "non-existent-tenancy")
+	err = os.Setenv(flags.EnvOCITenancyName, "non-existent-tenancy")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
@@ -124,7 +155,11 @@ func TestResolveTenancyID(t *testing.T) {
 	// Test case 6: Error case - OCI config fails
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
-	os.Unsetenv(flags.EnvOCITenancyName)
+	err = os.Unsetenv(flags.EnvOCITenancyName)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	config.MockGetTenancyOCID = func() (string, error) {
 		return "", fmt.Errorf("mock error")
 	}
@@ -143,7 +178,11 @@ func TestResolveTenancyName(t *testing.T) {
 
 	// Test case 1: Tenancy name from flag
 	// Need to mark the flag as changed and set the value in viper
-	cmd.Flags().Set(flags.FlagNameTenancyName, "flag-tenancy-name")
+	err := cmd.Flags().Set(flags.FlagNameTenancyName, "flag-tenancy-name")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	// This is a hack to mark the flag as changed
 	cmd.Flag(flags.FlagNameTenancyName).Changed = true
 	// Set the value in viper
@@ -154,7 +193,11 @@ func TestResolveTenancyName(t *testing.T) {
 	// Test case 2: Tenancy name from environment variable
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyName, "", "")
-	os.Setenv(flags.EnvOCITenancyName, "env-tenancy-name")
+	err = os.Setenv(flags.EnvOCITenancyName, "env-tenancy-name")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tenancyName = resolveTenancyName(cmd, "mock-tenancy-ocid")
 	assert.Equal(t, "env-tenancy-name", tenancyName)
 
@@ -165,7 +208,11 @@ func TestResolveTenancyName(t *testing.T) {
 	// Test case 4: No tenancy name found
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyName, "", "")
-	os.Unsetenv(flags.EnvOCITenancyName)
+	err = os.Unsetenv(flags.EnvOCITenancyName)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tenancyName = resolveTenancyName(cmd, "unknown-tenancy-ocid")
 	assert.Equal(t, "", tenancyName)
 }
@@ -207,15 +254,27 @@ func TestInitAppComponents(t *testing.T) {
 
 	// Set up test values
 	// Need to mark the flags as changed and set the values in viper
-	cmd.Flags().Set(flags.FlagNameTenancyID, "mock-tenancy-ocid")
+	err := cmd.Flags().Set(flags.FlagNameTenancyID, "mock-tenancy-ocid")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	cmd.Flag(flags.FlagNameTenancyID).Changed = true
 	viper.Set(flags.FlagNameTenancyID, "mock-tenancy-ocid")
 
-	cmd.Flags().Set(flags.FlagNameTenancyName, "mock-tenancy-name")
+	err = cmd.Flags().Set(flags.FlagNameTenancyName, "mock-tenancy-name")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	cmd.Flag(flags.FlagNameTenancyName).Changed = true
 	viper.Set(flags.FlagNameTenancyName, "mock-tenancy-name")
 
-	cmd.Flags().Set(flags.FlagNameCompartment, "")
+	err = cmd.Flags().Set(flags.FlagNameCompartment, "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	// No need to mark this flag as changed or set it in viper since it's empty
 
 	// Test resolveTenancyID
