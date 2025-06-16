@@ -2,6 +2,7 @@ package version
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/spf13/cobra"
 )
 
@@ -30,14 +31,14 @@ func PrintVersion() {
 // AddVersionFlag adds a version flag to the root command
 func AddVersionFlag(rootCmd *cobra.Command) {
 	// Register a global persistent flag to support short form (e.g., `ocloud -v`)
-	rootCmd.PersistentFlags().BoolP("version", "v", false, "Print the version number of ocloud CLI")
+	rootCmd.PersistentFlags().BoolP(flags.FlagNameVersion, flags.FlagShortVersion, false, flags.FlagDescVersion)
 
 	// Store the original PersistentPreRunE function
 	originalPreRun := rootCmd.PersistentPreRunE
 
 	// Override the persistent pre-run hook to check for the `-v` flag
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
+		if versionFlag, _ := cmd.Flags().GetBool(flags.FlagNameVersion); versionFlag {
 			PrintVersion()
 			return nil
 		}

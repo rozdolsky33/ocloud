@@ -67,7 +67,7 @@ func Execute(ctx context.Context) error {
 
 	// Add PersistentPreRunE to handle setup before any command
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		// Check for version flag
+		// Check for a version flag
 		if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
 			version.PrintVersion()
 			os.Exit(0)
@@ -78,12 +78,12 @@ func Execute(ctx context.Context) error {
 
 	// Switch to RunE for the root command
 	root.RunE = func(cmd *cobra.Command, args []string) error {
-		return cmd.Help() // Default behavior is to show help
+		return cmd.Help() // The default behavior is to show help
 	}
 
 	// Execute the command
 	if err := root.ExecuteContext(ctx); err != nil {
-		return err // Will be handled in main
+		return fmt.Errorf("failed to execute root command: %w", err)
 	}
 
 	return nil
@@ -131,11 +131,11 @@ func setLogLevel(tempRoot *cobra.Command) error {
 	// Parse the flags to get the log level
 	tempRoot.ParseFlags(os.Args)
 
-	// Check for debug flag first - it takes precedence over log-level
+	// Check for a debug flag first - it takes precedence over log-level
 	debugFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameDebug)
 	if debugFlag != nil && debugFlag.Value.String() == flags.FlagValueTrue {
-		// If debug flag is set, set log level to debug
-		logger.LogLevel = "debug"
+		// If a debug flag is set, set the log level to debug
+		logger.LogLevel = flags.FlagNameDebug
 	} else {
 		// Otherwise, use the log-level flag
 		logLevelFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameLogLevel)
@@ -155,7 +155,7 @@ func setLogLevel(tempRoot *cobra.Command) error {
 	// the full command or shorthand flags are used
 	for _, arg := range os.Args {
 		if arg == flags.FlagPrefixDebug || arg == flags.FlagPrefixShortDebug {
-			logger.LogLevel = "debug"
+			logger.LogLevel = flags.FlagNameDebug
 			break
 		}
 	}

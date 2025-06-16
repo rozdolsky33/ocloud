@@ -28,13 +28,25 @@ func setupTest(t *testing.T) func() {
 		// Restore original environment variables
 		for key, value := range originalEnvVars {
 			if value == "" {
-				os.Unsetenv(key)
+				err := os.Unsetenv(key)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			} else {
-				os.Setenv(key, value)
+				err := os.Setenv(key, value)
+				if err != nil {
+					t.Error(err)
+					return
+				}
 			}
 		}
 		// Remove the temporary directory
-		os.RemoveAll(tempDir)
+		err := os.RemoveAll(tempDir)
+		if err != nil {
+			t.Error(err)
+			return
+		}
 	}
 }
 
@@ -44,13 +56,21 @@ func TestGetOCIProfile(t *testing.T) {
 	defer cleanup()
 
 	// Test default profile when environment variable is not set
-	os.Unsetenv(envProfileKey)
+	err := os.Unsetenv(envProfileKey)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	profile := GetOCIProfile()
 	assert.Equal(t, defaultProfile, profile)
 
 	// Test custom profile when environment variable is set
 	customProfile := "CUSTOM_PROFILE"
-	os.Setenv(envProfileKey, customProfile)
+	err = os.Setenv(envProfileKey, customProfile)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	profile = GetOCIProfile()
 	assert.Equal(t, customProfile, profile)
 }
@@ -61,13 +81,21 @@ func TestTenancyMapPath(t *testing.T) {
 	defer cleanup()
 
 	// Test default path when environment variable is not set
-	os.Unsetenv(EnvTenancyMapPath)
+	err := os.Unsetenv(EnvTenancyMapPath)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
 	path := tenancyMapPath()
 	assert.Equal(t, DefaultTenancyMapPath, path)
 
 	// Test custom path when environment variable is set
 	customPath := "/custom/path/to/tenancy-map.yaml"
-	os.Setenv(EnvTenancyMapPath, customPath)
+	err = os.Setenv(EnvTenancyMapPath, customPath)
+	if err != nil {
+		return
+	}
 	path = tenancyMapPath()
 	assert.Equal(t, customPath, path)
 }
@@ -77,7 +105,12 @@ func TestEnsureFile(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "oci-config-test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func(path string) {
+		err := os.RemoveAll(path)
+		if err != nil {
+			t.Error(err)
+		}
+	}(tempDir)
 
 	// Test with a file that doesn't exist
 	nonExistentFile := filepath.Join(tempDir, "non-existent.txt")
@@ -104,7 +137,12 @@ func TestLoadTenancyMap(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "oci-config-test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func(path string) {
+		err := os.RemoveAll(path)
+		if err != nil {
+			t.Error(err)
+		}
+	}(tempDir)
 
 	// Create a valid tenancy map file
 	validMapContent := `
@@ -115,12 +153,16 @@ func TestLoadTenancyMap(t *testing.T) {
   compartments: test-compartments
   regions: test-regions
 `
-	validMapFile := filepath.Join(tempDir, "valid-tenancy-map.yaml")
+	var validMapFile = filepath.Join(tempDir, "valid-tenancy-map.yaml")
 	err = os.WriteFile(validMapFile, []byte(validMapContent), 0644)
 	require.NoError(t, err)
 
 	// Set the environment variable to point to the test file
-	os.Setenv(EnvTenancyMapPath, validMapFile)
+	err = os.Setenv(EnvTenancyMapPath, validMapFile)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	// Test loading a valid tenancy map
 	tenancies, err := LoadTenancyMap()
@@ -133,13 +175,21 @@ func TestLoadTenancyMap(t *testing.T) {
 	invalidMapFile := filepath.Join(tempDir, "invalid-tenancy-map.yaml")
 	err = os.WriteFile(invalidMapFile, []byte("invalid yaml: ]["), 0644)
 	require.NoError(t, err)
-	os.Setenv(EnvTenancyMapPath, invalidMapFile)
+	err = os.Setenv(EnvTenancyMapPath, invalidMapFile)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	_, err = LoadTenancyMap()
 	assert.Error(t, err)
 
 	// Test with a non-existent file
 	nonExistentFile := filepath.Join(tempDir, "non-existent.yaml")
-	os.Setenv(EnvTenancyMapPath, nonExistentFile)
+	err = os.Setenv(EnvTenancyMapPath, nonExistentFile)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	_, err = LoadTenancyMap()
 	assert.Error(t, err)
 }
@@ -152,7 +202,12 @@ func TestLookupTenancyID(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir, err := os.MkdirTemp("", "oci-config-test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func(path string) {
+		err := os.RemoveAll(path)
+		if err != nil {
+			t.Error(err)
+		}
+	}(tempDir)
 
 	// Create a valid tenancy map file
 	validMapContent := `
@@ -168,7 +223,11 @@ func TestLookupTenancyID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set the environment variable to point to the test file
-	os.Setenv(EnvTenancyMapPath, validMapFile)
+	err = os.Setenv(EnvTenancyMapPath, validMapFile)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	// Test looking up an existing tenancy
 	tenancyID, err := LookupTenancyID("test-tenancy")
@@ -186,14 +245,22 @@ func TestLoadOCIConfig(t *testing.T) {
 	defer cleanup()
 
 	// Test with the default profile
-	os.Unsetenv(envProfileKey)
+	err := os.Unsetenv(envProfileKey)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	provider := LoadOCIConfig()
 	assert.IsType(t, common.DefaultConfigProvider(), provider)
 
 	// Test with custom profile
 	// Note: This test is limited because we can't easily verify the provider's behavior
 	// without actually reading the OCI config file
-	os.Setenv(envProfileKey, "CUSTOM_PROFILE")
+	err = os.Setenv(envProfileKey, "CUSTOM_PROFILE")
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	provider = LoadOCIConfig()
 	assert.NotNil(t, provider)
 }

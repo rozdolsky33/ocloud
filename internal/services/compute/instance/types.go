@@ -1,4 +1,4 @@
-package compute
+package instance
 
 import (
 	"github.com/go-logr/logr"
@@ -9,26 +9,25 @@ import (
 // Service encapsulates OCI compute/network clients and config.
 // It provides methods to list and find instances without printing directly.
 type Service struct {
-	compute            core.ComputeClient
-	network            core.VirtualNetworkClient
-	logger             logr.Logger
-	compartmentID      string
-	disableConcurrency bool
+	compute           core.ComputeClient
+	network           core.VirtualNetworkClient
+	logger            logr.Logger
+	compartmentID     string
+	enableConcurrency bool
 }
 
 // Instance represents a VM instance in the cloud.
 type Instance struct {
-	Name            string
-	ID              string
-	IP              string
-	ImageID         string
-	SubnetID        string
-	Shape           string
-	State           core.InstanceLifecycleStateEnum
-	CreatedAt       common.SDKTime
-	OperatingSystem string
-	Placement       Placement
-	Resources       Resources
+	Name      string
+	ID        string
+	IP        string
+	ImageID   string
+	SubnetID  string
+	Shape     string
+	State     core.InstanceLifecycleStateEnum
+	CreatedAt common.SDKTime
+	Placement Placement
+	Resources Resources
 }
 
 // Placement groups region/availability/fault‐domain info.

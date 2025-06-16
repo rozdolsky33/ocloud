@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/oci"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -19,110 +20,113 @@ import (
 // AppContext represents the application with all its clients, configuration, and resolved IDs.
 // It holds all the components needed for command execution.
 type AppContext struct {
-	Provider           common.ConfigurationProvider
-	IdentityClient     identity.IdentityClient
-	TenancyID          string
-	TenancyName        string
-	CompartmentName    string
-	CompartmentID      string
-	Logger             logr.Logger
-	DisableConcurrency bool
+	Provider          common.ConfigurationProvider
+	IdentityClient    identity.IdentityClient
+	TenancyID         string
+	TenancyName       string
+	CompartmentName   string
+	CompartmentID     string
+	Logger            logr.Logger
+	EnableConcurrency bool
 }
 
-// InitApp initializes the AppContext with all clients, logger, and resolved IDs.
-// It's a one-shot bootstrap function that returns a struct with everything needed.
+// InitApp initializes the application context, setting up configuration, clients, logging, and concurrency settings.
+// Returns an AppContext instance and an error if initialization fails.
 func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
-	log := logger.CmdLogger
-	log.Info("Initializing application")
+	logger.CmdLogger.Info("Initializing application")
 
-	// Load OCI config & create provider
-	prov := config.LoadOCIConfig()
+	provider := config.LoadOCIConfig()
 
-	// Create an identity client (needed for compartment lookup)
-	idClient, err := identity.NewIdentityClientWithConfigurationProvider(prov)
-	if err != nil {
-		return nil, fmt.Errorf("creating identity client: %w", err)
-	}
-
-	// Optional region override
-	if region, ok := os.LookupEnv(flags.EnvOCIRegion); ok {
-		idClient.SetRegion(region)
-		logger.VerboseInfo(log, 3, "overriding region from env", "region", region)
-	}
-
-	// Build base AppContext
-	disableConcurrency, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
-
-	// Check if the flag was explicitly set on the command line
-	flagExplicitlySet := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
-
-	// Direct check for -x flag in command line arguments
-	xFlagPresent := false
-	for _, arg := range os.Args {
-		if arg == flags.FlagPrefixShortDisableConcurrency || arg == flags.FlagPrefixDisableConcurrency {
-			xFlagPresent = true
-			break
-		}
-	}
-
-	// If -x flag is present, enable concurrency
-	if xFlagPresent {
-		disableConcurrency = false
-	} else if !flagExplicitlySet {
-		// If not explicitly set, use the default (true = concurrency disabled)
-		disableConcurrency = true
-	}
-
-	app := &AppContext{
-		Provider:           prov,
-		IdentityClient:     idClient,
-		CompartmentName:    viper.GetString(flags.FlagNameCompartment),
-		Logger:             logger.CmdLogger,
-		DisableConcurrency: disableConcurrency,
-	}
-
-	// Resolve Tenancy ID
-	tenancyID, err := ResolveTenancyID(cmd)
+	identityClient, err := oci.NewIdentityClient(provider)
 	if err != nil {
 		return nil, err
 	}
-	app.TenancyID = tenancyID
 
-	// Resolve Tenancy Name
-	tenancyName := ResolveTenancyName(cmd, tenancyID)
-	if tenancyName != "" {
-		app.TenancyName = tenancyName
+	overrideRegionIfNeeded(identityClient)
+
+	enableConcurrency := determineConcurrency(cmd)
+
+	appCtx := &AppContext{
+		Provider:          provider,
+		IdentityClient:    identityClient,
+		CompartmentName:   viper.GetString(flags.FlagNameCompartment),
+		Logger:            logger.CmdLogger,
+		EnableConcurrency: enableConcurrency,
 	}
 
-	// Resolve Compartment ID
-	compID, err := ResolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient)
+	if err := resolveTenancyAndCompartment(ctx, cmd, appCtx); err != nil {
+		return nil, err
+	}
+
+	return appCtx, nil
+}
+
+// overrideRegionIfNeeded checks the `OCI_REGION` environment variable and overrides the client's region if it is set.
+func overrideRegionIfNeeded(client identity.IdentityClient) {
+	if region, ok := os.LookupEnv(flags.EnvOCIRegion); ok {
+		client.SetRegion(region)
+		logger.LogWithLevel(logger.CmdLogger, 3, "overriding region from env", "region", region)
+	}
+}
+
+// determineConcurrency determines if concurrency is enabled or disabled based on command flags and arguments.
+// Returns true if concurrency is enabled, otherwise false.
+func determineConcurrency(cmd *cobra.Command) bool {
+	disable, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
+	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
+
+	if explicit {
+		return disable
+	}
+
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixShortDisableConcurrency || arg == flags.FlagPrefixDisableConcurrency {
+			return false
+		}
+	}
+
+	return true // default to disabled
+}
+
+func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, app *AppContext) error {
+	tenancyID, err := resolveTenancyID(cmd)
 	if err != nil {
-		return nil, fmt.Errorf("could not resolve compartment ID: %w", err)
+		return err
+	}
+	app.TenancyID = tenancyID
+
+	if name := resolveTenancyName(cmd, tenancyID); name != "" {
+		app.TenancyName = name
+	}
+
+	compID, err := resolveCompartmentID(ctx, app.TenancyID, app.CompartmentName, app.IdentityClient)
+	if err != nil {
+		return fmt.Errorf("could not resolve compartment ID: %w", err)
 	}
 	app.CompartmentID = compID
 
-	return app, nil
+	return nil
 }
 
-// ResolveTenancyID resolves the tenancy OCID from various sources in order of precedence:
+// resolveTenancyID resolves the tenancy OCID from various sources in order of precedence:
 // 1. Command line flag
 // 2. Environment variable
 // 3. Tenancy name lookup (if tenancy name is provided)
 // 4. OCI config file
 // Returns the tenancy ID or an error if it cannot be resolved.
-func ResolveTenancyID(cmd *cobra.Command) (string, error) {
+func resolveTenancyID(cmd *cobra.Command) (string, error) {
 	log := logger.CmdLogger
 
 	// Check if tenancy ID is provided as a flag
 	if cmd.Flags().Changed(flags.FlagNameTenancyID) {
 		tenancyID := viper.GetString(flags.FlagNameTenancyID)
-		logger.VerboseInfo(log, 3, "using tenancy OCID from flag", "tenancyID", tenancyID)
+		logger.LogWithLevel(log, 3, "using tenancy OCID from flag", "tenancyID", tenancyID)
 		return tenancyID, nil
 	}
 
 	// Check if tenancy ID is provided as an environment variable
 	if envTenancy := os.Getenv(flags.EnvOCITenancy); envTenancy != "" {
-		logger.VerboseInfo(log, 3, "using tenancy OCID from env", "tenancyID", envTenancy)
+		logger.LogWithLevel(log, 3, "using tenancy OCID from env", "tenancyID", envTenancy)
 		viper.Set(flags.FlagNameTenancyID, envTenancy)
 		return envTenancy, nil
 	}
@@ -136,7 +140,7 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 			// Add a more detailed message about how to set up the mapping file
 			log.Info("To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
 		} else {
-			logger.VerboseInfo(log, 3, "using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
+			logger.LogWithLevel(log, 3, "using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
 			viper.Set(flags.FlagNameTenancyID, lookupID)
 			return lookupID, nil
 		}
@@ -147,30 +151,30 @@ func ResolveTenancyID(cmd *cobra.Command) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
-	logger.VerboseInfo(log, 3, "using tenancy OCID from config file", "tenancyID", tenancyID)
+	logger.LogWithLevel(log, 3, "using tenancy OCID from config file", "tenancyID", tenancyID)
 	viper.Set(flags.FlagNameTenancyID, tenancyID)
 
 	return tenancyID, nil
 }
 
-// ResolveTenancyName resolves the tenancy name from various sources in order of precedence:
+// resolveTenancyName resolves the tenancy name from various sources in order of precedence:
 // 1. Command line flag
 // 2. Environment variable
 // 3. Tenancy mapping file lookup (using tenancy ID)
 // Returns the tenancy name or an empty string if it cannot be resolved.
-func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
+func resolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	log := logger.CmdLogger
 
 	// Check if the tenancy name is provided as a flag
 	if cmd.Flags().Changed(flags.FlagNameTenancyName) {
 		tenancyName := viper.GetString(flags.FlagNameTenancyName)
-		logger.VerboseInfo(log, 3, "using tenancy name from flag", "tenancyName", tenancyName)
+		logger.LogWithLevel(log, 3, "using tenancy name from flag", "tenancyName", tenancyName)
 		return tenancyName
 	}
 
 	// Check if the tenancy name is provided as an environment variable
 	if envTenancyName := os.Getenv(flags.EnvOCITenancyName); envTenancyName != "" {
-		logger.VerboseInfo(log, 3, "using tenancy name from env", "tenancyName", envTenancyName)
+		logger.LogWithLevel(log, 3, "using tenancy name from env", "tenancyName", envTenancyName)
 		viper.Set(flags.FlagNameTenancyName, envTenancyName)
 		return envTenancyName
 	}
@@ -180,7 +184,7 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	if err == nil {
 		for _, env := range tenancies {
 			if env.TenancyID == tenancyID {
-				logger.VerboseInfo(log, 3, "found tenancy name from mapping file", "tenancyName", env.Tenancy)
+				logger.LogWithLevel(log, 3, "found tenancy name from mapping file", "tenancyName", env.Tenancy)
 				viper.Set(flags.FlagNameTenancyName, env.Tenancy)
 				return env.Tenancy
 			}
@@ -190,13 +194,13 @@ func ResolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	return ""
 }
 
-// ResolveCompartmentID returns the OCID of the compartment whose name matches
+// resolveCompartmentID returns the OCID of the compartment whose name matches
 // `compartmentName` under the given tenancy. It searches all active compartments
 // in the tenancy subtree.
-func ResolveCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, idClient identity.IdentityClient) (string, error) {
+func resolveCompartmentID(ctx context.Context, tenancyOCID, compartmentName string, idClient identity.IdentityClient) (string, error) {
 	// If the compartment name is not set, use tenancy ID as fallback
 	if compartmentName == "" {
-		logger.VerboseInfo(logger.CmdLogger, 3, "compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
+		logger.LogWithLevel(logger.CmdLogger, 3, "compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
 		return tenancyOCID, nil
 	}
 

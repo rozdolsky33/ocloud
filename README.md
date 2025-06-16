@@ -86,8 +86,11 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `--tenancy-id` | `-t` | OCI tenancy OCID |
 | `--tenancy-name` |  | Tenancy name |
 | `--log-level` |  | Set the log verbosity. Supported values are: debug, info, warn, and error. |
+| `--debug` | `-d` | Enable debug logging |
+| `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
 | `--disable-concurrency` | `-x` | Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting) |
+| `--version` | `-v` | Print the version number of ocloud CLI |
 
 ### Instance Command Flags
 
@@ -121,8 +124,15 @@ ocloud --help
 # Show compute instance command help
 ocloud compute instance --help
 
+# Show version information
+ocloud --version
+ocloud -v
+
 # Enable debug logging with colored output
 ocloud --log-level debug --color compute instance --list
+
+# Alternative way to enable debug logging
+ocloud -d --color compute instance --list
 ```
 
 ### Working with Instances

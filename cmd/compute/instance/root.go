@@ -3,7 +3,7 @@ package instance
 import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	"github.com/spf13/cobra"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -46,23 +46,23 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 		limit, err := cmd.Flags().GetInt(flags.FlagNameLimit)
 		if err != nil {
 			// Use default if flag not found
-			limit = 20
+			limit = flags.FlagDefaultLimit
 		}
 
 		page, err := cmd.Flags().GetInt(flags.FlagNamePage)
 		if err != nil {
 			// Use default if flag not found
-			page = 1
+			page = flags.FlagDefaultPage
 		}
 
-		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
-		return compute.ListInstances(appCtx, limit, page, useJSON)
+		// Use LogWithLevel to ensure debug logs work with shorthand flags
+		logger.LogWithLevel(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
+		return instance.ListInstances(appCtx, limit, page, useJSON)
 
 	case find != "":
-		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName, "json", useJSON)
-		return compute.FindInstances(appCtx, find, imageDetails, useJSON)
+		// Use LogWithLevel to ensure debug logs work with shorthand flags
+		logger.LogWithLevel(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName, "json", useJSON)
+		return instance.FindInstances(appCtx, find, imageDetails, useJSON)
 
 	default:
 		return cmd.Help()

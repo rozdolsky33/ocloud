@@ -1,6 +1,7 @@
-package compute
+package instance
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,9 @@ import (
 func setupTest(t *testing.T) {
 	// Initialize logger for tests
 	logger.InitLogger(logger.CmdLogger)
+	t.Cleanup(func() {
+		fmt.Println("Set up test environment")
+	})
 }
 
 // TestListInstances tests the ListInstances function

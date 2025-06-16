@@ -5,6 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var FlagDefaultLimit = 20
+var FlagDefaultPage = 1
+
 // Instance flags
 var (
 	ListFlag = BoolFlag{
@@ -31,14 +34,14 @@ var (
 	LimitFlag = IntFlag{
 		Name:      FlagNameLimit,
 		Shorthand: FlagShortLimit,
-		Default:   20,
+		Default:   FlagDefaultLimit,
 		Usage:     FlagDescLimit,
 	}
 
 	PageFlag = IntFlag{
 		Name:      FlagNamePage,
 		Shorthand: FlagShortPage,
-		Default:   1,
+		Default:   FlagDefaultPage,
 		Usage:     FlagDescPage,
 	}
 

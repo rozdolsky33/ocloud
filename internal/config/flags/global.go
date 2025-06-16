@@ -1,4 +1,4 @@
-// Package flags defines flag types and domain-specific flag collections for the CLI.
+// Package flags define flag types and domain-specific flag collections for the CLI.
 package flags
 
 import (
@@ -51,7 +51,7 @@ var (
 	DisableConcurrencyFlag = BoolFlag{
 		Name:      FlagNameDisableConcurrency,
 		Shorthand: FlagShortDisableConcurrency,
-		Default:   true,
+		Default:   false,
 		Usage:     FlagDescDisableConcurrency,
 	}
 )
