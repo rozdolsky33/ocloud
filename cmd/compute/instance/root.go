@@ -46,13 +46,13 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 		limit, err := cmd.Flags().GetInt(flags.FlagNameLimit)
 		if err != nil {
 			// Use default if flag not found
-			limit = 20
+			limit = flags.FlagDefaultLimit
 		}
 
 		page, err := cmd.Flags().GetInt(flags.FlagNamePage)
 		if err != nil {
 			// Use default if flag not found
-			page = 1
+			page = flags.FlagDefaultPage
 		}
 
 		// Use VerboseInfo to ensure debug logs work with shorthand flags

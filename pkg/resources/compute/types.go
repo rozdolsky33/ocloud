@@ -9,11 +9,11 @@ import (
 // Service encapsulates OCI compute/network clients and config.
 // It provides methods to list and find instances without printing directly.
 type Service struct {
-	compute            core.ComputeClient
-	network            core.VirtualNetworkClient
-	logger             logr.Logger
-	compartmentID      string
-	disableConcurrency bool
+	compute           core.ComputeClient
+	network           core.VirtualNetworkClient
+	logger            logr.Logger
+	compartmentID     string
+	enableConcurrency bool
 }
 
 // Instance represents a VM instance in the cloud.

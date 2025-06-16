@@ -68,7 +68,7 @@ func setupTest(t *testing.T) func() {
 	}
 }
 
-// TestResolveTenancyID tests the ResolveTenancyID function
+// TestResolveTenancyID tests the resolveTenancyID function
 func TestResolveTenancyID(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -84,7 +84,7 @@ func TestResolveTenancyID(t *testing.T) {
 	cmd.Flag(flags.FlagNameTenancyID).Changed = true
 	// Set the value in viper
 	viper.Set(flags.FlagNameTenancyID, "flag-tenancy-ocid")
-	tenancyID, err := ResolveTenancyID(cmd)
+	tenancyID, err := resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "flag-tenancy-ocid", tenancyID)
 
@@ -92,7 +92,7 @@ func TestResolveTenancyID(t *testing.T) {
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	os.Setenv(flags.EnvOCITenancy, "env-tenancy-ocid")
-	tenancyID, err = ResolveTenancyID(cmd)
+	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "env-tenancy-ocid", tenancyID)
 
@@ -101,7 +101,7 @@ func TestResolveTenancyID(t *testing.T) {
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	os.Unsetenv(flags.EnvOCITenancy)
 	os.Setenv(flags.EnvOCITenancyName, "mock-tenancy-name")
-	tenancyID, err = ResolveTenancyID(cmd)
+	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
@@ -109,7 +109,7 @@ func TestResolveTenancyID(t *testing.T) {
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	os.Unsetenv(flags.EnvOCITenancyName)
-	tenancyID, err = ResolveTenancyID(cmd)
+	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
@@ -117,7 +117,7 @@ func TestResolveTenancyID(t *testing.T) {
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	os.Setenv(flags.EnvOCITenancyName, "non-existent-tenancy")
-	tenancyID, err = ResolveTenancyID(cmd)
+	tenancyID, err = resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
@@ -128,11 +128,11 @@ func TestResolveTenancyID(t *testing.T) {
 	config.MockGetTenancyOCID = func() (string, error) {
 		return "", fmt.Errorf("mock error")
 	}
-	_, err = ResolveTenancyID(cmd)
+	_, err = resolveTenancyID(cmd)
 	assert.Error(t, err)
 }
 
-// TestResolveTenancyName tests the ResolveTenancyName function
+// TestResolveTenancyName tests the resolveTenancyName function
 func TestResolveTenancyName(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -148,14 +148,14 @@ func TestResolveTenancyName(t *testing.T) {
 	cmd.Flag(flags.FlagNameTenancyName).Changed = true
 	// Set the value in viper
 	viper.Set(flags.FlagNameTenancyName, "flag-tenancy-name")
-	tenancyName := ResolveTenancyName(cmd, "mock-tenancy-ocid")
+	tenancyName := resolveTenancyName(cmd, "mock-tenancy-ocid")
 	assert.Equal(t, "flag-tenancy-name", tenancyName)
 
 	// Test case 2: Tenancy name from environment variable
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyName, "", "")
 	os.Setenv(flags.EnvOCITenancyName, "env-tenancy-name")
-	tenancyName = ResolveTenancyName(cmd, "mock-tenancy-ocid")
+	tenancyName = resolveTenancyName(cmd, "mock-tenancy-ocid")
 	assert.Equal(t, "env-tenancy-name", tenancyName)
 
 	// Test case 3: Tenancy name from mapping file
@@ -166,11 +166,11 @@ func TestResolveTenancyName(t *testing.T) {
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyName, "", "")
 	os.Unsetenv(flags.EnvOCITenancyName)
-	tenancyName = ResolveTenancyName(cmd, "unknown-tenancy-ocid")
+	tenancyName = resolveTenancyName(cmd, "unknown-tenancy-ocid")
 	assert.Equal(t, "", tenancyName)
 }
 
-// TestResolveCompartmentID tests the ResolveCompartmentID function
+// TestResolveCompartmentID tests the resolveCompartmentID function
 // This test only covers the case where compartment name is not set
 func TestResolveCompartmentID(t *testing.T) {
 	cleanup := setupTest(t)
@@ -218,16 +218,16 @@ func TestInitAppComponents(t *testing.T) {
 	cmd.Flags().Set(flags.FlagNameCompartment, "")
 	// No need to mark this flag as changed or set it in viper since it's empty
 
-	// Test ResolveTenancyID
-	tenancyID, err := ResolveTenancyID(cmd)
+	// Test resolveTenancyID
+	tenancyID, err := resolveTenancyID(cmd)
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
-	// Test ResolveTenancyName
-	tenancyName := ResolveTenancyName(cmd, tenancyID)
+	// Test resolveTenancyName
+	tenancyName := resolveTenancyName(cmd, tenancyID)
 	assert.Equal(t, "mock-tenancy-name", tenancyName)
 
-	// We can't easily test ResolveCompartmentID without mocking the identity client,
+	// We can't easily test resolveCompartmentID without mocking the identity client,
 	// so we'll skip that part
 
 	// The actual InitApp function is hard to test without extensive mocking

@@ -27,11 +27,11 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 	}
 
 	return &Service{
-		compute:            cc,
-		network:            nc,
-		logger:             appCtx.Logger,
-		compartmentID:      appCtx.CompartmentID,
-		disableConcurrency: appCtx.DisableConcurrency,
+		compute:           cc,
+		network:           nc,
+		logger:            appCtx.Logger,
+		compartmentID:     appCtx.CompartmentID,
+		enableConcurrency: appCtx.EnableConcurrency,
 	}, nil
 }
 
@@ -195,44 +195,8 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 		page = *vaResp.OpcNextPage
 	}
 
-	// Check if concurrency is disabled
-	if s.disableConcurrency {
-		// Process VNIC attachments sequentially
-		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
-
-		// For each instance, find its primary VNIC Time complexity O(N * M)
-		for instanceID, attachments := range vnicAttachmentsByInstance {
-			// Skip if we don't have this instance in our map
-			if _, ok := instanceMap[instanceID]; !ok {
-				continue
-			}
-
-			// Process each instance's VNIC attachments sequentially
-			for _, attach := range attachments {
-				// Skip if VNIC ID is nil
-				if attach.VnicId == nil {
-					continue
-				}
-
-				// Get VNIC details
-				vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
-				if err != nil {
-					logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
-					continue
-				}
-
-				// Check if this is the primary VNIC
-				if vnic.IsPrimary != nil && *vnic.IsPrimary {
-					if instance, ok := instanceMap[instanceID]; ok {
-						instance.IP = *vnic.PrivateIp
-						instance.SubnetID = *vnic.SubnetId
-					}
-					// Found primary VNIC, no need to check other attachments for this instance
-					break
-				}
-			}
-		}
-	} else {
+	// Check if concurrency is enabled
+	if s.enableConcurrency {
 		// Process VNIC attachments in parallel (default behavior)
 		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
 
@@ -276,7 +240,6 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 				}(instanceID, attach)
 			}
 		}
-
 		// Close the channel when all goroutines are done
 		go func() {
 			wg.Wait()
@@ -288,6 +251,42 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 			if instance, ok := instanceMap[info.InstanceID]; ok {
 				instance.IP = info.Ip
 				instance.SubnetID = info.SubnetID
+			}
+		}
+	} else {
+		// Process VNIC attachments sequentially
+		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
+
+		// For each instance, find its primary VNIC Time complexity O(N * M)
+		for instanceID, attachments := range vnicAttachmentsByInstance {
+			// Skip if we don't have this instance in our map
+			if _, ok := instanceMap[instanceID]; !ok {
+				continue
+			}
+
+			// Process each instance's VNIC attachments sequentially
+			for _, attach := range attachments {
+				// Skip if VNIC ID is nil
+				if attach.VnicId == nil {
+					continue
+				}
+
+				// Get VNIC details
+				vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
+				if err != nil {
+					logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
+					continue
+				}
+
+				// Check if this is the primary VNIC
+				if vnic.IsPrimary != nil && *vnic.IsPrimary {
+					if instance, ok := instanceMap[instanceID]; ok {
+						instance.IP = *vnic.PrivateIp
+						instance.SubnetID = *vnic.SubnetId
+					}
+					// Found primary VNIC, no need to check other attachments for this instance
+					break
+				}
 			}
 		}
 	}
@@ -550,6 +549,10 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, paginatio
 		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, instance.Name, instanceData, orderedKeys)
 	}
 
+	logPaginationInfo(pagination, appCtx)
+}
+
+func logPaginationInfo(pagination *PaginationInfo, appCtx *app.AppContext) {
 	// Log pagination information if available
 	if pagination != nil {
 		// Calculate the total records displayed so far

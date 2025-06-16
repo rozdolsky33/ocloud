@@ -1,4 +1,4 @@
-// Package flags defines flag types and domain-specific flag collections for the CLI.
+// Package flags define flag types and domain-specific flag collections for the CLI.
 package flags
 
 import (
@@ -48,10 +48,10 @@ var (
 		Usage:     FlagDescCompartment,
 	}
 
-	DisableConcurrencyFlag = BoolFlag{
+	EnableConcurrencyFlag = BoolFlag{
 		Name:      FlagNameDisableConcurrency,
 		Shorthand: FlagShortDisableConcurrency,
-		Default:   true,
+		Default:   false,
 		Usage:     FlagDescDisableConcurrency,
 	}
 )
@@ -64,7 +64,7 @@ var globalFlags = []Flag{
 	TenancyIDFlag,
 	TenancyNameFlag,
 	CompartmentFlag,
-	DisableConcurrencyFlag,
+	EnableConcurrencyFlag,
 }
 
 // AddGlobalFlags adds all global flags to the given command

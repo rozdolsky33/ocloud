@@ -1,4 +1,4 @@
-// Package flags defines flag types and domain-specific flag collections for the CLI.
+// Package flags define flag types and domain-specific flag collections for the CLI.
 package flags
 
 // FlagNames defines the string constants for flag names
@@ -32,6 +32,7 @@ const (
 	FlagNameLimit              = "limit"
 	FlagNamePage               = "page"
 	FlagNameJSON               = "json"
+	FlagNameVersion            = "version"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -62,6 +63,7 @@ const (
 	FlagShortLimit              = "m"
 	FlagShortPage               = "p"
 	FlagShortJSON               = "j"
+	FlagShortVersion            = "v"
 )
 
 // FlagDescriptions contains help text for flags
@@ -91,9 +93,10 @@ const (
 	FlagDescIncludeStatements  = "Include statements"
 	FlagDescHelp               = "help for ocloud (shorthand: -h)"
 	FlagDescDisableConcurrency = "Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting)"
-	FlagDescLimit              = "Maximum number of records to display per page (default: 20)"
-	FlagDescPage               = "Page number to display (default: 1)"
+	FlagDescLimit              = "Maximum number of records to display per page"
+	FlagDescPage               = "Page number to display"
 	FlagDescJSON               = "Output information in JSON format"
+	FlagDescVersion            = "Print the version number of ocloud CLI"
 )
 
 // Flag values and defaults
@@ -105,14 +108,14 @@ const (
 
 // Flag prefixes and special strings
 const (
-	FlagPrefixShortHelp               = "-h"
-	FlagPrefixLongHelp                = "--help"
-	FlagPrefixColor                   = "--color"
-	FlagPrefixDebug                   = "--debug"
-	FlagPrefixShortDebug              = "-d"
-	FlagPrefixDisableConcurrency      = "--disable-concurrency"
-	FlagPrefixShortDisableConcurrency = "-x"
-	CobraAnnotationKey                = "cobra_annotation_flag_set_by_cobra"
+	FlagPrefixShortHelp              = "-h"
+	FlagPrefixLongHelp               = "--help"
+	FlagPrefixColor                  = "--color"
+	FlagPrefixDebug                  = "--debug"
+	FlagPrefixShortDebug             = "-d"
+	FlagPrefixEnableConcurrency      = "--enable-concurrency"
+	FlagPrefixShortEnableConcurrency = "-x"
+	CobraAnnotationKey               = "cobra_annotation_flag_set_by_cobra"
 )
 
 // Environment variables
