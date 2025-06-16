@@ -18,17 +18,16 @@ type Service struct {
 
 // Instance represents a VM instance in the cloud.
 type Instance struct {
-	Name            string
-	ID              string
-	IP              string
-	ImageID         string
-	SubnetID        string
-	Shape           string
-	State           core.InstanceLifecycleStateEnum
-	CreatedAt       common.SDKTime
-	OperatingSystem string
-	Placement       Placement
-	Resources       Resources
+	Name      string
+	ID        string
+	IP        string
+	ImageID   string
+	SubnetID  string
+	Shape     string
+	State     core.InstanceLifecycleStateEnum
+	CreatedAt common.SDKTime
+	Placement Placement
+	Resources Resources
 }
 
 // Placement groups region/availability/fault‐domain info.

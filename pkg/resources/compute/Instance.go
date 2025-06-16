@@ -164,129 +164,137 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	return paginatedInstances, totalCount, nextPageToken, nil
 }
 
-// enrichInstancesWithVnics fetches VNIC attachments for all instances in bulk
-// and updates the instances with their primary VNIC information.
+// enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
+// This method retrieves all VNIC attachments and processes them either concurrently or sequentially based on configuration.
 func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[string]*Instance) error {
-	// Create a map to store VNIC attachments by instance ID
-	vnicAttachmentsByInstance := make(map[string][]core.VnicAttachment)
+	attachments, err := s.fetchAllVnicAttachments(ctx)
+	if err != nil {
+		return fmt.Errorf("listing VNIC attachments: %w", err)
+	}
 
-	// Fetch all VNIC attachments for the compartment
+	vnicAttachmentsByInstance := groupAttachmentsByInstance(attachments, instanceMap)
+
+	if s.enableConcurrency {
+		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
+		return s.processVnicsConcurrently(ctx, vnicAttachmentsByInstance, instanceMap)
+	}
+
+	logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
+	return s.processVnicsSequentially(ctx, vnicAttachmentsByInstance, instanceMap)
+}
+
+// fetchAllVnicAttachments lists all VNIC attachments within a compartment, supporting pagination to retrieve all results.
+func (s *Service) fetchAllVnicAttachments(ctx context.Context) ([]core.VnicAttachment, error) {
+	var attachments []core.VnicAttachment
 	page := ""
 	for {
-		vaResp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
+		resp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
 			CompartmentId: &s.compartmentID,
 			Page:          &page,
 		})
 		if err != nil {
-			return fmt.Errorf("listing VNIC attachments: %w", err)
+			return nil, fmt.Errorf("listing VNIC attachments: %w", err)
 		}
-
-		// Group VNIC attachments by instance ID
-		for _, attach := range vaResp.Items {
-			if attach.InstanceId != nil {
-				instanceID := *attach.InstanceId
-				vnicAttachmentsByInstance[instanceID] = append(vnicAttachmentsByInstance[instanceID], attach)
-			}
-		}
-
-		if vaResp.OpcNextPage == nil {
+		attachments = append(attachments, resp.Items...)
+		if resp.OpcNextPage == nil {
 			break
 		}
-		page = *vaResp.OpcNextPage
+		page = *resp.OpcNextPage
+	}
+	return attachments, nil
+}
+
+// groupAttachmentsByInstance groups VNIC attachments by their associated instance IDs.
+// Only includes attachments for which the instance exists in the given instance map.
+func groupAttachmentsByInstance(attachments []core.VnicAttachment, instanceMap map[string]*Instance) map[string][]core.VnicAttachment {
+	result := make(map[string][]core.VnicAttachment)
+	for _, attach := range attachments {
+		if attach.InstanceId == nil {
+			continue
+		}
+		instanceID := *attach.InstanceId
+		if _, ok := instanceMap[instanceID]; ok {
+			result[instanceID] = append(result[instanceID], attach)
+		}
+	}
+	return result
+}
+
+// getPrimaryVnic retrieves the primary VNIC associated with the provided VnicAttachment.
+// It returns the VNIC if it is marked as primary, or nil if no primary VNIC is found.
+// In case of an error during the VNIC retrieval process, it returns nil.
+func (s *Service) getPrimaryVnic(ctx context.Context, attach core.VnicAttachment) (*core.Vnic, error) {
+	if attach.VnicId == nil {
+		logger.VerboseInfo(s.logger, 2, "VnicAttachment missing VnicId", "attachment", attach)
+		return nil, nil
+	}
+	resp, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
+	if err != nil {
+		logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
+		return nil, nil
 	}
 
-	// Check if concurrency is enabled
-	if s.enableConcurrency {
-		// Process VNIC attachments in parallel (default behavior)
-		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
+	vnic := resp.Vnic
+	if vnic.IsPrimary != nil && *vnic.IsPrimary {
+		return &vnic, nil
+	}
+	logger.VerboseInfo(s.logger, 2, "VnicAttachment missing primary Vnic", "attachment", attach)
+	return nil, nil
+}
 
-		// Use a wait group to process VNICs in parallel
-		var wg sync.WaitGroup
-		vnicChan := make(chan VnicInfo, len(instanceMap))
+// processVnicsConcurrently processes VNIC attachments concurrently and updates the instance map with VNIC information.
+func (s *Service) processVnicsConcurrently(ctx context.Context, byInstance map[string][]core.VnicAttachment, instanceMap map[string]*Instance) error {
+	var wg sync.WaitGroup
+	vnicChan := make(chan VnicInfo, len(byInstance))
 
-		// For each instance, find its primary VNIC Time complexity O(N * M)
-		for instanceID, attachments := range vnicAttachmentsByInstance {
-			// Skip if we don't have this instance in our map
-			if _, ok := instanceMap[instanceID]; !ok {
+	for instanceID, attachments := range byInstance {
+		for _, attach := range attachments {
+			wg.Add(1)
+			go func(instanceID string, attach core.VnicAttachment) {
+				defer wg.Done()
+				vnic, err := s.getPrimaryVnic(ctx, attach)
+				if err == nil && vnic != nil {
+					vnicChan <- VnicInfo{
+						InstanceID: instanceID,
+						Ip:         *vnic.PrivateIp,
+						SubnetID:   *vnic.SubnetId,
+					}
+				}
+			}(instanceID, attach)
+		}
+	}
+	go func() {
+		wg.Wait()
+		close(vnicChan)
+	}()
+
+	for info := range vnicChan {
+		if inst, ok := instanceMap[info.InstanceID]; ok {
+			inst.IP = info.Ip
+			inst.SubnetID = info.SubnetID
+		}
+	}
+	return nil
+}
+
+// processVnicsSequentially processes VNIC attachments sequentially and updates instance properties with VNIC details.
+// ctx is the context for managing request deadlines, cancellations, and other request-scoped values.
+// byInstance is a map where the key is instance ID and the value is a list of VNIC attachments for that instance.
+// instanceMap maps instance IDs to their respective Instance struct for updating VNIC details.
+// Returns an error if there is an issue processing the VNIC attachments.
+func (s *Service) processVnicsSequentially(ctx context.Context, byInstance map[string][]core.VnicAttachment, instanceMap map[string]*Instance) error {
+	for instanceID, attachments := range byInstance {
+		for _, attach := range attachments {
+			vnic, err := s.getPrimaryVnic(ctx, attach)
+			if err != nil {
 				continue
 			}
-
-			// Process each instance's VNIC attachments in a separate goroutine
-			for _, attach := range attachments {
-				wg.Add(1)
-				go func(instanceID string, attach core.VnicAttachment) {
-					defer wg.Done()
-
-					// Skip if VNIC ID is nil
-					if attach.VnicId == nil {
-						return
-					}
-
-					// Get VNIC details
-					vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
-					if err != nil {
-						logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
-						return
-					}
-
-					// Check if this is the primary VNIC
-					if vnic.IsPrimary != nil && *vnic.IsPrimary {
-						vnicChan <- VnicInfo{
-							InstanceID: instanceID,
-							Ip:         *vnic.PrivateIp,
-							SubnetID:   *vnic.SubnetId,
-						}
-					}
-				}(instanceID, attach)
-			}
-		}
-		// Close the channel when all goroutines are done
-		go func() {
-			wg.Wait()
-			close(vnicChan)
-		}()
-
-		// Process results from the channel
-		for info := range vnicChan {
-			if instance, ok := instanceMap[info.InstanceID]; ok {
-				instance.IP = info.Ip
-				instance.SubnetID = info.SubnetID
-			}
-		}
-	} else {
-		// Process VNIC attachments sequentially
-		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
-
-		// For each instance, find its primary VNIC Time complexity O(N * M)
-		for instanceID, attachments := range vnicAttachmentsByInstance {
-			// Skip if we don't have this instance in our map
-			if _, ok := instanceMap[instanceID]; !ok {
-				continue
-			}
-
-			// Process each instance's VNIC attachments sequentially
-			for _, attach := range attachments {
-				// Skip if VNIC ID is nil
-				if attach.VnicId == nil {
-					continue
+			if vnic != nil {
+				if inst, ok := instanceMap[instanceID]; ok {
+					inst.IP = *vnic.PrivateIp
+					inst.SubnetID = *vnic.SubnetId
 				}
-
-				// Get VNIC details
-				vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
-				if err != nil {
-					logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
-					continue
-				}
-
-				// Check if this is the primary VNIC
-				if vnic.IsPrimary != nil && *vnic.IsPrimary {
-					if instance, ok := instanceMap[instanceID]; ok {
-						instance.IP = *vnic.PrivateIp
-						instance.SubnetID = *vnic.SubnetId
-					}
-					// Found primary VNIC, no need to check other attachments for this instance
-					break
-				}
+				break // no need to check other VNICs
 			}
 		}
 	}
