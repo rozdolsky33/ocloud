@@ -115,6 +115,8 @@ const (
 	FlagPrefixShortDebug              = "-d"
 	FlagPrefixDisableConcurrency      = "--disable-concurrency"
 	FlagPrefixShortDisableConcurrency = "-x"
+	FlagPrefixVersion                 = "--version"
+	FlagPrefixShortVersion            = "-v"
 	CobraAnnotationKey                = "cobra_annotation_flag_set_by_cobra"
 )
 

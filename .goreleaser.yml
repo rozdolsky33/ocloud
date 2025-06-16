@@ -1,0 +1,38 @@
+version: 2
+
+builds:
+  - binary: ocloud
+    id: ocloud
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -mod=readonly
+    ldflags:
+      - "-s -w -X 'github.com/rozdolsky33/ocloud/buildinfo.Version={{.Version}}' -X 'github.com/rozdolsky33/ocloud/buildinfo.CommitHash={{.Commit}}' -X 'github.com/rozdolsky33/ocloud/buildinfo.BuildTime={{.Date}}'"
+release:
+  prerelease: auto
+
+universal_binaries:
+  - replace: true
+
+checksum:
+  name_template: 'checksums.txt'
+
+brews:
+  - name: ocloud
+    description: "Tool for finding and connecting to OCI instances"
+    homepage: "https://github.com/rozdolsky33/ocloud"
+    license: "MIT"
+    install: |
+      bin.install "ocloud"
+    repository:
+      owner: rozdolsky33
+      name: ocloud
+    directory: Formula
