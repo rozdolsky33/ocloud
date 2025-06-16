@@ -24,15 +24,11 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 	// Initialize global flags
 	flags.AddGlobalFlags(rootCmd)
 
-	// Add a custom help flag with a more descriptive message
-	rootCmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, flags.FlagDescHelp)
-	_ = rootCmd.Flags().SetAnnotation(flags.FlagNameHelp, flags.CobraAnnotationKey, []string{flags.FlagValueTrue})
-
 	// Add subcommands, passing in the AppContext
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
 
 	// Add version command
-	rootCmd.AddCommand(version.NewVersionCmd())
+	rootCmd.AddCommand(version.NewVersionCommand())
 
 	// Add version flag
 	version.AddVersionFlag(rootCmd)
@@ -66,12 +62,10 @@ func Execute(ctx context.Context) error {
 	root := NewRootCmd(appCtx)
 
 	// Add PersistentPreRunE to handle setup before any command
+	// Note: This is redundant with the PersistentPreRunE set by version.AddVersionFlag()
+	// and should be removed or consolidated to avoid conflicts
+	// The version flag is already handled by version.AddVersionFlag()
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		// Check for a version flag
-		if versionFlag, _ := cmd.Flags().GetBool("version"); versionFlag {
-			version.PrintVersion()
-			os.Exit(0)
-		}
 		// Optional: more setup before any command
 		return nil
 	}
@@ -128,8 +122,22 @@ func hasHelpFlag(args []string) bool {
 // setLogLevel sets the logging level and colored output based on command-line flags or default values.
 // It ensures consistent log settings, initializes the logger, and applies settings globally.
 func setLogLevel(tempRoot *cobra.Command) error {
-	// Parse the flags to get the log level
+	// Check for version flag first - if present, print version and exit
+	// This is needed because the version flag is added to the real root command,
+	// but not to the temporary root command used for initial flag parsing.
+	// By checking for the version flag here, we ensure that both `./ocloud -v`
+	// and `./ocloud --version` work properly.
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixVersion || arg == flags.FlagPrefixShortVersion {
+			version.PrintVersion()
+			os.Exit(0)
+		}
+	}
 	tempRoot.ParseFlags(os.Args)
+	// Parse the flags to get the log level Should be approach, but for some reason it prevents parsing flags and give an error
+	//if err: = tempRoot.ParseFlags(os.Args); err != nil {
+	//	return fmt.Errorf("parsing flags: %w", err)
+	//}
 
 	// Check for a debug flag first - it takes precedence over log-level
 	debugFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameDebug)

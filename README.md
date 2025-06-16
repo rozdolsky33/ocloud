@@ -1,6 +1,6 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
 <a href="https://golang.org"><img src="https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square" alt="Built with GoLang"></a>
-[![Version](https://img.shields.io/badge/goversion-1.24.3-blue.svg)](https://golang.org)
+[![Version](https://img.shields.io/badge/goversion-1.20+-blue.svg)](https://golang.org)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](LICENSE)
 
 OCloud is a command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for common OCI operations with a focus on usability and automation.
@@ -17,7 +17,7 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 ### Prerequisites
 
-- Go 1.24.3 or later (Note: This is a future Go version. The project is configured for this version, but you may need to use the latest stable Go version for now)
+- Go 1.20 or later
 - Oracle Cloud Infrastructure account
 - OCI SDK configuration (typically in `~/.oci/config`)
 
@@ -129,7 +129,7 @@ ocloud --version
 ocloud -v
 
 # Enable debug logging with colored output
-ocloud --log-level debug --color compute instance --list
+ocloud compute instance --list -d --color 
 
 # Alternative way to enable debug logging
 ocloud -d --color compute instance --list
@@ -201,20 +201,23 @@ ocloud compute instance --list
 
 The project follows a modern Go application structure:
 
+- `buildinfo/`: Version information
 - `cmd/`: Command-line interface implementation
   - `root.go`: Root command and global flags
   - `compute/`: Compute-related commands
     - `root.go`: Compute command and flags
     - `instance/`: Instance-related commands
       - `root.go`: Instance command and flags
+  - `version/`: Version command implementation
 - `internal/`: Internal packages (not intended for external use)
   - `app/`: Application context and core functionality
   - `config/`: Configuration handling
     - `flags/`: CLI flag definitions and handling
+    - `generator/`: Configuration generator utilities
   - `logger/`: Logging setup and utilities
   - `oci/`: OCI client factories
-- `pkg/`: Public packages (can be imported by other projects)
-  - `resources/`: Resource operations implementation
+  - `printer/`: Output formatting utilities
+  - `services/`: Service implementations
     - `compute/`: Compute resource operations
     - `database/`: Database resource operations
     - `identity/`: Identity resource operations
