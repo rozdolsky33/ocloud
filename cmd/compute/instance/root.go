@@ -55,13 +55,13 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 			page = flags.FlagDefaultPage
 		}
 
-		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
+		// Use LogWithLevel to ensure debug logs work with shorthand flags
+		logger.LogWithLevel(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
 		return instance.ListInstances(appCtx, limit, page, useJSON)
 
 	case find != "":
-		// Use VerboseInfo to ensure debug logs work with shorthand flags
-		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName, "json", useJSON)
+		// Use LogWithLevel to ensure debug logs work with shorthand flags
+		logger.LogWithLevel(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName, "json", useJSON)
 		return instance.FindInstances(appCtx, find, imageDetails, useJSON)
 
 	default:

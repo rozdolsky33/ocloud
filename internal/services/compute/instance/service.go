@@ -37,7 +37,7 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 // List retrieves instances in the compartment with pagination support.
 func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
 	// Log input parameters at debug level
-	logger.VerboseInfo(s.logger, 3, "List() called with pagination parameters",
+	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
 		"limit", limit,
 		"pageNum", pageNum)
 
@@ -56,12 +56,12 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	// Add limit parameter if specified
 	if limit > 0 {
 		request.Limit = &limit
-		logger.VerboseInfo(s.logger, 3, "Setting limit parameter", "limit", limit)
+		logger.LogWithLevel(s.logger, 3, "Setting limit parameter", "limit", limit)
 	}
 
 	// If pageNum > 1, we need to fetch the appropriate page token
 	if pageNum > 1 && limit > 0 {
-		logger.VerboseInfo(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
+		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
 
 		// We need to fetch page tokens until we reach the desired page
 		page := ""
@@ -87,7 +87,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 
 			// If there's no next page, we've reached the end
 			if resp.OpcNextPage == nil {
-				logger.VerboseInfo(s.logger, 3, "Reached end of data while calculating page token",
+				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
 					"currentPage", currentPage, "targetPage", pageNum)
 				// Return empty result since the requested page is beyond available data
 				return []Instance{}, 0, "", nil
@@ -100,7 +100,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 
 		// Set the page token for the actual request
 		request.Page = &page
-		logger.VerboseInfo(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
+		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
 	}
 
 	// Fetch the instances for the requested page
@@ -122,7 +122,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	// Save the next page token if available
 	if resp.OpcNextPage != nil {
 		nextPageToken = *resp.OpcNextPage
-		logger.VerboseInfo(s.logger, 3, "Next page token", "token", nextPageToken)
+		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
 	}
 
 	// Process the instances
@@ -135,14 +135,14 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 		instanceMap[*oc.Id] = &instances[len(instances)-1]
 	}
 
-	logger.VerboseInfo(s.logger, 3, "Fetched instances for page",
+	logger.LogWithLevel(s.logger, 3, "Fetched instances for page",
 		"pageNum", pageNum, "count", len(instances))
 
 	// Step 2: Fetch VNIC attachments for the instances in the current page
 	if len(instanceMap) > 0 {
 		err := s.enrichInstancesWithVnics(ctx, instanceMap)
 		if err != nil {
-			logger.VerboseInfo(s.logger, 1, "error enriching instances with VNICs", "error", err)
+			logger.LogWithLevel(s.logger, 1, "error enriching instances with VNICs", "error", err)
 			// Continue with the instances we have, even if VNIC enrichment failed
 		}
 	}
@@ -150,7 +150,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	// Calculate if there are more pages after the current page
 	hasNextPage := pageNum*limit < totalCount
 
-	logger.VerboseInfo(s.logger, 2, "Completed instance listing with pagination",
+	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
 		"returnedCount", len(instances),
 		"totalCount", totalCount,
 		"page", pageNum,
@@ -170,11 +170,11 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 	vnicAttachmentsByInstance := groupAttachmentsByInstance(attachments, instanceMap)
 
 	if s.enableConcurrency {
-		logger.VerboseInfo(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
+		logger.LogWithLevel(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
 		return s.processVnicsConcurrently(ctx, vnicAttachmentsByInstance, instanceMap)
 	}
 
-	logger.VerboseInfo(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
+	logger.LogWithLevel(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
 	return s.processVnicsSequentially(ctx, vnicAttachmentsByInstance, instanceMap)
 }
 
@@ -220,12 +220,12 @@ func groupAttachmentsByInstance(attachments []core.VnicAttachment, instanceMap m
 // In case of an error during the VNIC retrieval process, it returns nil.
 func (s *Service) getPrimaryVnic(ctx context.Context, attach core.VnicAttachment) (*core.Vnic, error) {
 	if attach.VnicId == nil {
-		logger.VerboseInfo(s.logger, 2, "VnicAttachment missing VnicId", "attachment", attach)
+		logger.LogWithLevel(s.logger, 2, "VnicAttachment missing VnicId", "attachment", attach)
 		return nil, nil
 	}
 	resp, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
 	if err != nil {
-		logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
+		logger.LogWithLevel(s.logger, 2, "GetVnic error", "error", err, "vnicID", *attach.VnicId)
 		return nil, nil
 	}
 
@@ -233,7 +233,7 @@ func (s *Service) getPrimaryVnic(ctx context.Context, attach core.VnicAttachment
 	if vnic.IsPrimary != nil && *vnic.IsPrimary {
 		return &vnic, nil
 	}
-	logger.VerboseInfo(s.logger, 2, "VnicAttachment missing primary Vnic", "attachment", attach)
+	logger.LogWithLevel(s.logger, 2, "VnicAttachment missing primary Vnic", "attachment", attach)
 	return nil, nil
 }
 
@@ -298,7 +298,7 @@ func (s *Service) processVnicsSequentially(ctx context.Context, byInstance map[s
 
 // Find searches instances by name pattern.
 func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) {
-	logger.VerboseInfo(s.logger, 1, "finding instances", "pattern", pattern)
+	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", pattern)
 
 	// Check if the pattern is an exact match for a display name
 	// If so, we can use the server-side filtering for better performance
@@ -319,11 +319,11 @@ func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) 
 			// enrich IP & Subnet
 			err := s.enrichVnic(ctx, &inst, oc.Id)
 			if err != nil {
-				logger.VerboseInfo(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
+				logger.LogWithLevel(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
 			}
 			matched = append(matched, inst)
 		}
-		logger.VerboseInfo(s.logger, 2, "found exact matching instances", "pattern", pattern, "count", len(matched))
+		logger.LogWithLevel(s.logger, 2, "found exact matching instances", "pattern", pattern, "count", len(matched))
 		return matched, nil
 	}
 
@@ -349,7 +349,7 @@ func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) 
 				// enrich IP & Subnet
 				err := s.enrichVnic(ctx, &inst, oc.Id)
 				if err != nil {
-					logger.VerboseInfo(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
+					logger.LogWithLevel(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
 				}
 				matched = append(matched, inst)
 			}
@@ -361,7 +361,7 @@ func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) 
 		page = *resp.OpcNextPage
 	}
 
-	logger.VerboseInfo(s.logger, 2, "found partial matching instances", "pattern", pattern, "count", len(matched))
+	logger.LogWithLevel(s.logger, 2, "found partial matching instances", "pattern", pattern, "count", len(matched))
 	return matched, nil
 }
 
@@ -375,14 +375,14 @@ func (s *Service) enrichVnic(ctx context.Context, inst *Instance, instanceID *st
 	})
 	if err != nil {
 		// Log the error but don't fail the entire operation
-		logger.VerboseInfo(s.logger, 1, "error listing VNIC attachments", "instanceID", *instanceID, "error", err)
+		logger.LogWithLevel(s.logger, 1, "error listing VNIC attachments", "instanceID", *instanceID, "error", err)
 		return nil
 	}
 
 	for _, attach := range vaResp.Items {
 		vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
 		if err != nil {
-			logger.VerboseInfo(s.logger, 2, "GetVnic error", "error", err)
+			logger.LogWithLevel(s.logger, 2, "GetVnic error", "error", err)
 			continue
 		}
 		if vnic.IsPrimary != nil && *vnic.IsPrimary {
@@ -393,7 +393,7 @@ func (s *Service) enrichVnic(ctx context.Context, inst *Instance, instanceID *st
 	}
 
 	// If no primary VNIC is found, log a warning but don't fail the operation
-	logger.VerboseInfo(s.logger, 1, "no primary VNIC found for instance", "instanceID", *instanceID)
+	logger.LogWithLevel(s.logger, 1, "no primary VNIC found for instance", "instanceID", *instanceID)
 	return nil
 }
 

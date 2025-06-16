@@ -91,7 +91,7 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.AppContext) {
 
 		// Add debug logs for navigation hints
 		if pagination.CurrentPage > 1 {
-			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
+			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
 				"action", "previous page",
 				"page", pagination.CurrentPage-1,
 				"limit", pagination.Limit)
@@ -99,7 +99,7 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.AppContext) {
 
 		// Check if there are more pages after the current page
 		if pagination.CurrentPage*pagination.Limit < pagination.TotalCount {
-			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
+			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
 				"action", "next page",
 				"page", pagination.CurrentPage+1,
 				"limit", pagination.Limit)

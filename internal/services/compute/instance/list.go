@@ -11,8 +11,8 @@ import (
 // ListInstances lists instances in the configured compartment using the provided application.
 // It uses the pre-initialized compute client from the AppContext struct and supports pagination.
 func ListInstances(appCtx *app.AppContext, limit int, page int, useJSON bool) error {
-	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page, "json", useJSON)
+	// Use LogWithLevel to ensure debug logs work with shorthand flags
+	logger.LogWithLevel(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page, "json", useJSON)
 
 	service, err := NewService(appCtx.Provider, appCtx)
 	if err != nil {

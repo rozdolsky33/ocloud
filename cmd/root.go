@@ -78,7 +78,7 @@ func Execute(ctx context.Context) error {
 
 	// Switch to RunE for the root command
 	root.RunE = func(cmd *cobra.Command, args []string) error {
-		return cmd.Help() // Default behavior is to show help
+		return cmd.Help() // The default behavior is to show help
 	}
 
 	// Execute the command

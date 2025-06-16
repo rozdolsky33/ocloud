@@ -48,7 +48,7 @@ var (
 		Usage:     FlagDescCompartment,
 	}
 
-	EnableConcurrencyFlag = BoolFlag{
+	DisableConcurrencyFlag = BoolFlag{
 		Name:      FlagNameDisableConcurrency,
 		Shorthand: FlagShortDisableConcurrency,
 		Default:   false,
@@ -64,7 +64,7 @@ var globalFlags = []Flag{
 	TenancyIDFlag,
 	TenancyNameFlag,
 	CompartmentFlag,
-	EnableConcurrencyFlag,
+	DisableConcurrencyFlag,
 }
 
 // AddGlobalFlags adds all global flags to the given command
