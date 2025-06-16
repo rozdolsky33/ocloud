@@ -1,29 +1,13 @@
 // Package flags defines flag types and domain-specific flag collections for the CLI.
 package flags
 
-import (
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var FlagDefaultLimit = 20
 var FlagDefaultPage = 1
 
 // Instance flags
 var (
-	ListFlag = BoolFlag{
-		Name:      FlagNameList,
-		Shorthand: FlagShortList,
-		Default:   false,
-		Usage:     FlagDescList,
-	}
-
-	FindFlag = StringFlag{
-		Name:      FlagNameFind,
-		Shorthand: FlagShortFind,
-		Default:   "",
-		Usage:     FlagDescFind,
-	}
-
 	ImageDetailsFlag = BoolFlag{
 		Name:      FlagNameImageDetails,
 		Shorthand: FlagShortImageDetails,
@@ -54,9 +38,8 @@ var (
 )
 
 // instanceFlags is a slice of all instance-related flags for batch registration
+// This is kept for backward compatibility but is no longer used in the new subcommand structure
 var instanceFlags = []Flag{
-	ListFlag,
-	FindFlag,
 	ImageDetailsFlag,
 	LimitFlag,
 	PageFlag,
@@ -64,11 +47,9 @@ var instanceFlags = []Flag{
 }
 
 // AddInstanceFlags adds all instance-related flags to the given command
+// This is kept for backward compatibility but is no longer used in the new subcommand structure
 func AddInstanceFlags(cmd *cobra.Command) {
 	for _, f := range instanceFlags {
 		f.Add(cmd)
 	}
 }
-
-// These functions were removed as part of the refactoring to use only flags
-// and not subcommands for the instance command.
