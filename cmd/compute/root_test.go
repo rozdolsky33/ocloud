@@ -18,8 +18,8 @@ func TestComputeCommand(t *testing.T) {
 
 	// Test that the compute command is properly configured
 	assert.Equal(t, "compute", cmd.Use)
-	assert.Equal(t, "Manage OCI compute resources", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure compute resources such as instances, images, and more.", cmd.Long)
+	assert.Equal(t, "Manage OCI compute services", cmd.Short)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure compute services such as instances, images, and more.", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

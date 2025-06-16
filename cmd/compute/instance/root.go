@@ -3,7 +3,7 @@ package instance
 import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/pkg/resources/compute"
+	"github.com/rozdolsky33/ocloud/internal/services/compute"
 	"github.com/spf13/cobra"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
