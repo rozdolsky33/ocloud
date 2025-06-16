@@ -92,7 +92,7 @@ const (
 	FlagDescFindByStatement    = "Find services by statement"
 	FlagDescIncludeStatements  = "Include statements"
 	FlagDescHelp               = "help for ocloud (shorthand: -h)"
-	FlagDescDisableConcurrency = "Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting)"
+	FlagDescDisableConcurrency = "Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)"
 	FlagDescLimit              = "Maximum number of records to display per page"
 	FlagDescPage               = "Page number to display"
 	FlagDescJSON               = "Output information in JSON format"
@@ -108,14 +108,14 @@ const (
 
 // Flag prefixes and special strings
 const (
-	FlagPrefixShortHelp              = "-h"
-	FlagPrefixLongHelp               = "--help"
-	FlagPrefixColor                  = "--color"
-	FlagPrefixDebug                  = "--debug"
-	FlagPrefixShortDebug             = "-d"
-	FlagPrefixEnableConcurrency      = "--enable-concurrency"
-	FlagPrefixShortEnableConcurrency = "-x"
-	CobraAnnotationKey               = "cobra_annotation_flag_set_by_cobra"
+	FlagPrefixShortHelp               = "-h"
+	FlagPrefixLongHelp                = "--help"
+	FlagPrefixColor                   = "--color"
+	FlagPrefixDebug                   = "--debug"
+	FlagPrefixShortDebug              = "-d"
+	FlagPrefixDisableConcurrency      = "--disable-concurrency"
+	FlagPrefixShortDisableConcurrency = "-x"
+	CobraAnnotationKey                = "cobra_annotation_flag_set_by_cobra"
 )
 
 // Environment variables

@@ -80,7 +80,7 @@ func determineConcurrency(cmd *cobra.Command) bool {
 	}
 
 	for _, arg := range os.Args {
-		if arg == flags.FlagPrefixShortEnableConcurrency || arg == flags.FlagPrefixEnableConcurrency {
+		if arg == flags.FlagPrefixShortDisableConcurrency || arg == flags.FlagPrefixDisableConcurrency {
 			return false
 		}
 	}
