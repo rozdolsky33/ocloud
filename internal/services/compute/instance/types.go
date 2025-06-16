@@ -1,4 +1,4 @@
-package compute
+package instance
 
 import (
 	"github.com/go-logr/logr"

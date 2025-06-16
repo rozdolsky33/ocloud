@@ -3,7 +3,7 @@ package instance
 import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/compute"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	"github.com/spf13/cobra"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -57,12 +57,12 @@ func doInstanceCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
 		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
-		return compute.ListInstances(appCtx, limit, page, useJSON)
+		return instance.ListInstances(appCtx, limit, page, useJSON)
 
 	case find != "":
 		// Use VerboseInfo to ensure debug logs work with shorthand flags
 		logger.VerboseInfo(logger.CmdLogger, 1, "Running instance find command", "pattern", find, "in compartment", appCtx.CompartmentName, "json", useJSON)
-		return compute.FindInstances(appCtx, find, imageDetails, useJSON)
+		return instance.FindInstances(appCtx, find, imageDetails, useJSON)
 
 	default:
 		return cmd.Help()

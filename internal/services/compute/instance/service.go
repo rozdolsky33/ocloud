@@ -1,9 +1,8 @@
-package compute
+package instance
 
 import (
 	"context"
 	"fmt"
-	"github.com/rozdolsky33/ocloud/internal/printer"
 	"strings"
 	"sync"
 
@@ -42,103 +41,102 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 		"limit", limit,
 		"pageNum", pageNum)
 
-	var all []Instance
-	page := ""
-	var instanceIDs []string
+	// Initialize variables
+	var instances []Instance
 	instanceMap := make(map[string]*Instance)
-	totalCount := 0
 	var nextPageToken string
+	var totalCount int
 
-	// Step 1: Fetch instances for the requested page and get the total count
-	for {
-		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
-			CompartmentId:  &s.compartmentID,
-			LifecycleState: core.InstanceLifecycleStateRunning,
-			Page:           &page,
-		})
-		if err != nil {
-			return nil, 0, "", fmt.Errorf("listing instances: %w", err)
+	// Create a request with limit parameter to fetch only the required page
+	request := core.ListInstancesRequest{
+		CompartmentId:  &s.compartmentID,
+		LifecycleState: core.InstanceLifecycleStateRunning,
+	}
+
+	// Add limit parameter if specified
+	if limit > 0 {
+		request.Limit = &limit
+		logger.VerboseInfo(s.logger, 3, "Setting limit parameter", "limit", limit)
+	}
+
+	// If pageNum > 1, we need to fetch the appropriate page token
+	if pageNum > 1 && limit > 0 {
+		logger.VerboseInfo(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
+
+		// We need to fetch page tokens until we reach the desired page
+		page := ""
+		currentPage := 1
+
+		for currentPage < pageNum {
+			// Fetch just the page token, not the actual data
+			// Use the same limit to ensure consistent pagination
+			tokenRequest := core.ListInstancesRequest{
+				CompartmentId:  &s.compartmentID,
+				LifecycleState: core.InstanceLifecycleStateRunning,
+				Page:           &page,
+			}
+
+			if limit > 0 {
+				tokenRequest.Limit = &limit
+			}
+
+			resp, err := s.compute.ListInstances(ctx, tokenRequest)
+			if err != nil {
+				return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
+			}
+
+			// If there's no next page, we've reached the end
+			if resp.OpcNextPage == nil {
+				logger.VerboseInfo(s.logger, 3, "Reached end of data while calculating page token",
+					"currentPage", currentPage, "targetPage", pageNum)
+				// Return empty result since the requested page is beyond available data
+				return []Instance{}, 0, "", nil
+			}
+
+			// Move to the next page
+			page = *resp.OpcNextPage
+			currentPage++
 		}
 
-		// Add instances to our collection
-		for _, oc := range resp.Items {
-			inst := mapToInstance(oc)
-			all = append(all, inst)
+		// Set the page token for the actual request
+		request.Page = &page
+		logger.VerboseInfo(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
+	}
 
-			// Store instance ID for bulk VNIC attachment lookup
-			instanceIDs = append(instanceIDs, *oc.Id)
+	// Fetch the instances for the requested page
+	resp, err := s.compute.ListInstances(ctx, request)
+	if err != nil {
+		return nil, 0, "", fmt.Errorf("listing instances: %w", err)
+	}
 
-			// Store a reference to the instance in the map for easy lookup
-			// We need to get the address of the instance in the slice
-			instanceMap[*oc.Id] = &all[len(all)-1]
-		}
+	// Set the total count to the number of instances returned
+	// If we have a next page, this is an estimate
+	totalCount = len(resp.Items)
 
-		// Log the number of instances fetched so far
-		logger.VerboseInfo(s.logger, 3, "Fetched instances",
-			"count", len(resp.Items),
-			"totalSoFar", len(all))
+	// If we have a next page, we know there are more instances
+	if resp.OpcNextPage != nil {
+		// Estimate total count based on current page and items per page
+		totalCount = pageNum * limit
+	}
 
-		// If there are no more pages, break
-		if resp.OpcNextPage == nil {
-			logger.VerboseInfo(s.logger, 3, "No more pages available")
-			break
-		}
-
-		// Save the next page token
+	// Save the next page token if available
+	if resp.OpcNextPage != nil {
 		nextPageToken = *resp.OpcNextPage
 		logger.VerboseInfo(s.logger, 3, "Next page token", "token", nextPageToken)
-
-		// Continue fetching all pages to get an accurate total count
-		page = nextPageToken
 	}
 
-	// Set the total count to the total number of instances fetched
-	totalCount = len(all)
+	// Process the instances
+	for _, oc := range resp.Items {
+		inst := mapToInstance(oc)
+		instances = append(instances, inst)
 
-	// Apply pagination if requested
-	paginatedInstances := all
-	if limit > 0 && pageNum > 0 {
-		logger.VerboseInfo(s.logger, 3, "Applying pagination",
-			"pageNum", pageNum,
-			"limit", limit,
-			"totalInstances", len(all))
-
-		// Calculate start and end indices for the requested page
-		startIdx := (pageNum - 1) * limit
-		endIdx := startIdx + limit
-
-		logger.VerboseInfo(s.logger, 3, "Calculated pagination indices",
-			"startIdx", startIdx,
-			"endIdx", endIdx)
-
-		// Adjust indices if they're out of bounds
-		if startIdx >= len(all) {
-			// If the requested page is beyond available data, return an empty result
-			logger.VerboseInfo(s.logger, 3, "Requested page is beyond available data",
-				"startIdx", startIdx,
-				"totalInstances", len(all))
-			return []Instance{}, totalCount, nextPageToken, nil
-		}
-		if endIdx > len(all) {
-			endIdx = len(all)
-			logger.VerboseInfo(s.logger, 3, "Adjusted end index to match available data",
-				"endIdx", endIdx)
-		}
-
-		// Extract the requested page
-		paginatedInstances = all[startIdx:endIdx]
-		logger.VerboseInfo(s.logger, 3, "Extracted page of instances",
-			"pageSize", len(paginatedInstances))
-
-		// Update the instance map to only include instances in the current page
-		newInstanceMap := make(map[string]*Instance)
-		for i := range paginatedInstances {
-			newInstanceMap[paginatedInstances[i].ID] = &paginatedInstances[i]
-		}
-		instanceMap = newInstanceMap
-		logger.VerboseInfo(s.logger, 3, "Updated instance map for current page",
-			"mapSize", len(instanceMap))
+		// Store a reference to the instance in the map for easy lookup
+		// We need to get the address of the instance in the slice
+		instanceMap[*oc.Id] = &instances[len(instances)-1]
 	}
+
+	logger.VerboseInfo(s.logger, 3, "Fetched instances for page",
+		"pageNum", pageNum, "count", len(instances))
 
 	// Step 2: Fetch VNIC attachments for the instances in the current page
 	if len(instanceMap) > 0 {
@@ -150,18 +148,15 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	}
 
 	// Calculate if there are more pages after the current page
-	hasNextPage := false
-	if pageNum*limit < totalCount {
-		hasNextPage = true
-	}
+	hasNextPage := pageNum*limit < totalCount
 
 	logger.VerboseInfo(s.logger, 2, "Completed instance listing with pagination",
-		"returnedCount", len(paginatedInstances),
+		"returnedCount", len(instances),
 		"totalCount", totalCount,
 		"page", pageNum,
 		"limit", limit,
 		"hasNextPage", hasNextPage)
-	return paginatedInstances, totalCount, nextPageToken, nil
+	return instances, totalCount, nextPageToken, nil
 }
 
 // enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
@@ -423,183 +418,4 @@ func mapToInstance(oc core.Instance) Instance {
 		State:     oc.LifecycleState,
 		CreatedAt: *oc.TimeCreated,
 	}
-}
-
-// ListInstances lists instances in the configured compartment using the provided application.
-// It uses the pre-initialized compute client from the AppContext struct and supports pagination.
-func ListInstances(appCtx *app.AppContext, limit int, page int, useJSON bool) error {
-	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page, "json", useJSON)
-
-	service, err := NewService(appCtx.Provider, appCtx)
-	if err != nil {
-		return fmt.Errorf("creating compute service: %w", err)
-	}
-
-	ctx := context.Background()
-	instances, totalCount, nextPageToken, err := service.List(ctx, limit, page)
-	if err != nil {
-		return fmt.Errorf("listing instances: %w", err)
-	}
-
-	// Display instance information with pagination details
-	PrintInstancesTable(instances, appCtx, &PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON)
-
-	return nil
-}
-
-// FindInstances searches for instances in the OCI compartment matching the given name pattern.
-// It uses the pre-initialized compute and network clients from the AppContext struct.
-// Parameters:
-// - appCtx: The application with all clients, logger, and resolved IDs.
-// - namePattern: The pattern used to match instance names.
-// - showImageDetails: A flag indicating whether to include image details in the output.
-// - useJSON: A flag indicating whether to output information in JSON format.
-// Returns an error if the operation fails.
-func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails bool, useJSON bool) error {
-	// Use VerboseInfo to ensure debug logs work with shorthand flags
-	logger.VerboseInfo(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails, "json", useJSON)
-
-	service, err := NewService(appCtx.Provider, appCtx)
-	if err != nil {
-		return fmt.Errorf("creating compute service: %w", err)
-	}
-
-	ctx := context.Background()
-	matchedInstances, err := service.Find(ctx, namePattern)
-	if err != nil {
-		return fmt.Errorf("finding instances: %w", err)
-	}
-
-	// Display matched instances
-	if len(matchedInstances) == 0 {
-		if useJSON {
-			// Return an empty JSON array if no instances found
-			fmt.Println(`{"instances": [], "pagination": null}`)
-		} else {
-			fmt.Printf("No instances found matching pattern: %s\n", namePattern)
-		}
-		return nil
-	}
-
-	// If showImageDetails is true, fetch and display image information
-	if showImageDetails {
-		// This would be implemented in a future update
-		fmt.Println("Image details functionality not yet implemented")
-	}
-
-	PrintInstancesTable(matchedInstances, appCtx, nil, useJSON)
-	return nil
-}
-
-func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo, useJSON bool) {
-	// If JSON output is requested, print instances as JSON
-	if useJSON {
-		marshalInstancesToJSON(instances, appCtx, pagination)
-		return
-	}
-
-	// Create a table printer with the tenancy name as the title
-	tablePrinter := printer.NewTablePrinter(appCtx.TenancyName)
-
-	// Convert instances to a format suitable for the printer
-	if len(instances) == 0 {
-		fmt.Println("No instances found.")
-		if pagination != nil && pagination.TotalCount > 0 {
-			fmt.Printf("Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
-			if pagination.CurrentPage > 1 {
-				fmt.Printf("Try a lower page number (e.g., --page %d)\n", pagination.CurrentPage-1)
-			}
-		}
-		return
-	}
-
-	// Print each instance as a key-value table with a title
-	for _, instance := range instances {
-		// Create a map with the instance data
-		instanceData := map[string]string{
-			"ID":         instance.ID,
-			"AD":         instance.Placement.AvailabilityDomain,
-			"FD":         instance.Placement.FaultDomain,
-			"Region":     instance.Placement.Region,
-			"Shape":      instance.Shape,
-			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
-			"Created":    instance.CreatedAt.String(),
-			"Subnet ID":  instance.SubnetID,
-			"Name":       instance.Name,
-			"Private IP": instance.IP,
-			"Memory":     fmt.Sprintf("%d GB", int(instance.Resources.MemoryGB)),
-			"State":      string(instance.State),
-		}
-
-		// Define the order of keys to match the example
-		orderedKeys := []string{
-			"ID",
-			"AD",
-			"FD",
-			"Region",
-			"Shape",
-			"vCPUs",
-			"Created",
-			"Subnet ID",
-			"Name",
-			"Private IP",
-			"Memory",
-			"State",
-		}
-
-		// Print the table with ordered keys and colored title components
-		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, instance.Name, instanceData, orderedKeys)
-	}
-
-	logPaginationInfo(pagination, appCtx)
-}
-
-func logPaginationInfo(pagination *PaginationInfo, appCtx *app.AppContext) {
-	// Log pagination information if available
-	if pagination != nil {
-		// Calculate the total records displayed so far
-		totalRecordsDisplayed := pagination.CurrentPage * pagination.Limit
-		if totalRecordsDisplayed > pagination.TotalCount {
-			totalRecordsDisplayed = pagination.TotalCount
-		}
-
-		// Log pagination information at the INFO level
-		appCtx.Logger.Info("--- Pagination Information ---",
-			"page", pagination.CurrentPage,
-			"records", fmt.Sprintf("%d/%d", totalRecordsDisplayed, pagination.TotalCount),
-			"limit", pagination.Limit)
-
-		// Add debug logs for navigation hints
-		if pagination.CurrentPage > 1 {
-			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
-				"action", "previous page",
-				"page", pagination.CurrentPage-1,
-				"limit", pagination.Limit)
-		}
-
-		// Check if there are more pages after the current page
-		if pagination.CurrentPage*pagination.Limit < pagination.TotalCount {
-			logger.VerboseInfo(appCtx.Logger, 2, "Pagination navigation",
-				"action", "next page",
-				"page", pagination.CurrentPage+1,
-				"limit", pagination.Limit)
-		}
-	}
-}
-
-func marshalInstancesToJSON(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo) {
-	response := JSONResponse{
-		Instances:  instances,
-		Pagination: pagination,
-	}
-
-	// Use the printer package to marshal the response to JSON
-	printer.MarshalToJSON(response, appCtx)
-	return
 }
