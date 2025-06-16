@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/cmd/compute"
+	"github.com/rozdolsky33/ocloud/cmd/version"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/spf13/cobra"
 	"os"
-	"strings"
 )
 
 // NewRootCmd creates a new root command with all subcommands attached
@@ -24,12 +24,14 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 	// Initialize global flags
 	flags.AddGlobalFlags(rootCmd)
 
-	// Add a custom help flag with a more descriptive message
-	rootCmd.Flags().BoolP(flags.FlagNameHelp, flags.FlagShortHelp, false, flags.FlagDescHelp)
-	_ = rootCmd.Flags().SetAnnotation(flags.FlagNameHelp, flags.CobraAnnotationKey, []string{flags.FlagValueTrue})
-
 	// Add subcommands, passing in the AppContext
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
+
+	// Add version command
+	rootCmd.AddCommand(version.NewVersionCommand())
+
+	// Add version flag
+	version.AddVersionFlag(rootCmd)
 
 	return rootCmd
 }
@@ -60,6 +62,9 @@ func Execute(ctx context.Context) error {
 	root := NewRootCmd(appCtx)
 
 	// Add PersistentPreRunE to handle setup before any command
+	// Note: This is redundant with the PersistentPreRunE set by version.AddVersionFlag()
+	// and should be removed or consolidated to avoid conflicts
+	// The version flag is already handled by version.AddVersionFlag()
 	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		// Optional: more setup before any command
 		return nil
@@ -67,12 +72,12 @@ func Execute(ctx context.Context) error {
 
 	// Switch to RunE for the root command
 	root.RunE = func(cmd *cobra.Command, args []string) error {
-		return cmd.Help() // Default behavior is to show help
+		return cmd.Help() // The default behavior is to show help
 	}
 
 	// Execute the command
 	if err := root.ExecuteContext(ctx); err != nil {
-		return err // Will be handled in main
+		return fmt.Errorf("failed to execute root command: %w", err)
 	}
 
 	return nil
@@ -117,33 +122,52 @@ func hasHelpFlag(args []string) bool {
 // setLogLevel sets the logging level and colored output based on command-line flags or default values.
 // It ensures consistent log settings, initializes the logger, and applies settings globally.
 func setLogLevel(tempRoot *cobra.Command) error {
-	// Parse the flags to get the log level
+	// Check for version flag first - if present, print version and exit
+	// This is needed because the version flag is added to the real root command,
+	// but not to the temporary root command used for initial flag parsing.
+	// By checking for the version flag here, we ensure that both `./ocloud -v`
+	// and `./ocloud --version` work properly.
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixVersion || arg == flags.FlagPrefixShortVersion {
+			version.PrintVersion()
+			os.Exit(0)
+		}
+	}
 	tempRoot.ParseFlags(os.Args)
+	// Parse the flags to get the log level Should be approach, but for some reason it prevents parsing flags and give an error
+	//if err: = tempRoot.ParseFlags(os.Args); err != nil {
+	//	return fmt.Errorf("parsing flags: %w", err)
+	//}
 
-	// Set the logger level from the flag value
-	logLevelFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameLogLevel)
-	if logLevelFlag != nil {
-		// Use the value from the parsed flag
-		logger.LogLevel = logLevelFlag.Value.String()
-		if logger.LogLevel == "" {
-			// If not set, use the default value
-			logger.LogLevel = flags.FlagValueInfo
+	// Check for a debug flag first - it takes precedence over log-level
+	debugFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameDebug)
+	if debugFlag != nil && debugFlag.Value.String() == flags.FlagValueTrue {
+		// If a debug flag is set, set the log level to debug
+		logger.LogLevel = flags.FlagNameDebug
+	} else {
+		// Otherwise, use the log-level flag
+		logLevelFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameLogLevel)
+		if logLevelFlag != nil {
+			// Use the value from the parsed flag
+			logger.LogLevel = logLevelFlag.Value.String()
+			if logger.LogLevel == "" {
+				// If not set, use the default value
+				logger.LogLevel = flags.FlagValueInfo
+			}
 		}
 	}
 
 	// This is a Hack!
-	//Check if --log-level flag is explicitly set in the command line arguments
-	// This ensures that the log level is set correctly regardless of whether
+	// Check if -d or --debug flag is explicitly set in the command line arguments
+	// This ensures that debug mode is set correctly regardless of whether
 	// the full command or shorthand flags are used
-	for i, arg := range os.Args {
-		if arg == flags.FlagPrefixLogLevel && i+1 < len(os.Args) {
-			logger.LogLevel = os.Args[i+1]
-			break
-		} else if strings.HasPrefix(arg, flags.FlagPrefixLogLevelEq) {
-			logger.LogLevel = strings.TrimPrefix(arg, flags.FlagPrefixLogLevelEq)
+	for _, arg := range os.Args {
+		if arg == flags.FlagPrefixDebug || arg == flags.FlagPrefixShortDebug {
+			logger.LogLevel = flags.FlagNameDebug
 			break
 		}
 	}
+
 	// Set the colored output from the flag value
 	colorFlag := tempRoot.PersistentFlags().Lookup(flags.FlagNameColor)
 	if colorFlag != nil {

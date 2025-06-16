@@ -25,7 +25,7 @@ var (
 var DefaultTenancyMapPath = func() string {
 	dir, err := getUserHomeDir()
 	if err != nil {
-		logger.VerboseInfo(logger.Logger, 1, "failed to get user home directory for tenancy map path", "error", err)
+		logger.LogWithLevel(logger.Logger, 1, "failed to get user home directory for tenancy map path", "error", err)
 		return ""
 	}
 	return filepath.Join(dir, ".oci", "tenancy-map.yaml")
@@ -45,11 +45,11 @@ const (
 func LoadOCIConfig() common.ConfigurationProvider {
 	profile := GetOCIProfile()
 	if profile == defaultProfile {
-		logger.VerboseInfo(logger.Logger, 3, "using default profile")
+		logger.LogWithLevel(logger.Logger, 3, "using default profile")
 		return common.DefaultConfigProvider()
 	}
 
-	logger.VerboseInfo(logger.Logger, 3, "using profile", "profile", profile)
+	logger.LogWithLevel(logger.Logger, 3, "using profile", "profile", profile)
 
 	homeDir, err := getUserHomeDir()
 	if err != nil {
@@ -94,7 +94,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 	// Normal implementation
 	path := tenancyMapPath()
-	logger.VerboseInfo(logger.Logger, 3, "looking up tenancy in map", "tenancy", tenancyName, "path", path)
+	logger.LogWithLevel(logger.Logger, 3, "looking up tenancy in map", "tenancy", tenancyName, "path", path)
 
 	tenancies, err := LoadTenancyMap()
 	if err != nil {
@@ -103,7 +103,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 	for _, env := range tenancies {
 		if env.Tenancy == tenancyName {
-			logger.VerboseInfo(logger.Logger, 3, "found tenancy", "tenancy", tenancyName, "tenancyID", env.TenancyID)
+			logger.LogWithLevel(logger.Logger, 3, "found tenancy", "tenancy", tenancyName, "tenancyID", env.TenancyID)
 			return env.TenancyID, nil
 		}
 	}
@@ -117,7 +117,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 // It logs debug information and returns a slice of OciTenancyEnvironment.
 func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 	path := tenancyMapPath()
-	logger.VerboseInfo(logger.Logger, 3, "loading tenancy map", "path", path)
+	logger.LogWithLevel(logger.Logger, 3, "loading tenancy map", "path", path)
 
 	if err := ensureFile(path); err != nil {
 		logger.Logger.Info("tenancy mapping file not found", "error", err)
@@ -136,7 +136,7 @@ func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 		return nil, errors.Wrapf(err, "failed to parse tenancy mapping file (%s) - please check that the file is valid YAML", path)
 	}
 
-	logger.VerboseInfo(logger.Logger, 3, "loaded tenancy mapping entries", "count", len(tenancies))
+	logger.LogWithLevel(logger.Logger, 3, "loaded tenancy mapping entries", "count", len(tenancies))
 	return tenancies, nil
 }
 
@@ -165,7 +165,7 @@ func getUserHomeDir() (string, error) {
 // tenancyMapPath returns either the overridden path or the default.
 func tenancyMapPath() string {
 	if p := os.Getenv(EnvTenancyMapPath); p != "" {
-		logger.VerboseInfo(logger.Logger, 3, "using tenancy map from env", "path", p)
+		logger.LogWithLevel(logger.Logger, 3, "using tenancy map from env", "path", p)
 		return p
 	}
 	return DefaultTenancyMapPath

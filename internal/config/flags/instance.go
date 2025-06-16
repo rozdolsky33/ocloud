@@ -5,6 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var FlagDefaultLimit = 20
+var FlagDefaultPage = 1
+
 // Instance flags
 var (
 	ListFlag = BoolFlag{
@@ -27,6 +30,27 @@ var (
 		Default:   false,
 		Usage:     FlagDescImageDetails,
 	}
+
+	LimitFlag = IntFlag{
+		Name:      FlagNameLimit,
+		Shorthand: FlagShortLimit,
+		Default:   FlagDefaultLimit,
+		Usage:     FlagDescLimit,
+	}
+
+	PageFlag = IntFlag{
+		Name:      FlagNamePage,
+		Shorthand: FlagShortPage,
+		Default:   FlagDefaultPage,
+		Usage:     FlagDescPage,
+	}
+
+	JSONFlag = BoolFlag{
+		Name:      FlagNameJSON,
+		Shorthand: FlagShortJSON,
+		Default:   false,
+		Usage:     FlagDescJSON,
+	}
 )
 
 // instanceFlags is a slice of all instance-related flags for batch registration
@@ -34,6 +58,9 @@ var instanceFlags = []Flag{
 	ListFlag,
 	FindFlag,
 	ImageDetailsFlag,
+	LimitFlag,
+	PageFlag,
+	JSONFlag,
 }
 
 // AddInstanceFlags adds all instance-related flags to the given command

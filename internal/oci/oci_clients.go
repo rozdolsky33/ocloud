@@ -2,10 +2,20 @@ package oci
 
 import (
 	"fmt"
+	"github.com/oracle/oci-go-sdk/v65/identity"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 )
+
+// NewIdentityClient creates and returns a new instance of IdentityClient using the provided configuration provider.
+func NewIdentityClient(provider common.ConfigurationProvider) (identity.IdentityClient, error) {
+	client, err := identity.NewIdentityClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating identity client: %w", err)
+	}
+	return client, nil
+}
 
 // NewComputeClient creates a new OCI compute client using the provided configuration provider.
 func NewComputeClient(provider common.ConfigurationProvider) (core.ComputeClient, error) {

@@ -18,9 +18,6 @@ var (
 	// LogLevel sets the verbosity level for logging
 	LogLevel string
 
-	// LogLevelMsg provides help text for the log-level flag
-	LogLevelMsg = "Set the log verbosity. Supported values are: debug, info, warn, and error."
-
 	// CmdLogger is the logger used by command-line operations
 	CmdLogger logr.Logger
 
@@ -74,11 +71,11 @@ func InitLogger(logger logr.Logger) {
 	}
 }
 
-// VerboseInfo logs a message at the specified verbosity level.
+// LogWithLevel logs a message at the specified verbosity level.
 // If the verbosity level is less than or equal to GLOBAL_VERBOSITY,
 // it logs the message using the logger's V(level).Info() method.
 // Otherwise, it does nothing.
-func VerboseInfo(logger logr.Logger, level int, msg string, keysAndValues ...interface{}) {
+func LogWithLevel(logger logr.Logger, level int, msg string, keysAndValues ...interface{}) {
 	if level <= GLOBAL_VERBOSITY {
 		logger.V(level).Info(msg, keysAndValues...)
 	}
@@ -101,7 +98,7 @@ func getSlogLevel(s string) (slog.Level, error) {
 	}
 }
 
-// For end users, klog messages are mostly useless. We set it to the error level unless debug logging is enabled.
+// For end users, klog messages are mostly useless. I set it to the error level unless debug logging is enabled.
 func getKlogLevel(l slog.Level) slog.Level {
 	if l < slog.LevelInfo {
 		return l
