@@ -1,6 +1,6 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
 [![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/releaserozdolsky33/ocloud?sort=semver)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
 [![Version](https://img.shields.io/badge/goversion-1.23.x-blue.svg)](https://golang.org)
 <a href="https://golang.org"><img src="https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square" alt="Built with GoLang"></a>
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
