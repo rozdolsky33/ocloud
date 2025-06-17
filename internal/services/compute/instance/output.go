@@ -2,8 +2,6 @@ package instance
 
 import (
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/text"
-
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/printer"
@@ -91,14 +89,17 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 			// We'll display the tags separately after the main instance information
 		}
 
-		// Create the colored title using components from the app context.
-		coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
-		coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
-		coloredInstance := text.Colors{text.FgBlue}.Sprint(instance.Name)
-		title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
+		// Create the instance identifier using components from the app context.
+		instanceIdentifier := fmt.Sprintf("%s: %s: %s", appCtx.TenancyName, appCtx.CompartmentName, instance.Name)
+
+		// Add the instance identifier to the data map
+		instanceData["Instance"] = instanceIdentifier
+
+		// Add "Instance" as the first key in orderedKeys
+		newOrderedKeys := append([]string{"Instance"}, orderedKeys...)
 
 		// Call the printer method to render the key-value table for this instance.
-		p.PrintKeyValues(title, instanceData, orderedKeys)
+		p.PrintKeyValues("Instance Details", instanceData, newOrderedKeys)
 
 		// Display image tags if available and requested
 		if showImageDetails && instance.ImageID != "" {
