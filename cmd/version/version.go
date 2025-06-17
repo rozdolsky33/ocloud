@@ -37,9 +37,7 @@ func (vc *VersionCommand) runCommand(cmd *cobra.Command, args []string) error {
 
 // printVersionInfo displays the version information
 func (vc *VersionCommand) printVersionInfo() error {
-	fmt.Printf("Version:    %s\n", buildinfo.Version)
-	fmt.Printf("Commit:     %s\n", buildinfo.CommitHash)
-	fmt.Printf("Built:      %s\n", buildinfo.BuildTime)
+	PrintVersionInfo()
 	return nil
 }
 
@@ -74,7 +72,7 @@ func AddVersionFlag(rootCmd *cobra.Command) {
 
 	// Override the persistent pre-run hook to check for the `-v` flag
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if versionFlag, _ := cmd.Flags().GetBool(flags.FlagNameVersion); versionFlag {
+		if versionFlag := flags.GetBoolFlag(cmd, flags.FlagNameVersion, false); versionFlag {
 			PrintVersionInfo()
 			return nil
 		}

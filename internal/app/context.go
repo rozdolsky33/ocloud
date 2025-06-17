@@ -70,13 +70,13 @@ func overrideRegionIfNeeded(client identity.IdentityClient) {
 }
 
 // concurrency determines whether concurrency is enabled based on command flags and specific CLI arguments.
-// Returns true if concurrency is enabled, or false if explicitly disabled via flags or defaults to disabled.
+// Returns true if concurrency is enabled, or false if explicitly disabled via flags or defaults to enabled.
 func concurrency(cmd *cobra.Command) bool {
-	disable, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
+	disable := flags.GetBoolFlag(cmd, flags.FlagNameDisableConcurrency, false)
 	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
 
 	if explicit {
-		return disable
+		return !disable // Invert the value since the flag is "disable-concurrency"
 	}
 
 	for _, arg := range os.Args {
@@ -85,7 +85,7 @@ func concurrency(cmd *cobra.Command) bool {
 		}
 	}
 
-	return true // default to disabled
+	return true // default to enabled
 }
 
 // resolveTenancyAndCompartment resolves the tenancy ID, tenancy name, and compartment ID for the application context.

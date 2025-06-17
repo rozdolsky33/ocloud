@@ -24,9 +24,9 @@ func NewListCmd(appCtx *app.AppContext) *cobra.Command {
 	}
 
 	// Add flags specific to the list command
-	flags.LimitFlag.Add(cmd)
-	flags.PageFlag.Add(cmd)
-	flags.JSONFlag.Add(cmd)
+	LimitFlag.Add(cmd)
+	PageFlag.Add(cmd)
+	JSONFlag.Add(cmd)
 
 	return cmd
 }
@@ -34,8 +34,8 @@ func NewListCmd(appCtx *app.AppContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
 	// Get pagination parameters
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, flags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, flags.FlagDefaultPage)
+	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, FlagDefaultLimit)
+	page := flags.GetIntFlag(cmd, flags.FlagNamePage, FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags

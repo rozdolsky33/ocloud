@@ -5,8 +5,6 @@ package flags
 const (
 	FlagNameLogLevel           = "log-level"
 	FlagNameDebug              = "debug"
-	FlagNameList               = "list"
-	FlagNameFind               = "find"
 	FlagNameTenancyID          = "tenancy-id"
 	FlagNameTenancyName        = "tenancy-name"
 	FlagNameCompartment        = "compartment"
@@ -23,7 +21,6 @@ const (
 	FlagNameLocalFwPort        = "local-fw-port"
 	FlagNameHostFwPort         = "host-fw-port"
 	FlagNameImageDetails       = "image-details"
-	FlagNameFindByName         = "find-by-name"
 	FlagNameFindByStatement    = "find-by-statements"
 	FlagNameIncludeStatements  = "include-statements"
 	FlagNameHelp               = "help"
@@ -37,8 +34,6 @@ const (
 
 // FlagShorthands defines single-character aliases for flags
 const (
-	FlagShortList               = "l"
-	FlagShortFind               = "f"
 	FlagShortTenancyID          = "t"
 	FlagShortCompartment        = "c"
 	FlagShortCreate             = "r"
@@ -70,8 +65,6 @@ const (
 const (
 	FlagDescLogLevel           = "Set the log verbosity debug,"
 	FlagDescDebug              = "Enable debug logging"
-	FlagDescList               = "List all services"
-	FlagDescFind               = "Find services by name pattern search"
 	FlagDescCreate             = "Create a resource"
 	FlagDescType               = "Resource type"
 	FlagDescBastionID          = "Bastion OCID"
