@@ -11,7 +11,7 @@ import (
 )
 
 // NewRootCmd creates a new root command with all subcommands attached
-func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
+func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:          "ocloud",
 		Short:        "Interact with Oracle Cloud Infrastructure",
@@ -22,7 +22,7 @@ func NewRootCmd(appCtx *app.AppContext) *cobra.Command {
 	// Initialize global flags
 	flags.AddGlobalFlags(rootCmd)
 
-	// Add subcommands, passing in the AppContext
+	// Add subcommands, passing in the ApplicationContext
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
 
 	// Add version command
@@ -56,7 +56,7 @@ func Execute(ctx context.Context) error {
 		return fmt.Errorf("initializing app context: %w", err)
 	}
 
-	// Create the real root command with the AppContext
+	// Create the real root command with the ApplicationContext
 	root := NewRootCmd(appCtx)
 
 	// Add PersistentPreRunE to handle setup before any command

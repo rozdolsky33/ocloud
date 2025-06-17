@@ -13,9 +13,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
 
-// NewService creates a new Service instance with OCI compute and network clients using the provided AppContext.
+// NewService creates a new Service instance with OCI compute and network clients using the provided ApplicationContext.
 // Returns a Service pointer and an error if the initialization fails.
-func NewService(appCtx *app.AppContext) (*Service, error) {
+func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	cc, err := oci.NewComputeClient(cfg)
 	if err != nil {
@@ -115,7 +115,6 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	// Set the total count to the number of instances returned
 	// If we have a next page, this is an estimate
 	totalCount = len(resp.Items)
-	logger.LogWithLevel(s.logger, 3, "Fetched instances for page totalCount:", totalCount)
 	// If we have a next page, we know there are more instances
 	if resp.OpcNextPage != nil {
 		// Estimate total count based on current page and items per page

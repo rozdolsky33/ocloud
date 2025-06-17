@@ -7,7 +7,7 @@ import (
 )
 
 // NewInstanceCmd creates a new command for instance-related operations
-func NewInstanceCmd(appCtx *app.AppContext) *cobra.Command {
+func NewInstanceCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "instance",
 		Aliases:       []string{"inst"},

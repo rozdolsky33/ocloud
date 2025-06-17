@@ -8,14 +8,14 @@ import (
 )
 
 // FindInstances searches for instances in the OCI compartment matching the given name pattern.
-// It uses the pre-initialized compute and network clients from the AppContext struct.
+// It uses the pre-initialized compute and network clients from the ApplicationContext struct.
 // Parameters:
 // - appCtx: The application with all clients, logger, and resolved IDs.
 // - namePattern: The pattern used to match instance names.
 // - showImageDetails: A flag indicating whether to include image details in the output.
 // - useJSON: A flag indicating whether to output information in JSON format.
 // Returns an error if the operation fails.
-func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails bool, useJSON bool) error {
+func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImageDetails bool, useJSON bool) error {
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails, "json", useJSON)
 
@@ -47,6 +47,9 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 		fmt.Println("Image details functionality not yet implemented")
 	}
 
-	PrintInstancesTable(matchedInstances, appCtx, nil, useJSON)
+	err = PrintInstancesTable(matchedInstances, appCtx, nil, useJSON)
+	if err != nil {
+		return fmt.Errorf("printing instances table: %w", err)
+	}
 	return nil
 }
