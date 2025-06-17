@@ -9,7 +9,7 @@ import (
 )
 
 // NewListCmd creates a new command for listing instances
-func NewListCmd(appCtx *app.AppContext) *cobra.Command {
+func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
@@ -32,7 +32,7 @@ func NewListCmd(appCtx *app.AppContext) *cobra.Command {
 }
 
 // RunListCommand handles the execution of the list command
-func RunListCommand(cmd *cobra.Command, appCtx *app.AppContext) error {
+func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, FlagDefaultPage)

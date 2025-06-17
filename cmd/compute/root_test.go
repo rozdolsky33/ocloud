@@ -10,8 +10,8 @@ import (
 
 // TestComputeCommand tests the basic structure of the compute command
 func TestComputeCommand(t *testing.T) {
-	// Create a mock AppContext
-	appCtx := &app.AppContext{}
+	// Create a mock ApplicationContext
+	appCtx := &app.ApplicationContext{}
 
 	// Create a new compute command
 	cmd := NewComputeCmd(appCtx)

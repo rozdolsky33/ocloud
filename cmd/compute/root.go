@@ -8,7 +8,7 @@ import (
 )
 
 // NewComputeCmd creates a new command for compute-related operations
-func NewComputeCmd(appCtx *app.AppContext) *cobra.Command {
+func NewComputeCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "compute",
 		Aliases:       []string{"comp"},
@@ -18,7 +18,7 @@ func NewComputeCmd(appCtx *app.AppContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	// Add subcommands, passing in the AppContext
+	// Add subcommands, passing in the ApplicationContext
 	cmd.AddCommand(instance.NewInstanceCmd(appCtx))
 
 	return cmd

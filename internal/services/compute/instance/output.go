@@ -2,6 +2,7 @@ package instance
 
 import (
 	"fmt"
+	"github.com/jedib0t/go-pretty/v6/text"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -9,32 +10,30 @@ import (
 )
 
 // PrintInstancesTable displays instances in a formatted table or JSON format.
-// If useJSON is true, it outputs the instances as JSON, otherwise as a table.
-func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo, useJSON bool) {
-	// If JSON output is requested, print instances as JSON
+// It now returns an error to allow for proper error handling by the caller.
+func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool) error {
+	// Create a new printer that writes to the application's standard output.
+	p := printer.New(appCtx.Stdout)
+
+	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		marshalInstancesToJSON(instances, appCtx, pagination)
-		return
+		return marshalInstancesToJSON(p, instances, pagination)
 	}
 
-	// Create a table printer with the tenancy name as the title
-	tablePrinter := printer.NewTablePrinter(appCtx.TenancyName)
-
-	// Convert instances to a format suitable for the printer
+	// Handle the case where no instances are found.
 	if len(instances) == 0 {
-		fmt.Println("No instances found.")
+		fmt.Fprintln(appCtx.Stdout, "No instances found.") // Write to the context's writer.
 		if pagination != nil && pagination.TotalCount > 0 {
-			fmt.Printf("Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
+			fmt.Fprintf(appCtx.Stdout, "Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
 			if pagination.CurrentPage > 1 {
-				fmt.Printf("Try a lower page number (e.g., --page %d)\n", pagination.CurrentPage-1)
+				fmt.Fprintf(appCtx.Stdout, "Try a lower page number (e.g., --page %d)\n", pagination.CurrentPage-1)
 			}
 		}
-		return
+		return nil
 	}
 
-	// Print each instance as a key-value table with a title
+	// Print each instance as a separate key-value table with a colored title.
 	for _, instance := range instances {
-		// Create a map with the instance data
 		instanceData := map[string]string{
 			"ID":         instance.ID,
 			"AD":         instance.Placement.AvailabilityDomain,
@@ -50,31 +49,26 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext, paginatio
 			"State":      string(instance.State),
 		}
 
-		// Define the order of keys to match the example
 		orderedKeys := []string{
-			"ID",
-			"AD",
-			"FD",
-			"Region",
-			"Shape",
-			"vCPUs",
-			"Created",
-			"Subnet ID",
-			"Name",
-			"Private IP",
-			"Memory",
-			"State",
+			"ID", "AD", "FD", "Region", "Shape", "vCPUs",
+			"Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
 		}
+		// Create the colored title using components from the app context.
+		coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
+		coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
+		coloredInstance := text.Colors{text.FgBlue}.Sprint(instance.Name)
+		title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
 
-		// Print the table with ordered keys and colored title components
-		tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, instance.Name, instanceData, orderedKeys)
+		// Call the new printer method to render the key-value table for this instance.
+		p.PrintKeyValues(title, instanceData, orderedKeys)
 	}
 
 	logPaginationInfo(pagination, appCtx)
+	return nil
 }
 
 // logPaginationInfo logs pagination information if available.
-func logPaginationInfo(pagination *PaginationInfo, appCtx *app.AppContext) {
+func logPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContext) {
 	// Log pagination information if available
 	if pagination != nil {
 		// Calculate the total records displayed so far
@@ -107,13 +101,12 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.AppContext) {
 	}
 }
 
-// marshalInstancesToJSON marshals instances to JSON and prints the result.
-func marshalInstancesToJSON(instances []Instance, appCtx *app.AppContext, pagination *PaginationInfo) {
+// marshalInstancesToJSON now accepts a printer and returns an error.
+func marshalInstancesToJSON(p *printer.Printer, instances []Instance, pagination *PaginationInfo) error {
 	response := JSONResponse{
 		Instances:  instances,
 		Pagination: pagination,
 	}
-
-	// Use the printer package to marshal the response to JSON
-	printer.MarshalToJSON(response, appCtx)
+	// Use the printer's method to marshal. It will write to the correct output.
+	return p.MarshalToJSON(response)
 }

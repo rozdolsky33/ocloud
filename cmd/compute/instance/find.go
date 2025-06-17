@@ -9,7 +9,7 @@ import (
 )
 
 // NewFindCmd creates a new command for finding instances by name pattern
-func NewFindCmd(appCtx *app.AppContext) *cobra.Command {
+func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
@@ -32,7 +32,7 @@ func NewFindCmd(appCtx *app.AppContext) *cobra.Command {
 }
 
 // RunFindCommand handles the execution of the find command
-func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.AppContext) error {
+func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameImageDetails, false)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)

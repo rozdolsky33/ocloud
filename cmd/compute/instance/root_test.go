@@ -12,8 +12,8 @@ import (
 
 // TestInstanceCommand tests the basic structure of the instance command
 func TestInstanceCommand(t *testing.T) {
-	// Create a mock AppContext
-	appCtx := &app.AppContext{}
+	// Create a mock ApplicationContext
+	appCtx := &app.ApplicationContext{}
 
 	// Create a new instance command
 	cmd := NewInstanceCmd(appCtx)

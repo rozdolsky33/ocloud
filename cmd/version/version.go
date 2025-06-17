@@ -7,18 +7,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// VersionCommand encapsulates the version command functionality
+// VersionInfo encapsulates the version command functionality
 // It wraps a cobra.Command and provides methods to handle version information display
-type VersionCommand struct {
+type VersionInfo struct {
 	cmd *cobra.Command
 }
 
 // NewVersionCommand creates and configures a new version command
 // Returns a *cobra.Command that can be added to the root command
-// This function was refactored to return *cobra.Command directly instead of *VersionCommand
+// This function was refactored to return *cobra.Command directly instead of *VersionInfo
 // to fix an issue with adding the command to the root command
 func NewVersionCommand() *cobra.Command {
-	vc := &VersionCommand{}
+	vc := &VersionInfo{}
 
 	vc.cmd = &cobra.Command{
 		Use:   "version",
@@ -31,12 +31,12 @@ func NewVersionCommand() *cobra.Command {
 }
 
 // runCommand handles the main command execution
-func (vc *VersionCommand) runCommand(cmd *cobra.Command, args []string) error {
+func (vc *VersionInfo) runCommand(cmd *cobra.Command, args []string) error {
 	return vc.printVersionInfo()
 }
 
 // printVersionInfo displays the version information
-func (vc *VersionCommand) printVersionInfo() error {
+func (vc *VersionInfo) printVersionInfo() error {
 	PrintVersionInfo()
 	return nil
 }

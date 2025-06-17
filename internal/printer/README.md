@@ -1,15 +1,13 @@
-# TablePrinter Package
+# Printer Package
 
 The `printer` package provides functionality to print data in tabular format using the [go-pretty](https://github.com/jedib0t/go-pretty) library. It offers a simple and flexible way to display structured data in the terminal with various formatting options.
 
 ## Overview
 
-The `TablePrinter` struct is the main component of this package, providing methods to print data in different tabular formats:
+The `Printer` struct is the main component of this package, providing methods to print data in different formats:
 
-- Key-value tables
-- Key-value tables with custom titles
-- Key-value tables with ordered keys and colored components
-- Row-based tables with headers
+- JSON output with proper indentation
+- Key-value tables with ordered keys, titles, and colored values
 
 ## Installation
 
@@ -24,85 +22,58 @@ import "github.com/rozdolsky33/ocloud/internal/printer"
 The package relies on the following external dependencies:
 
 - [github.com/jedib0t/go-pretty/v6](https://github.com/jedib0t/go-pretty) - For table rendering and styling
-- [github.com/rozdolsky33/ocloud/internal/app](https://github.com/rozdolsky33/ocloud) - For application context
 
 ## Usage
 
-### Creating a TablePrinter
+### Creating a Printer
 
-To create a new `TablePrinter`, use the `NewTablePrinter` function:
-
-```
-tablePrinter := printer.NewTablePrinter("My Title")
-```
-
-### Printing a Simple Key-Value Table
-
-To print a simple key-value table:
+To create a new `Printer` that writes to a specific output, use the `New` function:
 
 ```
-data := []map[string]string{
-    {
-        "ID": "ocid1.instance.oc1.iad.123",
-        "Name": "my-instance",
-        "State": "RUNNING",
-    },
-}
-tablePrinter.PrintKeyValueTable(data)
+// For console output
+p := printer.New(os.Stdout)
+
+// For testing with a buffer
+var buf bytes.Buffer
+p := printer.New(&buf)
 ```
 
-This will produce output similar to:
+### Marshaling Data to JSON
+
+To marshal data to JSON and write it to the printer's output:
 
 ```
-╭─────┬──────────────────────────────────────╮
-│ KEY │ VALUE                                │
-├─────┼──────────────────────────────────────┤
-│ ID  │ ocid1.instance.oc1.iad.123           │
-│ Name│ my-instance                          │
-│ State│ RUNNING                             │
-╰─────┴──────────────────────────────────────╯
-```
-
-### Printing a Key-Value Table with a Custom Title
-
-To print a key-value table with a custom title:
-
-```
-data := map[string]string{
+// Create a data map
+dataMap := map[string]string{
     "ID": "ocid1.instance.oc1.iad.123",
     "Name": "my-instance",
     "State": "RUNNING",
 }
-tablePrinter.PrintKeyValueTableWithTitle("Instance Details", data)
+
+// Marshal to JSON and write to output
+err := p.MarshalToJSON(dataMap)
+if err != nil {
+    // Handle error
+}
 ```
 
 This will produce output similar to:
 
-```
-╭──────────────────────────────────────────────────────────────────╮
-│                       Instance Details                           │
-├─────┬──────────────────────────────────────────────────────────┤
-│ KEY │ VALUE                                                    │
-├─────┼──────────────────────────────────────────────────────────┤
-│ ID  │ ocid1.instance.oc1.iad.123                               │
-│ Name│ my-instance                                              │
-│ State│ RUNNING                                                 │
-╰─────┴──────────────────────────────────────────────────────────╯
-```
-
-### Printing a Key-Value Table with Ordered Keys and Colored Components
-
-To print a key-value table with ordered keys and colored components:
-
-```
-// Create application context
-appCtx := &app.AppContext{
-    TenancyName: "MyTenancy",
-    CompartmentName: "MyCompartment",
+```json
+{
+  "ID": "ocid1.instance.oc1.iad.123",
+  "Name": "my-instance",
+  "State": "RUNNING"
 }
+```
 
-// Create data map
-data := map[string]string{
+### Printing a Key-Value Table with Ordered Keys and Colored Values
+
+To print a key-value table with ordered keys, a title, and colored values:
+
+```
+// Create a data map
+instanceData := map[string]string{
     "ID": "ocid1.instance.oc1.iad.123",
     "Name": "my-instance",
     "State": "RUNNING",
@@ -119,80 +90,66 @@ orderedKeys := []string{
     "Shape",
 }
 
-// Print the table with ordered keys and colored title components
-tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, "my-instance", data, orderedKeys)
+// Print the table with a title and ordered keys
+p.PrintKeyValues("Instance Details", instanceData, orderedKeys)
 ```
 
 This will produce output similar to:
 
 ```
-╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ MyTenancy: MyCompartment: my-instance                                                            │
-├────────────┬─────────────────────────────────────────────────────────────────────────────────────┤
-│ KEY        │ VALUE                                                                               │
-├────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ ID         │ ocid1.instance.oc1.iad.123                                                          │
-├────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ Name       │ my-instance                                                                         │
-├────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ State      │ RUNNING                                                                             │
-├────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ Region     │ us-ashburn-1                                                                        │
-├────────────┼─────────────────────────────────────────────────────────────────────────────────────┤
-│ Shape      │ VM.Standard.E5.Flex                                                                 │
-╰────────────┴─────────────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────╮
+│                       Instance Details                           │
+├─────┬──────────────────────────────────────────────────────────┤
+│ KEY │ VALUE                                                    │
+├─────┼──────────────────────────────────────────────────────────┤
+│ ID  │ ocid1.instance.oc1.iad.123                               │
+├─────┼──────────────────────────────────────────────────────────┤
+│ Name│ my-instance                                              │
+├─────┼──────────────────────────────────────────────────────────┤
+│ State│ RUNNING                                                 │
+├─────┼──────────────────────────────────────────────────────────┤
+│ Region│ us-ashburn-1                                           │
+├─────┼──────────────────────────────────────────────────────────┤
+│ Shape│ VM.Standard.E5.Flex                                     │
+╰─────┴──────────────────────────────────────────────────────────╯
 ```
 
 In this example:
-- The tenancy name is colored magenta
-- The compartment name is colored cyan
-- The instance name is colored blue
-- The values are colored yellow
-
-### Printing a Row-Based Table
-
-To print a row-based table with headers:
-
-```
-headers := []string{"Name", "ID", "State", "Region"}
-rows := [][]string{
-    {"instance-1", "ocid1.instance.oc1.iad.123", "RUNNING", "us-ashburn-1"},
-    {"instance-2", "ocid1.instance.oc1.iad.456", "STOPPED", "us-ashburn-1"},
-    {"instance-3", "ocid1.instance.oc1.iad.789", "RUNNING", "us-phoenix-1"},
-}
-tablePrinter.PrintRowsTable(headers, rows)
-```
-
-This will produce output similar to:
-
-```
-┌───────────┬──────────────────────────┬─────────┬──────────────┐
-│   NAME    │           ID             │  STATE  │    REGION    │
-├───────────┼──────────────────────────┼─────────┼──────────────┤
-│ instance-1│ ocid1.instance.oc1.iad.123│ RUNNING │ us-ashburn-1 │
-│ instance-2│ ocid1.instance.oc1.iad.456│ STOPPED │ us-ashburn-1 │
-│ instance-3│ ocid1.instance.oc1.iad.789│ RUNNING │ us-phoenix-1 │
-└───────────┴──────────────────────────┴─────────┴──────────────┘
-```
+- The values are colored yellow for better visibility
+- Each key-value pair is separated by a horizontal line
+- The title is centered at the top of the table
 
 ## Real-World Example
 
-Here's a real-world example from the ocloud project that shows how to use the `TablePrinter` to display instance information:
+Here's a real-world example from the ocloud project that shows how to use the `Printer` to display instance information:
 
 ```
-func PrintInstancesTable(instances []Instance, appCtx *app.AppContext) {
-    // Create a table printer with the tenancy name as the title
-    tablePrinter := printer.NewTablePrinter(appCtx.TenancyName)
+// PrintInstancesTable displays instances in a formatted table or JSON format.
+func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool) error {
+    // Create a new printer that writes to the application's standard output.
+    p := printer.New(appCtx.Stdout)
 
-    // Convert instances to a format suitable for the printer
-    if len(instances) == 0 {
-        fmt.Println("No instances found.")
-        return
+    // If JSON output is requested, use the printer to marshal the response.
+    if useJSON {
+        return marshalInstancesToJSON(p, instances, pagination)
     }
 
-    // Print each instance as a key-value table with a title
+    // Handle the case where no instances are found.
+    if len(instances) == 0 {
+        fmt.Fprintln(appCtx.Stdout, "No instances found.")
+        if pagination != nil && pagination.TotalCount > 0 {
+            fmt.Fprintf(appCtx.Stdout, "Page %d is empty. Total records: %d\n", 
+                pagination.CurrentPage, pagination.TotalCount)
+            if pagination.CurrentPage > 1 {
+                fmt.Fprintf(appCtx.Stdout, "Try a lower page number (e.g., --page %d)\n", 
+                    pagination.CurrentPage-1)
+            }
+        }
+        return nil
+    }
+
+    // Print each instance as a separate key-value table with a colored title.
     for _, instance := range instances {
-        // Create a map with the instance data
         instanceData := map[string]string{
             "ID":         instance.ID,
             "AD":         instance.Placement.AvailabilityDomain,
@@ -208,59 +165,68 @@ func PrintInstancesTable(instances []Instance, appCtx *app.AppContext) {
             "State":      string(instance.State),
         }
 
-        // Define the order of keys to match the example
         orderedKeys := []string{
-            "ID",
-            "AD",
-            "FD",
-            "Region",
-            "Shape",
-            "vCPUs",
-            "Created",
-            "Subnet ID",
-            "Name",
-            "Private IP",
-            "Memory",
-            "State",
+            "ID", "AD", "FD", "Region", "Shape", "vCPUs",
+            "Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
         }
 
-        // Print the table with ordered keys and colored title components
-        tablePrinter.PrintKeyValueTableWithTitleOrdered(appCtx, instance.Name, instanceData, orderedKeys)
+        // Create the colored title using components from the app context.
+        coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
+        coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
+        coloredInstance := text.Colors{text.FgBlue}.Sprint(instance.Name)
+        title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
+
+        // Call the printer method to render the key-value table for this instance.
+        p.PrintKeyValues(title, instanceData, orderedKeys)
     }
+
+    return nil
 }
 ```
 
 ## Styling Options
 
-The `TablePrinter` uses the `StyleRounded` style from the go-pretty library for key-value tables and the `StyleLight` style for row-based tables. These styles provide a clean and readable output with rounded corners for key-value tables and light borders for row-based tables.
+The `Printer` uses the `StyleRounded` style from the go-pretty library for key-value tables. This style provides a clean and readable output with rounded corners.
 
 You can see all available styles in the [go-pretty documentation](https://github.com/jedib0t/go-pretty/blob/main/table/style.go).
 
 ## Color Options
 
-The `PrintKeyValueTableWithTitleOrdered` method applies colors to different components of the table:
+The `PrintKeyValues` method applies yellow color to the values in the table:
+
+- Values: Yellow (`text.FgYellow`)
+
+This coloring helps to visually distinguish the values from the keys and makes the output more readable.
+
+In the real-world example, additional colors are applied to the title components:
 
 - Tenancy name: Magenta (`text.FgMagenta`)
 - Compartment name: Cyan (`text.FgCyan`)
 - Instance name: Blue (`text.FgBlue`)
-- Values: Yellow (`text.FgYellow`)
-
-These colors help to visually distinguish different components of the table and make the output more readable.
 
 ## Customization
 
-While the `TablePrinter` provides sensible defaults, you can customize the output by modifying the table style, colors, and other properties. For example:
+While the `Printer` provides sensible defaults, you can customize the output by modifying the table style, colors, and other properties directly in your code. For example:
 
 ```
+// Create a custom table
 t := table.NewWriter()
-t.SetOutputMirror(os.Stdout)
+t.SetOutputMirror(myWriter)
 t.SetStyle(table.StyleDouble) // Use double borders
 t.Style().Title.Align = text.AlignLeft // Align title to the left
 t.Style().Options.DrawBorder = false // Don't draw the outer border
+
+// Add content to the table
+t.AppendHeader(table.Row{"KEY", "VALUE"})
+t.AppendRow(table.Row{"ID", "ocid1.instance.oc1.iad.123"})
+t.AppendRow(table.Row{"Name", "my-instance"})
+
+// Render the table
+t.Render()
 ```
 
 For more customization options, refer to the [go-pretty documentation](https://github.com/jedib0t/go-pretty).
 
 ## Conclusion
 
-The `TablePrinter` package provides a simple and flexible way to display structured data in the terminal. It's particularly useful for displaying information about cloud resources, such as instances, in a readable and visually appealing format.
+The `printer` package provides a simple and flexible way to display structured data in the terminal. It's particularly useful for displaying information about cloud resources, such as instances, in a readable and visually appealing format. The package supports both JSON output and tabular output, making it versatile for different use cases.
