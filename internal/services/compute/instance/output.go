@@ -11,7 +11,7 @@ import (
 
 // PrintInstancesTable displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
-func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool) error {
+func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool, showImageDetails bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
@@ -34,6 +34,7 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 
 	// Print each instance as a separate key-value table with a colored title.
 	for _, instance := range instances {
+		// Create instance data map
 		instanceData := map[string]string{
 			"ID":         instance.ID,
 			"AD":         instance.Placement.AvailabilityDomain,
@@ -49,17 +50,72 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 			"State":      string(instance.State),
 		}
 
+		// Define ordered keys
 		orderedKeys := []string{
 			"ID", "AD", "FD", "Region", "Shape", "vCPUs",
 			"Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
 		}
+
+		// Add image details if available
+		if showImageDetails && instance.ImageID != "" {
+			// Add image ID
+			instanceData["Image ID"] = instance.ImageID
+
+			// Add an image name if available
+			if instance.ImageDetails.ImageName != "" {
+				instanceData["Image Name"] = instance.ImageDetails.ImageName
+			}
+
+			// Add an operating system if available
+			if instance.ImageDetails.ImageOS != "" {
+				instanceData["Operating System"] = instance.ImageDetails.ImageOS
+			}
+
+			// Add image details to ordered keys
+			imageKeys := []string{
+				"Image ID",
+				"Image Name",
+				"Operating System",
+			}
+
+			// Insert image keys after the "State" key
+			newOrderedKeys := make([]string, 0, len(orderedKeys)+len(imageKeys))
+			for _, key := range orderedKeys {
+				newOrderedKeys = append(newOrderedKeys, key)
+				if key == "State" {
+					newOrderedKeys = append(newOrderedKeys, imageKeys...)
+				}
+			}
+			orderedKeys = newOrderedKeys
+
+			// Add free-form tags if available
+			if len(instance.ImageDetails.ImageFreeformTags) > 0 {
+				for k, v := range instance.ImageDetails.ImageFreeformTags {
+					tagKey := fmt.Sprintf("Image Tag (Free): %s", k)
+					instanceData[tagKey] = v
+				}
+			}
+
+			// Add defined tags if available
+			if len(instance.ImageDetails.ImageDefinedTags) > 0 {
+				for namespace, tags := range instance.ImageDetails.ImageDefinedTags {
+					for k, v := range tags {
+						tagKey := fmt.Sprintf("Image Tag (Defined): %s.%s", namespace, k)
+						if v != nil {
+							instanceData[tagKey] = fmt.Sprintf("%v", v)
+						}
+					}
+				}
+			}
+		}
+
 		// Create the colored title using components from the app context.
 		coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
 		coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
 		coloredInstance := text.Colors{text.FgBlue}.Sprint(instance.Name)
 		title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
 
-		// Call the new printer method to render the key-value table for this instance.
+		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, instanceData, orderedKeys)
 	}
 

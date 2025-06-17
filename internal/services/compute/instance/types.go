@@ -18,16 +18,17 @@ type Service struct {
 
 // Instance represents a VM instance in the cloud.
 type Instance struct {
-	Name      string
-	ID        string
-	IP        string
-	ImageID   string
-	SubnetID  string
-	Shape     string
-	State     core.InstanceLifecycleStateEnum
-	CreatedAt common.SDKTime
-	Placement Placement
-	Resources Resources
+	Name         string
+	ID           string
+	IP           string
+	ImageID      string
+	SubnetID     string
+	Shape        string
+	State        core.InstanceLifecycleStateEnum
+	CreatedAt    common.SDKTime
+	Placement    Placement
+	Resources    Resources
+	ImageDetails ImageDetails
 }
 
 // Placement groups region/availability/fault‐domain info.
@@ -41,6 +42,12 @@ type Placement struct {
 type Resources struct {
 	VCPUs    int
 	MemoryGB float32
+}
+type ImageDetails struct {
+	ImageName         string
+	ImageOS           string
+	ImageFreeformTags map[string]string
+	ImageDefinedTags  map[string]map[string]interface{}
 }
 
 // VnicInfo Define a struct to hold VNIC information

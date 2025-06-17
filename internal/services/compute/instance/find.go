@@ -25,7 +25,7 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 	}
 
 	ctx := context.Background()
-	matchedInstances, err := service.Find(ctx, namePattern)
+	matchedInstances, err := service.Find(ctx, namePattern, showImageDetails)
 	if err != nil {
 		return fmt.Errorf("finding instances: %w", err)
 	}
@@ -41,13 +41,8 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 		return nil
 	}
 
-	// If showImageDetails is true, fetch and display image information
-	if showImageDetails {
-		// This would be implemented in a future update
-		fmt.Println("Image details functionality not yet implemented")
-	}
-
-	err = PrintInstancesTable(matchedInstances, appCtx, nil, useJSON)
+	// Pass the showImageDetails flag to PrintInstancesTable
+	err = PrintInstancesTable(matchedInstances, appCtx, nil, useJSON, showImageDetails)
 	if err != nil {
 		return fmt.Errorf("printing instances table: %w", err)
 	}
