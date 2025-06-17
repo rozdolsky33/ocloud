@@ -148,7 +148,8 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 		}
 
 		// Check if there are more pages after the current page
-		if pagination.CurrentPage*pagination.Limit < pagination.TotalCount {
+		// The most direct way to determine if there are more pages is to check if there's a next page token
+		if pagination.NextPageToken != "" {
 			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
 				"action", "next page",
 				"page", pagination.CurrentPage+1,
