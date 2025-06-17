@@ -332,7 +332,7 @@ func mapToInstance(oc core.Instance) Instance {
 			FaultDomain:        *oc.FaultDomain,
 		},
 		Resources: Resources{
-			VCPUs:    *oc.ShapeConfig.Vcpus,
+			VCPUs:    int(*oc.ShapeConfig.Vcpus),
 			MemoryGB: *oc.ShapeConfig.MemoryInGBs,
 		},
 		Shape:     *oc.Shape,
