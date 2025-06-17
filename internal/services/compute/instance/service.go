@@ -166,6 +166,15 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	// The most direct way to determine if there are more pages is to check if there's a next page token
 	hasNextPage := resp.OpcNextPage != nil
 
+	// Log detailed pagination information at debug level 1 for better visibility
+	if hasNextPage {
+		logger.LogWithLevel(s.logger, 1, "Pagination information",
+			"currentPage", pageNum,
+			"recordsOnThisPage", len(instances),
+			"estimatedTotalRecords", totalCount,
+			"morePages", "true")
+	}
+
 	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
 		"returnedCount", len(instances),
 		"totalCount", totalCount,

@@ -133,11 +133,15 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 			totalRecordsDisplayed = pagination.TotalCount
 		}
 
+		// Determine if there's a next page
+		hasNextPage := pagination.NextPageToken != ""
+
 		// Log pagination information at the INFO level
 		appCtx.Logger.Info("--- Pagination Information ---",
 			"page", pagination.CurrentPage,
 			"records", fmt.Sprintf("%d/%d", totalRecordsDisplayed, pagination.TotalCount),
-			"limit", pagination.Limit)
+			"limit", pagination.Limit,
+			"nextPage", hasNextPage)
 
 		// Add debug logs for navigation hints
 		if pagination.CurrentPage > 1 {
