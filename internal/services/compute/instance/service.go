@@ -37,8 +37,9 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 
 // List retrieves a paginated list of running VM instances within a specified compartment.
 // It supports pagination through the use of a limit and page number.
+// If showImageDetails is true, it also enriches instances with image details.
 // Returns instances, total count, next page token, and an error, if any.
-func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
+func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDetails bool) ([]Instance, int, string, error) {
 	// Log input parameters at debug level
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
 		"limit", limit,
@@ -147,6 +148,15 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 			logger.LogWithLevel(s.logger, 1, "error enriching instances with VNICs", "error", err)
 			// Continue with the instances we have, even if VNIC enrichment failed
 		}
+
+		// Step 3: Fetch image details if requested
+		if showImageDetails {
+			err := s.enrichInstancesWithImageDetails(ctx, instanceMap)
+			if err != nil {
+				logger.LogWithLevel(s.logger, 1, "error enriching instances with image details", "error", err)
+				// Continue with the instances we have, even if image details enrichment failed
+			}
+		}
 	}
 
 	// Calculate if there are more pages after the current page
@@ -164,7 +174,8 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 // Find searches for cloud instances matching the given pattern within the compartment.
 // It attempts an exact name match first, followed by a partial match if necessary.
 // Instances are enriched with network data (VNICs) before being returned as a list.
-func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) {
+// If showImageDetails is true, it also enriches instances with image details.
+func (s *Service) Find(ctx context.Context, pattern string, showImageDetails bool) ([]Instance, error) {
 	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", pattern)
 
 	var instanceMap = make(map[string]*Instance)
@@ -218,6 +229,13 @@ func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) 
 		logger.LogWithLevel(s.logger, 1, "failed to enrich VNICs", "error", err)
 	}
 
+	// Enrich with image details if requested
+	if showImageDetails {
+		if err := s.enrichInstancesWithImageDetails(ctx, instanceMap); err != nil {
+			logger.LogWithLevel(s.logger, 1, "failed to enrich image details", "error", err)
+		}
+	}
+
 	// Convert a map to slice for return
 	var result []Instance
 	for _, inst := range instanceMap {
@@ -225,6 +243,112 @@ func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) 
 	}
 
 	return result, nil
+}
+
+// enrichInstancesWithImageDetails enriches each instance in the provided map with its associated image details.
+// This method fetches image details for each instance either concurrently or sequentially based on configuration.
+func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceMap map[string]*Instance) error {
+	if s.enableConcurrency {
+		logger.LogWithLevel(s.logger, 1, "processing image details in parallel (concurrency enabled)")
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+
+		for _, inst := range instanceMap {
+			wg.Add(1)
+			go func(inst *Instance) {
+				defer wg.Done()
+				imageDetails, err := s.fetchImageDetails(ctx, inst.ImageID)
+				if err != nil {
+					logger.LogWithLevel(s.logger, 1, "error fetching image details", "imageID", inst.ImageID, "error", err)
+					return
+				}
+				if imageDetails != nil {
+					mu.Lock()
+					if imageDetails.DisplayName != nil {
+						inst.ImageDetails.ImageName = *imageDetails.DisplayName
+					}
+					if imageDetails.OperatingSystem != nil {
+						inst.ImageDetails.ImageOS = *imageDetails.OperatingSystem
+					}
+					// Copy free-form tags
+					if len(imageDetails.FreeformTags) > 0 {
+						inst.ImageDetails.ImageFreeformTags = make(map[string]string)
+						for k, v := range imageDetails.FreeformTags {
+							inst.ImageDetails.ImageFreeformTags[k] = v
+						}
+					}
+					// Copy defined tags
+					if len(imageDetails.DefinedTags) > 0 {
+						inst.ImageDetails.ImageDefinedTags = make(map[string]map[string]interface{})
+						for namespace, tags := range imageDetails.DefinedTags {
+							inst.ImageDetails.ImageDefinedTags[namespace] = make(map[string]interface{})
+							for k, v := range tags {
+								inst.ImageDetails.ImageDefinedTags[namespace][k] = v
+							}
+						}
+					}
+					mu.Unlock()
+				}
+			}(inst)
+		}
+		wg.Wait()
+	} else {
+		logger.LogWithLevel(s.logger, 1, "processing image details sequentially (concurrency disabled)")
+		for _, inst := range instanceMap {
+			imageDetails, err := s.fetchImageDetails(ctx, inst.ImageID)
+			if err != nil {
+				logger.LogWithLevel(s.logger, 1, "error fetching image details", "imageID", inst.ImageID, "error", err)
+				continue
+			}
+			if imageDetails != nil {
+				if imageDetails.DisplayName != nil {
+					inst.ImageDetails.ImageName = *imageDetails.DisplayName
+				}
+				if imageDetails.OperatingSystem != nil {
+					inst.ImageDetails.ImageOS = *imageDetails.OperatingSystem
+				}
+				// Copy free-form tags
+				if len(imageDetails.FreeformTags) > 0 {
+					inst.ImageDetails.ImageFreeformTags = make(map[string]string)
+					for k, v := range imageDetails.FreeformTags {
+						inst.ImageDetails.ImageFreeformTags[k] = v
+					}
+				}
+				// Copy defined tags
+				if len(imageDetails.DefinedTags) > 0 {
+					inst.ImageDetails.ImageDefinedTags = make(map[string]map[string]interface{})
+					for namespace, tags := range imageDetails.DefinedTags {
+						inst.ImageDetails.ImageDefinedTags[namespace] = make(map[string]interface{})
+						for k, v := range tags {
+							inst.ImageDetails.ImageDefinedTags[namespace][k] = v
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// fetchImageDetails fetches the details of an image from OCI
+func (s *Service) fetchImageDetails(ctx context.Context, imageID string) (*core.Image, error) {
+	if imageID == "" {
+		return nil, nil
+	}
+
+	// Create a request to get the image details
+	request := core.GetImageRequest{
+		ImageId: &imageID,
+	}
+
+	// Call the OCI API to get the image details
+	response, err := s.compute.GetImage(ctx, request)
+	if err != nil {
+		return nil, fmt.Errorf("getting image details: %w", err)
+	}
+
+	return &response.Image, nil
 }
 
 // enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
