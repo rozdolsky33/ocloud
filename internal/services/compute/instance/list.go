@@ -14,7 +14,7 @@ func ListInstances(appCtx *app.AppContext, limit int, page int, useJSON bool) er
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page, "json", useJSON)
 
-	service, err := NewService(appCtx.Provider, appCtx)
+	service, err := NewService(appCtx)
 	if err != nil {
 		return fmt.Errorf("creating compute service: %w", err)
 	}
