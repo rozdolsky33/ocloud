@@ -13,6 +13,11 @@ type Printer struct {
 	out io.Writer
 }
 
+// Out returns the output writer.
+func (p *Printer) Out() io.Writer {
+	return p.out
+}
+
 // New creates a new Printer that writes to the provided io.Writer.
 // For console output, use os.Stdout. For testing, use bytes.Buffer.
 func New(out io.Writer) *Printer {

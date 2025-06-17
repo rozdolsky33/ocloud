@@ -88,25 +88,7 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 			}
 			orderedKeys = newOrderedKeys
 
-			// Add free-form tags if available
-			if len(instance.ImageDetails.ImageFreeformTags) > 0 {
-				for k, v := range instance.ImageDetails.ImageFreeformTags {
-					tagKey := fmt.Sprintf("Image Tag (Free): %s", k)
-					instanceData[tagKey] = v
-				}
-			}
-
-			// Add defined tags if available
-			if len(instance.ImageDetails.ImageDefinedTags) > 0 {
-				for namespace, tags := range instance.ImageDetails.ImageDefinedTags {
-					for k, v := range tags {
-						tagKey := fmt.Sprintf("Image Tag (Defined): %s.%s", namespace, k)
-						if v != nil {
-							instanceData[tagKey] = fmt.Sprintf("%v", v)
-						}
-					}
-				}
-			}
+			// We'll display the tags separately after the main instance information
 		}
 
 		// Create the colored title using components from the app context.
@@ -117,6 +99,11 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 
 		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, instanceData, orderedKeys)
+
+		// Display image tags if available and requested
+		if showImageDetails && instance.ImageID != "" {
+			displayImageTags(p, instance)
+		}
 	}
 
 	logPaginationInfo(pagination, appCtx)
@@ -158,6 +145,52 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 				"action", "next page",
 				"page", pagination.CurrentPage+1,
 				"limit", pagination.Limit)
+		}
+	}
+}
+
+// displayImageTags displays the image tags in a formatted way
+func displayImageTags(p *printer.Printer, instance Instance) {
+	// Display Free-form tags if available
+	if len(instance.ImageDetails.ImageFreeformTags) > 0 {
+		fmt.Fprintln(p.Out(), "Image Tags (Free form):")
+
+		// Format the tags as a single line with pipe separators
+		var tagLine string
+		for k, v := range instance.ImageDetails.ImageFreeformTags {
+			if tagLine != "" {
+				tagLine += " | "
+			}
+			tagLine += fmt.Sprintf("%s: %s", k, v)
+		}
+
+		// Print the formatted tag line
+		fmt.Fprintf(p.Out(), "| %s |\n", tagLine)
+		fmt.Fprintln(p.Out())
+	}
+
+	// Display Defined tags if available
+	if len(instance.ImageDetails.ImageDefinedTags) > 0 {
+		// Print header once
+		fmt.Fprintln(p.Out(), "Image Tags (Defined):")
+
+		// Display all namespaces in the order they appear in the map
+		for namespace, tags := range instance.ImageDetails.ImageDefinedTags {
+			// Print the namespace
+			fmt.Fprintf(p.Out(), "%s\n", namespace)
+
+			// Format the tags as a single line with pipe separators
+			var tagLine string
+			for k, v := range tags {
+				if tagLine != "" {
+					tagLine += " | "
+				}
+				tagLine += fmt.Sprintf("%s: %v", k, v)
+			}
+
+			// Print the formatted tag line
+			fmt.Fprintf(p.Out(), "| %s |\n", tagLine)
+			fmt.Fprintln(p.Out())
 		}
 	}
 }
