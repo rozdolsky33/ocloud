@@ -19,7 +19,7 @@ func FindInstances(appCtx *app.AppContext, namePattern string, showImageDetails 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails, "json", useJSON)
 
-	service, err := NewService(appCtx.Provider, appCtx)
+	service, err := NewService(appCtx)
 	if err != nil {
 		return fmt.Errorf("creating compute service: %w", err)
 	}

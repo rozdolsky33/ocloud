@@ -82,7 +82,7 @@ func AddGlobalFlags(cmd *cobra.Command) {
 		f.Apply(cmd.PersistentFlags())
 	}
 
-	// Set annotation for help flag
+	// Set annotation for a help flag
 	_ = cmd.PersistentFlags().SetAnnotation(FlagNameHelp, CobraAnnotationKey, []string{FlagValueTrue})
 
 	// Bind flags to viper for configuration

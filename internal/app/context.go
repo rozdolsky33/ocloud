@@ -30,7 +30,7 @@ type AppContext struct {
 	EnableConcurrency bool
 }
 
-// InitApp initializes the application context, setting up configuration, clients, logging, and concurrency settings.
+// InitApp initializes the application context, setting up configuration, clients, logging, and determineConcurrencyStatus settings.
 // Returns an AppContext instance and an error if initialization fails.
 func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	logger.CmdLogger.Info("Initializing application")
@@ -42,9 +42,9 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 		return nil, err
 	}
 
-	overrideRegionIfNeeded(identityClient)
+	configureClientRegion(identityClient)
 
-	enableConcurrency := concurrency(cmd)
+	enableConcurrency := determineConcurrencyStatus(cmd)
 
 	appCtx := &AppContext{
 		Provider:          provider,
@@ -61,22 +61,22 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	return appCtx, nil
 }
 
-// overrideRegionIfNeeded checks the `OCI_REGION` environment variable and overrides the client's region if it is set.
-func overrideRegionIfNeeded(client identity.IdentityClient) {
+// configureClientRegion checks the `OCI_REGION` environment variable and overrides the client's region if it is set.
+func configureClientRegion(client identity.IdentityClient) {
 	if region, ok := os.LookupEnv(flags.EnvOCIRegion); ok {
 		client.SetRegion(region)
 		logger.LogWithLevel(logger.CmdLogger, 3, "overriding region from env", "region", region)
 	}
 }
 
-// concurrency determines whether concurrency is enabled based on command flags and specific CLI arguments.
-// Returns true if concurrency is enabled, or false if explicitly disabled via flags or defaults to disabled.
-func concurrency(cmd *cobra.Command) bool {
-	disable, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
+// determineConcurrencyStatus determines whether determineConcurrencyStatus is enabled based on command flags and specific CLI arguments.
+// Returns true if determineConcurrencyStatus is enabled, or false if explicitly disabled via flags or defaults to enabled.
+func determineConcurrencyStatus(cmd *cobra.Command) bool {
+	disable := flags.GetBoolFlag(cmd, flags.FlagNameDisableConcurrency, false)
 	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
 
 	if explicit {
-		return disable
+		return !disable // Invert the value since the flag is "disable-determineConcurrencyStatus"
 	}
 
 	for _, arg := range os.Args {
@@ -85,7 +85,7 @@ func concurrency(cmd *cobra.Command) bool {
 		}
 	}
 
-	return true // default to disabled
+	return true // default to enabled
 }
 
 // resolveTenancyAndCompartment resolves the tenancy ID, tenancy name, and compartment ID for the application context.
