@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/oci"
+	"io"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -17,9 +18,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
-// AppContext represents the application with all its clients, configuration, and resolved IDs.
+// ApplicationContext represents the application with all its clients, configuration, and resolved IDs.
 // It holds all the components needed for command execution.
-type AppContext struct {
+type ApplicationContext struct {
 	Provider          common.ConfigurationProvider
 	IdentityClient    identity.IdentityClient
 	TenancyID         string
@@ -28,11 +29,13 @@ type AppContext struct {
 	CompartmentID     string
 	Logger            logr.Logger
 	EnableConcurrency bool
+	Stdout            io.Writer
+	Stderr            io.Writer
 }
 
-// InitApp initializes the application context, setting up configuration, clients, logging, and concurrency settings.
-// Returns an AppContext instance and an error if initialization fails.
-func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
+// InitApp initializes the application context, setting up configuration, clients, logging, and determineConcurrencyStatus settings.
+// Returns an ApplicationContext instance and an error if initialization fails.
+func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, error) {
 	logger.CmdLogger.Info("Initializing application")
 
 	provider := config.LoadOCIConfig()
@@ -42,17 +45,20 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 		return nil, err
 	}
 
-	overrideRegionIfNeeded(identityClient)
+	configureClientRegion(identityClient)
 
-	enableConcurrency := concurrency(cmd)
+	enableConcurrency := determineConcurrencyStatus(cmd)
 
-	appCtx := &AppContext{
+	appCtx := &ApplicationContext{
 		Provider:          provider,
 		IdentityClient:    identityClient,
 		CompartmentName:   viper.GetString(flags.FlagNameCompartment),
 		Logger:            logger.CmdLogger,
 		EnableConcurrency: enableConcurrency,
 	}
+	// Set the standard writers for the application's lifetime.
+	appCtx.Stdout = os.Stdout
+	appCtx.Stderr = os.Stderr
 
 	if err := resolveTenancyAndCompartment(ctx, cmd, appCtx); err != nil {
 		return nil, fmt.Errorf("resolving tenancy and compartment: %w", err)
@@ -61,22 +67,22 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*AppContext, error) {
 	return appCtx, nil
 }
 
-// overrideRegionIfNeeded checks the `OCI_REGION` environment variable and overrides the client's region if it is set.
-func overrideRegionIfNeeded(client identity.IdentityClient) {
+// configureClientRegion checks the `OCI_REGION` environment variable and overrides the client's region if it is set.
+func configureClientRegion(client identity.IdentityClient) {
 	if region, ok := os.LookupEnv(flags.EnvOCIRegion); ok {
 		client.SetRegion(region)
 		logger.LogWithLevel(logger.CmdLogger, 3, "overriding region from env", "region", region)
 	}
 }
 
-// concurrency determines whether concurrency is enabled based on command flags and specific CLI arguments.
-// Returns true if concurrency is enabled, or false if explicitly disabled via flags or defaults to disabled.
-func concurrency(cmd *cobra.Command) bool {
-	disable, _ := cmd.Flags().GetBool(flags.FlagNameDisableConcurrency)
+// determineConcurrencyStatus determines whether determineConcurrencyStatus is enabled based on command flags and specific CLI arguments.
+// Returns true if determineConcurrencyStatus is enabled, or false if explicitly disabled via flags or defaults to enabled.
+func determineConcurrencyStatus(cmd *cobra.Command) bool {
+	disable := flags.GetBoolFlag(cmd, flags.FlagNameDisableConcurrency, false)
 	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
 
 	if explicit {
-		return disable
+		return !disable // Invert the value since the flag is "disable-determineConcurrencyStatus"
 	}
 
 	for _, arg := range os.Args {
@@ -85,13 +91,13 @@ func concurrency(cmd *cobra.Command) bool {
 		}
 	}
 
-	return true // default to disabled
+	return true // default to enabled
 }
 
 // resolveTenancyAndCompartment resolves the tenancy ID, tenancy name, and compartment ID for the application context.
 // It uses various sources such as CLI flags, environment variables, mapping files, and OCI configuration.
-// Updates the provided AppContext with the resolved IDs and names. Returns an error if resolution fails.
-func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, appCtx *AppContext) error {
+// Updates the provided ApplicationContext with the resolved IDs and names. Returns an error if resolution fails.
+func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, appCtx *ApplicationContext) error {
 	tenancyID, err := resolveTenancyID(cmd)
 	if err != nil {
 		return fmt.Errorf("could not resolve tenancy ID: %w", err)
@@ -197,7 +203,7 @@ func resolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 // resolveCompartmentID returns the OCID of the compartment whose name matches
 // `compartmentName` under the given tenancy. It searches all active compartments
 // in the tenancy subtree.
-func resolveCompartmentID(ctx context.Context, appCtx *AppContext) (string, error) {
+func resolveCompartmentID(ctx context.Context, appCtx *ApplicationContext) (string, error) {
 	compartmentName := appCtx.CompartmentName
 	idClient := appCtx.IdentityClient
 	tenancyOCID := appCtx.TenancyID

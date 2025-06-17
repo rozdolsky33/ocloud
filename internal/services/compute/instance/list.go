@@ -9,12 +9,12 @@ import (
 )
 
 // ListInstances lists instances in the configured compartment using the provided application.
-// It uses the pre-initialized compute client from the AppContext struct and supports pagination.
-func ListInstances(appCtx *app.AppContext, limit int, page int, useJSON bool) error {
+// It uses the pre-initialized compute client from the ApplicationContext struct and supports pagination.
+func ListInstances(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(appCtx.Logger, 1, "ListInstances()", "limit", limit, "page", page, "json", useJSON)
 
-	service, err := NewService(appCtx.Provider, appCtx)
+	service, err := NewService(appCtx)
 	if err != nil {
 		return fmt.Errorf("creating compute service: %w", err)
 	}
@@ -26,12 +26,15 @@ func ListInstances(appCtx *app.AppContext, limit int, page int, useJSON bool) er
 	}
 
 	// Display instance information with pagination details
-	PrintInstancesTable(instances, appCtx, &PaginationInfo{
+	err = PrintInstancesTable(instances, appCtx, &PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
 	}, useJSON)
+	if err != nil {
+		return fmt.Errorf("printing instances table: %w", err)
+	}
 
 	return nil
 }

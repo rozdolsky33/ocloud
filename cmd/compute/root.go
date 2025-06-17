@@ -8,16 +8,17 @@ import (
 )
 
 // NewComputeCmd creates a new command for compute-related operations
-func NewComputeCmd(appCtx *app.AppContext) *cobra.Command {
+func NewComputeCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "compute",
+		Aliases:       []string{"comp"},
 		Short:         "Manage OCI compute services",
 		Long:          "Manage Oracle Cloud Infrastructure compute services such as instances, images, and more.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
-	// Add subcommands, passing in the AppContext
+	// Add subcommands, passing in the ApplicationContext
 	cmd.AddCommand(instance.NewInstanceCmd(appCtx))
 
 	return cmd

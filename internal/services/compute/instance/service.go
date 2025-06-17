@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -14,8 +13,10 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
 
-// NewService constructs a compute Service, wiring up clients once.
-func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Service, error) {
+// NewService creates a new Service instance with OCI compute and network clients using the provided ApplicationContext.
+// Returns a Service pointer and an error if the initialization fails.
+func NewService(appCtx *app.ApplicationContext) (*Service, error) {
+	cfg := appCtx.Provider
 	cc, err := oci.NewComputeClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute client: %w", err)
@@ -34,7 +35,9 @@ func NewService(cfg common.ConfigurationProvider, appCtx *app.AppContext) (*Serv
 	}, nil
 }
 
-// List retrieves instances in the compartment with pagination support.
+// List retrieves a paginated list of running VM instances within a specified compartment.
+// It supports pagination through the use of a limit and page number.
+// Returns instances, total count, next page token, and an error, if any.
 func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
 	// Log input parameters at debug level
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
@@ -47,7 +50,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	var nextPageToken string
 	var totalCount int
 
-	// Create a request with limit parameter to fetch only the required page
+	// Create a request with a limit parameter to fetch only the required page
 	request := core.ListInstancesRequest{
 		CompartmentId:  &s.compartmentID,
 		LifecycleState: core.InstanceLifecycleStateRunning,
@@ -89,7 +92,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 			if resp.OpcNextPage == nil {
 				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
 					"currentPage", currentPage, "targetPage", pageNum)
-				// Return empty result since the requested page is beyond available data
+				// Return an empty result since the requested page is beyond available data
 				return []Instance{}, 0, "", nil
 			}
 
@@ -112,7 +115,6 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	// Set the total count to the number of instances returned
 	// If we have a next page, this is an estimate
 	totalCount = len(resp.Items)
-
 	// If we have a next page, we know there are more instances
 	if resp.OpcNextPage != nil {
 		// Estimate total count based on current page and items per page
@@ -159,60 +161,141 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 	return instances, totalCount, nextPageToken, nil
 }
 
-// enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
-// This method retrieves all VNIC attachments and processes them either concurrently or sequentially based on configuration.
-func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[string]*Instance) error {
-	attachments, err := s.fetchAllVnicAttachments(ctx)
+// Find searches for cloud instances matching the given pattern within the compartment.
+// It attempts an exact name match first, followed by a partial match if necessary.
+// Instances are enriched with network data (VNICs) before being returned as a list.
+func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) {
+	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", pattern)
+
+	var instanceMap = make(map[string]*Instance)
+
+	// Try an exact match first using server-side filtering
+	exactMatchResp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
+		CompartmentId:  &s.compartmentID,
+		LifecycleState: core.InstanceLifecycleStateRunning,
+		DisplayName:    &pattern,
+	})
 	if err != nil {
-		return fmt.Errorf("listing VNIC attachments: %w", err)
+		return nil, fmt.Errorf("listing instances with exact name match: %w", err)
 	}
 
-	vnicAttachmentsByInstance := groupAttachmentsByInstance(attachments, instanceMap)
+	if len(exactMatchResp.Items) > 0 {
+		for _, oc := range exactMatchResp.Items {
+			inst := mapToInstance(oc)
+			instanceMap[inst.ID] = &inst
+		}
+		logger.LogWithLevel(s.logger, 2, "found exact matching instances", "count", len(instanceMap))
+	} else {
+		// Fallback to partial match with pagination
+		page := ""
+		for {
+			resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
+				CompartmentId:  &s.compartmentID,
+				LifecycleState: core.InstanceLifecycleStateRunning,
+				Page:           &page,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("listing instances for partial name match: %w", err)
+			}
 
+			for _, oc := range resp.Items {
+				if strings.Contains(strings.ToLower(*oc.DisplayName), strings.ToLower(pattern)) {
+					inst := mapToInstance(oc)
+					instanceMap[inst.ID] = &inst
+				}
+			}
+
+			if resp.OpcNextPage == nil {
+				break
+			}
+			page = *resp.OpcNextPage
+		}
+		logger.LogWithLevel(s.logger, 2, "found partial matching instances", "count", len(instanceMap))
+	}
+
+	// Enrich with VNICs using the same approach as List
+	if err := s.enrichInstancesWithVnics(ctx, instanceMap); err != nil {
+		logger.LogWithLevel(s.logger, 1, "failed to enrich VNICs", "error", err)
+	}
+
+	// Convert a map to slice for return
+	var result []Instance
+	for _, inst := range instanceMap {
+		result = append(result, *inst)
+	}
+
+	return result, nil
+}
+
+// enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
+// This method fetches the primary VNIC per instance either concurrently or sequentially based on configuration.
+func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[string]*Instance) error {
 	if s.enableConcurrency {
-		logger.LogWithLevel(s.logger, 1, "processing VNIC attachments in parallel (concurrency enabled)")
-		return s.processVnicsConcurrently(ctx, vnicAttachmentsByInstance, instanceMap)
+		logger.LogWithLevel(s.logger, 1, "processing VNICs in parallel (concurrency enabled)")
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+
+		for _, inst := range instanceMap {
+			wg.Add(1)
+			go func(inst *Instance) {
+				defer wg.Done()
+				vnic, err := s.fetchPrimaryVnicForInstance(ctx, inst.ID)
+				if err != nil {
+					logger.LogWithLevel(s.logger, 1, "error fetching primary VNIC", "instanceID", inst.ID, "error", err)
+					return
+				}
+				if vnic != nil {
+					mu.Lock()
+					inst.IP = *vnic.PrivateIp
+					inst.SubnetID = *vnic.SubnetId
+					mu.Unlock()
+				}
+			}(inst)
+		}
+		wg.Wait()
+	} else {
+		logger.LogWithLevel(s.logger, 1, "processing VNICs sequentially (concurrency disabled)")
+		for _, inst := range instanceMap {
+			vnic, err := s.fetchPrimaryVnicForInstance(ctx, inst.ID)
+			if err != nil {
+				logger.LogWithLevel(s.logger, 1, "error fetching primary VNIC", "instanceID", inst.ID, "error", err)
+				continue
+			}
+			if vnic != nil {
+				inst.IP = *vnic.PrivateIp
+				inst.SubnetID = *vnic.SubnetId
+			}
+		}
 	}
 
-	logger.LogWithLevel(s.logger, 1, "processing VNIC attachments sequentially (concurrency disabled)")
-	return s.processVnicsSequentially(ctx, vnicAttachmentsByInstance, instanceMap)
+	return nil
 }
 
-// fetchAllVnicAttachments lists all VNIC attachments within a compartment, supporting pagination to retrieve all results.
-func (s *Service) fetchAllVnicAttachments(ctx context.Context) ([]core.VnicAttachment, error) {
-	var attachments []core.VnicAttachment
-	page := ""
-	for {
-		resp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
-			CompartmentId: &s.compartmentID,
-			Page:          &page,
-		})
+// fetchPrimaryVnicForInstance finds the primary VNIC for a given instance ID.
+func (s *Service) fetchPrimaryVnicForInstance(ctx context.Context, instanceID string) (*core.Vnic, error) {
+	attachments, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
+		CompartmentId: &s.compartmentID,
+		InstanceId:    &instanceID,
+	})
+
+	if err != nil {
+		logger.LogWithLevel(s.logger, 1, "error listing VNIC attachments", "instanceID", instanceID, "error", err)
+		return nil, nil
+	}
+
+	for _, attach := range attachments.Items {
+		vnic, err := s.getPrimaryVnic(ctx, attach)
 		if err != nil {
-			return nil, fmt.Errorf("listing VNIC attachments: %w", err)
-		}
-		attachments = append(attachments, resp.Items...)
-		if resp.OpcNextPage == nil {
-			break
-		}
-		page = *resp.OpcNextPage
-	}
-	return attachments, nil
-}
-
-// groupAttachmentsByInstance groups VNIC attachments by their associated instance IDs.
-// Only includes attachments for which the instance exists in the given instance map.
-func groupAttachmentsByInstance(attachments []core.VnicAttachment, instanceMap map[string]*Instance) map[string][]core.VnicAttachment {
-	result := make(map[string][]core.VnicAttachment)
-	for _, attach := range attachments {
-		if attach.InstanceId == nil {
+			logger.LogWithLevel(s.logger, 1, "error getting primary VNIC", "instanceID", instanceID, "error", err)
 			continue
 		}
-		instanceID := *attach.InstanceId
-		if _, ok := instanceMap[instanceID]; ok {
-			result[instanceID] = append(result[instanceID], attach)
+		if vnic != nil {
+			return vnic, nil
 		}
 	}
-	return result
+	logger.LogWithLevel(s.logger, 1, "no primary VNIC found for instance", "instanceID", instanceID)
+
+	return nil, nil
 }
 
 // getPrimaryVnic retrieves the primary VNIC associated with the provided VnicAttachment.
@@ -237,166 +320,6 @@ func (s *Service) getPrimaryVnic(ctx context.Context, attach core.VnicAttachment
 	return nil, nil
 }
 
-// processVnicsConcurrently processes VNIC attachments concurrently and updates the instance map with VNIC information.
-func (s *Service) processVnicsConcurrently(ctx context.Context, byInstance map[string][]core.VnicAttachment, instanceMap map[string]*Instance) error {
-	var wg sync.WaitGroup
-	vnicChan := make(chan VnicInfo, len(byInstance))
-
-	for instanceID, attachments := range byInstance {
-		for _, attach := range attachments {
-			wg.Add(1)
-			go func(instanceID string, attach core.VnicAttachment) {
-				defer wg.Done()
-				vnic, err := s.getPrimaryVnic(ctx, attach)
-				if err == nil && vnic != nil {
-					vnicChan <- VnicInfo{
-						InstanceID: instanceID,
-						Ip:         *vnic.PrivateIp,
-						SubnetID:   *vnic.SubnetId,
-					}
-				}
-			}(instanceID, attach)
-		}
-	}
-	go func() {
-		wg.Wait()
-		close(vnicChan)
-	}()
-
-	for info := range vnicChan {
-		if inst, ok := instanceMap[info.InstanceID]; ok {
-			inst.IP = info.Ip
-			inst.SubnetID = info.SubnetID
-		}
-	}
-	return nil
-}
-
-// processVnicsSequentially processes VNIC attachments sequentially and updates instance properties with VNIC details.
-// ctx is the context for managing request deadlines, cancellations, and other request-scoped values.
-// byInstance is a map where the key is instance ID and the value is a list of VNIC attachments for that instance.
-// instanceMap maps instance IDs to their respective Instance struct for updating VNIC details.
-// Returns an error if there is an issue processing the VNIC attachments.
-func (s *Service) processVnicsSequentially(ctx context.Context, byInstance map[string][]core.VnicAttachment, instanceMap map[string]*Instance) error {
-	for instanceID, attachments := range byInstance {
-		for _, attach := range attachments {
-			vnic, err := s.getPrimaryVnic(ctx, attach)
-			if err != nil {
-				continue
-			}
-			if vnic != nil {
-				if inst, ok := instanceMap[instanceID]; ok {
-					inst.IP = *vnic.PrivateIp
-					inst.SubnetID = *vnic.SubnetId
-				}
-				break // no need to check other VNICs
-			}
-		}
-	}
-	return nil
-}
-
-// Find searches instances by name pattern.
-func (s *Service) Find(ctx context.Context, pattern string) ([]Instance, error) {
-	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", pattern)
-
-	// Check if the pattern is an exact match for a display name
-	// If so, we can use the server-side filtering for better performance
-	exactMatchResp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
-		CompartmentId:  &s.compartmentID,
-		LifecycleState: core.InstanceLifecycleStateRunning,
-		DisplayName:    &pattern,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("listing instances with exact name match: %w", err)
-	}
-
-	// If we found an exact match, return it
-	if len(exactMatchResp.Items) > 0 {
-		var matched []Instance
-		for _, oc := range exactMatchResp.Items {
-			inst := mapToInstance(oc)
-			// enrich IP & Subnet
-			err := s.enrichVnic(ctx, &inst, oc.Id)
-			if err != nil {
-				logger.LogWithLevel(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
-			}
-			matched = append(matched, inst)
-		}
-		logger.LogWithLevel(s.logger, 2, "found exact matching instances", "pattern", pattern, "count", len(matched))
-		return matched, nil
-	}
-
-	// If no exact match, we need to do a partial match
-	// We'll use pagination to avoid loading all instances at once
-	var matched []Instance
-	page := ""
-
-	for {
-		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
-			CompartmentId:  &s.compartmentID,
-			LifecycleState: core.InstanceLifecycleStateRunning,
-			Page:           &page,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("listing instances for partial name match: %w", err)
-		}
-
-		for _, oc := range resp.Items {
-			// Check if the display name contains the pattern (case-insensitive)
-			if strings.Contains(strings.ToLower(*oc.DisplayName), strings.ToLower(pattern)) {
-				inst := mapToInstance(oc)
-				// enrich IP & Subnet
-				err := s.enrichVnic(ctx, &inst, oc.Id)
-				if err != nil {
-					logger.LogWithLevel(s.logger, 1, "failed to enrich VNIC info", "instance", *oc.DisplayName, "error", err)
-				}
-				matched = append(matched, inst)
-			}
-		}
-
-		if resp.OpcNextPage == nil {
-			break
-		}
-		page = *resp.OpcNextPage
-	}
-
-	logger.LogWithLevel(s.logger, 2, "found partial matching instances", "pattern", pattern, "count", len(matched))
-	return matched, nil
-}
-
-// enrichVnic queries attachments and sets IP/Subnet on the model.
-// This is a best-effort operation - if no primary VNIC is found, the instance
-// will be returned with empty IP/Subnet fields rather than failing.
-func (s *Service) enrichVnic(ctx context.Context, inst *Instance, instanceID *string) error {
-	vaResp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
-		CompartmentId: &s.compartmentID,
-		InstanceId:    instanceID,
-	})
-	if err != nil {
-		// Log the error but don't fail the entire operation
-		logger.LogWithLevel(s.logger, 1, "error listing VNIC attachments", "instanceID", *instanceID, "error", err)
-		return nil
-	}
-
-	for _, attach := range vaResp.Items {
-		vnic, err := s.network.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
-		if err != nil {
-			logger.LogWithLevel(s.logger, 2, "GetVnic error", "error", err)
-			continue
-		}
-		if vnic.IsPrimary != nil && *vnic.IsPrimary {
-			inst.IP = *vnic.PrivateIp
-			inst.SubnetID = *vnic.SubnetId
-			return nil
-		}
-	}
-
-	// If no primary VNIC is found, log a warning but don't fail the operation
-	logger.LogWithLevel(s.logger, 1, "no primary VNIC found for instance", "instanceID", *instanceID)
-	return nil
-}
-
 // mapToInstance maps SDK Instance to local model.
 func mapToInstance(oc core.Instance) Instance {
 	return Instance{
@@ -409,7 +332,7 @@ func mapToInstance(oc core.Instance) Instance {
 			FaultDomain:        *oc.FaultDomain,
 		},
 		Resources: Resources{
-			VCPUs:    *oc.ShapeConfig.Vcpus,
+			VCPUs:    int(*oc.ShapeConfig.Vcpus),
 			MemoryGB: *oc.ShapeConfig.MemoryInGBs,
 		},
 		Shape:     *oc.Shape,

@@ -11,8 +11,8 @@ import (
 
 // TestRootCommand tests the basic structure of the root command
 func TestRootCommand(t *testing.T) {
-	// Create a mock AppContext
-	appCtx := &app.AppContext{}
+	// Create a mock ApplicationContext
+	appCtx := &app.ApplicationContext{}
 
 	// Create a new root command
 	rootCmd := NewRootCmd(appCtx)
