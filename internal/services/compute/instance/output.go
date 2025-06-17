@@ -150,48 +150,48 @@ func logPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 	}
 }
 
-// displayImageTags displays the image tags in a formatted way
+// displayImageTags displays the image tags in a formatted table
 func displayImageTags(p *printer.Printer, instance Instance) {
 	// Display Free-form tags if available
 	if len(instance.ImageDetails.ImageFreeformTags) > 0 {
-		fmt.Fprintln(p.Out(), "Image Tags (Free form):")
+		// Create a map for free-form tags
+		freeformTagsData := make(map[string]string)
 
-		// Format the tags as a single line with pipe separators
-		var tagLine string
+		// Add all free-form tags to the map
 		for k, v := range instance.ImageDetails.ImageFreeformTags {
-			if tagLine != "" {
-				tagLine += " | "
-			}
-			tagLine += fmt.Sprintf("%s: %s", k, v)
+			freeformTagsData[k] = v
 		}
 
-		// Print the formatted tag line
-		fmt.Fprintf(p.Out(), "| %s |\n", tagLine)
-		fmt.Fprintln(p.Out())
+		// Create an ordered list of keys
+		orderedKeys := make([]string, 0, len(freeformTagsData))
+		for k := range freeformTagsData {
+			orderedKeys = append(orderedKeys, k)
+		}
+
+		// Print the free-form tags as a table
+		p.PrintKeyValues("Image Tags (Free form)", freeformTagsData, orderedKeys)
 	}
 
 	// Display Defined tags if available
 	if len(instance.ImageDetails.ImageDefinedTags) > 0 {
-		// Print header once
-		fmt.Fprintln(p.Out(), "Image Tags (Defined):")
-
-		// Display all namespaces in the order they appear in the map
+		// Process each namespace separately
 		for namespace, tags := range instance.ImageDetails.ImageDefinedTags {
-			// Print the namespace
-			fmt.Fprintf(p.Out(), "%s\n", namespace)
+			// Create a map for this namespace's tags
+			definedTagsData := make(map[string]string)
 
-			// Format the tags as a single line with pipe separators
-			var tagLine string
+			// Add all tags for this namespace to the map
 			for k, v := range tags {
-				if tagLine != "" {
-					tagLine += " | "
-				}
-				tagLine += fmt.Sprintf("%s: %v", k, v)
+				definedTagsData[k] = fmt.Sprintf("%v", v)
 			}
 
-			// Print the formatted tag line
-			fmt.Fprintf(p.Out(), "| %s |\n", tagLine)
-			fmt.Fprintln(p.Out())
+			// Create an ordered list of keys
+			orderedKeys := make([]string, 0, len(definedTagsData))
+			for k := range definedTagsData {
+				orderedKeys = append(orderedKeys, k)
+			}
+
+			// Print the defined tags for this namespace as a table
+			p.PrintKeyValues(fmt.Sprintf("Image Tags (Defined) - %s", namespace), definedTagsData, orderedKeys)
 		}
 	}
 }
