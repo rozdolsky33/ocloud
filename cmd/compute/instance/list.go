@@ -27,7 +27,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	// Add flags specific to the list command
 	instaceFlags.LimitFlag.Add(cmd)
 	instaceFlags.PageFlag.Add(cmd)
-	instaceFlags.JSONFlag.Add(cmd)
 	instaceFlags.ImageDetailsFlag.Add(cmd)
 
 	return cmd

@@ -1,7 +1,6 @@
 package image
 
 import (
-	imageFlags "github.com/rozdolsky33/ocloud/cmd/compute/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -25,8 +24,6 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	// Add flags specific to the find command
-	imageFlags.JSONFlag.Add(cmd)
 	return cmd
 }
 

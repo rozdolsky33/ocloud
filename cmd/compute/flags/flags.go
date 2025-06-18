@@ -28,11 +28,4 @@ var (
 		Default:   FlagDefaultPage,
 		Usage:     flags.FlagDescPage,
 	}
-
-	JSONFlag = flags.BoolFlag{
-		Name:      flags.FlagNameJSON,
-		Shorthand: flags.FlagShortJSON,
-		Default:   false,
-		Usage:     flags.FlagDescJSON,
-	}
 )

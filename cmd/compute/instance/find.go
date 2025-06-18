@@ -27,7 +27,6 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	// Add flags specific to the find command
 	instaceFlags.ImageDetailsFlag.Add(cmd)
-	instaceFlags.JSONFlag.Add(cmd)
 
 	return cmd
 }

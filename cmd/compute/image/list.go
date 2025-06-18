@@ -27,7 +27,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	// Add flags specific to the list command
 	imageFlags.LimitFlag.Add(cmd)
 	imageFlags.PageFlag.Add(cmd)
-	imageFlags.JSONFlag.Add(cmd)
 
 	return cmd
 }
