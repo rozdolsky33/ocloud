@@ -21,7 +21,10 @@ func FindImages(appCtx *app.ApplicationContext, searchPattern string, useJSON bo
 	if err != nil {
 		return fmt.Errorf("finding images: %w", err)
 	}
-	fmt.Println(matchedImages)
+	err = PrintImagesInfo(matchedImages, appCtx, nil, useJSON)
+	if err != nil {
+		return fmt.Errorf("printing images table: %w", err)
+	}
 
 	return nil
 }

@@ -45,11 +45,12 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 			"Created":         image.CreatedAt.String(),
 			"ImageOSVersion":  image.ImageOSVersion,
 			"OperatingSystem": image.OperatingSystem,
+			"LunchMode":       image.LunchMode,
 		}
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"Name", "ID", "Created", "ImageName", "ImageOSVersion", "OperatingSystem",
+			"Name", "ID", "Created", "ImageName", "ImageOSVersion", "OperatingSystem", "LunchMode",
 		}
 
 		// Create the colored title using components from the app context.

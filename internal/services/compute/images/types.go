@@ -18,6 +18,7 @@ type Image struct {
 	CreatedAt       common.SDKTime
 	OperatingSystem string
 	ImageOSVersion  string
+	LunchMode       string
 	ImageTags       ImageTags
 }
 

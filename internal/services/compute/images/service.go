@@ -7,8 +7,11 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
+	"strings"
 )
 
+// NewService initializes a new Service instance with the provided application context.
+// Returns a Service pointer and an error if initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	cc, err := oci.NewComputeClient(cfg)
@@ -22,6 +25,8 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	}, nil
 }
 
+// List retrieves a paginated list of images with given limit and page number parameters.
+// It returns the slice of images, total count, next page token, and an error if encountered.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
 	// Log input parameters at debug level
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
@@ -122,10 +127,51 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 	return images, totalCount, nextPageToken, nil
 }
 
+// Find searches for images matching the provided search pattern within a compartment and returns the matching images.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, error) {
-	return nil, nil
+	logger.LogWithLevel(s.logger, 1, "finding image", "pattern", searchPattern)
+
+	var images []Image
+	page := ""
+
+	// Normalize pattern to lowercase
+	pattern := strings.ToLower(searchPattern)
+
+	// Paginate through images
+	for {
+		resp, err := s.compute.ListImages(ctx, core.ListImagesRequest{
+			CompartmentId: &s.compartmentID,
+			Page:          &page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list images: %w", err)
+		}
+
+		for _, oc := range resp.Items {
+			img := mapToImage(oc)
+
+			if matchAnyField(pattern, img) {
+				images = append(images, img)
+			}
+		}
+
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = *resp.OpcNextPage
+	}
+
+	return images, nil
 }
 
+// matchAnyField checks if the pattern is a substring of any relevant field
+func matchAnyField(pattern string, img Image) bool {
+	return strings.Contains(strings.ToLower(img.Name), pattern) ||
+		strings.Contains(strings.ToLower(img.OperatingSystem), pattern) ||
+		strings.Contains(strings.ToLower(img.ImageOSVersion), pattern)
+}
+
+// mapToImage converts a core.Image object to an Image struct, extracting specific fields for use in the application.
 func mapToImage(oc core.Image) Image {
 	return Image{
 		ID:              *oc.Id,
@@ -133,5 +179,6 @@ func mapToImage(oc core.Image) Image {
 		CreatedAt:       *oc.TimeCreated,
 		OperatingSystem: *oc.OperatingSystem,
 		ImageOSVersion:  *oc.OperatingSystemVersion,
+		LunchMode:       string(oc.LaunchMode),
 	}
 }
