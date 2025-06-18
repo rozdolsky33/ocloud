@@ -42,8 +42,7 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 		imageData := map[string]string{
 			"Name":            image.Name,
 			"ID":              image.ID,
-			"Created":         image.CreatedAt,
-			"ImageName":       image.ImageName,
+			"Created":         image.CreatedAt.String(),
 			"ImageOSVersion":  image.ImageOSVersion,
 			"OperatingSystem": image.OperatingSystem,
 		}

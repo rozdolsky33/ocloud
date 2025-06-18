@@ -2,6 +2,7 @@ package images
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 )
 
@@ -14,10 +15,9 @@ type Service struct {
 type Image struct {
 	Name            string
 	ID              string
-	CreatedAt       string
+	CreatedAt       common.SDKTime
 	OperatingSystem string
 	ImageOSVersion  string
-	ImageName       string
 	ImageTags       ImageTags
 }
 

@@ -21,7 +21,17 @@ func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON boo
 	if err != nil {
 		return fmt.Errorf("listing iamges: %w", err)
 	}
-	fmt.Println(images, totalCount, nextPageToken)
+
+	// Display image information with pagination details
+	err = PrintImagesInfo(images, appCtx, &PaginationInfo{
+		CurrentPage:   page,
+		TotalCount:    totalCount,
+		Limit:         limit,
+		NextPageToken: nextPageToken,
+	}, useJSON)
+	if err != nil {
+		return fmt.Errorf("printing images table: %w", err)
+	}
 
 	return nil
 }
