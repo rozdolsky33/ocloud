@@ -118,8 +118,11 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	totalCount = len(resp.Items)
 	// If we have a next page, we know there are more instances
 	if resp.OpcNextPage != nil {
-		// Estimate total count based on current page and items per page
-		totalCount = pageNum * limit
+		// If we have a next page token, we know there are more instances
+		// We need to estimate the total count more accurately
+		// Since we don't know the exact total count, we'll set it to a value
+		// that indicates there are more pages (at least one more page worth of instances)
+		totalCount = pageNum*limit + limit
 	}
 
 	// Save the next page token if available
@@ -160,7 +163,17 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	}
 
 	// Calculate if there are more pages after the current page
-	hasNextPage := pageNum*limit < totalCount
+	// The most direct way to determine if there are more pages is to check if there's a next page token
+	hasNextPage := resp.OpcNextPage != nil
+
+	// Log detailed pagination information at debug level 1 for better visibility
+	if hasNextPage {
+		logger.LogWithLevel(s.logger, 1, "Pagination information",
+			"currentPage", pageNum,
+			"recordsOnThisPage", len(instances),
+			"estimatedTotalRecords", totalCount,
+			"morePages", "true")
+	}
 
 	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
 		"returnedCount", len(instances),

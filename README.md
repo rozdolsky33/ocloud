@@ -1,7 +1,7 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
 [![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
-[![Version](https://img.shields.io/badge/goversion-1.23.x-blue.svg)](https://golang.org)
+[![Version](https://img.shields.io/badge/goversion-1.20.x-blue.svg)](https://golang.org)
 <a href="https://golang.org"><img src="https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square" alt="Built with GoLang"></a>
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
@@ -11,10 +11,13 @@ OCloud is a command-line interface (CLI) tool designed to simplify interactions 
 
 ## Features
 
-- Interact with Oracle Cloud Infrastructure resources
+- Interact with Oracle Cloud Infrastructure compute resources
+- List and find compute instances with detailed information
 - Support for multiple tenancies and compartments
 - Configuration via environment variables, flags, or OCI config file
 - Colored logging with configurable verbosity levels
+- JSON output support for automation and scripting
+- Pagination support for large result sets
 - Modular architecture for easy extension
 
 ## Installation
@@ -29,7 +32,7 @@ For detailed installation instructions for all platforms, see the [Installation 
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.20 or later
 - Oracle Cloud Infrastructure account
 - OCI SDK configuration (typically in `~/.oci/config`)
 
@@ -101,17 +104,16 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `--debug` | `-d` | Enable debug logging |
 | `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
-| `--disable-concurrency` | `-x` | Enable concurrency when fetching instance details (use -x to enable concurrency, which is disabled by default to avoid rate limiting) |
+| `--disable-concurrency` | `-x` | Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets) |
 | `--version` | `-v` | Print the version number of ocloud CLI |
+| `--help` | `-h` | Display help information |
 
 ### Instance Command Flags
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--find` | `-f` | Find resources by name pattern search |
-| `--image-details` | `-i` | Show image details |
 | `--json` | `-j` | Output information in JSON format |
-| `--list` | `-l` | List all resources |
+| `--image-details` | `-i` | Show image details including OS and tags |
 | `--limit` | `-m` | Maximum number of records to display per page (default: 20) |
 | `--page` | `-p` | Page number to display (default: 1) |
 
@@ -124,7 +126,13 @@ Additional flags are available for specific operations. Use `ocloud --help` to s
 OCloud uses a subcommand structure:
 
 ```
-ocloud [global flags] <command> [command flags] [arguments]
+ocloud [global flags] <command> <subcommand> [command flags] [arguments]
+```
+
+For example:
+```
+ocloud compute instance list [flags]
+ocloud compute instance find <pattern> [flags]
 ```
 
 ### Basic Usage
@@ -141,70 +149,70 @@ ocloud --version
 ocloud -v
 
 # Enable debug logging with colored output
-ocloud compute instance --list -d --color 
+ocloud compute instance list -d --color 
 
 # Alternative way to enable debug logging
-ocloud -d --color compute instance --list
+ocloud -d --color compute instance list
 ```
 
 ### Working with Instances
 
 ```bash
 # List all instances in a compartment
-ocloud --compartment my-compartment compute instance --list
+ocloud --compartment my-compartment compute instance list
 
-# List all instances using the shorthand flag syntax
-ocloud --compartment my-compartment compute instance -l
+# List all instances with pagination
+ocloud --compartment my-compartment compute instance list --limit 10 --page 2
 
 # Find instances by name pattern
-ocloud --compartment my-compartment compute instance --find "web-server"
+ocloud --compartment my-compartment compute instance find "web-server"
 
 # Find instances with image details
-ocloud --compartment my-compartment compute instance --find "web-server" --image-details
+ocloud --compartment my-compartment compute instance find "web-server" --image-details
 
 # Output instance information in JSON format
-ocloud --compartment my-compartment compute instance --list --json
+ocloud --compartment my-compartment compute instance list --json
 
 # Output instance information in JSON format using shorthand flags
-ocloud --compartment my-compartment compute instance -l -j
+ocloud --compartment my-compartment compute instance list -j
 
 # Find instances and output results in JSON format
-ocloud --compartment my-compartment compute instance --find "web-server" --json
+ocloud --compartment my-compartment compute instance find "web-server" --json
 
-# Enable concurrency for faster processing (may hit rate limits)
-ocloud --compartment my-compartment -x compute instance --list
+# Disable concurrency to avoid rate limits
+ocloud --compartment my-compartment --disable-concurrency compute instance list
 
-# Enable concurrency using the full flag name
-ocloud --compartment my-compartment --disable-concurrency compute instance --find "web-server"
+# Disable concurrency using the short flag
+ocloud --compartment my-compartment -x compute instance find "web-server"
 
 # List instances with pagination (default: 20 records per page)
-ocloud --compartment my-compartment compute instance --list
+ocloud --compartment my-compartment compute instance list
 
 # List instances with custom page size
-ocloud --compartment my-compartment compute instance --list --limit 10
+ocloud --compartment my-compartment compute instance list --limit 10
 
 # Navigate to a specific page
-ocloud --compartment my-compartment compute instance --list --page 2
+ocloud --compartment my-compartment compute instance list --page 2
 
 # Combine pagination parameters
-ocloud --compartment my-compartment compute instance --list --limit 5 --page 3
+ocloud --compartment my-compartment compute instance list --limit 5 --page 3
 
 # Combine JSON output with pagination
-ocloud --compartment my-compartment compute instance --list --limit 5 --page 2 --json
+ocloud --compartment my-compartment compute instance list --limit 5 --page 2 --json
 ```
 
 ### Working with Different Tenancies
 
 ```bash
 # Use a specific tenancy by OCID
-ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... compute instance --list
+ocloud --tenancy-id ocid1.tenancy.oc1..aaaaaaaa... compute instance list
 
 # Use a tenancy by name (requires tenancy map)
-ocloud --tenancy-name my-production-tenancy compute instance --list
+ocloud --tenancy-name my-production-tenancy compute instance list
 
 # Use environment variables
 export OCI_TENANCY_NAME=my-production-tenancy
-ocloud compute instance --list
+ocloud compute instance list
 ```
 
 ## Development
@@ -219,6 +227,8 @@ The project follows a modern Go application structure:
   - `compute/`: Compute-related commands
     - `root.go`: Compute command and flags
     - `instance/`: Instance-related commands
+      - `find.go`: Find instances by name pattern
+      - `list.go`: List all instances
       - `root.go`: Instance command and flags
   - `version/`: Version command implementation
 - `internal/`: Internal packages (not intended for external use)
@@ -231,6 +241,12 @@ The project follows a modern Go application structure:
   - `printer/`: Output formatting utilities
   - `services/`: Service implementations
     - `compute/`: Compute resource operations
+      - `instance/`: Instance service implementation
+        - `find.go`: Find instances logic
+        - `list.go`: List instances logic
+        - `output.go`: Output formatting
+        - `service.go`: Service implementation
+        - `types.go`: Type definitions
     - `database/`: Database resource operations
     - `identity/`: Identity resource operations
     - `network/`: Network resource operations
@@ -257,18 +273,18 @@ OCloud provides detailed error messages and supports different verbosity levels:
 | `make generate` | Run go generate to update generated code |
 | `make clean` | Clean build artifacts |
 
-### Code Quality and Drift Guard
+### Code Quality
 
-OCloud uses several tools to maintain code quality and prevent drift between flag definitions, documentation, and code:
+OCloud uses several tools to maintain code quality:
 
 1. **golangci-lint**: A fast, parallel runner for Go linters. It helps catch issues like unused variables, formatting errors, and more. The configuration is in `.golangci.yml`.
 
-2. **go generate**: Used to keep flag constants, documentation, and code in sync. When flag definitions are changed in `internal/config/flags/`, running `make generate` will automatically update the flag tables in this README.
+2. **go generate**: Used to generate code when needed.
 
 To ensure your changes maintain code quality and consistency:
 
 1. Run `make lint` before committing to check for code quality issues
-2. Run `make generate` after modifying flag definitions to update documentation
+2. Run `make test` to ensure all tests pass
 
 ## License
 
