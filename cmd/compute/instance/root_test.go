@@ -57,7 +57,7 @@ func TestInstanceCommand(t *testing.T) {
 
 	// Test that the find subcommand has the appropriate flags
 	imageDetailsFlag := findCmd.Flags().Lookup(flags.FlagNameImageDetails)
-	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added to find subcommand")
+	assert.NotNil(t, imageDetailsFlag, "images-details flag should be added to find subcommand")
 	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
 	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
 

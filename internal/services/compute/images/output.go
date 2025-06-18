@@ -1,17 +1,16 @@
-package instance
+package images
 
 import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/text"
-
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 )
 
-// PrintInstancesInfo displays instances in a formatted table or JSON format.
+// PrintImagesInfo displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
-func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool, showImageDetails bool) error {
+func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
@@ -22,11 +21,11 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return marshalInstancesToJSON(p, instances, pagination)
+		return marshalInstancesToJSON(p, images, pagination)
 	}
 
 	// Handle the case where no instances are found.
-	if len(instances) == 0 {
+	if len(images) == 0 {
 		fmt.Fprintln(appCtx.Stdout, "No instances found.") // Write to the context's writer.
 		if pagination != nil && pagination.TotalCount > 0 {
 			fmt.Fprintf(appCtx.Stdout, "Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
@@ -37,71 +36,30 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 		return nil
 	}
 
-	// Print each instance as a separate key-value table with a colored title.
-	for _, instance := range instances {
-		// Create instance data map
-		instanceData := map[string]string{
-			"ID":         instance.ID,
-			"AD":         instance.Placement.AvailabilityDomain,
-			"FD":         instance.Placement.FaultDomain,
-			"Region":     instance.Placement.Region,
-			"Shape":      instance.Shape,
-			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
-			"Created":    instance.CreatedAt.String(),
-			"Subnet ID":  instance.SubnetID,
-			"Name":       instance.Name,
-			"Private IP": instance.IP,
-			"Memory":     fmt.Sprintf("%d GB", int(instance.Resources.MemoryGB)),
-			"State":      string(instance.State),
+	// Print each image as a separate key-value table with a colored title.
+	for _, image := range images {
+		// Create image data map
+		imageData := map[string]string{
+			"Name":            image.Name,
+			"ID":              image.ID,
+			"Created":         image.CreatedAt,
+			"ImageName":       image.ImageName,
+			"ImageOSVersion":  image.ImageOSVersion,
+			"OperatingSystem": image.OperatingSystem,
 		}
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "AD", "FD", "Region", "Shape", "vCPUs",
-			"Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
-		}
-
-		// Add images details if available
-		if showImageDetails && instance.ImageID != "" {
-			// Add images ID
-			instanceData["Image ID"] = instance.ImageID
-
-			// Add an images name if available
-			if instance.ImageDetails.ImageName != "" {
-				instanceData["Image Name"] = instance.ImageDetails.ImageName
-			}
-
-			// Add an operating system if available
-			if instance.ImageDetails.ImageOS != "" {
-				instanceData["Operating System"] = instance.ImageDetails.ImageOS
-			}
-
-			// Add images details to ordered keys
-			imageKeys := []string{
-				"Image ID",
-				"Image Name",
-				"Operating System",
-			}
-
-			// Insert images keys after the "State" key
-			newOrderedKeys := make([]string, 0, len(orderedKeys)+len(imageKeys))
-			for _, key := range orderedKeys {
-				newOrderedKeys = append(newOrderedKeys, key)
-				if key == "State" {
-					newOrderedKeys = append(newOrderedKeys, imageKeys...)
-				}
-			}
-			orderedKeys = newOrderedKeys
+			"Name", "ID", "Created", "ImageName", "ImageOSVersion", "OperatingSystem",
 		}
 
 		// Create the colored title using components from the app context.
 		coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
 		coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
-		coloredInstance := text.Colors{text.FgBlue}.Sprint(instance.Name)
+		coloredInstance := text.Colors{text.FgBlue}.Sprint(image.Name)
 		title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
-
 		// Call the printer method to render the key-value table for this instance.
-		p.PrintKeyValues(title, instanceData, orderedKeys)
+		p.PrintKeyValues(title, imageData, orderedKeys)
 	}
 
 	logPaginationInfo(pagination, appCtx)
@@ -157,9 +115,9 @@ func adjustPaginationInfo(pagination *PaginationInfo) {
 }
 
 // marshalInstancesToJSON now accepts a printer and returns an error.
-func marshalInstancesToJSON(p *printer.Printer, instances []Instance, pagination *PaginationInfo) error {
+func marshalInstancesToJSON(p *printer.Printer, images []Image, pagination *PaginationInfo) error {
 	response := JSONResponse{
-		Instances:  instances,
+		Images:     images,
 		Pagination: pagination,
 	}
 	// Use the printer's method to marshal. It will write to the correct output.

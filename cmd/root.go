@@ -59,15 +59,6 @@ func Execute(ctx context.Context) error {
 	// Create the real root command with the ApplicationContext
 	root := NewRootCmd(appCtx)
 
-	// Add PersistentPreRunE to handle setup before any command
-	// Note: This is redundant with the PersistentPreRunE set by version.AddVersionFlag()
-	// and should be removed or consolidated to avoid conflicts
-	// The version flag is already handled by version.AddVersionFlag()
-	root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		// Optional: more setup before any command
-		return nil
-	}
-
 	// Switch to RunE for the root command
 	root.RunE = func(cmd *cobra.Command, args []string) error {
 		return cmd.Help() // The default behavior is to show help

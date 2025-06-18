@@ -167,8 +167,8 @@ ocloud --compartment my-compartment compute instance list --limit 10 --page 2
 # Find instances by name pattern
 ocloud --compartment my-compartment compute instance find "web-server"
 
-# Find instances with image details
-ocloud --compartment my-compartment compute instance find "web-server" --image-details
+# Find instances with images details
+ocloud --compartment my-compartment compute instance find "web-server" --images-details
 
 # Output instance information in JSON format
 ocloud --compartment my-compartment compute instance list --json

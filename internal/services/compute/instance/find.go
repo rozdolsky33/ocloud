@@ -12,7 +12,7 @@ import (
 // Parameters:
 // - appCtx: The application with all clients, logger, and resolved IDs.
 // - namePattern: The pattern used to match instance names.
-// - showImageDetails: A flag indicating whether to include image details in the output.
+// - showImageDetails: A flag indicating whether to include images details in the output.
 // - useJSON: A flag indicating whether to output information in JSON format.
 // Returns an error if the operation fails.
 func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImageDetails bool, useJSON bool) error {
@@ -41,8 +41,8 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 		return nil
 	}
 
-	// Pass the showImageDetails flag to PrintInstancesTable
-	err = PrintInstancesTable(matchedInstances, appCtx, nil, useJSON, showImageDetails)
+	// Pass the showImageDetails flag to PrintInstancesInfo
+	err = PrintInstancesInfo(matchedInstances, appCtx, nil, useJSON, showImageDetails)
 	if err != nil {
 		return fmt.Errorf("printing instances table: %w", err)
 	}
