@@ -212,6 +212,10 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 			inst := mapToInstance(oc)
 			allInstances = append(allInstances, inst)
 			indexableDocs = append(indexableDocs, ToIndexableInstance(inst))
+
+			// Add a pointer to the instance to the map for enrichment
+			instanceCopy := inst
+			instanceMap[*oc.Id] = &instanceCopy
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -270,7 +274,17 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		if err != nil || idx < 0 || idx >= len(allInstances) {
 			continue
 		}
-		matched = append(matched, allInstances[idx])
+
+		// Get the original instance
+		instance := allInstances[idx]
+
+		// Check if we have an enriched version in the map
+		if enriched, ok := instanceMap[instance.ID]; ok {
+			// Use the enriched instance instead
+			matched = append(matched, *enriched)
+		} else {
+			matched = append(matched, instance)
+		}
 	}
 	logger.LogWithLevel(s.logger, 2, "found instances", "count", len(matched))
 	return matched, nil
