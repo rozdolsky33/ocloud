@@ -5,14 +5,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewImageCmd creates a new command for images-related operations
+// NewImageCmd creates a new command for image-related operations
 func NewImageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "image",
 		Aliases:       []string{"img"},
-		Short:         "Manage OCI images",
-		Long:          "Manage Oracle Cloud Infrastructure compute images - list all images or find image by name pattern.",
-		Example:       "  ocloud compute image list\n  ocloud compute image find <images-name>",
+		Short:         "Manage OCI image",
+		Long:          "Manage Oracle Cloud Infrastructure compute image - list all image or find image by name pattern.",
+		Example:       "  ocloud compute image list\n  ocloud compute image find <image-name>",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

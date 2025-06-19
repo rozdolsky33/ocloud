@@ -4,17 +4,17 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/compute/images"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/image"
 	"github.com/spf13/cobra"
 )
 
-// NewFindCmd creates a new command for finding images by name pattern
+// NewFindCmd creates a new command for finding image by name pattern
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find images by name pattern",
-		Long:          "Find images in the specified compartment that match the given name pattern.",
+		Short:         "Find image by name pattern",
+		Long:          "Find image in the specified compartment that match the given name pattern.",
 		Example:       "  ocloud compute image find myinstance\n  ocloud compute image find web-server \n  ocloud compute image find api --json",
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
@@ -34,5 +34,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running instance find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return images.FindImages(appCtx, namePattern, useJSON)
+	return image.FindImages(appCtx, namePattern, useJSON)
 }

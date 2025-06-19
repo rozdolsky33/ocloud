@@ -61,9 +61,9 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			"Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
 		}
 
-		// Add images details if available
+		// Add image details if available
 		if showImageDetails && instance.ImageID != "" {
-			// Add images ID
+			// Add image ID
 			instanceData["Image ID"] = instance.ImageID
 
 			// Add an image name if available
@@ -76,14 +76,14 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				instanceData["Operating System"] = instance.ImageOS
 			}
 
-			// Add images details to ordered keys
+			// Add image details to ordered keys
 			imageKeys := []string{
 				"Image ID",
 				"Image Name",
 				"Operating System",
 			}
 
-			// Insert images keys after the "State" key
+			// Insert image keys after the "State" key
 			newOrderedKeys := make([]string, 0, len(orderedKeys)+len(imageKeys))
 			for _, key := range orderedKeys {
 				newOrderedKeys = append(newOrderedKeys, key)

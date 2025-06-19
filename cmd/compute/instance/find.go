@@ -16,7 +16,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"f"},
 		Short:         "Find instances by name pattern",
 		Long:          "Find instances in the specified compartment that match the given name pattern.",
-		Example:       "  ocloud compute instance find myinstance\n  ocloud compute instance find web-server --images-details\n  ocloud compute instance find api --json",
+		Example:       "  ocloud compute instance find myinstance\n  ocloud compute instance find web-server --image-details\n  ocloud compute instance find api --json",
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,

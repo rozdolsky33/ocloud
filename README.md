@@ -199,10 +199,10 @@ ocloud --compartment my-compartment compute instance find "web-server" --json --
 ### Working with Images
 
 ```bash
-# List all images in a compartment
+# List all image in a compartment
 ocloud --compartment my-compartment compute image list
 
-# Find images by name pattern
+# Find image by name pattern
 ocloud --compartment my-compartment compute image find "Oracle-Linux"
 
 # Output image information in JSON format

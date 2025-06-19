@@ -1,4 +1,4 @@
-package images
+package image
 
 import (
 	"github.com/go-logr/logr"
@@ -42,7 +42,7 @@ type PaginationInfo struct {
 
 // JSONResponse Create a response structure that includes instances and pagination info
 type JSONResponse struct {
-	Images     []Image         `json:"images"`
+	Images     []Image         `json:"image"`
 	Pagination *PaginationInfo `json:"pagination,omitempty"`
 }
 

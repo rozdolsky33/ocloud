@@ -1,4 +1,4 @@
-package images
+package image
 
 import (
 	"context"
@@ -27,8 +27,8 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	}, nil
 }
 
-// List retrieves a paginated list of images with given limit and page number parameters.
-// It returns the slice of images, total count, next page token, and an error if encountered.
+// List retrieves a paginated list of image with given limit and page number parameters.
+// It returns the slice of image, total count, next page token, and an error if encountered.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
 	// Log input parameters at debug level
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
@@ -90,10 +90,10 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
 	}
 
-	// Fetch images for the requested page
+	// Fetch image for the requested page
 	resp, err := s.compute.ListImages(ctx, request)
 	if err != nil {
-		return nil, 0, "", fmt.Errorf("listing images: %w", err)
+		return nil, 0, "", fmt.Errorf("listing image: %w", err)
 	}
 	// Set the total count to the number of instances returned
 	// If we have a next page, this is an estimate
@@ -110,7 +110,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
 	}
 
-	// Process the images
+	// Process the image
 	for _, oc := range resp.Items {
 		image := mapToImage(oc)
 		images = append(images, image)
@@ -129,7 +129,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 	return images, totalCount, nextPageToken, nil
 }
 
-// Find performs a fuzzy search for images using the provided search pattern and context.
+// Find performs a fuzzy search for image using the provided search pattern and context.
 // It returns a slice of matching Image objects or an error if the search fails.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, error) {
 	logger.LogWithLevel(s.logger, 3, "finding image with bleve fuzzy search", "pattern", searchPattern)
@@ -138,14 +138,14 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, erro
 	var indexableDocs []IndexableImage
 	page := ""
 
-	// 1. Fetch all images
+	// 1. Fetch all image
 	for {
 		resp, err := s.compute.ListImages(ctx, core.ListImagesRequest{
 			CompartmentId: &s.compartmentID,
 			Page:          &page,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to list images: %w", err)
+			return nil, fmt.Errorf("failed to list image: %w", err)
 		}
 		for _, oc := range resp.Items {
 			img := mapToImage(oc)
@@ -200,7 +200,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, erro
 		matched = append(matched, allImages[idx])
 	}
 
-	logger.LogWithLevel(s.logger, 2, "found images", "count", len(matched))
+	logger.LogWithLevel(s.logger, 2, "found image", "count", len(matched))
 	return matched, nil
 }
 

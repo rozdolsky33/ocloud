@@ -1,4 +1,4 @@
-package images
+package image
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
-// ListImages lists images from the compute service with provided limit, page, and JSON output option.
+// ListImages lists image from the compute service with provided limit, page, and JSON output option.
 // It uses the application context for configuration and logging.
 // Returns an error if the operation fails.
 func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {
@@ -33,7 +33,7 @@ func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON boo
 		NextPageToken: nextPageToken,
 	}, useJSON)
 	if err != nil {
-		return fmt.Errorf("printing images table: %w", err)
+		return fmt.Errorf("printing image table: %w", err)
 	}
 
 	return nil

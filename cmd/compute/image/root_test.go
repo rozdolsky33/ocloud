@@ -1,4 +1,4 @@
-package instance
+package image
 
 import (
 	"testing"
@@ -10,19 +10,19 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
-// TestInstanceCommand tests the basic structure of the instance command
-func TestInstanceCommand(t *testing.T) {
+// TestImageCommand tests the basic structure of the image command
+func TestImageCommand(t *testing.T) {
 	// Create a mock ApplicationContext
 	appCtx := &app.ApplicationContext{}
 
-	// Create a new instance command
-	cmd := NewInstanceCmd(appCtx)
+	// Create a new image command
+	cmd := NewImageCmd(appCtx)
 
-	// Test that the instance command is properly configured
-	assert.Equal(t, "instance", cmd.Use)
-	assert.Equal(t, "Manage OCI instances", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure instances - list all instances or find instances by name pattern.", cmd.Long)
-	assert.Equal(t, "  ocloud compute instance list\n  ocloud compute instance find myinstance", cmd.Example)
+	// Test that the image command is properly configured
+	assert.Equal(t, "image", cmd.Use)
+	assert.Equal(t, "Manage OCI image", cmd.Short)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure compute image - list all image or find image by name pattern.", cmd.Long)
+	assert.Equal(t, "  ocloud compute image list\n  ocloud compute image find <image-name>", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")
@@ -30,7 +30,7 @@ func TestInstanceCommand(t *testing.T) {
 	// Test that the subcommands are added
 	listCmd := findSubCommand(cmd, "list")
 	assert.NotNil(t, listCmd, "list subcommand should be added")
-	assert.Equal(t, "List all instances", listCmd.Short)
+	assert.Equal(t, "List all image", listCmd.Short)
 	assert.NotNil(t, listCmd.RunE, "list subcommand should have a RunE function")
 
 	// Test that the list subcommand has the appropriate flags
@@ -55,14 +55,8 @@ func TestInstanceCommand(t *testing.T) {
 	// Test that the find subcommand is added
 	findCmd := findSubCommand(cmd, "find")
 	assert.NotNil(t, findCmd, "find subcommand should be added")
-	assert.Equal(t, "Find instances by name pattern", findCmd.Short)
+	assert.Equal(t, "Find image by name pattern", findCmd.Short)
 	assert.NotNil(t, findCmd.RunE, "find subcommand should have a RunE function")
-
-	// Test that the find subcommand has the appropriate flags
-	imageDetailsFlag := findCmd.Flags().Lookup(flags.FlagNameImageDetails)
-	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added to find subcommand")
-	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
-	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
 
 	// JSON flag is now a global flag, so it should not be in the local flags
 	jsonFlagFind := findCmd.Flags().Lookup(flags.FlagNameJSON)
