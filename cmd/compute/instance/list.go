@@ -1,6 +1,7 @@
 package instance
 
 import (
+	instaceFlags "github.com/rozdolsky33/ocloud/cmd/compute/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -15,7 +16,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"l"},
 		Short:         "List all instances",
 		Long:          "List all instances in the specified compartment with pagination support.",
-		Example:       "  ocloud compute instance list\n  ocloud compute instance list --limit 10 --page 2\n  ocloud compute instance list --json\n  ocloud compute instance list --image-details\n  ocloud compute instance list -a",
+		Example:       "  ocloud compute instance list\n  ocloud compute instance list --limit 10 --page 2\n  ocloud compute instance list --json\n  ocloud compute instance list --images-details\n  ocloud compute instance list -a",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -24,10 +25,9 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 
 	// Add flags specific to the list command
-	LimitFlag.Add(cmd)
-	PageFlag.Add(cmd)
-	JSONFlag.Add(cmd)
-	ImageDetailsFlag.Add(cmd)
+	instaceFlags.LimitFlag.Add(cmd)
+	instaceFlags.PageFlag.Add(cmd)
+	instaceFlags.ImageDetailsFlag.Add(cmd)
 
 	return cmd
 }
@@ -35,8 +35,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	// Get pagination parameters
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, FlagDefaultPage)
+	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, instaceFlags.FlagDefaultLimit)
+	page := flags.GetIntFlag(cmd, flags.FlagNamePage, instaceFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameImageDetails, false)
 

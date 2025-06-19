@@ -26,7 +26,7 @@ func ListInstances(appCtx *app.ApplicationContext, limit int, page int, useJSON 
 	}
 
 	// Display instance information with pagination details
-	err = PrintInstancesTable(instances, appCtx, &PaginationInfo{
+	err = PrintInstancesInfo(instances, appCtx, &PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,

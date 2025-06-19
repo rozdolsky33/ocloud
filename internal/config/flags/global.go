@@ -61,6 +61,12 @@ var (
 		Default:   false,
 		Usage:     FlagDescHelp,
 	}
+	JSONFlag = BoolFlag{
+		Name:      FlagNameJSON,
+		Shorthand: FlagShortJSON,
+		Default:   false,
+		Usage:     FlagDescJSON,
+	}
 )
 
 // globalFlags is a slice of all global flags for batch registration
@@ -73,6 +79,7 @@ var globalFlags = []Flag{
 	CompartmentFlag,
 	DisableConcurrencyFlag,
 	HelpFlag,
+	JSONFlag,
 }
 
 // AddGlobalFlags adds all global flags to the given command

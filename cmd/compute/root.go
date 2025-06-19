@@ -1,6 +1,7 @@
 package compute
 
 import (
+	"github.com/rozdolsky33/ocloud/cmd/compute/image"
 	"github.com/rozdolsky33/ocloud/cmd/compute/instance"
 	"github.com/spf13/cobra"
 
@@ -20,6 +21,7 @@ func NewComputeCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	// Add subcommands, passing in the ApplicationContext
 	cmd.AddCommand(instance.NewInstanceCmd(appCtx))
+	cmd.AddCommand(image.NewImageCmd(appCtx))
 
 	return cmd
 }
