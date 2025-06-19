@@ -3,6 +3,8 @@ package instance
 import (
 	"context"
 	"fmt"
+	"github.com/blevesearch/bleve/v2"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -188,53 +190,33 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 // It attempts an exact name match first, followed by a partial match if necessary.
 // Instances are enriched with network data (VNICs) before being returned as a list.
 // If showImageDetails is true, it also enriches instances with images details.
-func (s *Service) Find(ctx context.Context, pattern string, showImageDetails bool) ([]Instance, error) {
-	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", pattern)
+func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetails bool) ([]Instance, error) {
+	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", searchPattern)
 
 	var instanceMap = make(map[string]*Instance)
+	var allInstances []Instance
+	var indexableDocs []IndexableInstance
+	page := ""
 
-	// Try an exact match first using server-side filtering
-	exactMatchResp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
-		CompartmentId:  &s.compartmentID,
-		LifecycleState: core.InstanceLifecycleStateRunning,
-		DisplayName:    &pattern,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("listing instances with exact name match: %w", err)
-	}
-
-	if len(exactMatchResp.Items) > 0 {
-		for _, oc := range exactMatchResp.Items {
+	// Fetch all Instances
+	for {
+		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
+			CompartmentId:  &s.compartmentID,
+			LifecycleState: core.InstanceLifecycleStateRunning,
+			Page:           &page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed listing instances: %w", err)
+		}
+		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
-			instanceMap[inst.ID] = &inst
+			allInstances = append(allInstances, inst)
+			indexableDocs = append(indexableDocs, ToIndexableInstance(inst))
 		}
-		logger.LogWithLevel(s.logger, 2, "found exact matching instances", "count", len(instanceMap))
-	} else {
-		// Fallback to partial match with pagination
-		page := ""
-		for {
-			resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
-				CompartmentId:  &s.compartmentID,
-				LifecycleState: core.InstanceLifecycleStateRunning,
-				Page:           &page,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("listing instances for partial name match: %w", err)
-			}
-
-			for _, oc := range resp.Items {
-				if strings.Contains(strings.ToLower(*oc.DisplayName), strings.ToLower(pattern)) {
-					inst := mapToInstance(oc)
-					instanceMap[inst.ID] = &inst
-				}
-			}
-
-			if resp.OpcNextPage == nil {
-				break
-			}
-			page = *resp.OpcNextPage
+		if resp.OpcNextPage == nil {
+			break
 		}
-		logger.LogWithLevel(s.logger, 2, "found partial matching instances", "count", len(instanceMap))
+		page = *resp.OpcNextPage
 	}
 
 	// Enrich with VNICs using the same approach as List
@@ -249,17 +231,53 @@ func (s *Service) Find(ctx context.Context, pattern string, showImageDetails boo
 		}
 	}
 
-	// Convert a map to slice for return
-	var result []Instance
-	for _, inst := range instanceMap {
-		result = append(result, *inst)
+	//2. Create an in memory Bleve index
+	indexMapping := bleve.NewIndexMapping()
+	index, err := bleve.NewMemOnly(indexMapping)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Bleve index for instances: %w", err)
+	}
+	for i, doc := range indexableDocs {
+		err := index.Index(fmt.Sprintf("%d", i), doc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to index instances: %w", err)
+		}
 	}
 
-	return result, nil
+	// 3. Prepare a fuzzy query with wildcard
+	searchPattern = strings.ToLower(searchPattern)
+	if !strings.HasPrefix(searchPattern, "*") {
+		searchPattern = "*" + searchPattern
+	}
+	if !strings.HasSuffix(searchPattern, "*") {
+		searchPattern = searchPattern + "*"
+	}
+
+	query := bleve.NewQueryStringQuery(searchPattern)
+	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest.Size = 1000 // Increase from default of 10
+
+	// 4. Perform search
+	result, err := index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	// 5. Collect matched results
+	var matched []Instance
+	for _, hit := range result.Hits {
+		idx, err := strconv.Atoi(hit.ID)
+		if err != nil || idx < 0 || idx >= len(allInstances) {
+			continue
+		}
+		matched = append(matched, allInstances[idx])
+	}
+	logger.LogWithLevel(s.logger, 2, "found instances", "count", len(matched))
+	return matched, nil
 }
 
 // enrichInstancesWithImageDetails enriches each instance in the provided map with its associated images details.
-// This method fetches images details for each instance either concurrently or sequentially based on configuration.
+// This method fetches image details for each instance either concurrently or sequentially based on configuration.
 func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceMap map[string]*Instance) error {
 	if s.enableConcurrency {
 		logger.LogWithLevel(s.logger, 1, "processing images details in parallel (concurrency enabled)")
@@ -278,25 +296,25 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 				if imageDetails != nil {
 					mu.Lock()
 					if imageDetails.DisplayName != nil {
-						inst.ImageDetails.ImageName = *imageDetails.DisplayName
+						inst.ImageName = *imageDetails.DisplayName
 					}
 					if imageDetails.OperatingSystem != nil {
-						inst.ImageDetails.ImageOS = *imageDetails.OperatingSystem
+						inst.ImageOS = *imageDetails.OperatingSystem
 					}
 					// Copy free-form tags
 					if len(imageDetails.FreeformTags) > 0 {
-						inst.ImageDetails.ImageFreeformTags = make(map[string]string)
+						inst.InstanceTags.FreeformTags = make(map[string]string)
 						for k, v := range imageDetails.FreeformTags {
-							inst.ImageDetails.ImageFreeformTags[k] = v
+							inst.InstanceTags.FreeformTags[k] = v
 						}
 					}
 					// Copy defined tags
 					if len(imageDetails.DefinedTags) > 0 {
-						inst.ImageDetails.ImageDefinedTags = make(map[string]map[string]interface{})
+						inst.InstanceTags.DefinedTags = make(map[string]map[string]interface{})
 						for namespace, tags := range imageDetails.DefinedTags {
-							inst.ImageDetails.ImageDefinedTags[namespace] = make(map[string]interface{})
+							inst.InstanceTags.DefinedTags[namespace] = make(map[string]interface{})
 							for k, v := range tags {
-								inst.ImageDetails.ImageDefinedTags[namespace][k] = v
+								inst.InstanceTags.DefinedTags[namespace][k] = v
 							}
 						}
 					}
@@ -315,25 +333,25 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 			}
 			if imageDetails != nil {
 				if imageDetails.DisplayName != nil {
-					inst.ImageDetails.ImageName = *imageDetails.DisplayName
+					inst.ImageName = *imageDetails.DisplayName
 				}
 				if imageDetails.OperatingSystem != nil {
-					inst.ImageDetails.ImageOS = *imageDetails.OperatingSystem
+					inst.ImageOS = *imageDetails.OperatingSystem
 				}
 				// Copy free-form tags
 				if len(imageDetails.FreeformTags) > 0 {
-					inst.ImageDetails.ImageFreeformTags = make(map[string]string)
+					inst.InstanceTags.FreeformTags = make(map[string]string)
 					for k, v := range imageDetails.FreeformTags {
-						inst.ImageDetails.ImageFreeformTags[k] = v
+						inst.InstanceTags.FreeformTags[k] = v
 					}
 				}
 				// Copy defined tags
 				if len(imageDetails.DefinedTags) > 0 {
-					inst.ImageDetails.ImageDefinedTags = make(map[string]map[string]interface{})
+					inst.InstanceTags.DefinedTags = make(map[string]map[string]interface{})
 					for namespace, tags := range imageDetails.DefinedTags {
-						inst.ImageDetails.ImageDefinedTags[namespace] = make(map[string]interface{})
+						inst.InstanceTags.DefinedTags[namespace] = make(map[string]interface{})
 						for k, v := range tags {
-							inst.ImageDetails.ImageDefinedTags[namespace][k] = v
+							inst.InstanceTags.DefinedTags[namespace][k] = v
 						}
 					}
 				}
@@ -344,7 +362,7 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 	return nil
 }
 
-// fetchImageDetails fetches the details of an images from OCI
+// fetchImageDetails fetches the details of an image from OCI
 func (s *Service) fetchImageDetails(ctx context.Context, imageID string) (*core.Image, error) {
 	if imageID == "" {
 		return nil, nil

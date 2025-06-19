@@ -28,7 +28,9 @@ type Instance struct {
 	CreatedAt    common.SDKTime
 	Placement    Placement
 	Resources    Resources
-	ImageDetails ImageDetails
+	ImageName    string
+	ImageOS      string
+	InstanceTags ResourceTags
 }
 
 // Placement groups region/availability/fault‐domain info.
@@ -43,11 +45,9 @@ type Resources struct {
 	VCPUs    int
 	MemoryGB float32
 }
-type ImageDetails struct {
-	ImageName         string
-	ImageOS           string
-	ImageFreeformTags map[string]string
-	ImageDefinedTags  map[string]map[string]interface{}
+type ResourceTags struct {
+	FreeformTags map[string]string
+	DefinedTags  map[string]map[string]interface{}
 }
 
 // VnicInfo Define a struct to hold VNIC information

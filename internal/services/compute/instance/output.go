@@ -66,14 +66,14 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			// Add images ID
 			instanceData["Image ID"] = instance.ImageID
 
-			// Add an images name if available
-			if instance.ImageDetails.ImageName != "" {
-				instanceData["Image Name"] = instance.ImageDetails.ImageName
+			// Add an image name if available
+			if instance.ImageName != "" {
+				instanceData["Image Name"] = instance.ImageName
 			}
 
 			// Add an operating system if available
-			if instance.ImageDetails.ImageOS != "" {
-				instanceData["Operating System"] = instance.ImageDetails.ImageOS
+			if instance.ImageOS != "" {
+				instanceData["Operating System"] = instance.ImageOS
 			}
 
 			// Add images details to ordered keys

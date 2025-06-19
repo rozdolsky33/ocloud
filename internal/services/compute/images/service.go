@@ -3,10 +3,12 @@ package images
 import (
 	"context"
 	"fmt"
+	"github.com/blevesearch/bleve/v2"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
+	"strconv"
 	"strings"
 )
 
@@ -127,17 +129,16 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 	return images, totalCount, nextPageToken, nil
 }
 
-// Find searches for images matching the provided search pattern within a compartment and returns the matching images.
+// Find performs a fuzzy search for images using the provided search pattern and context.
+// It returns a slice of matching Image objects or an error if the search fails.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, error) {
-	logger.LogWithLevel(s.logger, 1, "finding image", "pattern", searchPattern)
+	logger.LogWithLevel(s.logger, 3, "finding image with bleve fuzzy search", "pattern", searchPattern)
 
-	var images []Image
+	var allImages []Image
+	var indexableDocs []IndexableImage
 	page := ""
 
-	// Normalize pattern to lowercase
-	pattern := strings.ToLower(searchPattern)
-
-	// Paginate through images
+	// 1. Fetch all images
 	for {
 		resp, err := s.compute.ListImages(ctx, core.ListImagesRequest{
 			CompartmentId: &s.compartmentID,
@@ -146,29 +147,61 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to list images: %w", err)
 		}
-
 		for _, oc := range resp.Items {
 			img := mapToImage(oc)
-
-			if matchAnyField(pattern, img) {
-				images = append(images, img)
-			}
+			allImages = append(allImages, img)
+			indexableDocs = append(indexableDocs, ToIndexableImage(img))
 		}
-
 		if resp.OpcNextPage == nil {
 			break
 		}
 		page = *resp.OpcNextPage
 	}
 
-	return images, nil
-}
+	// 2. Create an in-memory Bleve index
+	indexMapping := bleve.NewIndexMapping()
+	index, err := bleve.NewMemOnly(indexMapping)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create index: %w", err)
+	}
+	for i, doc := range indexableDocs {
+		err := index.Index(fmt.Sprintf("%d", i), doc)
+		if err != nil {
+			return nil, fmt.Errorf("indexing image failed: %w", err)
+		}
+	}
 
-// matchAnyField checks if the pattern is a substring of any relevant field
-func matchAnyField(pattern string, img Image) bool {
-	return strings.Contains(strings.ToLower(img.Name), pattern) ||
-		strings.Contains(strings.ToLower(img.OperatingSystem), pattern) ||
-		strings.Contains(strings.ToLower(img.ImageOSVersion), pattern)
+	// 3. Prepare a fuzzy query with wildcard
+	searchPattern = strings.ToLower(searchPattern)
+	if !strings.HasPrefix(searchPattern, "*") {
+		searchPattern = "*" + searchPattern
+	}
+	if !strings.HasSuffix(searchPattern, "*") {
+		searchPattern = searchPattern + "*"
+	}
+
+	query := bleve.NewQueryStringQuery(searchPattern)
+	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest.Size = 1000 // Increase from default of 10
+
+	// 4. Perform search
+	result, err := index.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	// 5. Collect matched results
+	var matched []Image
+	for _, hit := range result.Hits {
+		idx, err := strconv.Atoi(hit.ID)
+		if err != nil || idx < 0 || idx >= len(allImages) {
+			continue
+		}
+		matched = append(matched, allImages[idx])
+	}
+
+	logger.LogWithLevel(s.logger, 2, "found images", "count", len(matched))
+	return matched, nil
 }
 
 // mapToImage converts a core.Image object to an Image struct, extracting specific fields for use in the application.
