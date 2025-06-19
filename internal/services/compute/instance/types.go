@@ -71,3 +71,12 @@ type PaginationInfo struct {
 	Limit         int
 	NextPageToken string
 }
+
+// IndexableInstance represents a simplified structure of an Instance for indexing and searchable purposes.
+type IndexableInstance struct {
+	ID              string
+	Name            string
+	OperatingSystem string
+	CreatedAt       string
+	Tags            string
+}

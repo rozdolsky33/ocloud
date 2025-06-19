@@ -6,12 +6,14 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/core"
 )
 
+// Service represents a structure that encapsulates the Compute client, logger, and compartment information.
 type Service struct {
 	compute       core.ComputeClient
 	logger        logr.Logger
 	compartmentID string
 }
 
+// Image represents the metadata and properties of an image resource in the system.
 type Image struct {
 	Name            string
 	ID              string
@@ -19,10 +21,13 @@ type Image struct {
 	OperatingSystem string
 	ImageOSVersion  string
 	LunchMode       string
-	ImageTags       ImageTags
+	ImageTags       ResourceTags
 }
 
-type ImageTags struct {
+// ResourceTags represents a collection of user-defined and predefined tags associated with a resource.
+// FreeformTags is a simple key-value pair map defined by the user for tagging purposes.
+// DefinedTags is a nested map containing namespace and keys with associated values for structured tagging.
+type ResourceTags struct {
 	FreeformTags map[string]string
 	DefinedTags  map[string]map[string]interface{}
 }
@@ -39,4 +44,13 @@ type PaginationInfo struct {
 type JSONResponse struct {
 	Images     []Image         `json:"images"`
 	Pagination *PaginationInfo `json:"pagination,omitempty"`
+}
+
+// IndexableImage represents an image model optimized for indexing and searching in the application.
+type IndexableImage struct {
+	ID              string
+	Name            string
+	OperatingSystem string
+	ImageOSVersion  string
+	Tags            string
 }

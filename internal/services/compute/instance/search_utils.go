@@ -5,14 +5,7 @@ import (
 	"strings"
 )
 
-type IndexableInstance struct {
-	ID              string
-	Name            string
-	OperatingSystem string
-	CreatedAt       string
-	Tags            string
-}
-
+// flattenTags converts ResourceTags into a flattened, concatenated string of lowercase key-value pairs.
 func flattenTags(tags ResourceTags) string {
 	var parts []string
 	for k, v := range tags.FreeformTags {
@@ -26,6 +19,7 @@ func flattenTags(tags ResourceTags) string {
 	return strings.Join(parts, " ")
 }
 
+// ToIndexableInstance converts an Instance into an IndexableInstance with simplified and normalized fields for indexing.
 func ToIndexableInstance(instance Instance) IndexableInstance {
 	return IndexableInstance{
 		ID:              instance.ID,

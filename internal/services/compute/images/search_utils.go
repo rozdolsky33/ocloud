@@ -5,15 +5,9 @@ import (
 	"strings"
 )
 
-type IndexableImage struct {
-	ID              string
-	Name            string
-	OperatingSystem string
-	ImageOSVersion  string
-	Tags            string
-}
-
-func flattenTags(tags ImageTags) string {
+// flattenTags converts ResourceTags into a single space-separated string of normalized key-value pairs.
+// FreeformTags are formatted as "key:value", while DefinedTags are formatted as "namespace.key:value".
+func flattenTags(tags ResourceTags) string {
 	var parts []string
 	for k, v := range tags.FreeformTags {
 		parts = append(parts, fmt.Sprintf("%s:%s", strings.ToLower(k), strings.ToLower(v)))
@@ -26,6 +20,7 @@ func flattenTags(tags ImageTags) string {
 	return strings.Join(parts, " ")
 }
 
+// ToIndexableImage converts an Image object into an IndexableImage structure optimized for indexing and searching.
 func ToIndexableImage(img Image) IndexableImage {
 	return IndexableImage{
 		ID:              img.ID,

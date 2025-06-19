@@ -7,6 +7,12 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
+// FindImages retrieves images matching the provided search pattern and outputs them in either table or JSON format.
+// Parameters:
+// - appCtx: The application context containing configuration, clients, and logging.
+// - searchPattern: The string used to search for matching images.
+// - useJSON: A boolean indicating whether to output the result in JSON format.
+// Returns an error if the operation fails at any stage (service creation, image retrieval, or output).
 func FindImages(appCtx *app.ApplicationContext, searchPattern string, useJSON bool) error {
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
