@@ -44,8 +44,6 @@ type Instance struct {
 	PrivateDNSEnabled bool
 	RouteTableID      string
 	RouteTableName    string
-	BootVolumeID      string
-	BootVolumeState   string
 }
 
 // Placement groups region/availability/fault‐domain info.

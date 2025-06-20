@@ -55,6 +55,7 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 		orderedKeys := []string{
 			"ID", "Name", "Shape", "vCPUs", "Memory",
 			"Created", "Subnet ID", "Private IP", "State",
+			"Boot Volume ID", "Boot Volume State",
 		}
 
 		// Add image details if available
@@ -110,14 +111,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				instanceData["Route Table Name"] = instance.RouteTableName
 			}
 
-			// Add boot volume details
-			if instance.BootVolumeID != "" {
-				instanceData["Boot Volume ID"] = instance.BootVolumeID
-			}
-			if instance.BootVolumeState != "" {
-				instanceData["Boot Volume State"] = instance.BootVolumeState
-			}
-
 			// Add image details to ordered keys
 			imageKeys := []string{
 				"Image ID",
@@ -133,8 +126,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				"Private DNS Enabled",
 				"Route Table ID",
 				"Route Table Name",
-				"Boot Volume ID",
-				"Boot Volume State",
 			}
 
 			// Insert image keys after the "State" key

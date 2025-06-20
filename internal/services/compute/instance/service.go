@@ -552,7 +552,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 							inst.PrivateDNSEnabled = true
 						}
 
-						// Set route table ID and name
+						// Set a route table ID and name
 						if subnetDetails.RouteTableId != nil {
 							inst.RouteTableID = *subnetDetails.RouteTableId
 
@@ -565,15 +565,6 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 							}
 						}
 					}
-					// Fetch boot volume details
-					bootVolumeID, bootVolumeState, err := s.fetchBootVolumeDetails(ctx, inst.ID)
-					if err != nil {
-						logger.LogWithLevel(s.logger, 1, "error fetching boot volume details", "instanceID", inst.ID, "error", err)
-					} else {
-						inst.BootVolumeID = bootVolumeID
-						inst.BootVolumeState = bootVolumeState
-					}
-
 					mu.Unlock()
 				}
 			}(inst)
@@ -659,14 +650,6 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 							inst.RouteTableName = *routeTableDetails.DisplayName
 						}
 					}
-				}
-				// Fetch boot volume details
-				bootVolumeID, bootVolumeState, err := s.fetchBootVolumeDetails(ctx, inst.ID)
-				if err != nil {
-					logger.LogWithLevel(s.logger, 1, "error fetching boot volume details", "instanceID", inst.ID, "error", err)
-				} else {
-					inst.BootVolumeID = bootVolumeID
-					inst.BootVolumeState = bootVolumeState
 				}
 			}
 		}
@@ -835,37 +818,6 @@ func (s *Service) fetchRouteTableDetails(ctx context.Context, routeTableID strin
 	// Store in cache
 	s.routeTableCache[routeTableID] = &resp.RouteTable
 	return &resp.RouteTable, nil
-}
-
-// fetchBootVolumeDetails retrieves the boot volume details for the given instance ID.
-// It returns the boot volume ID and state, or empty strings if no boot volume is found.
-func (s *Service) fetchBootVolumeDetails(ctx context.Context, instanceID string) (string, string, error) {
-	// List boot volume attachments for the instance
-	resp, err := s.compute.ListBootVolumeAttachments(ctx, core.ListBootVolumeAttachmentsRequest{
-		CompartmentId: &s.compartmentID,
-		InstanceId:    &instanceID,
-	})
-	if err != nil {
-		return "", "", fmt.Errorf("listing boot volume attachments: %w", err)
-	}
-
-	if len(resp.Items) == 0 {
-		return "", "", nil
-	}
-
-	// Get the boot volume ID from the first attachment
-	bootVolumeID := ""
-	if resp.Items[0].BootVolumeId != nil {
-		bootVolumeID = *resp.Items[0].BootVolumeId
-	}
-
-	// Get the lifecycle state from the attachment
-	state := ""
-	if resp.Items[0].LifecycleState != "" {
-		state = string(resp.Items[0].LifecycleState)
-	}
-
-	return bootVolumeID, state, nil
 }
 
 // mapToInstance maps SDK Instance to local model.
