@@ -4,6 +4,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	"github.com/spf13/cobra"
 )
 
@@ -33,6 +34,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	//return image.FindImages(appCtx, namePattern, useJSON)
-	return nil
+	return oke.FindClusters(appCtx, namePattern, useJSON)
 }

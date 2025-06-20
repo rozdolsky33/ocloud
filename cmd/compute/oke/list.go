@@ -4,6 +4,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +30,5 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	//return instance.ListInstances(appCtx, limit, page, useJSON)
-	return nil
+	return oke.ListClusters(appCtx, useJSON)
 }

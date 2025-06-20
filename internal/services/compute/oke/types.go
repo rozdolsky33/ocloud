@@ -12,12 +12,25 @@ type Service struct {
 }
 
 type Cluster struct {
-	Name                string
-	ID                  string
-	Version             string
-	State               string
-	CreatedAt           string
-	PrivateEndpoint     string
-	PrivateEndpointIP   string
-	PrivateEndpointPort string
+	Name            string
+	ID              string
+	CreatedAt       string
+	Version         string
+	State           containerengine.ClusterLifecycleStateEnum
+	PrivateEndpoint string
+	NodePools       []NodePool
+}
+
+type NodePool struct {
+	Name              string
+	ID                string
+	Version           string
+	State             containerengine.NodePoolLifecycleStateEnum
+	NodeShape         string
+	NodeCount         int
+	NodeSourceDetails containerengine.NodeSourceDetails
+}
+
+type JSONResponse struct {
+	Clusters []Cluster `json:"clusters"`
 }
