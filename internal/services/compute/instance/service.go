@@ -35,11 +35,10 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 		logger:            appCtx.Logger,
 		compartmentID:     appCtx.CompartmentID,
 		enableConcurrency: appCtx.EnableConcurrency,
-		// Initialize caches
-		subnetCache:     make(map[string]*core.Subnet),
-		vcnCache:        make(map[string]*core.Vcn),
-		routeTableCache: make(map[string]*core.RouteTable),
-		pageTokenCache:  make(map[string]map[int]string),
+		subnetCache:       make(map[string]*core.Subnet),
+		vcnCache:          make(map[string]*core.Vcn),
+		routeTableCache:   make(map[string]*core.RouteTable),
+		pageTokenCache:    make(map[string]map[int]string),
 	}, nil
 }
 
@@ -468,7 +467,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 		instanceIDs = append(instanceIDs, id)
 	}
 
-	// Batch fetch VNIC attachments for all instances
+	// Batch fetches VNIC attachments for all instances
 	logger.LogWithLevel(s.logger, 1, "batch fetching VNIC attachments", "instanceCount", len(instanceIDs))
 	attachmentsMap, err := s.batchFetchVnicAttachments(ctx, instanceIDs)
 	if err != nil {
@@ -503,7 +502,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 					}
 				}
 
-				// Fallback to individual fetch if not found in batch
+				// Fallback to individual fetch if not found in a batch
 				if vnic == nil {
 					var err error
 					vnic, err = s.fetchPrimaryVnicForInstance(ctx, inst.ID)
@@ -566,15 +565,6 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 							}
 						}
 					}
-
-					// Fetch network security groups
-					nsgs, err := s.fetchNetworkSecurityGroups(ctx, *vnic.Id)
-					if err != nil {
-						logger.LogWithLevel(s.logger, 1, "error fetching network security groups", "vnicID", *vnic.Id, "error", err)
-					} else {
-						inst.NSGs = nsgs
-					}
-
 					// Fetch boot volume details
 					bootVolumeID, bootVolumeState, err := s.fetchBootVolumeDetails(ctx, inst.ID)
 					if err != nil {
@@ -609,7 +599,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 				}
 			}
 
-			// Fallback to individual fetch if not found in batch
+			// Fallback to individual fetch if not found in a batch
 			if vnic == nil {
 				var err error
 				vnic, err = s.fetchPrimaryVnicForInstance(ctx, inst.ID)
@@ -657,7 +647,7 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 						inst.PrivateDNSEnabled = true
 					}
 
-					// Set route table ID and name
+					// Set a route table ID and name
 					if subnetDetails.RouteTableId != nil {
 						inst.RouteTableID = *subnetDetails.RouteTableId
 
@@ -670,15 +660,6 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 						}
 					}
 				}
-
-				// Fetch network security groups
-				nsgs, err := s.fetchNetworkSecurityGroups(ctx, *vnic.Id)
-				if err != nil {
-					logger.LogWithLevel(s.logger, 1, "error fetching network security groups", "vnicID", *vnic.Id, "error", err)
-				} else {
-					inst.NSGs = nsgs
-				}
-
 				// Fetch boot volume details
 				bootVolumeID, bootVolumeState, err := s.fetchBootVolumeDetails(ctx, inst.ID)
 				if err != nil {
@@ -854,14 +835,6 @@ func (s *Service) fetchRouteTableDetails(ctx context.Context, routeTableID strin
 	// Store in cache
 	s.routeTableCache[routeTableID] = &resp.RouteTable
 	return &resp.RouteTable, nil
-}
-
-// fetchNetworkSecurityGroups returns a placeholder for network security groups.
-// In a real implementation, this would fetch the actual NSGs associated with the VNIC.
-func (s *Service) fetchNetworkSecurityGroups(ctx context.Context, vnicID string) ([]string, error) {
-	// This is a placeholder implementation
-	// In a real implementation; we would fetch the NSGs associated with the VNIC
-	return []string{"NSG information not available"}, nil
 }
 
 // fetchBootVolumeDetails retrieves the boot volume details for the given instance ID.

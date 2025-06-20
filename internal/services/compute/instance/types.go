@@ -24,31 +24,28 @@ type Service struct {
 
 // Instance represents a VM instance in the cloud.
 type Instance struct {
-	Name         string
-	ID           string
-	IP           string
-	ImageID      string
-	SubnetID     string
-	Shape        string
-	State        core.InstanceLifecycleStateEnum
-	CreatedAt    common.SDKTime
-	Placement    Placement
-	Resources    Resources
-	ImageName    string
-	ImageOS      string
-	InstanceTags ResourceTags
-	// Additional network details
+	Name              string
+	ID                string
+	IP                string
+	ImageID           string
+	SubnetID          string
+	Shape             string
+	State             core.InstanceLifecycleStateEnum
+	CreatedAt         common.SDKTime
+	Placement         Placement
+	Resources         Resources
+	ImageName         string
+	ImageOS           string
+	InstanceTags      ResourceTags
 	Hostname          string
 	SubnetName        string
 	VcnID             string
 	VcnName           string
 	PrivateDNSEnabled bool
-	NSGs              []string // Network Security Groups
 	RouteTableID      string
 	RouteTableName    string
-	// Boot volume details
-	BootVolumeID    string
-	BootVolumeState string
+	BootVolumeID      string
+	BootVolumeState   string
 }
 
 // Placement groups region/availability/fault‐domain info.

@@ -3,8 +3,6 @@ package instance
 import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"strings"
-
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/printer"
@@ -104,11 +102,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			// Add private DNS enabled flag
 			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
 
-			// Add network security groups
-			if len(instance.NSGs) > 0 {
-				instanceData["Network Security Groups"] = strings.Join(instance.NSGs, ", ")
-			}
-
 			// Add route table details
 			if instance.RouteTableID != "" {
 				instanceData["Route Table ID"] = instance.RouteTableID
@@ -138,7 +131,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				"VCN Name",
 				"Hostname",
 				"Private DNS Enabled",
-				"Network Security Groups",
 				"Route Table ID",
 				"Route Table Name",
 				"Boot Volume ID",
