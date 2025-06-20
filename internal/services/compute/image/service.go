@@ -220,11 +220,13 @@ func mapToImage(oc core.Image) Image {
 // ToIndexableImage converts an Image object into an IndexableImage structure optimized for indexing and searching.
 func toIndexableImage(img Image) IndexableImage {
 	flattenedTags, _ := util.FlattenTags(img.ImageTags.FreeformTags, img.ImageTags.DefinedTags)
+	tagValues, _ := util.ExtractTagValues(img.ImageTags.FreeformTags, img.ImageTags.DefinedTags)
 	return IndexableImage{
 		ID:              img.ID,
 		Name:            strings.ToLower(img.Name),
 		OperatingSystem: strings.ToLower(img.OperatingSystem),
 		ImageOSVersion:  strings.ToLower(img.ImageOSVersion),
 		Tags:            flattenedTags,
+		TagValues:       tagValues,
 	}
 }

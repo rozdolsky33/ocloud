@@ -53,4 +53,5 @@ type IndexableImage struct {
 	OperatingSystem string
 	ImageOSVersion  string
 	Tags            string
+	TagValues       string // Separate field for tag values only, to make them directly searchable
 }

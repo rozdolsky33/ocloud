@@ -196,7 +196,6 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 
 	var instanceMap = make(map[string]*Instance)
 	var allInstances []Instance
-	var indexableDocs []IndexableInstance
 	page := ""
 
 	// Fetch all Instances
@@ -212,7 +211,6 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
 			allInstances = append(allInstances, inst)
-			indexableDocs = append(indexableDocs, toIndexableInstance(inst))
 
 			// Add a pointer to the instance to the map for enrichment
 			instanceCopy := inst
@@ -234,6 +232,12 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		if err := s.enrichInstancesWithImageDetails(ctx, instanceMap); err != nil {
 			logger.LogWithLevel(s.logger, 1, "failed to enrich image details", "error", err)
 		}
+	}
+
+	// Create indexable documents from enriched instances
+	var indexableDocs []IndexableInstance
+	for _, inst := range instanceMap {
+		indexableDocs = append(indexableDocs, toIndexableInstance(*inst))
 	}
 
 	//2. Create an in memory Bleve index
@@ -272,19 +276,16 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 	var matched []Instance
 	for _, hit := range result.Hits {
 		idx, err := strconv.Atoi(hit.ID)
-		if err != nil || idx < 0 || idx >= len(allInstances) {
+		if err != nil || idx < 0 || idx >= len(indexableDocs) {
 			continue
 		}
 
-		// Get the original instance
-		instance := allInstances[idx]
+		// Get the instance ID from the indexable document
+		instanceID := indexableDocs[idx].ID
 
-		// Check if we have an enriched version in the map
-		if enriched, ok := instanceMap[instance.ID]; ok {
-			// Use the enriched instance instead
+		// Get the enriched instance from the map
+		if enriched, ok := instanceMap[instanceID]; ok {
 			matched = append(matched, *enriched)
-		} else {
-			matched = append(matched, instance)
 		}
 	}
 	logger.LogWithLevel(s.logger, 2, "found instances", "count", len(matched))
@@ -520,9 +521,9 @@ func mapToInstance(oc core.Instance) Instance {
 // ToIndexableInstance converts an Instance into an IndexableInstance with simplified and normalized fields for indexing.
 func toIndexableInstance(instance Instance) IndexableInstance {
 	flattenedTags, _ := util.FlattenTags(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
-	logger.LogWithLevel(logger.CmdLogger, 1, "Converted tags to indexable string", "flattenedTags", flattenedTags)
+	logger.LogWithLevel(logger.CmdLogger, 1, "Converted tags to indexable string", "<<<<<<<<flattenedTags>>>>>>>>", flattenedTags)
 	tagValues, _ := util.ExtractTagValues(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
-	logger.LogWithLevel(logger.CmdLogger, 1, "Converted tag values to indexable string", "tagValues", tagValues)
+	logger.LogWithLevel(logger.CmdLogger, 1, "Converted tag values to indexable string", "<--------tagValues-------->", tagValues)
 
 	return IndexableInstance{
 		ID:              instance.ID,
