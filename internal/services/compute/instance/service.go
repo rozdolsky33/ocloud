@@ -262,7 +262,13 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		searchPattern = searchPattern + "*"
 	}
 
-	query := bleve.NewQueryStringQuery(searchPattern)
+	// Create a query that searches across all relevant fields
+	// The _all field is a special field that searches across all indexed fields
+	// We also explicitly search in Tags and TagValues fields to ensure tag searches work correctly
+	queryString := fmt.Sprintf("_all:%s OR Tags:%s OR TagValues:%s",
+		searchPattern, searchPattern, searchPattern)
+
+	query := bleve.NewQueryStringQuery(queryString)
 	searchRequest := bleve.NewSearchRequest(query)
 	searchRequest.Size = 1000 // Increase from default of 10
 
