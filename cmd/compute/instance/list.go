@@ -16,7 +16,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"l"},
 		Short:         "List all instances",
 		Long:          "List all instances in the specified compartment with pagination support.",
-		Example:       "  ocloud compute instance list\n  ocloud compute instance list --limit 10 --page 2\n  ocloud compute instance list --json\n  ocloud compute instance list --image-details\n  ocloud compute instance list -a",
+		Example:       "  ocloud compute instance list\n  ocloud compute instance list --limit 10 --page 2\n  ocloud compute instance list --json\n  ocloud compute instance list --image-details\n  ocloud compute instance list -i",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

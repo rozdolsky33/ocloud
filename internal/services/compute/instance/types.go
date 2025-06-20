@@ -79,4 +79,5 @@ type IndexableInstance struct {
 	OperatingSystem string
 	CreatedAt       string
 	Tags            string
+	TagValues       string // Separate field for tag values only, to make them directly searchable
 }

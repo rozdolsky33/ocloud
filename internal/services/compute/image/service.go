@@ -8,6 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
+	"github.com/rozdolsky33/ocloud/internal/util"
 	"strconv"
 	"strings"
 )
@@ -129,7 +130,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 	return images, totalCount, nextPageToken, nil
 }
 
-// Find performs a fuzzy search for image using the provided search pattern and context.
+// Find performs a fuzzy search for an image using the provided search pattern and context.
 // It returns a slice of matching Image objects or an error if the search fails.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, error) {
 	logger.LogWithLevel(s.logger, 3, "finding image with bleve fuzzy search", "pattern", searchPattern)
@@ -150,7 +151,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, erro
 		for _, oc := range resp.Items {
 			img := mapToImage(oc)
 			allImages = append(allImages, img)
-			indexableDocs = append(indexableDocs, ToIndexableImage(img))
+			indexableDocs = append(indexableDocs, toIndexableImage(img))
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -213,5 +214,17 @@ func mapToImage(oc core.Image) Image {
 		OperatingSystem: *oc.OperatingSystem,
 		ImageOSVersion:  *oc.OperatingSystemVersion,
 		LunchMode:       string(oc.LaunchMode),
+	}
+}
+
+// ToIndexableImage converts an Image object into an IndexableImage structure optimized for indexing and searching.
+func toIndexableImage(img Image) IndexableImage {
+	flattenedTags, _ := util.FlattenTags(img.ImageTags.FreeformTags, img.ImageTags.DefinedTags)
+	return IndexableImage{
+		ID:              img.ID,
+		Name:            strings.ToLower(img.Name),
+		OperatingSystem: strings.ToLower(img.OperatingSystem),
+		ImageOSVersion:  strings.ToLower(img.ImageOSVersion),
+		Tags:            flattenedTags,
 	}
 }

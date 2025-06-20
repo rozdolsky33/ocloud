@@ -26,7 +26,7 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
 
 	// Add version command
-	rootCmd.AddCommand(version.NewVersionCommand())
+	rootCmd.AddCommand(version.NewVersionCommand(appCtx))
 
 	// Add version flag
 	version.AddVersionFlag(rootCmd)

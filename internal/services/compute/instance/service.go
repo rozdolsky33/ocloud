@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/blevesearch/bleve/v2"
+	"github.com/rozdolsky33/ocloud/internal/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -211,7 +212,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
 			allInstances = append(allInstances, inst)
-			indexableDocs = append(indexableDocs, ToIndexableInstance(inst))
+			indexableDocs = append(indexableDocs, toIndexableInstance(inst))
 
 			// Add a pointer to the instance to the map for enrichment
 			instanceCopy := inst
@@ -509,5 +510,20 @@ func mapToInstance(oc core.Instance) Instance {
 		SubnetID:  "", // to be filled later
 		State:     oc.LifecycleState,
 		CreatedAt: *oc.TimeCreated,
+	}
+}
+
+// ToIndexableInstance converts an Instance into an IndexableInstance with simplified and normalized fields for indexing.
+func toIndexableInstance(instance Instance) IndexableInstance {
+	flattenedTags, _ := util.FlattenTags(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
+	tagValues, _ := util.ExtractTagValues(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
+
+	return IndexableInstance{
+		ID:              instance.ID,
+		Name:            strings.ToLower(instance.Name),
+		OperatingSystem: strings.ToLower(instance.ImageOS),
+		CreatedAt:       strings.ToLower(instance.CreatedAt.String()),
+		Tags:            flattenedTags,
+		TagValues:       tagValues,
 	}
 }
