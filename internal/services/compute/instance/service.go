@@ -516,7 +516,9 @@ func mapToInstance(oc core.Instance) Instance {
 // ToIndexableInstance converts an Instance into an IndexableInstance with simplified and normalized fields for indexing.
 func toIndexableInstance(instance Instance) IndexableInstance {
 	flattenedTags, _ := util.FlattenTags(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
+	logger.LogWithLevel(logger.CmdLogger, 1, "Converted tags to indexable string", "flattenedTags", flattenedTags)
 	tagValues, _ := util.ExtractTagValues(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
+	logger.LogWithLevel(logger.CmdLogger, 1, "Converted tag values to indexable string", "tagValues", tagValues)
 
 	return IndexableInstance{
 		ID:              instance.ID,
