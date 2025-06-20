@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
 
@@ -207,7 +208,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 		}
 	}
 
-	// Update the instances slice with the enriched data from the instanceMap
+	// Update the instance slice with the enriched data from the instanceMap
 	// This ensures that the returned instances have the enriched data
 	for i := range instances {
 		if enriched, ok := instanceMap[instances[i].ID]; ok {
@@ -241,15 +242,51 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 // It attempts an exact name match first, followed by a partial match if necessary.
 // Instances are enriched with network data (VNICs) before being returned as a list.
 // If showImageDetails is true, it also enriches instances with image details.
+// It uses token caching to improve performance for subsequent searches.
 func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetails bool) ([]Instance, error) {
+	// Start overall performance tracking
+	overallStartTime := time.Now()
 	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", searchPattern)
 
 	var instanceMap = make(map[string]*Instance)
 	var allInstances []Instance
-	page := ""
 
-	// Fetch all Instances
+	// Initialize pagination variables
+	var page string
+	currentPage := 1
+
+	// Check if we have a cache for this compartment
+	if _, ok := s.pageTokenCache[s.compartmentID]; !ok {
+		s.pageTokenCache[s.compartmentID] = make(map[int]string)
+		logger.LogWithLevel(s.logger, 3, "Created new page token cache for compartment", "compartmentID", s.compartmentID)
+	} else {
+		logger.LogWithLevel(s.logger, 3, "Using existing page token cache", "compartmentID", s.compartmentID, "cacheSize", len(s.pageTokenCache[s.compartmentID]))
+	}
+
+	// Find the highest cached page number to optimize fetching
+	var startPage int
+	var startToken string
+	for p := range s.pageTokenCache[s.compartmentID] {
+		if p > startPage {
+			startPage = p
+			startToken = s.pageTokenCache[s.compartmentID][p]
+		}
+	}
+
+	if startToken != "" {
+		logger.LogWithLevel(s.logger, 3, "Starting from cached token", "page", startPage, "token", startToken)
+		page = startToken
+		currentPage = startPage + 1
+	}
+
+	// Record start time for performance tracking
+	startTime := time.Now()
+	fetchCount := 0
+
+	// Fetch all Instances with token caching
 	for {
+		fetchCount++
+		logger.LogWithLevel(s.logger, 3, "Fetching instances", "page", currentPage, "token", page, "fetchCount", fetchCount)
 		resp, err := s.compute.ListInstances(ctx, core.ListInstancesRequest{
 			CompartmentId:  &s.compartmentID,
 			LifecycleState: core.InstanceLifecycleStateRunning,
@@ -258,6 +295,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		if err != nil {
 			return nil, fmt.Errorf("failed listing instances: %w", err)
 		}
+
 		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
 			allInstances = append(allInstances, inst)
@@ -266,44 +304,83 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 			instanceCopy := inst
 			instanceMap[*oc.Id] = &instanceCopy
 		}
+
 		if resp.OpcNextPage == nil {
 			break
 		}
+
+		// Cache the token for this page
 		page = *resp.OpcNextPage
+		s.pageTokenCache[s.compartmentID][currentPage] = page
+		logger.LogWithLevel(s.logger, 3, "Cached page token", "page", currentPage, "token", page)
+		currentPage++
 	}
 
+	// Log performance metrics for fetching
+	fetchDuration := time.Since(startTime)
+	logger.LogWithLevel(s.logger, 1, "Instance fetching performance",
+		"totalPages", fetchCount,
+		"totalInstances", len(allInstances),
+		"duration", fetchDuration,
+		"startedFromCachedPage", startPage > 0,
+		"cachedPagesUsed", startPage)
+
+	// Track enrichment performance
+	enrichStartTime := time.Now()
+
 	// Enrich with VNICs using the same approach as List
+	vnicStartTime := time.Now()
 	if err := s.enrichInstancesWithVnics(ctx, instanceMap); err != nil {
 		logger.LogWithLevel(s.logger, 1, "failed to enrich VNICs", "error", err)
 	}
+	vnicDuration := time.Since(vnicStartTime)
+	logger.LogWithLevel(s.logger, 1, "VNIC enrichment performance", "duration", vnicDuration, "instanceCount", len(instanceMap))
 
 	// Enrich with image details if requested
 	if showImageDetails {
+		imageStartTime := time.Now()
 		if err := s.enrichInstancesWithImageDetails(ctx, instanceMap); err != nil {
 			logger.LogWithLevel(s.logger, 1, "failed to enrich image details", "error", err)
 		}
+		imageDuration := time.Since(imageStartTime)
+		logger.LogWithLevel(s.logger, 1, "Image details enrichment performance", "duration", imageDuration, "instanceCount", len(instanceMap))
 	}
 
+	totalEnrichDuration := time.Since(enrichStartTime)
+	logger.LogWithLevel(s.logger, 1, "Total enrichment performance", "duration", totalEnrichDuration, "instanceCount", len(instanceMap))
+
+	// Track search performance
+	searchStartTime := time.Now()
+
 	// Create indexable documents from enriched instances
+	indexingStartTime := time.Now()
 	var indexableDocs []IndexableInstance
 	for _, inst := range instanceMap {
 		indexableDocs = append(indexableDocs, toIndexableInstance(*inst))
 	}
+	indexingDuration := time.Since(indexingStartTime)
+	logger.LogWithLevel(s.logger, 3, "Created indexable documents", "count", len(indexableDocs), "duration", indexingDuration)
 
-	//2. Create an in memory Bleve index
+	// Create an in memory Bleve index
+	indexCreationStartTime := time.Now()
 	indexMapping := bleve.NewIndexMapping()
 	index, err := bleve.NewMemOnly(indexMapping)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Bleve index for instances: %w", err)
 	}
+
+	// Index all documents
 	for i, doc := range indexableDocs {
 		err := index.Index(fmt.Sprintf("%d", i), doc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to index instances: %w", err)
 		}
 	}
+	indexCreationDuration := time.Since(indexCreationStartTime)
+	logger.LogWithLevel(s.logger, 3, "Created search index", "duration", indexCreationDuration)
 
-	// 3. Prepare a fuzzy query with wildcard
+	// Prepare a fuzzy query with wildcard
+	queryStartTime := time.Now()
 	searchPattern = strings.ToLower(searchPattern)
 	if !strings.HasPrefix(searchPattern, "*") {
 		searchPattern = "*" + searchPattern
@@ -321,14 +398,20 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 	query := bleve.NewQueryStringQuery(queryString)
 	searchRequest := bleve.NewSearchRequest(query)
 	searchRequest.Size = 1000 // Increase from default of 10
+	queryDuration := time.Since(queryStartTime)
+	logger.LogWithLevel(s.logger, 3, "Prepared search query", "query", queryString, "duration", queryDuration)
 
-	// 4. Perform search
+	// Perform search
+	searchExecutionStartTime := time.Now()
 	result, err := index.Search(searchRequest)
 	if err != nil {
 		return nil, fmt.Errorf("search failed: %w", err)
 	}
+	searchExecutionDuration := time.Since(searchExecutionStartTime)
+	logger.LogWithLevel(s.logger, 3, "Executed search", "hits", len(result.Hits), "duration", searchExecutionDuration)
 
-	// 5. Collect matched results
+	// Collect matched results
+	resultCollectionStartTime := time.Now()
 	var matched []Instance
 	for _, hit := range result.Hits {
 		idx, err := strconv.Atoi(hit.ID)
@@ -344,6 +427,29 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 			matched = append(matched, *enriched)
 		}
 	}
+	resultCollectionDuration := time.Since(resultCollectionStartTime)
+	logger.LogWithLevel(s.logger, 3, "Collected search results", "matchedCount", len(matched), "duration", resultCollectionDuration)
+
+	// Log overall search performance
+	totalSearchDuration := time.Since(searchStartTime)
+	logger.LogWithLevel(s.logger, 1, "Search performance",
+		"totalDuration", totalSearchDuration,
+		"indexingDuration", indexingDuration,
+		"indexCreationDuration", indexCreationDuration,
+		"queryDuration", queryDuration,
+		"searchExecutionDuration", searchExecutionDuration,
+		"resultCollectionDuration", resultCollectionDuration,
+		"matchedCount", len(matched),
+		"totalInstancesSearched", len(allInstances))
+	// Log overall performance for the entire Find operation
+	overallDuration := time.Since(overallStartTime)
+	logger.LogWithLevel(s.logger, 1, "Overall Find operation performance",
+		"totalDuration", overallDuration,
+		"matchedCount", len(matched),
+		"totalInstancesSearched", len(allInstances),
+		"startedFromCachedPage", startPage > 0,
+		"cachedPagesUsed", startPage)
+
 	logger.LogWithLevel(s.logger, 2, "found instances", "count", len(matched))
 	return matched, nil
 }
