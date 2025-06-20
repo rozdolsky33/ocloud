@@ -35,6 +35,11 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 		logger:            appCtx.Logger,
 		compartmentID:     appCtx.CompartmentID,
 		enableConcurrency: appCtx.EnableConcurrency,
+		// Initialize caches
+		subnetCache:     make(map[string]*core.Subnet),
+		vcnCache:        make(map[string]*core.Vcn),
+		routeTableCache: make(map[string]*core.RouteTable),
+		pageTokenCache:  make(map[string]map[int]string),
 	}, nil
 }
 
@@ -70,44 +75,81 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	if pageNum > 1 && limit > 0 {
 		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
 
-		// We need to fetch page tokens until we reach the desired page
-		page := ""
-		currentPage := 1
-
-		for currentPage < pageNum {
-			// Fetch just the page token, not the actual data
-			// Use the same limit to ensure consistent pagination
-			tokenRequest := core.ListInstancesRequest{
-				CompartmentId:  &s.compartmentID,
-				LifecycleState: core.InstanceLifecycleStateRunning,
-				Page:           &page,
-			}
-
-			if limit > 0 {
-				tokenRequest.Limit = &limit
-			}
-
-			resp, err := s.compute.ListInstances(ctx, tokenRequest)
-			if err != nil {
-				return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
-			}
-
-			// If there's no next page, we've reached the end
-			if resp.OpcNextPage == nil {
-				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
-					"currentPage", currentPage, "targetPage", pageNum)
-				// Return an empty result since the requested page is beyond available data
-				return []Instance{}, 0, "", nil
-			}
-
-			// Move to the next page
-			page = *resp.OpcNextPage
-			currentPage++
+		// Check if we have a cache for this compartment
+		if _, ok := s.pageTokenCache[s.compartmentID]; !ok {
+			s.pageTokenCache[s.compartmentID] = make(map[int]string)
 		}
 
-		// Set the page token for the actual request
-		request.Page = &page
-		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
+		// Check if we have the page token in the cache
+		if token, ok := s.pageTokenCache[s.compartmentID][pageNum]; ok {
+			logger.LogWithLevel(s.logger, 3, "Using cached page token", "pageNum", pageNum, "token", token)
+			request.Page = &token
+		} else {
+			// We need to fetch page tokens until we reach the desired page
+			page := ""
+			currentPage := 1
+
+			// Check if we have any cached page tokens that can help us get closer to the desired page
+			var startPage int
+			var startToken string
+			for p := pageNum - 1; p >= 1; p-- {
+				if token, ok := s.pageTokenCache[s.compartmentID][p]; ok {
+					startPage = p
+					startToken = token
+					logger.LogWithLevel(s.logger, 3, "Found cached token for earlier page", "startPage", startPage, "token", startToken)
+					break
+				}
+			}
+
+			// If we found a cached token, start from there
+			if startToken != "" {
+				page = startToken
+				currentPage = startPage + 1
+			}
+
+			for currentPage <= pageNum {
+				// Fetch just the page token, not the actual data
+				// Use the same limit to ensure consistent pagination
+				tokenRequest := core.ListInstancesRequest{
+					CompartmentId:  &s.compartmentID,
+					LifecycleState: core.InstanceLifecycleStateRunning,
+					Page:           &page,
+				}
+
+				if limit > 0 {
+					tokenRequest.Limit = &limit
+				}
+
+				resp, err := s.compute.ListInstances(ctx, tokenRequest)
+				if err != nil {
+					return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
+				}
+
+				// If there's no next page, we've reached the end
+				if resp.OpcNextPage == nil {
+					logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
+						"currentPage", currentPage, "targetPage", pageNum)
+					// Return an empty result since the requested page is beyond available data
+					return []Instance{}, 0, "", nil
+				}
+
+				// Move to the next page
+				page = *resp.OpcNextPage
+
+				// Cache the token for this page
+				s.pageTokenCache[s.compartmentID][currentPage] = page
+				logger.LogWithLevel(s.logger, 3, "Cached page token", "page", currentPage, "token", page)
+
+				currentPage++
+			}
+
+			// Set the page token for the actual request
+			// We use the token for the page before the one we want
+			if token, ok := s.pageTokenCache[s.compartmentID][pageNum-1]; ok {
+				request.Page = &token
+				logger.LogWithLevel(s.logger, 3, "Using calculated page token", "pageNum", pageNum, "token", token)
+			}
+		}
 	}
 
 	// Fetch the instances for the requested page
@@ -418,8 +460,22 @@ func (s *Service) fetchImageDetails(ctx context.Context, imageID string) (*core.
 }
 
 // enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
-// This method fetches the primary VNIC per instance either concurrently or sequentially based on configuration.
+// This method uses a batch approach to fetch VNIC attachments for all instances at once, reducing API calls.
 func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[string]*Instance) error {
+	// Extract instance IDs
+	var instanceIDs []string
+	for id := range instanceMap {
+		instanceIDs = append(instanceIDs, id)
+	}
+
+	// Batch fetch VNIC attachments for all instances
+	logger.LogWithLevel(s.logger, 1, "batch fetching VNIC attachments", "instanceCount", len(instanceIDs))
+	attachmentsMap, err := s.batchFetchVnicAttachments(ctx, instanceIDs)
+	if err != nil {
+		logger.LogWithLevel(s.logger, 1, "error batch fetching VNIC attachments", "error", err)
+		// Continue with individual fetching as fallback
+	}
+
 	if s.enableConcurrency {
 		logger.LogWithLevel(s.logger, 1, "processing VNICs in parallel (concurrency enabled)")
 		var wg sync.WaitGroup
@@ -429,11 +485,34 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 			wg.Add(1)
 			go func(inst *Instance) {
 				defer wg.Done()
-				vnic, err := s.fetchPrimaryVnicForInstance(ctx, inst.ID)
-				if err != nil {
-					logger.LogWithLevel(s.logger, 1, "error fetching primary VNIC", "instanceID", inst.ID, "error", err)
-					return
+
+				// Try to get VNIC attachments from the batch result first
+				var vnic *core.Vnic
+				if attachments, ok := attachmentsMap[inst.ID]; ok && len(attachments) > 0 {
+					// Find primary VNIC from attachments
+					for _, attach := range attachments {
+						primaryVnic, err := s.getPrimaryVnic(ctx, attach)
+						if err != nil {
+							logger.LogWithLevel(s.logger, 1, "error getting primary VNIC from batch", "instanceID", inst.ID, "error", err)
+							continue
+						}
+						if primaryVnic != nil {
+							vnic = primaryVnic
+							break
+						}
+					}
 				}
+
+				// Fallback to individual fetch if not found in batch
+				if vnic == nil {
+					var err error
+					vnic, err = s.fetchPrimaryVnicForInstance(ctx, inst.ID)
+					if err != nil {
+						logger.LogWithLevel(s.logger, 1, "error fetching primary VNIC", "instanceID", inst.ID, "error", err)
+						return
+					}
+				}
+
 				if vnic != nil {
 					mu.Lock()
 
@@ -513,11 +592,33 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 	} else {
 		logger.LogWithLevel(s.logger, 1, "processing VNICs sequentially (concurrency disabled)")
 		for _, inst := range instanceMap {
-			vnic, err := s.fetchPrimaryVnicForInstance(ctx, inst.ID)
-			if err != nil {
-				logger.LogWithLevel(s.logger, 1, "error fetching primary VNIC", "instanceID", inst.ID, "error", err)
-				continue
+			// Try to get VNIC attachments from the batch result first
+			var vnic *core.Vnic
+			if attachments, ok := attachmentsMap[inst.ID]; ok && len(attachments) > 0 {
+				// Find primary VNIC from attachments
+				for _, attach := range attachments {
+					primaryVnic, err := s.getPrimaryVnic(ctx, attach)
+					if err != nil {
+						logger.LogWithLevel(s.logger, 1, "error getting primary VNIC from batch", "instanceID", inst.ID, "error", err)
+						continue
+					}
+					if primaryVnic != nil {
+						vnic = primaryVnic
+						break
+					}
+				}
 			}
+
+			// Fallback to individual fetch if not found in batch
+			if vnic == nil {
+				var err error
+				vnic, err = s.fetchPrimaryVnicForInstance(ctx, inst.ID)
+				if err != nil {
+					logger.LogWithLevel(s.logger, 1, "error fetching primary VNIC", "instanceID", inst.ID, "error", err)
+					continue
+				}
+			}
+
 			if vnic != nil {
 				// Basic VNIC information
 				inst.IP = *vnic.PrivateIp
@@ -594,7 +695,9 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 }
 
 // fetchPrimaryVnicForInstance finds the primary VNIC for a given instance ID.
+// It uses a batch approach to fetch VNIC attachments for multiple instances at once.
 func (s *Service) fetchPrimaryVnicForInstance(ctx context.Context, instanceID string) (*core.Vnic, error) {
+	// Fetch all VNIC attachments for the instance
 	attachments, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
 		CompartmentId: &s.compartmentID,
 		InstanceId:    &instanceID,
@@ -605,6 +708,7 @@ func (s *Service) fetchPrimaryVnicForInstance(ctx context.Context, instanceID st
 		return nil, nil
 	}
 
+	// Find the primary VNIC
 	for _, attach := range attachments.Items {
 		vnic, err := s.getPrimaryVnic(ctx, attach)
 		if err != nil {
@@ -618,6 +722,47 @@ func (s *Service) fetchPrimaryVnicForInstance(ctx context.Context, instanceID st
 	logger.LogWithLevel(s.logger, 1, "no primary VNIC found for instance", "instanceID", instanceID)
 
 	return nil, nil
+}
+
+// batchFetchVnicAttachments fetches VNIC attachments for multiple instances in a single API call.
+// It returns a map of instance ID to VNIC attachments.
+func (s *Service) batchFetchVnicAttachments(ctx context.Context, instanceIDs []string) (map[string][]core.VnicAttachment, error) {
+	result := make(map[string][]core.VnicAttachment)
+
+	// Fetch all VNIC attachments for the compartment
+	var page string
+	for {
+		resp, err := s.compute.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
+			CompartmentId: &s.compartmentID,
+			Page:          &page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("listing VNIC attachments: %w", err)
+		}
+
+		// Filter attachments by instance ID
+		for _, attach := range resp.Items {
+			if attach.InstanceId == nil {
+				continue
+			}
+
+			// Check if this attachment belongs to one of our instances
+			for _, id := range instanceIDs {
+				if *attach.InstanceId == id {
+					result[id] = append(result[id], attach)
+					break
+				}
+			}
+		}
+
+		// Check if there are more pages
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = *resp.OpcNextPage
+	}
+
+	return result, nil
 }
 
 // getPrimaryVnic retrieves the primary VNIC associated with the provided VnicAttachment.
@@ -643,35 +788,71 @@ func (s *Service) getPrimaryVnic(ctx context.Context, attach core.VnicAttachment
 }
 
 // fetchSubnetDetails retrieves the subnet details for the given subnet ID.
+// It uses a cache to avoid making repeated API calls for the same subnet.
 func (s *Service) fetchSubnetDetails(ctx context.Context, subnetID string) (*core.Subnet, error) {
+	// Check cache first
+	if subnet, ok := s.subnetCache[subnetID]; ok {
+		logger.LogWithLevel(s.logger, 3, "subnet cache hit", "subnetID", subnetID)
+		return subnet, nil
+	}
+
+	// Cache miss, fetch from API
+	logger.LogWithLevel(s.logger, 3, "subnet cache miss", "subnetID", subnetID)
 	resp, err := s.network.GetSubnet(ctx, core.GetSubnetRequest{
 		SubnetId: &subnetID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting subnet details: %w", err)
 	}
+
+	// Store in cache
+	s.subnetCache[subnetID] = &resp.Subnet
 	return &resp.Subnet, nil
 }
 
 // fetchVcnDetails retrieves the VCN details for the given VCN ID.
+// It uses a cache to avoid making repeated API calls for the same VCN.
 func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn, error) {
+	// Check cache first
+	if vcn, ok := s.vcnCache[vcnID]; ok {
+		logger.LogWithLevel(s.logger, 3, "VCN cache hit", "vcnID", vcnID)
+		return vcn, nil
+	}
+
+	// Cache miss, fetch from API
+	logger.LogWithLevel(s.logger, 3, "VCN cache miss", "vcnID", vcnID)
 	resp, err := s.network.GetVcn(ctx, core.GetVcnRequest{
 		VcnId: &vcnID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting VCN details: %w", err)
 	}
+
+	// Store in cache
+	s.vcnCache[vcnID] = &resp.Vcn
 	return &resp.Vcn, nil
 }
 
 // fetchRouteTableDetails retrieves the route table details for the given route table ID.
+// It uses a cache to avoid making repeated API calls for the same route table.
 func (s *Service) fetchRouteTableDetails(ctx context.Context, routeTableID string) (*core.RouteTable, error) {
+	// Check cache first
+	if routeTable, ok := s.routeTableCache[routeTableID]; ok {
+		logger.LogWithLevel(s.logger, 3, "route table cache hit", "routeTableID", routeTableID)
+		return routeTable, nil
+	}
+
+	// Cache miss, fetch from API
+	logger.LogWithLevel(s.logger, 3, "route table cache miss", "routeTableID", routeTableID)
 	resp, err := s.network.GetRouteTable(ctx, core.GetRouteTableRequest{
 		RtId: &routeTableID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("getting route table details: %w", err)
 	}
+
+	// Store in cache
+	s.routeTableCache[routeTableID] = &resp.RouteTable
 	return &resp.RouteTable, nil
 }
 
@@ -679,7 +860,7 @@ func (s *Service) fetchRouteTableDetails(ctx context.Context, routeTableID strin
 // In a real implementation, this would fetch the actual NSGs associated with the VNIC.
 func (s *Service) fetchNetworkSecurityGroups(ctx context.Context, vnicID string) ([]string, error) {
 	// This is a placeholder implementation
-	// In a real implementation, we would fetch the NSGs associated with the VNIC
+	// In a real implementation; we would fetch the NSGs associated with the VNIC
 	return []string{"NSG information not available"}, nil
 }
 

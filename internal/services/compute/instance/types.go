@@ -14,6 +14,12 @@ type Service struct {
 	logger            logr.Logger
 	compartmentID     string
 	enableConcurrency bool
+	// Caches to reduce API calls
+	subnetCache     map[string]*core.Subnet
+	vcnCache        map[string]*core.Vcn
+	routeTableCache map[string]*core.RouteTable
+	// Cache for pagination tokens
+	pageTokenCache map[string]map[int]string // compartmentID -> page number -> page token
 }
 
 // Instance represents a VM instance in the cloud.
