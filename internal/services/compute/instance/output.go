@@ -3,6 +3,7 @@ package instance
 import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/text"
+	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -47,7 +48,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			"Created":    instance.CreatedAt.String(),
 			"Subnet ID":  instance.SubnetID,
 			"Name":       instance.Name,
-			"ImageName":  instance.ImageName,
 			"Private IP": instance.IP,
 			"Memory":     fmt.Sprintf("%d GB", int(instance.Resources.MemoryGB)),
 			"State":      string(instance.State),
@@ -55,7 +55,7 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "Name", "ImageName", "Shape", "vCPUs", "Memory",
+			"ID", "Name", "Shape", "vCPUs", "Memory",
 			"Created", "Subnet ID", "Private IP", "State",
 		}
 
@@ -67,6 +67,9 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			// Add an operating system if available
 			if instance.ImageOS != "" {
 				instanceData["Operating System"] = instance.ImageOS
+			}
+			if instance.ImageName != "" {
+				instanceData["Image Name"] = instance.ImageName
 			}
 
 			//Add AD
@@ -82,13 +85,64 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				instanceData["Region"] = instance.Placement.Region
 			}
 
+			// Add subnet details
+			if instance.SubnetName != "" {
+				instanceData["Subnet Name"] = instance.SubnetName
+			}
+			if instance.VcnID != "" {
+				instanceData["VCN ID"] = instance.VcnID
+			}
+			if instance.VcnName != "" {
+				instanceData["VCN Name"] = instance.VcnName
+			}
+
+			// Add hostname
+			if instance.Hostname != "" {
+				instanceData["Hostname"] = instance.Hostname
+			}
+
+			// Add private DNS enabled flag
+			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
+
+			// Add network security groups
+			if len(instance.NSGs) > 0 {
+				instanceData["Network Security Groups"] = strings.Join(instance.NSGs, ", ")
+			}
+
+			// Add route table details
+			if instance.RouteTableID != "" {
+				instanceData["Route Table ID"] = instance.RouteTableID
+			}
+			if instance.RouteTableName != "" {
+				instanceData["Route Table Name"] = instance.RouteTableName
+			}
+
+			// Add boot volume details
+			if instance.BootVolumeID != "" {
+				instanceData["Boot Volume ID"] = instance.BootVolumeID
+			}
+			if instance.BootVolumeState != "" {
+				instanceData["Boot Volume State"] = instance.BootVolumeState
+			}
+
 			// Add image details to ordered keys
 			imageKeys := []string{
 				"Image ID",
+				"Image Name",
 				"Operating System",
 				"AD",
 				"FD",
 				"Region",
+				"Subnet Name",
+				"VCN ID",
+				"VCN Name",
+				"Hostname",
+				"Private DNS Enabled",
+				"Network Security Groups",
+				"Route Table ID",
+				"Route Table Name",
+				"Boot Volume ID",
+				"Boot Volume State",
 			}
 
 			// Insert image keys after the "State" key

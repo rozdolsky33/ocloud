@@ -436,8 +436,75 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 				}
 				if vnic != nil {
 					mu.Lock()
+
+					// Basic VNIC information
 					inst.IP = *vnic.PrivateIp
 					inst.SubnetID = *vnic.SubnetId
+
+					// Set hostname if available
+					if vnic.HostnameLabel != nil {
+						inst.Hostname = *vnic.HostnameLabel
+					}
+
+					// Fetch subnet details
+					subnetDetails, err := s.fetchSubnetDetails(ctx, *vnic.SubnetId)
+					if err != nil {
+						logger.LogWithLevel(s.logger, 1, "error fetching subnet details", "subnetID", *vnic.SubnetId, "error", err)
+					} else if subnetDetails != nil {
+						// Set subnet name
+						if subnetDetails.DisplayName != nil {
+							inst.SubnetName = *subnetDetails.DisplayName
+						}
+
+						// Set VCN ID
+						if subnetDetails.VcnId != nil {
+							inst.VcnID = *subnetDetails.VcnId
+
+							// Fetch VCN details
+							vcnDetails, err := s.fetchVcnDetails(ctx, *subnetDetails.VcnId)
+							if err != nil {
+								logger.LogWithLevel(s.logger, 1, "error fetching VCN details", "vcnID", *subnetDetails.VcnId, "error", err)
+							} else if vcnDetails != nil && vcnDetails.DisplayName != nil {
+								inst.VcnName = *vcnDetails.DisplayName
+							}
+						}
+
+						// Set private DNS enabled flag
+						if subnetDetails.DnsLabel != nil && *subnetDetails.DnsLabel != "" {
+							inst.PrivateDNSEnabled = true
+						}
+
+						// Set route table ID and name
+						if subnetDetails.RouteTableId != nil {
+							inst.RouteTableID = *subnetDetails.RouteTableId
+
+							// Fetch route table details
+							routeTableDetails, err := s.fetchRouteTableDetails(ctx, *subnetDetails.RouteTableId)
+							if err != nil {
+								logger.LogWithLevel(s.logger, 1, "error fetching route table details", "routeTableID", *subnetDetails.RouteTableId, "error", err)
+							} else if routeTableDetails != nil && routeTableDetails.DisplayName != nil {
+								inst.RouteTableName = *routeTableDetails.DisplayName
+							}
+						}
+					}
+
+					// Fetch network security groups
+					nsgs, err := s.fetchNetworkSecurityGroups(ctx, *vnic.Id)
+					if err != nil {
+						logger.LogWithLevel(s.logger, 1, "error fetching network security groups", "vnicID", *vnic.Id, "error", err)
+					} else {
+						inst.NSGs = nsgs
+					}
+
+					// Fetch boot volume details
+					bootVolumeID, bootVolumeState, err := s.fetchBootVolumeDetails(ctx, inst.ID)
+					if err != nil {
+						logger.LogWithLevel(s.logger, 1, "error fetching boot volume details", "instanceID", inst.ID, "error", err)
+					} else {
+						inst.BootVolumeID = bootVolumeID
+						inst.BootVolumeState = bootVolumeState
+					}
+
 					mu.Unlock()
 				}
 			}(inst)
@@ -452,8 +519,73 @@ func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[
 				continue
 			}
 			if vnic != nil {
+				// Basic VNIC information
 				inst.IP = *vnic.PrivateIp
 				inst.SubnetID = *vnic.SubnetId
+
+				// Set hostname if available
+				if vnic.HostnameLabel != nil {
+					inst.Hostname = *vnic.HostnameLabel
+				}
+
+				// Fetch subnet details
+				subnetDetails, err := s.fetchSubnetDetails(ctx, *vnic.SubnetId)
+				if err != nil {
+					logger.LogWithLevel(s.logger, 1, "error fetching subnet details", "subnetID", *vnic.SubnetId, "error", err)
+				} else if subnetDetails != nil {
+					// Set subnet name
+					if subnetDetails.DisplayName != nil {
+						inst.SubnetName = *subnetDetails.DisplayName
+					}
+
+					// Set VCN ID
+					if subnetDetails.VcnId != nil {
+						inst.VcnID = *subnetDetails.VcnId
+
+						// Fetch VCN details
+						vcnDetails, err := s.fetchVcnDetails(ctx, *subnetDetails.VcnId)
+						if err != nil {
+							logger.LogWithLevel(s.logger, 1, "error fetching VCN details", "vcnID", *subnetDetails.VcnId, "error", err)
+						} else if vcnDetails != nil && vcnDetails.DisplayName != nil {
+							inst.VcnName = *vcnDetails.DisplayName
+						}
+					}
+
+					// Set private DNS enabled flag
+					if subnetDetails.DnsLabel != nil && *subnetDetails.DnsLabel != "" {
+						inst.PrivateDNSEnabled = true
+					}
+
+					// Set route table ID and name
+					if subnetDetails.RouteTableId != nil {
+						inst.RouteTableID = *subnetDetails.RouteTableId
+
+						// Fetch route table details
+						routeTableDetails, err := s.fetchRouteTableDetails(ctx, *subnetDetails.RouteTableId)
+						if err != nil {
+							logger.LogWithLevel(s.logger, 1, "error fetching route table details", "routeTableID", *subnetDetails.RouteTableId, "error", err)
+						} else if routeTableDetails != nil && routeTableDetails.DisplayName != nil {
+							inst.RouteTableName = *routeTableDetails.DisplayName
+						}
+					}
+				}
+
+				// Fetch network security groups
+				nsgs, err := s.fetchNetworkSecurityGroups(ctx, *vnic.Id)
+				if err != nil {
+					logger.LogWithLevel(s.logger, 1, "error fetching network security groups", "vnicID", *vnic.Id, "error", err)
+				} else {
+					inst.NSGs = nsgs
+				}
+
+				// Fetch boot volume details
+				bootVolumeID, bootVolumeState, err := s.fetchBootVolumeDetails(ctx, inst.ID)
+				if err != nil {
+					logger.LogWithLevel(s.logger, 1, "error fetching boot volume details", "instanceID", inst.ID, "error", err)
+				} else {
+					inst.BootVolumeID = bootVolumeID
+					inst.BootVolumeState = bootVolumeState
+				}
 			}
 		}
 	}
@@ -510,6 +642,78 @@ func (s *Service) getPrimaryVnic(ctx context.Context, attach core.VnicAttachment
 	return nil, nil
 }
 
+// fetchSubnetDetails retrieves the subnet details for the given subnet ID.
+func (s *Service) fetchSubnetDetails(ctx context.Context, subnetID string) (*core.Subnet, error) {
+	resp, err := s.network.GetSubnet(ctx, core.GetSubnetRequest{
+		SubnetId: &subnetID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting subnet details: %w", err)
+	}
+	return &resp.Subnet, nil
+}
+
+// fetchVcnDetails retrieves the VCN details for the given VCN ID.
+func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn, error) {
+	resp, err := s.network.GetVcn(ctx, core.GetVcnRequest{
+		VcnId: &vcnID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting VCN details: %w", err)
+	}
+	return &resp.Vcn, nil
+}
+
+// fetchRouteTableDetails retrieves the route table details for the given route table ID.
+func (s *Service) fetchRouteTableDetails(ctx context.Context, routeTableID string) (*core.RouteTable, error) {
+	resp, err := s.network.GetRouteTable(ctx, core.GetRouteTableRequest{
+		RtId: &routeTableID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting route table details: %w", err)
+	}
+	return &resp.RouteTable, nil
+}
+
+// fetchNetworkSecurityGroups returns a placeholder for network security groups.
+// In a real implementation, this would fetch the actual NSGs associated with the VNIC.
+func (s *Service) fetchNetworkSecurityGroups(ctx context.Context, vnicID string) ([]string, error) {
+	// This is a placeholder implementation
+	// In a real implementation, we would fetch the NSGs associated with the VNIC
+	return []string{"NSG information not available"}, nil
+}
+
+// fetchBootVolumeDetails retrieves the boot volume details for the given instance ID.
+// It returns the boot volume ID and state, or empty strings if no boot volume is found.
+func (s *Service) fetchBootVolumeDetails(ctx context.Context, instanceID string) (string, string, error) {
+	// List boot volume attachments for the instance
+	resp, err := s.compute.ListBootVolumeAttachments(ctx, core.ListBootVolumeAttachmentsRequest{
+		CompartmentId: &s.compartmentID,
+		InstanceId:    &instanceID,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("listing boot volume attachments: %w", err)
+	}
+
+	if len(resp.Items) == 0 {
+		return "", "", nil
+	}
+
+	// Get the boot volume ID from the first attachment
+	bootVolumeID := ""
+	if resp.Items[0].BootVolumeId != nil {
+		bootVolumeID = *resp.Items[0].BootVolumeId
+	}
+
+	// Get the lifecycle state from the attachment
+	state := ""
+	if resp.Items[0].LifecycleState != "" {
+		state = string(resp.Items[0].LifecycleState)
+	}
+
+	return bootVolumeID, state, nil
+}
+
 // mapToInstance maps SDK Instance to local model.
 func mapToInstance(oc core.Instance) Instance {
 	return Instance{
@@ -539,9 +743,12 @@ func toIndexableInstance(instance Instance) IndexableInstance {
 	tagValues, _ := util.ExtractTagValues(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
 
 	return IndexableInstance{
+		ID:                   instance.ID,
 		Name:                 strings.ToLower(instance.Name),
 		ImageName:            strings.ToLower(instance.ImageName),
 		ImageOperatingSystem: strings.ToLower(instance.ImageOS),
+		IP:                   strings.ToLower(instance.IP),
+		SubnetID:             strings.ToLower(instance.SubnetID),
 		Tags:                 flattenedTags,
 		TagValues:            tagValues,
 	}

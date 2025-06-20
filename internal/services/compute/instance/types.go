@@ -31,6 +31,18 @@ type Instance struct {
 	ImageName    string
 	ImageOS      string
 	InstanceTags ResourceTags
+	// Additional network details
+	Hostname          string
+	SubnetName        string
+	VcnID             string
+	VcnName           string
+	PrivateDNSEnabled bool
+	NSGs              []string // Network Security Groups
+	RouteTableID      string
+	RouteTableName    string
+	// Boot volume details
+	BootVolumeID    string
+	BootVolumeState string
 }
 
 // Placement groups region/availability/fault‐domain info.
@@ -78,6 +90,8 @@ type IndexableInstance struct {
 	Name                 string
 	ImageName            string
 	ImageOperatingSystem string
+	IP                   string
+	SubnetID             string
 	Tags                 string
 	TagValues            string // Separate field for tag values only, to make them directly searchable
 }
