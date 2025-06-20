@@ -322,6 +322,7 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 						for k, v := range imageDetails.FreeformTags {
 							inst.InstanceTags.FreeformTags[k] = v
 						}
+						logger.LogWithLevel(s.logger, 1, "freeform tags", "tags", inst.InstanceTags.FreeformTags)
 					}
 					// Copy defined tags
 					if len(imageDetails.DefinedTags) > 0 {
@@ -332,6 +333,7 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 								inst.InstanceTags.DefinedTags[namespace][k] = v
 							}
 						}
+						logger.LogWithLevel(s.logger, 1, "defined tags", "tags", inst.InstanceTags.DefinedTags)
 					}
 					mu.Unlock()
 				}
@@ -359,6 +361,7 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 					for k, v := range imageDetails.FreeformTags {
 						inst.InstanceTags.FreeformTags[k] = v
 					}
+					logger.LogWithLevel(s.logger, 1, "freeform tags", "tags", inst.InstanceTags.FreeformTags)
 				}
 				// Copy defined tags
 				if len(imageDetails.DefinedTags) > 0 {
@@ -369,6 +372,7 @@ func (s *Service) enrichInstancesWithImageDetails(ctx context.Context, instanceM
 							inst.InstanceTags.DefinedTags[namespace][k] = v
 						}
 					}
+					logger.LogWithLevel(s.logger, 1, "defined tags", "tags", inst.InstanceTags.DefinedTags)
 				}
 			}
 		}
