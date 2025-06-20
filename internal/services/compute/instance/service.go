@@ -139,9 +139,10 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 		inst := mapToInstance(oc)
 		instances = append(instances, inst)
 
-		// Store a reference to the instance in the map for easy lookup
-		// We need to get the address of the instance in the slice
-		instanceMap[*oc.Id] = &instances[len(instances)-1]
+		// Create a copy of the instance and store a pointer to it in the map
+		// This ensures the pointer remains valid even if the slice is reallocated
+		instanceCopy := inst
+		instanceMap[*oc.Id] = &instanceCopy
 	}
 
 	logger.LogWithLevel(s.logger, 3, "Fetched instances for page",
@@ -162,6 +163,14 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 				logger.LogWithLevel(s.logger, 1, "error enriching instances with image details", "error", err)
 				// Continue with the instances we have, even if image details enrichment failed
 			}
+		}
+	}
+
+	// Update the instances slice with the enriched data from the instanceMap
+	// This ensures that the returned instances have the enriched data
+	for i := range instances {
+		if enriched, ok := instanceMap[instances[i].ID]; ok {
+			instances[i] = *enriched
 		}
 	}
 
