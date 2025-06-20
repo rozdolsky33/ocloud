@@ -74,10 +74,10 @@ type PaginationInfo struct {
 
 // IndexableInstance represents a simplified structure of an Instance for indexing and searchable purposes.
 type IndexableInstance struct {
-	ID              string
-	Name            string
-	OperatingSystem string
-	CreatedAt       string
-	Tags            string
-	TagValues       string // Separate field for tag values only, to make them directly searchable
+	ID                   string
+	Name                 string
+	ImageName            string
+	ImageOperatingSystem string
+	Tags                 string
+	TagValues            string // Separate field for tag values only, to make them directly searchable
 }

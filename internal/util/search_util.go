@@ -47,7 +47,7 @@ func FlattenTags(freeform map[string]string, defined map[string]map[string]inter
 	}
 
 	if len(parts) == 0 {
-		return "", nil // Return empty string without error when no tags are found
+		return "", nil // Return an empty string without error when no tags are found
 	}
 
 	return strings.Join(parts, " "), nil
@@ -98,7 +98,7 @@ func ExtractTagValues(freeform map[string]string, defined map[string]map[string]
 	}
 
 	if len(values) == 0 {
-		return "", nil // Return empty string without error when no tag values are found
+		return "", nil // Return an empty string without error when no tag values are found
 	}
 
 	return strings.Join(values, " "), nil

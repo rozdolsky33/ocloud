@@ -50,8 +50,9 @@ type JSONResponse struct {
 type IndexableImage struct {
 	ID              string
 	Name            string
-	OperatingSystem string
 	ImageOSVersion  string
+	OperatingSystem string
+	LunchMode       string
 	Tags            string
 	TagValues       string // Separate field for tag values only, to make them directly searchable
 }

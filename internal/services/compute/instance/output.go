@@ -42,14 +42,12 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 		// Create instance data map
 		instanceData := map[string]string{
 			"ID":         instance.ID,
-			"AD":         instance.Placement.AvailabilityDomain,
-			"FD":         instance.Placement.FaultDomain,
-			"Region":     instance.Placement.Region,
 			"Shape":      instance.Shape,
 			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
 			"Created":    instance.CreatedAt.String(),
 			"Subnet ID":  instance.SubnetID,
 			"Name":       instance.Name,
+			"ImageName":  instance.ImageName,
 			"Private IP": instance.IP,
 			"Memory":     fmt.Sprintf("%d GB", int(instance.Resources.MemoryGB)),
 			"State":      string(instance.State),
@@ -57,8 +55,8 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "AD", "FD", "Region", "Shape", "vCPUs",
-			"Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
+			"ID", "Name", "ImageName", "Shape", "vCPUs", "Memory",
+			"Created", "Subnet ID", "Private IP", "State",
 		}
 
 		// Add image details if available
@@ -66,21 +64,31 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			// Add image ID
 			instanceData["Image ID"] = instance.ImageID
 
-			// Add an image name if available
-			if instance.ImageName != "" {
-				instanceData["Image Name"] = instance.ImageName
-			}
-
 			// Add an operating system if available
 			if instance.ImageOS != "" {
 				instanceData["Operating System"] = instance.ImageOS
 			}
 
+			//Add AD
+			if instance.Placement.AvailabilityDomain != "" {
+				instanceData["AD"] = instance.Placement.AvailabilityDomain
+			}
+
+			// AD FD
+			if instance.Placement.FaultDomain != "" {
+				instanceData["FD"] = instance.Placement.FaultDomain
+			}
+			if instance.Placement.Region != "" {
+				instanceData["Region"] = instance.Placement.Region
+			}
+
 			// Add image details to ordered keys
 			imageKeys := []string{
 				"Image ID",
-				"Image Name",
 				"Operating System",
+				"AD",
+				"FD",
+				"Region",
 			}
 
 			// Insert image keys after the "State" key

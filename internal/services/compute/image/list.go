@@ -22,7 +22,7 @@ func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON boo
 	ctx := context.Background()
 	images, totalCount, nextPageToken, err := service.List(ctx, limit, page)
 	if err != nil {
-		return fmt.Errorf("listing iamges: %w", err)
+		return fmt.Errorf("listing images: %w", err)
 	}
 
 	// Display image information with pagination details
