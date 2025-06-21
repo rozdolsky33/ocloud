@@ -3,22 +3,34 @@ package version
 import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/buildinfo"
+	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/spf13/cobra"
+	"io"
+	"os"
 )
 
 // VersionInfo encapsulates the version command functionality
 // It wraps a cobra.Command and provides methods to handle version information display
 type VersionInfo struct {
-	cmd *cobra.Command
+	cmd    *cobra.Command
+	writer io.Writer
 }
 
 // NewVersionCommand creates and configures a new version command
 // Returns a *cobra.Command that can be added to the root command
 // This function was refactored to return *cobra.Command directly instead of *VersionInfo
 // to fix an issue with adding the command to the root command
-func NewVersionCommand() *cobra.Command {
-	vc := &VersionInfo{}
+func NewVersionCommand(appCtx *app.ApplicationContext) *cobra.Command {
+	// If appCtx is nil, use os.Stdout as the default writer
+	var writer io.Writer = os.Stdout
+	if appCtx != nil {
+		writer = appCtx.Stdout
+	}
+
+	vc := &VersionInfo{
+		writer: writer,
+	}
 
 	vc.cmd = &cobra.Command{
 		Use:   "version",
@@ -37,17 +49,17 @@ func (vc *VersionInfo) runCommand(cmd *cobra.Command, args []string) error {
 
 // printVersionInfo displays the version information
 func (vc *VersionInfo) printVersionInfo() error {
-	PrintVersionInfo()
+	PrintVersionInfo(vc.writer)
 	return nil
 }
 
-// PrintVersionInfo prints complete version information to stdout
+// PrintVersionInfo prints complete version information to the specified writer
 // This function was updated to print all version information (version, commit hash, and build time)
 // to ensure consistency between the version command and the version flag
-func PrintVersionInfo() {
-	fmt.Printf("Version:    %s\n", buildinfo.Version)
-	fmt.Printf("Commit:     %s\n", buildinfo.CommitHash)
-	fmt.Printf("Built:      %s\n", buildinfo.BuildTime)
+func PrintVersionInfo(w io.Writer) {
+	fmt.Fprintf(w, "Version:    %s\n", buildinfo.Version)
+	fmt.Fprintf(w, "Commit:     %s\n", buildinfo.CommitHash)
+	fmt.Fprintf(w, "Built:      %s\n", buildinfo.BuildTime)
 }
 
 // PrintVersion prints version information to stdout
@@ -55,7 +67,7 @@ func PrintVersionInfo() {
 // It was added to fix an issue where cmd/root.go was calling version.PrintVersion()
 // which didn't exist in the version package
 func PrintVersion() {
-	PrintVersionInfo()
+	PrintVersionInfo(os.Stdout)
 }
 
 // AddVersionFlag adds a version flag to the root command
@@ -73,7 +85,7 @@ func AddVersionFlag(rootCmd *cobra.Command) {
 	// Override the persistent pre-run hook to check for the `-v` flag
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if versionFlag := flags.GetBoolFlag(cmd, flags.FlagNameVersion, false); versionFlag {
-			PrintVersionInfo()
+			PrintVersionInfo(os.Stdout)
 			return nil
 		}
 

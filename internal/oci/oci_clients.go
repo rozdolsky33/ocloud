@@ -5,6 +5,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/identity"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/containerengine"
 	"github.com/oracle/oci-go-sdk/v65/core"
 )
 
@@ -31,6 +32,15 @@ func NewNetworkClient(provider common.ConfigurationProvider) (core.VirtualNetwor
 	client, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating virtual network client: %w", err)
+	}
+	return client, nil
+}
+
+// NewContainerEngineClient creates a new instance of ContainerEngineClient using the provided configuration provider.
+func NewContainerEngineClient(provider common.ConfigurationProvider) (containerengine.ContainerEngineClient, error) {
+	client, err := containerengine.NewContainerEngineClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating container engine client: %w", err)
 	}
 	return client, nil
 }

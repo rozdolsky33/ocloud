@@ -30,7 +30,7 @@ func TestImageCommand(t *testing.T) {
 	// Test that the subcommands are added
 	listCmd := findSubCommand(cmd, "list")
 	assert.NotNil(t, listCmd, "list subcommand should be added")
-	assert.Equal(t, "List all image", listCmd.Short)
+	assert.Equal(t, "List all images", listCmd.Short)
 	assert.NotNil(t, listCmd.RunE, "list subcommand should have a RunE function")
 
 	// Test that the list subcommand has the appropriate flags

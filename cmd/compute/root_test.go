@@ -26,7 +26,7 @@ func TestComputeCommand(t *testing.T) {
 
 	// Test that the subcommands are added
 	subCmds := cmd.Commands()
-	assert.Equal(t, 2, len(subCmds), "compute command should have 2 subcommands")
+	assert.Equal(t, 3, len(subCmds), "compute command should have 3 subcommands")
 
 	// Check that the instance subcommand is present
 	instanceCmd := findSubCommand(subCmds, "instance")
@@ -35,6 +35,10 @@ func TestComputeCommand(t *testing.T) {
 	// Check that the image subcommand is present
 	imageCmd := findSubCommand(subCmds, "image")
 	assert.NotNil(t, imageCmd, "compute command should have image subcommand")
+
+	// Check that the oke subcommand is present
+	okeCmd := findSubCommand(subCmds, "oke")
+	assert.NotNil(t, okeCmd, "compute command should have oke subcommand")
 }
 
 // findSubCommand is a helper function to find a subcommand by name
