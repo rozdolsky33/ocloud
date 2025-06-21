@@ -3,21 +3,25 @@ package instance
 import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/text"
-
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/printer"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// PrintInstancesTable displays instances in a formatted table or JSON format.
+// PrintInstancesInfo displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
-func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool, showImageDetails bool) error {
+func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showImageDetails bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
+	// Adjust the pagination information if available
+	if pagination != nil {
+		util.AdjustPaginationInfo(pagination)
+	}
+
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return marshalInstancesToJSON(p, instances, pagination)
+		return util.MarshalDataToJSON[Instance](p, instances, pagination)
 	}
 
 	// Handle the case where no instances are found.
@@ -37,9 +41,6 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 		// Create instance data map
 		instanceData := map[string]string{
 			"ID":         instance.ID,
-			"AD":         instance.Placement.AvailabilityDomain,
-			"FD":         instance.Placement.FaultDomain,
-			"Region":     instance.Placement.Region,
 			"Shape":      instance.Shape,
 			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
 			"Created":    instance.CreatedAt.String(),
@@ -52,8 +53,9 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "AD", "FD", "Region", "Shape", "vCPUs",
-			"Created", "Subnet ID", "Name", "Private IP", "Memory", "State",
+			"ID", "Name", "Shape", "vCPUs", "Memory",
+			"Created", "Subnet ID", "Private IP", "State",
+			"Boot Volume ID", "Boot Volume State",
 		}
 
 		// Add image details if available
@@ -61,14 +63,52 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 			// Add image ID
 			instanceData["Image ID"] = instance.ImageID
 
-			// Add an image name if available
-			if instance.ImageDetails.ImageName != "" {
-				instanceData["Image Name"] = instance.ImageDetails.ImageName
+			// Add an operating system if available
+			if instance.ImageOS != "" {
+				instanceData["Operating System"] = instance.ImageOS
+			}
+			if instance.ImageName != "" {
+				instanceData["Image Name"] = instance.ImageName
 			}
 
-			// Add an operating system if available
-			if instance.ImageDetails.ImageOS != "" {
-				instanceData["Operating System"] = instance.ImageDetails.ImageOS
+			//Add AD
+			if instance.Placement.AvailabilityDomain != "" {
+				instanceData["AD"] = instance.Placement.AvailabilityDomain
+			}
+
+			// AD FD
+			if instance.Placement.FaultDomain != "" {
+				instanceData["FD"] = instance.Placement.FaultDomain
+			}
+			if instance.Placement.Region != "" {
+				instanceData["Region"] = instance.Placement.Region
+			}
+
+			// Add subnet details
+			if instance.SubnetName != "" {
+				instanceData["Subnet Name"] = instance.SubnetName
+			}
+			if instance.VcnID != "" {
+				instanceData["VCN ID"] = instance.VcnID
+			}
+			if instance.VcnName != "" {
+				instanceData["VCN Name"] = instance.VcnName
+			}
+
+			// Add hostname
+			if instance.Hostname != "" {
+				instanceData["Hostname"] = instance.Hostname
+			}
+
+			// Add private DNS enabled flag
+			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
+
+			// Add route table details
+			if instance.RouteTableID != "" {
+				instanceData["Route Table ID"] = instance.RouteTableID
+			}
+			if instance.RouteTableName != "" {
+				instanceData["Route Table Name"] = instance.RouteTableName
 			}
 
 			// Add image details to ordered keys
@@ -76,6 +116,16 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 				"Image ID",
 				"Image Name",
 				"Operating System",
+				"AD",
+				"FD",
+				"Region",
+				"Subnet Name",
+				"VCN ID",
+				"VCN Name",
+				"Hostname",
+				"Private DNS Enabled",
+				"Route Table ID",
+				"Route Table Name",
 			}
 
 			// Insert image keys after the "State" key
@@ -87,26 +137,6 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 				}
 			}
 			orderedKeys = newOrderedKeys
-
-			// Add free-form tags if available
-			if len(instance.ImageDetails.ImageFreeformTags) > 0 {
-				for k, v := range instance.ImageDetails.ImageFreeformTags {
-					tagKey := fmt.Sprintf("Image Tag (Free): %s", k)
-					instanceData[tagKey] = v
-				}
-			}
-
-			// Add defined tags if available
-			if len(instance.ImageDetails.ImageDefinedTags) > 0 {
-				for namespace, tags := range instance.ImageDetails.ImageDefinedTags {
-					for k, v := range tags {
-						tagKey := fmt.Sprintf("Image Tag (Defined): %s.%s", namespace, k)
-						if v != nil {
-							instanceData[tagKey] = fmt.Sprintf("%v", v)
-						}
-					}
-				}
-			}
 		}
 
 		// Create the colored title using components from the app context.
@@ -119,50 +149,6 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 		p.PrintKeyValues(title, instanceData, orderedKeys)
 	}
 
-	logPaginationInfo(pagination, appCtx)
+	util.LogPaginationInfo(pagination, appCtx)
 	return nil
-}
-
-// logPaginationInfo logs pagination information if available.
-func logPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContext) {
-	// Log pagination information if available
-	if pagination != nil {
-		// Calculate the total records displayed so far
-		totalRecordsDisplayed := pagination.CurrentPage * pagination.Limit
-		if totalRecordsDisplayed > pagination.TotalCount {
-			totalRecordsDisplayed = pagination.TotalCount
-		}
-
-		// Log pagination information at the INFO level
-		appCtx.Logger.Info("--- Pagination Information ---",
-			"page", pagination.CurrentPage,
-			"records", fmt.Sprintf("%d/%d", totalRecordsDisplayed, pagination.TotalCount),
-			"limit", pagination.Limit)
-
-		// Add debug logs for navigation hints
-		if pagination.CurrentPage > 1 {
-			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
-				"action", "previous page",
-				"page", pagination.CurrentPage-1,
-				"limit", pagination.Limit)
-		}
-
-		// Check if there are more pages after the current page
-		if pagination.CurrentPage*pagination.Limit < pagination.TotalCount {
-			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
-				"action", "next page",
-				"page", pagination.CurrentPage+1,
-				"limit", pagination.Limit)
-		}
-	}
-}
-
-// marshalInstancesToJSON now accepts a printer and returns an error.
-func marshalInstancesToJSON(p *printer.Printer, instances []Instance, pagination *PaginationInfo) error {
-	response := JSONResponse{
-		Instances:  instances,
-		Pagination: pagination,
-	}
-	// Use the printer's method to marshal. It will write to the correct output.
-	return p.MarshalToJSON(response)
 }

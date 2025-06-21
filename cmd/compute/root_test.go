@@ -3,6 +3,7 @@ package compute
 import (
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -19,12 +20,33 @@ func TestComputeCommand(t *testing.T) {
 	// Test that the compute command is properly configured
 	assert.Equal(t, "compute", cmd.Use)
 	assert.Equal(t, "Manage OCI compute services", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure compute services such as instances, images, and more.", cmd.Long)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure compute services such as instances, image, and more.", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
-	// Test that the instance subcommand is added
-	instanceCmd := cmd.Commands()
-	assert.Equal(t, 1, len(instanceCmd), "compute command should have 1 subcommand")
-	assert.Equal(t, "instance", instanceCmd[0].Name(), "compute command should have instance subcommand")
+	// Test that the subcommands are added
+	subCmds := cmd.Commands()
+	assert.Equal(t, 3, len(subCmds), "compute command should have 3 subcommands")
+
+	// Check that the instance subcommand is present
+	instanceCmd := findSubCommand(subCmds, "instance")
+	assert.NotNil(t, instanceCmd, "compute command should have instance subcommand")
+
+	// Check that the image subcommand is present
+	imageCmd := findSubCommand(subCmds, "image")
+	assert.NotNil(t, imageCmd, "compute command should have image subcommand")
+
+	// Check that the oke subcommand is present
+	okeCmd := findSubCommand(subCmds, "oke")
+	assert.NotNil(t, okeCmd, "compute command should have oke subcommand")
+}
+
+// findSubCommand is a helper function to find a subcommand by name
+func findSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
+	for _, cmd := range cmds {
+		if cmd.Name() == name {
+			return cmd
+		}
+	}
+	return nil
 }

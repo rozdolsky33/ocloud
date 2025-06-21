@@ -6,6 +6,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // ListInstances lists instances in the configured compartment using the provided application.
@@ -26,7 +27,7 @@ func ListInstances(appCtx *app.ApplicationContext, limit int, page int, useJSON 
 	}
 
 	// Display instance information with pagination details
-	err = PrintInstancesTable(instances, appCtx, &PaginationInfo{
+	err = PrintInstancesInfo(instances, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,

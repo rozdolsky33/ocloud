@@ -1,12 +1,12 @@
 // Package flags defines flag types and domain-specific flag collections for the CLI.
-package instance
+package flags
 
 import "github.com/rozdolsky33/ocloud/internal/config/flags"
 
 var FlagDefaultLimit = 20
 var FlagDefaultPage = 1
 
-// Instance flags
+// Compute flags
 var (
 	ImageDetailsFlag = flags.BoolFlag{
 		Name:      flags.FlagNameImageDetails,
@@ -27,12 +27,5 @@ var (
 		Shorthand: flags.FlagShortPage,
 		Default:   FlagDefaultPage,
 		Usage:     flags.FlagDescPage,
-	}
-
-	JSONFlag = flags.BoolFlag{
-		Name:      flags.FlagNameJSON,
-		Shorthand: flags.FlagShortJSON,
-		Default:   false,
-		Usage:     flags.FlagDescJSON,
 	}
 )

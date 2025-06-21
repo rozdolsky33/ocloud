@@ -34,15 +34,15 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 	if len(matchedInstances) == 0 {
 		if useJSON {
 			// Return an empty JSON array if no instances found
-			fmt.Println(`{"instances": [], "pagination": null}`)
+			fmt.Fprintln(appCtx.Stdout, `{"instances": [], "pagination": null}`)
 		} else {
-			fmt.Printf("No instances found matching pattern: %s\n", namePattern)
+			fmt.Fprintf(appCtx.Stdout, "No instances found matching pattern: %s\n", namePattern)
 		}
 		return nil
 	}
 
-	// Pass the showImageDetails flag to PrintInstancesTable
-	err = PrintInstancesTable(matchedInstances, appCtx, nil, useJSON, showImageDetails)
+	// Pass the showImageDetails flag to PrintInstancesInfo
+	err = PrintInstancesInfo(matchedInstances, appCtx, nil, useJSON, showImageDetails)
 	if err != nil {
 		return fmt.Errorf("printing instances table: %w", err)
 	}
