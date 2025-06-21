@@ -4,6 +4,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // Service represents a structure that encapsulates the Compute client, logger, and compartment information.
@@ -21,29 +22,7 @@ type Image struct {
 	OperatingSystem string
 	ImageOSVersion  string
 	LunchMode       string
-	ImageTags       ResourceTags
-}
-
-// ResourceTags represents a collection of user-defined and predefined tags associated with a resource.
-// FreeformTags is a simple key-value pair map defined by the user for tagging purposes.
-// DefinedTags is a nested map containing namespace and keys with associated values for structured tagging.
-type ResourceTags struct {
-	FreeformTags map[string]string
-	DefinedTags  map[string]map[string]interface{}
-}
-
-// PaginationInfo holds information about the current page and total results
-type PaginationInfo struct {
-	CurrentPage   int
-	TotalCount    int
-	Limit         int
-	NextPageToken string
-}
-
-// JSONResponse Create a response structure that includes instances and pagination info
-type JSONResponse struct {
-	Images     []Image         `json:"image"`
-	Pagination *PaginationInfo `json:"pagination,omitempty"`
+	ImageTags       util.ResourceTags
 }
 
 // IndexableImage represents an image model optimized for indexing and searching in the application.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // ListImages lists image from the compute service with provided limit, page, and JSON output option.
@@ -26,7 +27,7 @@ func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON boo
 	}
 
 	// Display image information with pagination details
-	err = PrintImagesInfo(images, appCtx, &PaginationInfo{
+	err = PrintImagesInfo(images, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,

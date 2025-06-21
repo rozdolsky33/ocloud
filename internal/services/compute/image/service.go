@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	"github.com/rozdolsky33/ocloud/internal/util"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"strconv"
 	"strings"
 )

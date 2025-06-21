@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/blevesearch/bleve/v2"
-	"github.com/rozdolsky33/ocloud/internal/util"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -959,8 +959,6 @@ func toIndexableInstance(instance Instance) IndexableInstance {
 		Name:                 strings.ToLower(instance.Name),
 		ImageName:            strings.ToLower(instance.ImageName),
 		ImageOperatingSystem: strings.ToLower(instance.ImageOS),
-		IP:                   strings.ToLower(instance.IP),
-		SubnetID:             strings.ToLower(instance.SubnetID),
 		Tags:                 flattenedTags,
 		TagValues:            tagValues,
 	}
