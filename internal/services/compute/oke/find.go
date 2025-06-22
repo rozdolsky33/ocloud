@@ -32,7 +32,7 @@ func FindClusters(appCtx *app.ApplicationContext, namePattern string, useJSON bo
 		return nil
 	}
 
-	err = PrintOKEInfo(clusters, appCtx, useJSON)
+	err = PrintOKEInfo(clusters, appCtx, nil, useJSON)
 	if err != nil {
 		return fmt.Errorf("printing clusters: %w", err)
 	}

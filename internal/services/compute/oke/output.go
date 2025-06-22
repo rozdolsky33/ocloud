@@ -5,20 +5,24 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, useJSON bool) error {
+func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// If JSON output is requested, use the printer to marshal the response.
-	if useJSON {
-		return marshalOKEToJSON(p, clusters)
+	// Adjust the pagination information if available
+	if pagination != nil {
+		util.AdjustPaginationInfo(pagination)
 	}
 
-	// Handle the case where no clusters are found.
-	if len(clusters) == 0 {
-		fmt.Fprintln(appCtx.Stdout, "No clusters found.")
+	// If JSON output is requested, use the printer to marshal the response.
+	if useJSON {
+		return util.MarshalDataToJSON[Cluster](p, clusters, pagination)
+	}
+
+	if util.ValidateAndReportEmpty(clusters, pagination, appCtx.Stdout) {
 		return nil
 	}
 
@@ -40,14 +44,7 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, useJSON bo
 			"ID", "Name", "Version", "Created", "State", "Private Endpoint", "Node Pools Count",
 		}
 
-		// Create the colored title using components from the app context.
-		coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
-		coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
-		coloredCluster := text.Colors{text.FgBlue}.Sprint(cluster.Name)
-		title := fmt.Sprintf("%s: %s: %s",
-			coloredTenancy,
-			coloredCompartment,
-			coloredCluster)
+		title := util.FormatColoredTitle(appCtx, cluster.Name)
 
 		// Call the printer method to render the key-value table for this cluster.
 		p.PrintKeyValues(title, clusterData, orderedKeys)
@@ -76,7 +73,7 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, useJSON bo
 				nodeTitle := fmt.Sprintf("%s: %s: %s",
 					coloredNodePool,
 					node.Name,
-					coloredCluster)
+					cluster.Name)
 
 				// Call the printer method to render the key-value table for this cluster.
 				p.PrintKeyValues(nodeTitle, nodePoolData, nodePoolKeys)
@@ -89,14 +86,4 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, useJSON bo
 		}
 	}
 	return nil
-}
-
-// marshalOKEToJSON marshals clusters to JSON format.
-// It accepts a printer and returns an error.
-func marshalOKEToJSON(p *printer.Printer, clusters []Cluster) error {
-	response := JSONResponse{
-		Clusters: clusters,
-	}
-	// Use the printer's method to marshal. It will write to the correct output.
-	return p.MarshalToJSON(response)
 }

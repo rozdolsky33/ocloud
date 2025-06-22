@@ -1,8 +1,6 @@
 package image
 
 import (
-	"fmt"
-	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -24,15 +22,7 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 		return util.MarshalDataToJSON[Image](p, images, pagination)
 	}
 
-	// Handle the case where no instances are found.
-	if len(images) == 0 {
-		fmt.Fprintln(appCtx.Stdout, "No instances found.") // Write to the context's writer.
-		if pagination != nil && pagination.TotalCount > 0 {
-			fmt.Fprintf(appCtx.Stdout, "Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
-			if pagination.CurrentPage > 1 {
-				fmt.Fprintf(appCtx.Stdout, "Try a lower page number (e.g., --page %d)\n", pagination.CurrentPage-1)
-			}
-		}
+	if util.ValidateAndReportEmpty(images, pagination, appCtx.Stdout) {
 		return nil
 	}
 
@@ -54,10 +44,8 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 		}
 
 		// Create the colored title using components from the app context.
-		coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
-		coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
-		coloredInstance := text.Colors{text.FgBlue}.Sprint(image.Name)
-		title := fmt.Sprintf("%s: %s: %s", coloredTenancy, coloredCompartment, coloredInstance)
+		title := util.FormatColoredTitle(appCtx, image.Name)
+
 		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, imageData, orderedKeys)
 	}

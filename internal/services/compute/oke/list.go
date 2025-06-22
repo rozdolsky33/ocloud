@@ -21,7 +21,7 @@ func ListClusters(appCtx *app.ApplicationContext, useJSON bool) error {
 		return fmt.Errorf("listing oke clusters: %w", err)
 	}
 
-	err = PrintOKEInfo(clusters, appCtx, useJSON)
+	err = PrintOKEInfo(clusters, appCtx, nil, useJSON)
 	if err != nil {
 		return fmt.Errorf("printing clusters: %w", err)
 	}

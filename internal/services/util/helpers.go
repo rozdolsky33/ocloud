@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/printer"
+	"io"
 )
 
 // LogPaginationInfo logs pagination information if available.
@@ -55,11 +55,17 @@ func AdjustPaginationInfo(pagination *PaginationInfo) {
 	pagination.TotalCount = totalRecordsDisplayed
 }
 
-// MarshalDataToJSON now accepts a printer and returns an error.
-func MarshalDataToJSON[T any](p *printer.Printer, items []T, pagination *PaginationInfo) error {
-	response := JSONResponse[T]{
-		Items:      items,
-		Pagination: pagination,
+// ValidateAndReportEmpty handles the case when a generic list is empty and provides pagination hints.
+func ValidateAndReportEmpty[T any](items []T, pagination *PaginationInfo, out io.Writer) bool {
+	if len(items) > 0 {
+		return false
 	}
-	return p.MarshalToJSON(response)
+	fmt.Fprintf(out, "No Items found.\n")
+	if pagination != nil && pagination.TotalCount > 0 {
+		fmt.Fprintf(out, "Page %d is empty. Total records: %d\n", pagination.CurrentPage, pagination.TotalCount)
+		if pagination.CurrentPage > 1 {
+			fmt.Fprintf(out, "Try a lower page number (e.g., --page %d)\n", pagination.CurrentPage-1)
+		}
+	}
+	return true
 }
