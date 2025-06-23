@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/cmd/compute"
+	"github.com/rozdolsky33/ocloud/cmd/identity"
 	"github.com/rozdolsky33/ocloud/cmd/version"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
@@ -30,6 +31,8 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	// Add version flag
 	version.AddVersionFlag(rootCmd)
+
+	rootCmd.AddCommand(identity.NewIdentityCmd(appCtx))
 
 	return rootCmd
 }
