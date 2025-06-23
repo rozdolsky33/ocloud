@@ -10,8 +10,8 @@ func NewImageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "image",
 		Aliases:       []string{"img"},
-		Short:         "Manage OCI image",
-		Long:          "Manage Oracle Cloud Infrastructure compute image - list all image or find image by name pattern.",
+		Short:         "Manage OCI Image",
+		Long:          "Manage Oracle Cloud Infrastructure Compute Image - list all image or find image by name pattern.",
 		Example:       "  ocloud compute image list\n  ocloud compute image find <image-name>",
 		SilenceUsage:  true,
 		SilenceErrors: true,

@@ -1,10 +1,10 @@
-package oke
+package compartment
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/compute/oke"
+	"github.com/rozdolsky33/ocloud/internal/services/identity/compartment"
 	"github.com/spf13/cobra"
 )
 
@@ -12,9 +12,9 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "List all Oracle Kubernetes Engine (OKE)",
-		Long:          "List all Kubernetes Engine (OKE) in the specified compartment.",
-		Example:       "  ocloud compute oke list\n ocloud compute oke list --json",
+		Short:         "List all Compartments in the specified tenancy or compartment",
+		Long:          "List all Compartments in a specified tenancy or compartment that hase nested compartments.",
+		Example:       "  ocloud identity compartment list\n ocloud compartment list --json",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -29,6 +29,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.ListClusters(appCtx, useJSON)
+	logger.LogWithLevel(logger.CmdLogger, 1, "Running compartment list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
+	return compartment.ListCompartments(appCtx, useJSON)
 }
