@@ -31,3 +31,14 @@ func TestNewNetworkClient(t *testing.T) {
 	assert.NotNil(t, client)
 	assert.NoError(t, err)
 }
+
+func TestNewContainerEngineClient(t *testing.T) {
+	// Use our mock configuration provider instead of the real one
+	provider := NewMockConfigurationProvider()
+
+	// Call the function
+	client, err := NewContainerEngineClient(provider)
+
+	assert.NotNil(t, client)
+	assert.NoError(t, err)
+}

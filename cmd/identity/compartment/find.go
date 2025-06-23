@@ -1,10 +1,10 @@
-package oke
+package compartment
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/compute/oke"
+	"github.com/rozdolsky33/ocloud/internal/services/identity/compartment"
 	"github.com/spf13/cobra"
 )
 
@@ -13,9 +13,9 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find oke cluster by name pattern",
-		Long:          "Find oke in the specified compartment that match the given pattern.",
-		Example:       "  ocloud compute oke find myoke\n  ocloud compute oke find myoke \n  ocloud compute oke find myoke --json",
+		Short:         "Find compartment by name pattern",
+		Long:          "Find compartment that match the given pattern.",
+		Example:       "  ocloud identity compartment find mycompartment\n  ocloud identity compartment find somecompartment \n  ocloud identity compartment find mycomp --json",
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -33,6 +33,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.FindClusters(appCtx, namePattern, useJSON)
+	logger.LogWithLevel(logger.CmdLogger, 1, "Running find command", "pattern", namePattern, "json", useJSON)
+	return compartment.FindCompartments(appCtx, namePattern, useJSON)
 }
