@@ -20,8 +20,8 @@ func TestInstanceCommand(t *testing.T) {
 
 	// Test that the instance command is properly configured
 	assert.Equal(t, "instance", cmd.Use)
-	assert.Equal(t, "Manage OCI instances", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure instances - list all instances or find instances by name pattern.", cmd.Long)
+	assert.Equal(t, "Manage OCI Instances", cmd.Short)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure Compute Instances - list all instances or find instances by name pattern.", cmd.Long)
 	assert.Equal(t, "  ocloud compute instance list\n  ocloud compute instance find myinstance", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
