@@ -143,14 +143,28 @@ func buildCompartmentIndex(compartments []Compartment) (bleve.Index, error) {
 
 func fuzzySearchIndex(index bleve.Index, pattern string, fields []string, limit int) ([]int, error) {
 	var queries []bleveQuery.Query
+
 	for _, field := range fields {
-		q := bleve.NewFuzzyQuery(pattern)
-		q.SetField(field)
-		q.SetFuzziness(2)
-		queries = append(queries, q)
+		// Fuzzy match (Levenshtein distance)
+		fq := bleve.NewFuzzyQuery(pattern)
+		fq.SetField(field)
+		fq.SetFuzziness(2)
+		queries = append(queries, fq)
+
+		// Prefix match (useful for dev1, splunkdev1, etc.)
+		pq := bleve.NewPrefixQuery(pattern)
+		pq.SetField(field)
+		queries = append(queries, pq)
+
+		// Wildcard match (matches anywhere in token)
+		wq := bleve.NewWildcardQuery("*" + pattern + "*")
+		wq.SetField(field)
+		queries = append(queries, wq)
 	}
 
+	// OR all queries together
 	combinedQuery := bleve.NewDisjunctionQuery(queries...)
+
 	search := bleve.NewSearchRequestOptions(combinedQuery, limit, 0, false)
 
 	result, err := index.Search(search)
@@ -181,7 +195,7 @@ func mapToCompartment(compartment identity.Compartment) Compartment {
 func mapToIndexableCompartment(compartment Compartment) IndexableCompartment {
 	return IndexableCompartment{
 		ID:          compartment.ID,
-		Name:        compartment.Name,
-		Description: compartment.Description,
+		Name:        strings.ToLower(compartment.Name),
+		Description: strings.ToLower(compartment.Description),
 	}
 }
