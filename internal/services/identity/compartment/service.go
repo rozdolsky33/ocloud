@@ -25,14 +25,14 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 }
 
 // List retrieves a paginated list of compartments based on the provided limit and page number parameters.
-func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, error) {
+func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, int, string, error) {
 	var compartments []Compartment
 	var nextPageToken string
 	var totalCount int
 	logger.LogWithLevel(s.logger, 3, "List compartments", "limit", limit, "pageNum", pageNum, "Total Count", totalCount)
 
 	// Prepare the base request
-	// Create a request with a limit parameter to fetch only the required page
+	// to Create a request with a limit parameter to fetch only the required page
 	request := identity.ListCompartmentsRequest{
 		CompartmentId:          &s.TenancyID,
 		AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
@@ -71,7 +71,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 
 			resp, err := s.identityClient.ListCompartments(ctx, tokenRequest)
 			if err != nil {
-				return nil, fmt.Errorf("error fetching token: %w", err)
+				return nil, 0, "", fmt.Errorf("error fetching token: %w", err)
 			}
 
 			// If there is no next page, we've reached then end
@@ -80,7 +80,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
 					"currentPage", currentPage, "targetPage", pageNum)
 				// Return an empty result since the requested page is beyond available data
-				return []Compartment{}, nil
+				return []Compartment{}, 0, "", nil
 			}
 			// Move to the next page
 			page = *resp.OpcNextPage
@@ -95,7 +95,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 	// Fetch compartments for the request
 	response, err := s.identityClient.ListCompartments(ctx, request)
 	if err != nil {
-		return nil, fmt.Errorf("listing compartments: %w", err)
+		return nil, 0, "", fmt.Errorf("listing compartments: %w", err)
 	}
 
 	// Set the total count to the number of compartments returned
@@ -123,8 +123,17 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 		compartments = append(compartments, compartment)
 
 	}
+	// Calculate if there are more pages after the current page
+	hasNextPage := pageNum*limit < totalCount
 
-	return compartments, nil
+	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
+		"returnedCount", len(compartments),
+		"totalCount", totalCount,
+		"page", pageNum,
+		"limit", limit,
+		"hasNextPage", hasNextPage)
+
+	return compartments, totalCount, nextPageToken, nil
 
 }
 

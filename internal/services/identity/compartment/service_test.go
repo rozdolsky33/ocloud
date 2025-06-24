@@ -66,7 +66,7 @@ func TestList(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	compartments, err := service.List(ctx, 10, 1)
+	compartments, _, _, err := service.List(ctx, 10, 1)
 
 	// but if we did, we would expect no error and a valid list of compartments
 	assert.NoError(t, err)

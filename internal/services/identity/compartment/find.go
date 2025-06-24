@@ -15,14 +15,14 @@ func FindCompartments(appCtx *app.ApplicationContext, namePattern string, useJSO
 		return fmt.Errorf("creating compartment service: %w", err)
 	}
 	ctx := context.Background()
-	compartments, err := service.Find(ctx, namePattern)
+	matchedCompartments, err := service.Find(ctx, namePattern)
 	if err != nil {
-		return fmt.Errorf("finding compartments: %w", err)
+		return fmt.Errorf("finding matchedCompartments: %w", err)
 	}
 
-	err = PrintCompartmentsInfo(compartments, appCtx, nil, useJSON)
+	err = PrintCompartmentsInfo(matchedCompartments, appCtx, nil, useJSON)
 	if err != nil {
-		return fmt.Errorf("printing compartments: %w", err)
+		return fmt.Errorf("printing matchedCompartments: %w", err)
 	}
 
 	return nil
