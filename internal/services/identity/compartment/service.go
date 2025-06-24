@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/blevesearch/bleve/v2"
+	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"strconv"
 	"strings"
 )
@@ -66,82 +66,108 @@ func (s *Service) List(ctx context.Context) ([]Compartment, error) {
 }
 
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment, error) {
-	logger.LogWithLevel(s.logger, 3, "finding compartments with bleve fuzzy search", "pattern", searchPattern)
+	logger.LogWithLevel(s.logger, 3, "Finding compartments using Bleve fuzzy search", "pattern", searchPattern)
 
-	var allCompartments []Compartment
-	var indexableDocs []IndexableCompartment
+	// Step 1: Fetch all compartments
+	compartments, err := s.fetchAllCompartments(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Build index
+	index, err := buildCompartmentIndex(compartments)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 3: Fuzzy search on multiple fields
+	fields := []string{"Name", "Description"}
+	matchedIdxs, err := fuzzySearchIndex(index, strings.ToLower(searchPattern), fields, 500)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 4: Return matched compartments
+	var results []Compartment
+	for _, idx := range matchedIdxs {
+		if idx >= 0 && idx < len(compartments) {
+			results = append(results, compartments[idx])
+		}
+	}
+
+	logger.LogWithLevel(s.logger, 2, "Compartment search complete", "matches", len(results))
+	return results, nil
+}
+
+func (s *Service) fetchAllCompartments(ctx context.Context) ([]Compartment, error) {
+	var all []Compartment
 	page := ""
 
-	// 1. Fetch all Compartments
 	for {
 		resp, err := s.identityClient.ListCompartments(ctx, identity.ListCompartmentsRequest{
-			CompartmentId: &s.TenancyID,
-			Page:          &page,
+			CompartmentId:          &s.TenancyID,
+			Page:                   &page,
+			AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
+			LifecycleState:         identity.CompartmentLifecycleStateActive,
+			CompartmentIdInSubtree: common.Bool(true),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing compartments: %w", err)
 		}
-		for _, comp := range resp.Items {
-			compartment := mapToCompartment(comp)
-			allCompartments = append(allCompartments, compartment)
-			indexableDocs = append(indexableDocs, mapToIndexableCompartment(compartment))
+		for _, item := range resp.Items {
+			all = append(all, mapToCompartment(item))
 		}
 		if resp.OpcNextPage == nil {
 			break
 		}
 		page = *resp.OpcNextPage
 	}
+	return all, nil
+}
 
-	// 2. Create an in-memory Bleve index
+func buildCompartmentIndex(compartments []Compartment) (bleve.Index, error) {
 	indexMapping := bleve.NewIndexMapping()
 	index, err := bleve.NewMemOnly(indexMapping)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create index for compartments: %w", err)
+		return nil, err
 	}
-	for i, doc := range indexableDocs {
-		err := index.Index(fmt.Sprintf("%d", i), doc)
+
+	for i, c := range compartments {
+		err := index.Index(fmt.Sprintf("%d", i), mapToIndexableCompartment(c))
 		if err != nil {
-			return nil, fmt.Errorf("indexing compartments failed: %w", err)
+			return nil, fmt.Errorf("indexing failed: %w", err)
 		}
 	}
+	return index, nil
+}
 
-	// 3. Prepare a fuzzy query with wildcard
-	searchPattern = strings.ToLower(searchPattern)
-	if !strings.HasPrefix(searchPattern, "*") {
-		searchPattern = "*" + searchPattern
+func fuzzySearchIndex(index bleve.Index, pattern string, fields []string, limit int) ([]int, error) {
+	var queries []bleveQuery.Query
+	for _, field := range fields {
+		q := bleve.NewFuzzyQuery(pattern)
+		q.SetField(field)
+		q.SetFuzziness(2)
+		queries = append(queries, q)
 	}
-	if !strings.HasPrefix(searchPattern, "*") {
-		searchPattern = searchPattern + "*"
-	}
 
-	// Create a query that searches across all relevant fields
-	// The _all field is a special field that searches across all indexed fields
-	// We also explicitly search in Tags and TagValues fields to ensure tag searches work correctly
-	queryString := fmt.Sprintf("_all:%s OR Tags:%s OR TagValues:%s",
-		searchPattern, searchPattern, searchPattern)
+	combinedQuery := bleve.NewDisjunctionQuery(queries...)
+	search := bleve.NewSearchRequestOptions(combinedQuery, limit, 0, false)
 
-	query := bleve.NewQueryStringQuery(queryString)
-	searchRequest := bleve.NewSearchRequest(query)
-	searchRequest.Size = 1000 // Increase from default of 10
-	// 4. Perform search
-	result, err := index.Search(searchRequest)
+	result, err := index.Search(search)
 	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
+		return nil, err
 	}
 
-	// 5. Collect matched results
-	var matched []Compartment
+	var hits []int
 	for _, hit := range result.Hits {
 		idx, err := strconv.Atoi(hit.ID)
-		if err != nil || idx < 0 || idx >= len(allCompartments) {
+		if err != nil {
 			continue
 		}
-		matched = append(matched, allCompartments[idx])
+		hits = append(hits, idx)
 	}
 
-	logger.LogWithLevel(s.logger, 2, "found image", "count", len(matched))
-
-	return matched, nil
+	return hits, nil
 }
 
 func mapToCompartment(compartment identity.Compartment) Compartment {
@@ -153,13 +179,9 @@ func mapToCompartment(compartment identity.Compartment) Compartment {
 }
 
 func mapToIndexableCompartment(compartment Compartment) IndexableCompartment {
-	flattenedTags, _ := util.FlattenTags(compartment.CompartmentTags.FreeformTags, compartment.CompartmentTags.DefinedTags)
-	tagValues, _ := util.ExtractTagValues(compartment.CompartmentTags.FreeformTags, compartment.CompartmentTags.DefinedTags)
 	return IndexableCompartment{
 		ID:          compartment.ID,
 		Name:        compartment.Name,
 		Description: compartment.Description,
-		Tags:        flattenedTags,
-		TagValues:   tagValues,
 	}
 }
