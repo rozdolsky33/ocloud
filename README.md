@@ -19,6 +19,7 @@ Whether you're managing instances, working with images, or need to quickly find 
   - List and find compute instances with detailed information
   - View instance details including OS, image information, and resource specifications
   - Manage compute images with search capabilities
+  - List and find Oracle Kubernetes Engine (OKE) clusters
 
 - **Enhanced User Experience**
   - Colored output for improved readability
@@ -209,6 +210,32 @@ ocloud --compartment my-compartment compute image find "Oracle-Linux"
 ocloud --compartment my-compartment compute image list --json
 ```
 
+### Working with OKE Clusters
+
+```bash
+# List all OKE clusters in a compartment
+ocloud --compartment my-compartment compute oke list
+
+# Find OKE clusters by name pattern
+ocloud --compartment my-compartment compute oke find "my-cluster"
+
+# Output OKE cluster information in JSON format
+ocloud --compartment my-compartment compute oke list --json
+```
+
+### Working with Compartments
+
+```bash
+# List all compartments
+ocloud identity compartment list
+
+# Find compartments by name pattern
+ocloud identity compartment find "my-compartment"
+
+# Output compartment information in JSON format
+ocloud identity compartment list --json
+```
+
 ### Working with Different Tenancies
 
 ```bash
@@ -236,6 +263,10 @@ The project follows a modern Go application structure:
     - `root.go`: Compute command and flags
     - `instance/`: Instance-related commands
     - `image/`: Image-related commands
+    - `oke/`: Oracle Kubernetes Engine commands
+  - `identity/`: Identity-related commands
+    - `root.go`: Identity command and flags
+    - `compartment/`: Compartment-related commands
   - `version/`: Version command implementation
 - `internal/`: Internal packages (not intended for external use)
   - `app/`: Application context and core functionality
@@ -245,9 +276,14 @@ The project follows a modern Go application structure:
   - `printer/`: Output formatting utilities
   - `services/`: Service implementations
     - `compute/`: Compute resource operations
+      - `instance/`: Instance-related operations
+      - `image/`: Image-related operations
+      - `oke/`: Oracle Kubernetes Engine operations
     - `database/`: Database resource operations
     - `identity/`: Identity resource operations
+      - `compartment/`: Compartment-related operations
     - `network/`: Network resource operations
+    - `util/`: Utility functions and helpers
 
 ### Development Commands
 
