@@ -23,7 +23,7 @@ func InitializeAppContext(ctx context.Context, tempRoot *cobra.Command) (*app.Ap
 		// If help is requested, create a minimal ApplicationContext without cloud configuration
 		appCtx = &app.ApplicationContext{
 			Logger:          logger.CmdLogger,
-			CompartmentName: flags.FlagValueHelpMode, // Set a dummy value to avoid nil pointer issues
+			CompartmentName: flags.FlagValueHelpMode, // Set a dummy value to avoid nil pointer issues.
 		}
 	} else {
 		// One-shot bootstrap of ApplicationContext

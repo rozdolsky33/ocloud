@@ -3,6 +3,7 @@ module github.com/rozdolsky33/ocloud
 go 1.24.3
 
 require (
+	github.com/blevesearch/bleve/v2 v2.5.2
 	github.com/go-logr/logr v1.4.2
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/oracle/oci-go-sdk/v65 v65.93.0
@@ -20,7 +21,6 @@ require (
 	github.com/RoaringBitmap/roaring/v2 v2.4.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.22.0 // indirect
-	github.com/blevesearch/bleve/v2 v2.5.2 // indirect
 	github.com/blevesearch/bleve_index_api v1.2.8 // indirect
 	github.com/blevesearch/geo v0.2.3 // indirect
 	github.com/blevesearch/go-faiss v1.0.25 // indirect
