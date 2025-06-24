@@ -5,7 +5,6 @@ import "github.com/rozdolsky33/ocloud/internal/config/flags"
 var FlagDefaultLimit = 20
 var FlagDefaultPage = 1
 
-// Compute flags
 var (
 	LimitFlag = flags.IntFlag{
 		Name:      flags.FlagNameLimit,
