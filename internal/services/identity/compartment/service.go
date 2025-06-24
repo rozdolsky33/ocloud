@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+// NewService initializes and returns a new Service instance using the provided ApplicationContext.
+// It injects required dependencies such as IdentityClient, Logger, TenancyID, and TenancyName into the Service.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	return &Service{
 		identityClient: appCtx.IdentityClient,
@@ -22,49 +24,111 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) List(ctx context.Context) ([]Compartment, error) {
-	logger.LogWithLevel(s.logger, 3, "Listing compartments in tenancy", "tenancyName: ", s.TenancyName, "tenancyID: ", s.TenancyID)
+// List retrieves a paginated list of compartments based on the provided limit and page number parameters.
+func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, error) {
+	var compartments []Compartment
+	var nextPageToken string
+	var totalCount int
+	logger.LogWithLevel(s.logger, 3, "List compartments", "limit", limit, "pageNum", pageNum, "Total Count", totalCount)
 
-	// prepare the base request
-	req := identity.ListCompartmentsRequest{
+	// Prepare the base request
+	// Create a request with a limit parameter to fetch only the required page
+	request := identity.ListCompartmentsRequest{
 		CompartmentId:          &s.TenancyID,
 		AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
 		LifecycleState:         identity.CompartmentLifecycleStateActive,
-		CompartmentIdInSubtree: common.Bool(true),
+		CompartmentIdInSubtree: common.Bool(true), // ListCompartments on the tenancy (root compartment) default is false
 	}
 
-	var compartments []Compartment
+	// Add limit parameters
+	if limit > 0 {
+		request.Limit = &limit
+		logger.LogWithLevel(s.logger, 3, "Setting limit parameter", "limit", limit)
+	}
 
-	// paginate through results; stop when OpcNextPage is nil
-	pageToken := ""
-	for {
-		if pageToken != "" {
-			req.Page = common.String(pageToken)
+	// If pageNum > 1, we need to fetch the appropriate page token
+	if pageNum > 1 && limit > 0 {
+		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
+
+		// paginate through results; stop when OpcNextPage is nil
+		page := ""
+		currentPage := 1
+
+		for currentPage <= pageNum {
+			// Fetch page token, not actual data
+			// Use limit to ensure consistent patination
+			tokenRequest := identity.ListCompartmentsRequest{
+				CompartmentId:          &s.TenancyID,
+				AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
+				LifecycleState:         identity.CompartmentLifecycleStateActive,
+				CompartmentIdInSubtree: common.Bool(true), // ListCompartments on the tenancy (root compartment) default is false
+				Page:                   &page,
+			}
+
+			if limit > 0 {
+				tokenRequest.Limit = &limit
+			}
+
+			resp, err := s.identityClient.ListCompartments(ctx, tokenRequest)
+			if err != nil {
+				return nil, fmt.Errorf("error fetching token: %w", err)
+			}
+
+			// If there is no next page, we've reached then end
+			// If there's no next page, we've reached the end
+			if resp.OpcNextPage == nil {
+				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
+					"currentPage", currentPage, "targetPage", pageNum)
+				// Return an empty result since the requested page is beyond available data
+				return []Compartment{}, nil
+			}
+			// Move to the next page
+			page = *resp.OpcNextPage
+			currentPage++
 		}
+		// Set the page token for the actual request
+		request.Page = &page
+		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
 
-		resp, err := s.identityClient.ListCompartments(ctx, req)
-		if err != nil {
-			return nil, fmt.Errorf("listing compartments: %w", err)
-		}
+	}
 
-		// scan each compartment summary for a name match
-		for _, comp := range resp.Items {
-			compartment := mapToCompartment(comp)
-			compartments = append(compartments, compartment)
+	// Fetch compartments for the request
+	response, err := s.identityClient.ListCompartments(ctx, request)
+	if err != nil {
+		return nil, fmt.Errorf("listing compartments: %w", err)
+	}
 
-		}
+	// Set the total count to the number of compartments returned
+	// If we have a next page, this is an estimate
+	totalCount = len(response.Items)
+	// if we have a next page, we know there is more
+	if response.OpcNextPage != nil {
+		// If we have a next page token, we know there are more compartments
+		// We need to estimate the total count more accurately
+		// Since we don't know the exact total count, we'll set it to a value
+		// that indicates there are more pages (at least one more page worth of compartments)
+		totalCount = pageNum*limit + limit
+	}
 
-		// if there's no next page, we're done searching
-		if resp.OpcNextPage == nil {
-			break
-		}
-		pageToken = *resp.OpcNextPage
+	// Save the next page toke if available
+	if response.OpcNextPage != nil {
+		nextPageToken = *response.OpcNextPage
+		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken, "Total Count", totalCount)
+
+	}
+
+	// Process the compartment
+	for _, comp := range response.Items {
+		compartment := mapToCompartment(comp)
+		compartments = append(compartments, compartment)
+
 	}
 
 	return compartments, nil
 
 }
 
+// Find performs a fuzzy search for compartments based on the provided searchPattern and returns matching compartments.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment, error) {
 	logger.LogWithLevel(s.logger, 3, "Finding compartments using Bleve fuzzy search", "pattern", searchPattern)
 
@@ -99,6 +163,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment
 	return results, nil
 }
 
+// fetchAllCompartments retrieves all active compartments within a tenancy, including nested compartments.
 func (s *Service) fetchAllCompartments(ctx context.Context) ([]Compartment, error) {
 	var all []Compartment
 	page := ""
@@ -125,6 +190,9 @@ func (s *Service) fetchAllCompartments(ctx context.Context) ([]Compartment, erro
 	return all, nil
 }
 
+// buildCompartmentIndex creates a Bleve in-memory index for the provided list of compartments for searching purposes.
+// It maps compartments to lowercase indexable structures and indexes them by their respective positions in the list.
+// Returns a constructed Bleve index or an error if indexing fails.
 func buildCompartmentIndex(compartments []Compartment) (bleve.Index, error) {
 	indexMapping := bleve.NewIndexMapping()
 	index, err := bleve.NewMemOnly(indexMapping)
@@ -141,6 +209,8 @@ func buildCompartmentIndex(compartments []Compartment) (bleve.Index, error) {
 	return index, nil
 }
 
+// fuzzySearchIndex performs a fuzzy search on a Bleve index for a given pattern across specified fields.
+// It combines fuzzy, prefix, and wildcard queries, limits the results, and returns matched indices or an error.
 func fuzzySearchIndex(index bleve.Index, pattern string, fields []string, limit int) ([]int, error) {
 	var queries []bleveQuery.Query
 
@@ -184,6 +254,7 @@ func fuzzySearchIndex(index bleve.Index, pattern string, fields []string, limit 
 	return hits, nil
 }
 
+// mapToCompartment maps an identity.Compartment to a Compartment struct, transferring selected field values.
 func mapToCompartment(compartment identity.Compartment) Compartment {
 	return Compartment{
 		Name:        *compartment.Name,
@@ -192,6 +263,7 @@ func mapToCompartment(compartment identity.Compartment) Compartment {
 	}
 }
 
+// mapToIndexableCompartment converts a Compartment instance to an IndexableCompartment with lowercased fields.
 func mapToIndexableCompartment(compartment Compartment) IndexableCompartment {
 	return IndexableCompartment{
 		ID:          compartment.ID,

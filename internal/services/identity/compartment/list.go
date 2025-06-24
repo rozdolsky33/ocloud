@@ -7,16 +7,15 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
-func ListCompartments(appCtx *app.ApplicationContext, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing Compartments")
+func ListCompartments(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
+	logger.LogWithLevel(appCtx.Logger, 1, "Listing Compartments", "limit", limit, "page", page)
 
 	service, err := NewService(appCtx)
-
 	if err != nil {
 		return fmt.Errorf("creating compartment service: %w", err)
 	}
 	ctx := context.Background()
-	compartments, err := service.List(ctx)
+	compartments, err := service.List(ctx, limit, page)
 	if err != nil {
 		return fmt.Errorf("listing compartments: %w", err)
 	}
