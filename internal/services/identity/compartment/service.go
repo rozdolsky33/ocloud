@@ -212,7 +212,6 @@ func mapToCompartment(compartment identity.Compartment) Compartment {
 // mapToIndexableCompartment converts a Compartment instance to an IndexableCompartment with lowercased fields.
 func mapToIndexableCompartment(compartment Compartment) IndexableCompartment {
 	return IndexableCompartment{
-		ID:          compartment.ID,
 		Name:        strings.ToLower(compartment.Name),
 		Description: strings.ToLower(compartment.Description),
 	}

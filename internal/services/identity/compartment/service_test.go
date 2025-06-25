@@ -148,7 +148,6 @@ func TestMapToIndexableCompartment(t *testing.T) {
 	indexable := mapToIndexableCompartment(compartment)
 
 	// Verify that the indexable compartment has the expected values
-	assert.Equal(t, compartment.ID, indexable.ID)
 	assert.Equal(t, strings.ToLower(compartment.Name), indexable.Name)
 	assert.Equal(t, strings.ToLower(compartment.Description), indexable.Description)
 }

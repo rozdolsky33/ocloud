@@ -19,9 +19,6 @@ type Compartment struct {
 }
 
 type IndexableCompartment struct {
-	ID          string
 	Name        string
 	Description string
-	Tags        string
-	TagValues   string
 }
