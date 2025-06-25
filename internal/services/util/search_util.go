@@ -2,8 +2,76 @@ package util
 
 import (
 	"fmt"
+	"github.com/blevesearch/bleve/v2"
+	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
+	"strconv"
 	"strings"
 )
+
+// BuildIndex creates an in-memory Bleve index from a slice of items using a provided mapping function.
+// The mapping function converts each item into an indexable structure for searching.
+// Returns the built index or an error if any indexing operation fails.
+func BuildIndex[T any](items []T, mapToIndexable func(T) any) (bleve.Index, error) {
+	indexMapping := bleve.NewIndexMapping()
+	index, err := bleve.NewMemOnly(indexMapping)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, item := range items {
+		err := index.Index(fmt.Sprintf("%d", i), mapToIndexable(item))
+		if err != nil {
+			return nil, fmt.Errorf("indexing failed at %d: %w", i, err)
+		}
+	}
+	return index, nil
+}
+
+// FuzzySearchIndex performs a fuzzy search on a Bleve index for a given pattern across specified fields.
+// It combines fuzzy, prefix, and wildcard queries, limits the results, and returns matched indices or an error.
+func FuzzySearchIndex(index bleve.Index, pattern string, fields []string) ([]int, error) {
+	var limit = 1000
+	var queries []bleveQuery.Query
+
+	for _, field := range fields {
+		// Fuzzy match (Levenshtein distance)
+		fq := bleve.NewFuzzyQuery(pattern)
+		fq.SetField(field)
+		fq.SetFuzziness(2)
+		queries = append(queries, fq)
+
+		// Prefix match (useful for dev1, splunkdev1, etc.)
+		pq := bleve.NewPrefixQuery(pattern)
+		pq.SetField(field)
+		queries = append(queries, pq)
+
+		// Wildcard match (matches anywhere in token)
+		wq := bleve.NewWildcardQuery("*" + pattern + "*")
+		wq.SetField(field)
+		queries = append(queries, wq)
+	}
+
+	// OR all queries together
+	combinedQuery := bleve.NewDisjunctionQuery(queries...)
+
+	search := bleve.NewSearchRequestOptions(combinedQuery, limit, 0, false)
+
+	result, err := index.Search(search)
+	if err != nil {
+		return nil, err
+	}
+
+	var hits []int
+	for _, hit := range result.Hits {
+		idx, err := strconv.Atoi(hit.ID)
+		if err != nil {
+			continue
+		}
+		hits = append(hits, idx)
+	}
+
+	return hits, nil
+}
 
 // FlattenTags flattens freeform and defined tags into a single string with a specific format suitable for indexing.
 // Freeform tags are processed as key:value pairs, while defined tags include namespace, key, and value.
