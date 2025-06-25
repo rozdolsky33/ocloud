@@ -7,6 +7,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
+// FindAutonomousDatabase searches for Autonomous Databases matching the provided name pattern in the application context.
+// Logs database discovery tasks and can format the result based on the useJSON flag.
+// Returns an error if the discovery or result formatting fails.
 func FindAutonomousDatabase(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Finding Autonomous Databases", "pattern", namePattern)
 

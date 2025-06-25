@@ -121,6 +121,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 	return allDatabases, totalCount, nextPageToken, nil
 }
 
+// Find performs a fuzzy search to find autonomous databases matching the given search pattern in their Name field.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousDatabase, error) {
 	logger.LogWithLevel(s.logger, 3, "finding database with bleve fuzzy search", "pattern", searchPattern)
 
@@ -156,6 +157,8 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousD
 	return results, nil
 }
 
+// fetchAllAutonomousDatabases retrieves all autonomous databases in the specified compartment by paginating through results.
+// It returns a slice of AutonomousDatabase and an error if the retrieval fails.
 func (s *Service) fetchAllAutonomousDatabases(ctx context.Context) ([]AutonomousDatabase, error) {
 	var allDatabases []AutonomousDatabase
 	page := ""
@@ -179,12 +182,15 @@ func (s *Service) fetchAllAutonomousDatabases(ctx context.Context) ([]Autonomous
 	return allDatabases, nil
 }
 
+// mapToIndexableDatabase converts an AutonomousDatabase object into an IndexableAutonomousDatabase object.
+// It maps only relevant fields required for indexing, such as the database's name.
 func mapToIndexableDatabase(db AutonomousDatabase) IndexableAutonomousDatabase {
 	return IndexableAutonomousDatabase{
 		Name: db.Name,
 	}
 }
 
+// mapToDatabase transforms a database.AutonomousDatabaseSummary instance into an AutonomousDatabase struct.
 func mapToDatabase(db database.AutonomousDatabaseSummary) AutonomousDatabase {
 	return AutonomousDatabase{
 		Name:              *db.DbName,

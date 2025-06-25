@@ -102,4 +102,31 @@ run_command ./bin/ocloud identity compartment find "test" --json
 run_command ./bin/ocloud identity compartment find "test" -j
 run_command ./bin/ocloud ident compart f "test"
 
+# Test database command
+print_header "Testing database command"
+run_command ./bin/ocloud database --help
+run_command ./bin/ocloud db --help
+
+# Test database autonomousdb command
+print_header "Testing database autonomousdb command"
+run_command ./bin/ocloud database autonomousdb --help
+run_command ./bin/ocloud database adb --help
+run_command ./bin/ocloud db adb --help
+
+# Test database autonomousdb list command
+print_header "Testing database autonomousdb list command"
+run_command ./bin/ocloud database autonomousdb list
+run_command ./bin/ocloud database autonomousdb list
+run_command ./bin/ocloud database autonomousdb list --limit 10 --page 1 --json
+run_command ./bin/ocloud database autonomousdb list -m 10 -p 1 -j
+run_command ./bin/ocloud db adb l
+
+# Test database autonomousdb find command
+print_header "Testing database autonomousdb find command"
+run_command ./bin/ocloud database autonomousdb find "test"
+run_command ./bin/ocloud database autonomousdb find "test"
+run_command ./bin/ocloud database autonomousdb find "test" --json
+run_command ./bin/ocloud database autonomousdb find "test" -j
+run_command ./bin/ocloud db adb f "test"
+
 print_header "All tests completed"
