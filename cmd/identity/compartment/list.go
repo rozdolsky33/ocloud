@@ -1,7 +1,7 @@
 package compartment
 
 import (
-	compartmentFlags "github.com/rozdolsky33/ocloud/cmd/compute/flags"
+	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -54,9 +54,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 	// Add flags specific to the list command
-	compartmentFlags.LimitFlag.Add(cmd)
-	compartmentFlags.PageFlag.Add(cmd)
-	flags.JSONFlag.Add(cmd)
+	paginationFlags.LimitFlag.Add(cmd)
+	paginationFlags.PageFlag.Add(cmd)
 
 	return cmd
 
@@ -65,8 +64,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	// Get pagination parameters
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, compartmentFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, compartmentFlags.FlagDefaultPage)
+	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
+	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags

@@ -3,13 +3,11 @@ package compartment
 import (
 	"context"
 	"fmt"
-	"github.com/blevesearch/bleve/v2"
-	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"strconv"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"strings"
 )
 
@@ -148,16 +146,19 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment
 	}
 
 	// Step 2: Build index
-	index, err := buildCompartmentIndex(compartments)
+	index, err := util.BuildIndex(compartments, func(c Compartment) any {
+		return mapToIndexableCompartment(c)
+	})
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build index: %w", err)
 	}
 
 	// Step 3: Fuzzy search on multiple fields
 	fields := []string{"Name", "Description"}
-	matchedIdxs, err := fuzzySearchIndex(index, strings.ToLower(searchPattern), fields, 500)
+	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fuzzy search index: %w", err)
 	}
 
 	// Step 4: Return matched compartments
@@ -199,70 +200,6 @@ func (s *Service) fetchAllCompartments(ctx context.Context) ([]Compartment, erro
 	return all, nil
 }
 
-// buildCompartmentIndex creates a Bleve in-memory index for the provided list of compartments for searching purposes.
-// It maps compartments to lowercase indexable structures and indexes them by their respective positions in the list.
-// Returns a constructed Bleve index or an error if indexing fails.
-func buildCompartmentIndex(compartments []Compartment) (bleve.Index, error) {
-	indexMapping := bleve.NewIndexMapping()
-	index, err := bleve.NewMemOnly(indexMapping)
-	if err != nil {
-		return nil, err
-	}
-
-	for i, c := range compartments {
-		err := index.Index(fmt.Sprintf("%d", i), mapToIndexableCompartment(c))
-		if err != nil {
-			return nil, fmt.Errorf("indexing failed: %w", err)
-		}
-	}
-	return index, nil
-}
-
-// fuzzySearchIndex performs a fuzzy search on a Bleve index for a given pattern across specified fields.
-// It combines fuzzy, prefix, and wildcard queries, limits the results, and returns matched indices or an error.
-func fuzzySearchIndex(index bleve.Index, pattern string, fields []string, limit int) ([]int, error) {
-	var queries []bleveQuery.Query
-
-	for _, field := range fields {
-		// Fuzzy match (Levenshtein distance)
-		fq := bleve.NewFuzzyQuery(pattern)
-		fq.SetField(field)
-		fq.SetFuzziness(2)
-		queries = append(queries, fq)
-
-		// Prefix match (useful for dev1, splunkdev1, etc.)
-		pq := bleve.NewPrefixQuery(pattern)
-		pq.SetField(field)
-		queries = append(queries, pq)
-
-		// Wildcard match (matches anywhere in token)
-		wq := bleve.NewWildcardQuery("*" + pattern + "*")
-		wq.SetField(field)
-		queries = append(queries, wq)
-	}
-
-	// OR all queries together
-	combinedQuery := bleve.NewDisjunctionQuery(queries...)
-
-	search := bleve.NewSearchRequestOptions(combinedQuery, limit, 0, false)
-
-	result, err := index.Search(search)
-	if err != nil {
-		return nil, err
-	}
-
-	var hits []int
-	for _, hit := range result.Hits {
-		idx, err := strconv.Atoi(hit.ID)
-		if err != nil {
-			continue
-		}
-		hits = append(hits, idx)
-	}
-
-	return hits, nil
-}
-
 // mapToCompartment maps an identity.Compartment to a Compartment struct, transferring selected field values.
 func mapToCompartment(compartment identity.Compartment) Compartment {
 	return Compartment{
@@ -275,7 +212,6 @@ func mapToCompartment(compartment identity.Compartment) Compartment {
 // mapToIndexableCompartment converts a Compartment instance to an IndexableCompartment with lowercased fields.
 func mapToIndexableCompartment(compartment Compartment) IndexableCompartment {
 	return IndexableCompartment{
-		ID:          compartment.ID,
 		Name:        strings.ToLower(compartment.Name),
 		Description: strings.ToLower(compartment.Description),
 	}

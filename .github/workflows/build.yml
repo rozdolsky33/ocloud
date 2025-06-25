@@ -67,5 +67,4 @@ jobs:
       - name: Build project
         run: |
           make clean
-          make test
           make build

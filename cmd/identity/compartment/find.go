@@ -52,9 +52,6 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	// Add flags specific to the find command
-	flags.JSONFlag.Add(cmd)
-
 	return cmd
 }
 

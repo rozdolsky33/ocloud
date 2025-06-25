@@ -14,7 +14,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"l"},
 		Short:         "List all Oracle Kubernetes Engine (OKE)",
 		Long:          "List all Kubernetes Engine (OKE) in the specified compartment.",
-		Example:       "  ocloud compute oke list\n ocloud compute oke list --json",
+		Example:       " ocloud compute oke list\n ocloud compute oke list --json",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
