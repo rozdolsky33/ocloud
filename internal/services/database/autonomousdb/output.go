@@ -28,6 +28,7 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 	// Print each Compartment as a separate key-value table with a colored title.
 	for _, database := range databases {
 		databaseData := map[string]string{
+			"Private IP":       database.PrivateEndpointIp,
 			"ID":               database.ID,
 			"Private Endpoint": database.PrivateEndpoint,
 			"High":             database.ConnectionStrings["HIGH"],
@@ -36,7 +37,7 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 		}
 		// Define ordered Keys
 		orderedKeys := []string{
-			"ID", "Private Endpoint", "High", "Medium", "Low",
+			"Private IP", "ID", "Private Endpoint", "High", "Medium", "Low",
 		}
 
 		title := util.FormatColoredTitle(appCtx, database.Name)
