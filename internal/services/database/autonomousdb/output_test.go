@@ -192,6 +192,7 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	assert.Contains(t, jsonOutput, "TestDatabase1")
 	assert.Contains(t, jsonOutput, "ocid1.autonomousdatabase.oc1.phx.test1")
 	assert.Contains(t, jsonOutput, "test-endpoint-1.example.com")
+	assert.Contains(t, jsonOutput, "192.168.1.1")
 	assert.Contains(t, jsonOutput, "high-connection-string-1")
 	assert.Contains(t, jsonOutput, "medium-connection-string-1")
 	assert.Contains(t, jsonOutput, "low-connection-string-1")
