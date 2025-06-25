@@ -25,8 +25,26 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 	if util.ValidateAndReportEmpty(databases, pagination, appCtx.Stdout) {
 		return nil
 	}
+	// Print each Compartment as a separate key-value table with a colored title.
+	for _, database := range databases {
+		databaseData := map[string]string{
+			"ID":               database.ID,
+			"Private Endpoint": database.PrivateEndpoint,
+			"High":             database.ConnectionStrings["HIGH"],
+			"Medium":           database.ConnectionStrings["MEDIUM"],
+			"Low":              database.ConnectionStrings["LOW"],
+		}
+		// Define ordered Keys
+		orderedKeys := []string{
+			"ID", "Private Endpoint", "High", "Medium", "Low",
+		}
+
+		title := util.FormatColoredTitle(appCtx, database.Name)
+
+		// Call the printer method to tender the key-value table for this instance
+		p.PrintKeyValues(title, databaseData, orderedKeys)
+	}
 
 	util.LogPaginationInfo(pagination, appCtx)
-
 	return nil
 }
