@@ -14,9 +14,10 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 	// Create test databases
 	databases := []AutonomousDatabase{
 		{
-			Name:            "TestDatabase1",
-			ID:              "ocid1.autonomousdatabase.oc1.phx.test1",
-			PrivateEndpoint: "test-endpoint-1.example.com",
+			Name:              "TestDatabase1",
+			ID:                "ocid1.autonomousdatabase.oc1.phx.test1",
+			PrivateEndpoint:   "test-endpoint-1.example.com",
+			PrivateEndpointIp: "192.168.1.1",
 			ConnectionStrings: map[string]string{
 				"HIGH":   "high-connection-string-1",
 				"MEDIUM": "medium-connection-string-1",
@@ -24,9 +25,10 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 			},
 		},
 		{
-			Name:            "TestDatabase2",
-			ID:              "ocid1.autonomousdatabase.oc1.phx.test2",
-			PrivateEndpoint: "test-endpoint-2.example.com",
+			Name:              "TestDatabase2",
+			ID:                "ocid1.autonomousdatabase.oc1.phx.test2",
+			PrivateEndpoint:   "test-endpoint-2.example.com",
+			PrivateEndpointIp: "192.168.1.2",
 			ConnectionStrings: map[string]string{
 				"HIGH":   "high-connection-string-2",
 				"MEDIUM": "medium-connection-string-2",
@@ -55,12 +57,14 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 	assert.Contains(t, output, "TestDatabase1")
 	assert.Contains(t, output, "ocid1.autonomousdatabase.oc1.phx.test1")
 	assert.Contains(t, output, "test-endpoint-1.example.com")
+	assert.Contains(t, output, "192.168.1.1")
 	assert.Contains(t, output, "high-connection-string-1")
 	assert.Contains(t, output, "medium-connection-string-1")
 	assert.Contains(t, output, "low-connection-string-1")
 	assert.Contains(t, output, "TestDatabase2")
 	assert.Contains(t, output, "ocid1.autonomousdatabase.oc1.phx.test2")
 	assert.Contains(t, output, "test-endpoint-2.example.com")
+	assert.Contains(t, output, "192.168.1.2")
 	assert.Contains(t, output, "high-connection-string-2")
 	assert.Contains(t, output, "medium-connection-string-2")
 	assert.Contains(t, output, "low-connection-string-2")
@@ -77,12 +81,14 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 	assert.Contains(t, jsonOutput, "TestDatabase1")
 	assert.Contains(t, jsonOutput, "ocid1.autonomousdatabase.oc1.phx.test1")
 	assert.Contains(t, jsonOutput, "test-endpoint-1.example.com")
+	assert.Contains(t, jsonOutput, "192.168.1.1")
 	assert.Contains(t, jsonOutput, "high-connection-string-1")
 	assert.Contains(t, jsonOutput, "medium-connection-string-1")
 	assert.Contains(t, jsonOutput, "low-connection-string-1")
 	assert.Contains(t, jsonOutput, "TestDatabase2")
 	assert.Contains(t, jsonOutput, "ocid1.autonomousdatabase.oc1.phx.test2")
 	assert.Contains(t, jsonOutput, "test-endpoint-2.example.com")
+	assert.Contains(t, jsonOutput, "192.168.1.2")
 	assert.Contains(t, jsonOutput, "high-connection-string-2")
 	assert.Contains(t, jsonOutput, "medium-connection-string-2")
 	assert.Contains(t, jsonOutput, "low-connection-string-2")
@@ -129,9 +135,10 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	// Create test databases
 	databases := []AutonomousDatabase{
 		{
-			Name:            "TestDatabase1",
-			ID:              "ocid1.autonomousdatabase.oc1.phx.test1",
-			PrivateEndpoint: "test-endpoint-1.example.com",
+			Name:              "TestDatabase1",
+			ID:                "ocid1.autonomousdatabase.oc1.phx.test1",
+			PrivateEndpoint:   "test-endpoint-1.example.com",
+			PrivateEndpointIp: "192.168.1.1",
 			ConnectionStrings: map[string]string{
 				"HIGH":   "high-connection-string-1",
 				"MEDIUM": "medium-connection-string-1",
