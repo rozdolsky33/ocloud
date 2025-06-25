@@ -7,6 +7,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/containerengine"
 	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/oracle/oci-go-sdk/v65/database"
 )
 
 // NewIdentityClient creates and returns a new instance of IdentityClient using the provided configuration provider.
@@ -41,6 +42,15 @@ func NewContainerEngineClient(provider common.ConfigurationProvider) (containere
 	client, err := containerengine.NewContainerEngineClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating container engine client: %w", err)
+	}
+	return client, nil
+}
+
+// NewDatabaseClient creates and returns a new DatabaseClient using the provided configuration.
+func NewDatabaseClient(provider common.ConfigurationProvider) (database.DatabaseClient, error) {
+	client, err := database.NewDatabaseClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating database client: %w", err)
 	}
 	return client, nil
 }
