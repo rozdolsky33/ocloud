@@ -18,7 +18,7 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return util.MarshalDataToJSON[Compartment](p, compartments, pagination)
+		return util.MarshalDataToJSONResponse[Compartment](p, compartments, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(compartments, pagination, appCtx.Stdout) {

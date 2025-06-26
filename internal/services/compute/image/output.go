@@ -19,7 +19,7 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return util.MarshalDataToJSON[Image](p, images, pagination)
+		return util.MarshalDataToJSONResponse[Image](p, images, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(images, pagination, appCtx.Stdout) {
