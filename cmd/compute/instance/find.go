@@ -75,7 +75,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunFindCommand handles the execution of the find command
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
-	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameImageDetails, false)
+	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags

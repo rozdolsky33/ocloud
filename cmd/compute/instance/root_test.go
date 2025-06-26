@@ -59,10 +59,10 @@ func TestInstanceCommand(t *testing.T) {
 	assert.NotNil(t, findCmd.RunE, "find subcommand should have a RunE function")
 
 	// Test that the find subcommand has the appropriate flags
-	imageDetailsFlag := findCmd.Flags().Lookup(flags.FlagNameImageDetails)
+	imageDetailsFlag := findCmd.Flags().Lookup(flags.FlagNameAllInformation)
 	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added to find subcommand")
-	assert.Equal(t, flags.FlagShortImageDetails, imageDetailsFlag.Shorthand)
-	assert.Equal(t, flags.FlagDescImageDetails, imageDetailsFlag.Usage)
+	assert.Equal(t, flags.FlagShortAllInformation, imageDetailsFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescAllInformation, imageDetailsFlag.Usage)
 
 	// JSON flag is now a global flag, so it should not be in the local flags
 	jsonFlagFind := findCmd.Flags().Lookup(flags.FlagNameJSON)
