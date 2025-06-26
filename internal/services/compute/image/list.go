@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListImages lists image from the compute service with provided limit, page, and JSON output option.
+// ListImages lists image from the compute service with a provided limit, page, and JSON output option.
 // It uses the application context for configuration and logging.
 // Returns an error if the operation fails.
 func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {

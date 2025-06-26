@@ -356,7 +356,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 	indexingStartTime := time.Now()
 	var indexableDocs []IndexableInstance
 	for _, inst := range instanceMap {
-		indexableDocs = append(indexableDocs, toIndexableInstance(*inst))
+		indexableDocs = append(indexableDocs, mapToIndexableInstance(*inst))
 	}
 	indexingDuration := time.Since(indexingStartTime)
 	logger.LogWithLevel(s.logger, 3, "Created indexable documents", "count", len(indexableDocs), "duration", indexingDuration)
@@ -950,10 +950,9 @@ func mapToInstance(oc core.Instance) Instance {
 }
 
 // ToIndexableInstance converts an Instance into an IndexableInstance with simplified and normalized fields for indexing.
-func toIndexableInstance(instance Instance) IndexableInstance {
+func mapToIndexableInstance(instance Instance) IndexableInstance {
 	flattenedTags, _ := util.FlattenTags(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
 	tagValues, _ := util.ExtractTagValues(instance.InstanceTags.FreeformTags, instance.InstanceTags.DefinedTags)
-
 	return IndexableInstance{
 		ID:                   instance.ID,
 		Name:                 strings.ToLower(instance.Name),
