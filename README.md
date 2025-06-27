@@ -21,6 +21,13 @@ Whether you're managing instances, working with images, or need to quickly find 
   - Manage compute images with search capabilities
   - List and find Oracle Kubernetes Engine (OKE) clusters
 
+- **Identity Management**
+  - List and find compartments with detailed information
+  - Manage identity policies with search capabilities
+
+- **Database Management**
+  - List and find Autonomous Databases with detailed information
+
 - **Enhanced User Experience**
   - Colored output for improved readability
   - Configurable verbosity levels for debugging
@@ -236,6 +243,32 @@ ocloud identity compartment find "my-compartment"
 ocloud identity compartment list --json
 ```
 
+### Working with Policies
+
+```bash
+# List all policies
+ocloud identity policy list
+
+# Find policies by name pattern
+ocloud identity policy find "my-policy"
+
+# Output policy information in JSON format
+ocloud identity policy list --json
+```
+
+### Working with Autonomous Databases
+
+```bash
+# List all Autonomous Databases in a compartment
+ocloud --compartment my-compartment database autonomousdb list
+
+# Find Autonomous Databases by name pattern
+ocloud --compartment my-compartment database autonomousdb find "my-database"
+
+# Output Autonomous Database information in JSON format
+ocloud --compartment my-compartment database autonomousdb list --json
+```
+
 ### Working with Different Tenancies
 
 ```bash
@@ -267,6 +300,10 @@ The project follows a modern Go application structure:
   - `identity/`: Identity-related commands
     - `root.go`: Identity command and flags
     - `compartment/`: Compartment-related commands
+    - `policy/`: Policy-related commands
+  - `database/`: Database-related commands
+    - `root.go`: Database command and flags
+    - `autonomousdb/`: Autonomous Database-related commands
   - `version/`: Version command implementation
 - `internal/`: Internal packages (not intended for external use)
   - `app/`: Application context and core functionality
@@ -280,8 +317,10 @@ The project follows a modern Go application structure:
       - `image/`: Image-related operations
       - `oke/`: Oracle Kubernetes Engine operations
     - `database/`: Database resource operations
+      - `autonomousdb/`: Autonomous Database operations
     - `identity/`: Identity resource operations
       - `compartment/`: Compartment-related operations
+      - `policy/`: Policy-related operations
     - `network/`: Network resource operations
     - `util/`: Utility functions and helpers
 
@@ -297,6 +336,23 @@ The project follows a modern Go application structure:
 | `make lint` | Run golangci-lint |
 | `make generate` | Run go generate to update generated code |
 | `make clean` | Clean build artifacts |
+
+### Testing
+
+The project includes a comprehensive test script `test_ocloud.sh` that tests all major command categories and their subcommands:
+
+- Root commands and global flags
+- Compute commands (instance, image, oke)
+- Identity commands (compartment, policy)
+- Database commands (autonomousdb)
+
+The script tests various flags and abbreviations for each command, following a consistent pattern throughout.
+
+To run the test script:
+
+```bash
+./test_ocloud.sh
+```
 
 ## Error Handling
 

@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-// LogPaginationInfo logs pagination information if available.
+// LogPaginationInfo logs pagination information if available and prints it to the output.
 func LogPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContext) {
 	// Log pagination information if available
 	if pagination != nil {
@@ -20,6 +20,11 @@ func LogPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 			"records", fmt.Sprintf("%d", pagination.TotalCount),
 			"limit", pagination.Limit,
 			"nextPage", hasNextPage)
+
+		// Print pagination information to the output if stdout is available
+		if appCtx.Stdout != nil {
+			fmt.Fprintf(appCtx.Stdout, "Page %d | Total: %d\n", pagination.CurrentPage, pagination.TotalCount)
+		}
 
 		// Add debug logs for navigation hints
 		if pagination.CurrentPage > 1 {

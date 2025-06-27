@@ -16,8 +16,7 @@ import (
 // - useJSON: A flag indicating whether to output information in JSON format.
 // Returns an error if the operation fails.
 func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImageDetails bool, useJSON bool) error {
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
-	logger.LogWithLevel(appCtx.Logger, 1, "FindInstances()", "namePattern", namePattern, "showImageDetails", showImageDetails, "json", useJSON)
+	logger.LogWithLevel(appCtx.Logger, 1, "FindInstances", "namePattern", namePattern, "showImageDetails", showImageDetails, "json", useJSON)
 
 	service, err := NewService(appCtx)
 	if err != nil {
@@ -30,6 +29,7 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 		return fmt.Errorf("finding instances: %w", err)
 	}
 
+	// TODO:
 	// Display matched instances
 	if len(matchedInstances) == 0 {
 		if useJSON {
@@ -46,5 +46,6 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 	if err != nil {
 		return fmt.Errorf("printing instances table: %w", err)
 	}
+
 	return nil
 }
