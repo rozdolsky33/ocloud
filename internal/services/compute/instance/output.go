@@ -20,7 +20,7 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return util.MarshalDataToJSON[Instance](p, instances, pagination)
+		return util.MarshalDataToJSONResponse[Instance](p, instances, pagination)
 	}
 
 	// Handle the case where no instances are found.

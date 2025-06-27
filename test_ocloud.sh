@@ -56,8 +56,8 @@ run_command ./bin/ocloud comp inst l
 print_header "Testing compute instance find command"
 run_command ./bin/ocloud compute instance find "test"
 run_command ./bin/ocloud compute instance find "test"
-run_command ./bin/ocloud compute instance find "test" --image-details --json
-run_command ./bin/ocloud compute instance find "test" -i -j
+run_command ./bin/ocloud compute instance find "test" --all --json
+run_command ./bin/ocloud compute instance find "test" -A -j
 run_command ./bin/ocloud comp inst f "test"
 
 # Test with debug flag

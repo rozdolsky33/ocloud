@@ -7,8 +7,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/printer"
 )
 
-// MarshalDataToJSON now accepts a printer and returns an error.
-func MarshalDataToJSON[T any](p *printer.Printer, items []T, pagination *PaginationInfo) error {
+// MarshalDataToJSONResponse now accepts a printer and returns an error.
+func MarshalDataToJSONResponse[T any](p *printer.Printer, items []T, pagination *PaginationInfo) error {
 	response := JSONResponse[T]{
 		Items:      items,
 		Pagination: pagination,

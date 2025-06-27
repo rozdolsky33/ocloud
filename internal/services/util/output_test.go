@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestMarshalDataToJSON tests the MarshalDataToJSON function
+// TestMarshalDataToJSON tests the MarshalDataToJSONResponse function
 func TestMarshalDataToJSON(t *testing.T) {
 	// Create a buffer to capture output
 	var buf bytes.Buffer
@@ -19,8 +19,8 @@ func TestMarshalDataToJSON(t *testing.T) {
 
 	// Test with empty items and nil pagination
 	var items []string
-	err := MarshalDataToJSON(p, items, nil)
-	assert.NoError(t, err, "MarshalDataToJSON should not return an error")
+	err := MarshalDataToJSONResponse(p, items, nil)
+	assert.NoError(t, err, "MarshalDataToJSONResponse should not return an error")
 
 	// Verify that the output is valid JSON
 	var response JSONResponse[string]
@@ -34,8 +34,8 @@ func TestMarshalDataToJSON(t *testing.T) {
 
 	// Test with non-empty items and nil pagination
 	items = []string{"item1", "item2"}
-	err = MarshalDataToJSON(p, items, nil)
-	assert.NoError(t, err, "MarshalDataToJSON should not return an error")
+	err = MarshalDataToJSONResponse(p, items, nil)
+	assert.NoError(t, err, "MarshalDataToJSONResponse should not return an error")
 
 	// Verify that the output is valid JSON
 	err = json.Unmarshal(buf.Bytes(), &response)
@@ -53,8 +53,8 @@ func TestMarshalDataToJSON(t *testing.T) {
 		Limit:         5,
 		NextPageToken: "next-page-token",
 	}
-	err = MarshalDataToJSON(p, items, pagination)
-	assert.NoError(t, err, "MarshalDataToJSON should not return an error")
+	err = MarshalDataToJSONResponse(p, items, pagination)
+	assert.NoError(t, err, "MarshalDataToJSONResponse should not return an error")
 
 	// Verify that the output is valid JSON
 	err = json.Unmarshal(buf.Bytes(), &response)

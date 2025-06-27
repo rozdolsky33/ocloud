@@ -22,7 +22,7 @@ through pages using the --page flag and control the number of instances per page
 the --limit flag.
 
 Additional Information:
-- Use --image-details (-i) to include information about the image used by each instance
+- Use --all (-A) to include information about the image used by each instance
 - Use --json (-j) to output the results in JSON format
 - The command only shows running instances by default
 `
@@ -45,7 +45,7 @@ var listExamples = `
   ocloud compute instance list --json
 
   # List instances with both image details and JSON output
-  ocloud compute instance list --image-details --json
+  ocloud compute instance list --all --json
 `
 
 // NewListCmd creates a new command for listing instances
@@ -77,7 +77,7 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameImageDetails, false)
+	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)

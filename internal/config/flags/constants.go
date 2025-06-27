@@ -20,7 +20,6 @@ const (
 	FlagNameOKEName            = "oke-name"
 	FlagNameLocalFwPort        = "local-fw-port"
 	FlagNameHostFwPort         = "host-fw-port"
-	FlagNameImageDetails       = "image-details"
 	FlagNameFindByStatement    = "find-by-statements"
 	FlagNameIncludeStatements  = "include-statements"
 	FlagNameHelp               = "help"
@@ -30,6 +29,7 @@ const (
 	FlagNamePage               = "page"
 	FlagNameJSON               = "json"
 	FlagNameVersion            = "version"
+	FlagNameAllInformation     = "all"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -48,7 +48,6 @@ const (
 	FlagShortOKEName            = "k"
 	FlagShortLocalFwPort        = "w"
 	FlagShortHostFwPort         = "f"
-	FlagShortImageDetails       = "i"
 	FlagShortFindByName         = "n"
 	FlagShortFindByStatement    = "s"
 	FlagShortIncludeStatements  = "a"
@@ -59,6 +58,7 @@ const (
 	FlagShortPage               = "p"
 	FlagShortJSON               = "j"
 	FlagShortVersion            = "v"
+	FlagShortAllInformation     = "A"
 )
 
 // FlagDescriptions contains help text for flags
@@ -90,6 +90,7 @@ const (
 	FlagDescPage               = "Page number to display"
 	FlagDescJSON               = "Output information in JSON format"
 	FlagDescVersion            = "Print the version number of ocloud CLI"
+	FlagDescAllInformation     = "Show all information"
 )
 
 // Flag values and defaults

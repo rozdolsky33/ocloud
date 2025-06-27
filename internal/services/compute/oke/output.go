@@ -19,7 +19,7 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return util.MarshalDataToJSON[Cluster](p, clusters, pagination)
+		return util.MarshalDataToJSONResponse[Cluster](p, clusters, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(clusters, pagination, appCtx.Stdout) {
