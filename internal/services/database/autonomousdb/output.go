@@ -19,7 +19,11 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return util.MarshalDataToJSON[AutonomousDatabase](p, databases, pagination)
+		// Special case for empty databases list - return empty object
+		if len(databases) == 0 && pagination == nil {
+			return p.MarshalToJSON(struct{}{})
+		}
+		return util.MarshalDataToJSONResponse[AutonomousDatabase](p, databases, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(databases, pagination, appCtx.Stdout) {

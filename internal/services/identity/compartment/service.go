@@ -117,8 +117,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 
 	// Process the compartment
 	for _, comp := range response.Items {
-		compartment := mapToCompartment(comp)
-		compartments = append(compartments, compartment)
+		compartments = append(compartments, mapToCompartment(comp))
 
 	}
 	// Calculate if there are more pages after the current page
@@ -137,16 +136,16 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 
 // Find performs a fuzzy search for compartments based on the provided searchPattern and returns matching compartments.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment, error) {
-	logger.LogWithLevel(s.logger, 3, "Finding compartments using Bleve fuzzy search", "pattern", searchPattern)
+	logger.LogWithLevel(s.logger, 3, "Finding allCompartments using Bleve fuzzy search", "pattern", searchPattern)
 
-	// Step 1: Fetch all compartments
-	compartments, err := s.fetchAllCompartments(ctx)
+	// Step 1: Fetch all allCompartments
+	allCompartments, err := s.fetchAllCompartments(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch all compartments: %w", err)
 	}
 
 	// Step 2: Build index
-	index, err := util.BuildIndex(compartments, func(c Compartment) any {
+	index, err := util.BuildIndex(allCompartments, func(c Compartment) any {
 		return mapToIndexableCompartment(c)
 	})
 
@@ -161,11 +160,11 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment
 		return nil, fmt.Errorf("failed to fuzzy search index: %w", err)
 	}
 
-	// Step 4: Return matched compartments
+	// Step 4: Return matched allCompartments
 	var results []Compartment
 	for _, idx := range matchedIdxs {
-		if idx >= 0 && idx < len(compartments) {
-			results = append(results, compartments[idx])
+		if idx >= 0 && idx < len(allCompartments) {
+			results = append(results, allCompartments[idx])
 		}
 	}
 
@@ -206,6 +205,10 @@ func mapToCompartment(compartment identity.Compartment) Compartment {
 		Name:        *compartment.Name,
 		ID:          *compartment.Id,
 		Description: *compartment.Description,
+		CompartmentTags: util.ResourceTags{
+			FreeformTags: compartment.FreeformTags,
+			DefinedTags:  compartment.DefinedTags,
+		},
 	}
 }
 

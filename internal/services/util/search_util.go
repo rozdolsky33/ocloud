@@ -15,7 +15,7 @@ func BuildIndex[T any](items []T, mapToIndexable func(T) any) (bleve.Index, erro
 	indexMapping := bleve.NewIndexMapping()
 	index, err := bleve.NewMemOnly(indexMapping)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating index: %w", err)
 	}
 
 	for i, item := range items {

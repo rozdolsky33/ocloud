@@ -56,9 +56,51 @@ run_command ./bin/ocloud comp inst l
 print_header "Testing compute instance find command"
 run_command ./bin/ocloud compute instance find "test"
 run_command ./bin/ocloud compute instance find "test"
-run_command ./bin/ocloud compute instance find "test" --image-details --json
-run_command ./bin/ocloud compute instance find "test" -i -j
+run_command ./bin/ocloud compute instance find "test" --all --json
+run_command ./bin/ocloud compute instance find "test" -A -j
 run_command ./bin/ocloud comp inst f "test"
+
+# Test compute image command
+print_header "Testing compute image command"
+run_command ./bin/ocloud compute image --help
+run_command ./bin/ocloud comp img --help
+
+# Test compute image list command
+print_header "Testing compute image list command"
+run_command ./bin/ocloud compute image list
+run_command ./bin/ocloud compute image list
+run_command ./bin/ocloud compute image list --limit 10 --page 1 --json
+run_command ./bin/ocloud compute image list -m 10 -p 1 -j
+run_command ./bin/ocloud comp img l
+
+# Test compute image find command
+print_header "Testing compute image find command"
+run_command ./bin/ocloud compute image find "test"
+run_command ./bin/ocloud compute image find "test"
+run_command ./bin/ocloud compute image find "test" --json
+run_command ./bin/ocloud compute image find "test" -j
+run_command ./bin/ocloud comp img f "test"
+
+# Test compute oke command
+print_header "Testing compute oke command"
+run_command ./bin/ocloud compute oke --help
+run_command ./bin/ocloud comp oke --help
+
+# Test compute oke list command
+print_header "Testing compute oke list command"
+run_command ./bin/ocloud compute oke list
+run_command ./bin/ocloud compute oke list
+run_command ./bin/ocloud compute oke list --limit 10 --page 1 --json
+run_command ./bin/ocloud compute oke list -m 10 -p 1 -j
+run_command ./bin/ocloud comp oke l
+
+# Test compute oke find command
+print_header "Testing compute oke find command"
+run_command ./bin/ocloud compute oke find "test"
+run_command ./bin/ocloud compute oke find "test"
+run_command ./bin/ocloud compute oke find "test" --json
+run_command ./bin/ocloud compute oke find "test" -j
+run_command ./bin/ocloud comp oke f "test"
 
 # Test with debug flag
 print_header "Testing with debug flag"
@@ -101,6 +143,28 @@ run_command ./bin/ocloud identity compartment find "test"
 run_command ./bin/ocloud identity compartment find "test" --json
 run_command ./bin/ocloud identity compartment find "test" -j
 run_command ./bin/ocloud ident compart f "test"
+
+# Test identity policy command
+print_header "Testing identity policy command"
+run_command ./bin/ocloud identity policy --help
+run_command ./bin/ocloud identity pol --help
+run_command ./bin/ocloud ident pol --help
+
+# Test identity policy list command
+print_header "Testing identity policy list command"
+run_command ./bin/ocloud identity policy list
+run_command ./bin/ocloud identity policy list
+run_command ./bin/ocloud identity policy list --limit 10 --page 1 --json
+run_command ./bin/ocloud identity policy list -m 10 -p 1 -j
+run_command ./bin/ocloud ident pol l
+
+# Test identity policy find command
+print_header "Testing identity policy find command"
+run_command ./bin/ocloud identity policy find "test"
+run_command ./bin/ocloud identity policy find "test"
+run_command ./bin/ocloud identity policy find "test" --json
+run_command ./bin/ocloud identity policy find "test" -j
+run_command ./bin/ocloud ident pol f "test"
 
 # Test database command
 print_header "Testing database command"

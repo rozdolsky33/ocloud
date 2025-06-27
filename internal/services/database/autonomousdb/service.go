@@ -34,7 +34,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 		"limit", limit,
 		"pageNum", pageNum)
 
-	var allDatabases []AutonomousDatabase
+	var databases []AutonomousDatabase
 	var nextPageToken string
 	var totalCount int
 
@@ -104,21 +104,20 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 
 	// Process the databases
 	for _, item := range resp.Items {
-		db := mapToDatabase(item)
-		allDatabases = append(allDatabases, db)
+		databases = append(databases, mapToDatabase(item))
 	}
 
 	// Calculate if there are more pages after the current page
 	hasNextPage := pageNum*limit < totalCount
 
 	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
-		"returnedCount", len(allDatabases),
+		"returnedCount", len(databases),
 		"totalCount", totalCount,
 		"page", pageNum,
 		"limit", limit,
 		"hasNextPage", hasNextPage)
 
-	return allDatabases, totalCount, nextPageToken, nil
+	return databases, totalCount, nextPageToken, nil
 }
 
 // Find performs a fuzzy search to find autonomous databases matching the given search pattern in their Name field.
@@ -171,8 +170,7 @@ func (s *Service) fetchAllAutonomousDatabases(ctx context.Context) ([]Autonomous
 			return nil, fmt.Errorf("failed to list database: %w", err)
 		}
 		for _, item := range resp.Items {
-			db := mapToDatabase(item)
-			allDatabases = append(allDatabases, db)
+			allDatabases = append(allDatabases, mapToDatabase(item))
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -199,5 +197,9 @@ func mapToDatabase(db database.AutonomousDatabaseSummary) AutonomousDatabase {
 		PrivateEndpointIp: *db.PrivateEndpointIp,
 		ConnectionStrings: db.ConnectionStrings.AllConnectionStrings,
 		Profiles:          db.ConnectionStrings.Profiles,
+		DatabaseTags: util.ResourceTags{
+			FreeformTags: db.FreeformTags,
+			DefinedTags:  db.DefinedTags,
+		},
 	}
 }

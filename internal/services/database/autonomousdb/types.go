@@ -3,6 +3,7 @@ package autonomousdb
 import (
 	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/database"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // Service provides operations and functionalities related to database management, logging, and compartment handling.
@@ -20,6 +21,7 @@ type AutonomousDatabase struct {
 	PrivateEndpointIp string
 	ConnectionStrings map[string]string
 	Profiles          []database.DatabaseConnectionStringProfile
+	DatabaseTags      util.ResourceTags
 }
 
 // IndexableAutonomousDatabase represents a simplified autonomous database structure indexed by its name.

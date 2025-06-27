@@ -6,9 +6,9 @@ import "github.com/rozdolsky33/ocloud/internal/config/flags"
 // ImageDetailsFlag Compute flags
 var (
 	ImageDetailsFlag = flags.BoolFlag{
-		Name:      flags.FlagNameImageDetails,
-		Shorthand: flags.FlagShortImageDetails,
+		Name:      flags.FlagNameAllInformation,
+		Shorthand: flags.FlagShortAllInformation,
 		Default:   false,
-		Usage:     flags.FlagDescImageDetails,
+		Usage:     flags.FlagDescAllInformation,
 	}
 )

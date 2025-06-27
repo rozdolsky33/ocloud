@@ -17,12 +17,8 @@ const (
 	FlagNamePublicKey          = "public-key"
 	FlagNameInstanceID         = "instance-id"
 	FlagNameUser               = "user"
-	FlagNameOKEName            = "oke-name"
 	FlagNameLocalFwPort        = "local-fw-port"
 	FlagNameHostFwPort         = "host-fw-port"
-	FlagNameImageDetails       = "image-details"
-	FlagNameFindByStatement    = "find-by-statements"
-	FlagNameIncludeStatements  = "include-statements"
 	FlagNameHelp               = "help"
 	FlagNameColor              = "color"
 	FlagNameDisableConcurrency = "disable-concurrency"
@@ -30,6 +26,7 @@ const (
 	FlagNamePage               = "page"
 	FlagNameJSON               = "json"
 	FlagNameVersion            = "version"
+	FlagNameAllInformation     = "all"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -45,13 +42,8 @@ const (
 	FlagShortPublicKey          = "e"
 	FlagShortInstanceID         = "o"
 	FlagShortUser               = "u"
-	FlagShortOKEName            = "k"
 	FlagShortLocalFwPort        = "w"
 	FlagShortHostFwPort         = "f"
-	FlagShortImageDetails       = "i"
-	FlagShortFindByName         = "n"
-	FlagShortFindByStatement    = "s"
-	FlagShortIncludeStatements  = "a"
 	FlagShortHelp               = "h"
 	FlagShortDebug              = "d"
 	FlagShortDisableConcurrency = "x"
@@ -59,6 +51,7 @@ const (
 	FlagShortPage               = "p"
 	FlagShortJSON               = "j"
 	FlagShortVersion            = "v"
+	FlagShortAllInformation     = "A"
 )
 
 // FlagDescriptions contains help text for flags
@@ -74,22 +67,18 @@ const (
 	FlagDescPublicKey          = "Public key file path"
 	FlagDescInstanceID         = "Instance OCID"
 	FlagDescUser               = "User name"
+	FlagDescLocalFwPort        = "Local port forwarded to the instance"
+	FlagDescHostFwPort         = "Host port forwarded to the instance"
 	FlagDescTenancyID          = "OCI tenancy OCID"
 	FlagDescTenancyName        = "Tenancy name"
 	FlagDescCompartment        = "OCI compartment name"
-	FlagDescOKEName            = "OKE cluster name"
-	FlagDescLocalFwPort        = "Local firewall port"
-	FlagDescHostFwPort         = "Host firewall port"
-	FlagDescImageDetails       = "Show image details"
-	FlagDescFindByName         = "Find services by name pattern search"
-	FlagDescFindByStatement    = "Find services by statement"
-	FlagDescIncludeStatements  = "Include statements"
 	FlagDescHelp               = "help for ocloud (shorthand: -h)"
 	FlagDescDisableConcurrency = "Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)"
 	FlagDescLimit              = "Maximum number of records to display per page"
 	FlagDescPage               = "Page number to display"
 	FlagDescJSON               = "Output information in JSON format"
 	FlagDescVersion            = "Print the version number of ocloud CLI"
+	FlagDescAllInformation     = "Show all information"
 )
 
 // Flag values and defaults
