@@ -22,7 +22,7 @@ through pages using the --page flag and control the number of instances per page
 the --limit flag.
 
 Additional Information:
-- Use --image-details (-i) to include information about the image used by each instance
+- Use --all (-A) to include information about the image used by each instance
 - Use --json (-j) to output the results in JSON format
 - The command only shows running instances by default
 `
@@ -45,7 +45,7 @@ var listExamples = `
   ocloud compute instance list --json
 
   # List instances with both image details and JSON output
-  ocloud compute instance list --image-details --json
+  ocloud compute instance list --all --json
 `
 
 // NewListCmd creates a new command for listing instances
