@@ -946,6 +946,10 @@ func mapToInstance(oc core.Instance) Instance {
 		SubnetID:  "", // to be filled later
 		State:     oc.LifecycleState,
 		CreatedAt: *oc.TimeCreated,
+		InstanceTags: util.ResourceTags{
+			FreeformTags: oc.FreeformTags,
+			DefinedTags:  oc.DefinedTags,
+		},
 	}
 }
 

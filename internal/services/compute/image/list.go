@@ -12,7 +12,6 @@ import (
 // It uses the application context for configuration and logging.
 // Returns an error if the operation fails.
 func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(appCtx.Logger, 1, "ListImages", "limit", limit, "page", page, "json", useJSON)
 
 	service, err := NewService(appCtx)
@@ -33,6 +32,7 @@ func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON boo
 		Limit:         limit,
 		NextPageToken: nextPageToken,
 	}, useJSON)
+
 	if err != nil {
 		return fmt.Errorf("printing image table: %w", err)
 	}

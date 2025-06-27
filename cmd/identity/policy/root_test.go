@@ -1,0 +1,49 @@
+package policy
+
+import (
+	"testing"
+
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/rozdolsky33/ocloud/internal/app"
+)
+
+// TestPolicyCommand tests the basic structure of the policy command
+func TestPolicyCommand(t *testing.T) {
+	// Create a mock ApplicationContext
+	appCtx := &app.ApplicationContext{}
+
+	// Create a new policy command
+	cmd := NewPolicyCmd(appCtx)
+
+	// Test that the policy command is properly configured
+	assert.Equal(t, "policy", cmd.Use)
+	assert.Equal(t, []string{"pol"}, cmd.Aliases)
+	assert.Equal(t, "Manage OCI Policies", cmd.Short)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure Policies - list all policies or find policy by pattern.", cmd.Long)
+	assert.True(t, cmd.SilenceUsage)
+	assert.True(t, cmd.SilenceErrors)
+
+	// Test that the subcommands are added
+	subCmds := cmd.Commands()
+	assert.Equal(t, 2, len(subCmds), "policy command should have 2 subcommands")
+
+	// Check that the list subcommand is present
+	listCmd := findSubCommand(subCmds, "list")
+	assert.NotNil(t, listCmd, "policy command should have list subcommand")
+
+	// Check that the find subcommand is present
+	findCmd := findSubCommand(subCmds, "find")
+	assert.NotNil(t, findCmd, "policy command should have find subcommand")
+}
+
+// findSubCommand is a helper function to find a subcommand by name
+func findSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
+	for _, cmd := range cmds {
+		if cmd.Name() == name {
+			return cmd
+		}
+	}
+	return nil
+}

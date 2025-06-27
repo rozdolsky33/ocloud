@@ -10,14 +10,14 @@ type ResourceTags struct {
 
 // PaginationInfo holds information about the current page and total results
 type PaginationInfo struct {
-	CurrentPage   int
-	TotalCount    int
-	Limit         int
-	NextPageToken string
+	CurrentPage   int    `json:"CurrentPage"`
+	TotalCount    int    `json:"TotalCount"`
+	Limit         int    `json:"Limit"`
+	NextPageToken string `json:"NextPageToken"`
 }
 
 // JSONResponse represents a generic JSON structure containing a list of items and optional pagination information.
 type JSONResponse[T any] struct {
-	Items      []T             `json:"Items,omitempty"`
+	Items      []T             `json:"items"`
 	Pagination *PaginationInfo `json:"pagination,omitempty"`
 }

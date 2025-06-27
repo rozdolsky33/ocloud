@@ -29,7 +29,6 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 // List retrieves a paginated list of image with given limit and page number parameters.
 // It returns the slice of image, total count, next page token, and an error if encountered.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
-	// Log input parameters at debug level
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
 		"limit", limit,
 		"pageNum", pageNum)
@@ -111,8 +110,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, s
 
 	// Process the image
 	for _, oc := range resp.Items {
-		image := mapToImage(oc)
-		images = append(images, image)
+		images = append(images, mapToImage(oc))
 	}
 
 	// Calculate if there are more pages after the current page
@@ -201,6 +199,10 @@ func mapToImage(oc core.Image) Image {
 		OperatingSystem: *oc.OperatingSystem,
 		ImageOSVersion:  *oc.OperatingSystemVersion,
 		LunchMode:       string(oc.LaunchMode),
+		ImageTags: util.ResourceTags{
+			FreeformTags: oc.FreeformTags,
+			DefinedTags:  oc.DefinedTags,
+		},
 	}
 }
 

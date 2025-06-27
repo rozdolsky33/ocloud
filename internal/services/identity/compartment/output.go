@@ -6,6 +6,10 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
+// PrintCompartmentsInfo displays information about a list of compartments in either JSON or formatted table output.
+// It accepts a slice of Compartment, application context, pagination info, and a boolean to indicate JSON output.
+// It adjusts pagination details, validates empty compartments, and logs pagination info post-output.
+// Returns an error if JSON marshalling or output rendering fails.
 func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 
 	// Create a new printer that writes to the application's standard output.
@@ -18,6 +22,10 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
+		// Special case for empty compartments list - return empty object
+		if len(compartments) == 0 && pagination == nil {
+			return p.MarshalToJSON(struct{}{})
+		}
 		return util.MarshalDataToJSONResponse[Compartment](p, compartments, pagination)
 	}
 
@@ -42,6 +50,7 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, compartmentData, orderedKeys)
 	}
+
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }

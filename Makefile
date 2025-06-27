@@ -28,7 +28,7 @@ LDFLAGS := -X '$(PKG)/buildinfo.Version=$(VERSION)' \
 .DEFAULT_GOAL := help
 
 # Targets
-.PHONY: all build run install test fmt vet lint clean help generate release compile zip check-env
+.PHONY: all build run install test fmt fmt-check vet lint clean help generate release compile zip check-env
 
 all: build
 
@@ -57,6 +57,16 @@ test:
 fmt:
 	@echo "Formatting code..."
 	@go fmt ./...
+
+# Check if code is formatted
+fmt-check:
+	@echo "Checking if code is formatted..."
+	@unformatted=$$(gofmt -s -l .); \
+	if [ -n "$$unformatted" ]; then \
+		echo "The following files are not gofmted:"; \
+		echo "$$unformatted"; \
+		exit 1; \
+	fi
 
 # Vet code
 vet:
@@ -114,6 +124,7 @@ help:
 	@echo "  install        Installs the binary to \$(GOBIN) or \$\$(go env GOPATH)/bin"
 	@echo "  test           Runs all tests"
 	@echo "  fmt            Formats Go source files"
+	@echo "  fmt-check      Checks if Go source files are formatted correctly"
 	@echo "  vet            Runs go vet on the code"
 	@echo "  lint           Runs golangci-lint on the code"
 	@echo "  generate       Runs go generate to update generated code"

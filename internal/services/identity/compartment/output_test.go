@@ -25,7 +25,7 @@ func TestPrintCompartmentsInfo(t *testing.T) {
 		},
 	}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
