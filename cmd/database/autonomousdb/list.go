@@ -39,6 +39,7 @@ var listExamples = `
   ocloud database autonomousdb list --limit 5 --page 3 --json
 `
 
+// NewListCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewIdentityCmd creates a new cobra.Command for managing OCI compute services such as instances, images, and more.
+// NewIdentityCmd creates a new cobra.Command for managing OCI identity services such as compartments, polices and bastions.
 func NewIdentityCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "identity",
