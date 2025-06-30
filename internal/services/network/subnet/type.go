@@ -15,7 +15,6 @@ type Subnet struct {
 	Name                    string
 	ID                      string
 	CIDR                    string
-	AvailabilityDomain      string
 	VcnID                   string
 	RouteTableID            string
 	SecurityListID          []string

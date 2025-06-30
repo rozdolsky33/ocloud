@@ -79,41 +79,41 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 		// Set the page token for the actual request
 		request.Page = &page
 		logger.LogWithLevel(s.logger, 1, "Using page token for page", "pageNum", pageNum, "token", page)
-
-		// Fetch Subnets for the request
-		resp, err := s.networkClient.ListSubnets(ctx, request)
-		if err != nil {
-			return nil, 0, "", fmt.Errorf("listing subnets: %w", err)
-		}
-		// Set the total count to the number of subnets returned
-		// If we have a next page, this is an estimate
-		totalCount = len(resp.Items)
-		// If we have a next page, we know there are more subnets
-		if resp.OpcNextPage != nil {
-			// Estimate total count based on my current page and items per rage
-			totalCount = pageNum*limit + limit
-		}
-
-		//Save the next page token if available
-		if resp.OpcNextPage != nil {
-			nextPageToken = *resp.OpcNextPage
-			logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
-		}
-
-		//Process the subnets
-		for _, oc := range resp.Items {
-			subnets = append(subnets, mapToSubnets(oc))
-
-		}
-		// Calculate if there are more pages after the current page
-		hasNextPage := pageNum*limit < totalCount
-		logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
-			"returnedCount", len(subnets),
-			"totalCount", totalCount,
-			"page", pageNum,
-			"limit", limit,
-			"hasNextPage", hasNextPage)
 	}
+
+	// Fetch Subnets for the request
+	resp, err := s.networkClient.ListSubnets(ctx, request)
+	if err != nil {
+		return nil, 0, "", fmt.Errorf("listing subnets: %w", err)
+	}
+	// Set the total count to the number of subnets returned
+	// If we have a next page, this is an estimate
+	totalCount = len(resp.Items)
+	// If we have a next page, we know there are more subnets
+	if resp.OpcNextPage != nil {
+		// Estimate total count based on my current page and items per rage
+		totalCount = pageNum*limit + limit
+	}
+
+	//Save the next page token if available
+	if resp.OpcNextPage != nil {
+		nextPageToken = *resp.OpcNextPage
+		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
+	}
+
+	//Process the subnets
+	for _, oc := range resp.Items {
+		subnets = append(subnets, mapToSubnets(oc))
+
+	}
+	// Calculate if there are more pages after the current page
+	hasNextPage := pageNum*limit < totalCount
+	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
+		"returnedCount", len(subnets),
+		"totalCount", totalCount,
+		"page", pageNum,
+		"limit", limit,
+		"hasNextPage", hasNextPage)
 
 	return subnets, totalCount, nextPageToken, nil
 }
@@ -127,7 +127,6 @@ func mapToSubnets(s core.Subnet) Subnet {
 		Name:                    *s.DisplayName,
 		ID:                      *s.Id,
 		CIDR:                    *s.CidrBlock,
-		AvailabilityDomain:      *s.AvailabilityDomain,
 		VcnID:                   *s.VcnId,
 		RouteTableID:            *s.RouteTableId,
 		SecurityListID:          s.SecurityListIds,
