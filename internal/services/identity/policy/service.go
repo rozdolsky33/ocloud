@@ -47,8 +47,8 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 	currentPage := 1
 
 	for currentPage < pageNum {
-		// Fetch Just the page token not actual data
-		// Usu teh same limit to ensure consistent pagination
+		// Fetch Just the page token, not actual data
+		// Usu the same limit to ensure consistent pagination
 		tokenRequest := identity.ListPoliciesRequest{
 			CompartmentId: &s.CompartmentID,
 			Page:          &page,
@@ -91,7 +91,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 		totalCount = pageNum*limit + limit
 	}
 
-	// Save the next page toke if available
+	// Save the next page token if available
 	if resp.OpcNextPage != nil {
 		nextPageToken = *resp.OpcNextPage
 		logger.LogWithLevel(s.logger, 1, "Next page token", "token", nextPageToken)

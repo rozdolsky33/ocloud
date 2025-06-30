@@ -17,7 +17,7 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	dbClient, err := oci.NewDatabaseClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("faild to create database client: %w", err)
+		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
 	return &Service{
 		dbClient:      dbClient,
@@ -83,7 +83,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 			page = *resp.OpcNextPage
 			currentPage++
 		}
-		// Set the page toke for the actual request
+		// Set the page token for the actual request
 		request.Page = &page
 		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
 	}

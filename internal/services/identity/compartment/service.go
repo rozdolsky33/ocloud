@@ -108,7 +108,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 		totalCount = pageNum*limit + limit
 	}
 
-	// Save the next page toke if available
+	// Save the next page token if available
 	if response.OpcNextPage != nil {
 		nextPageToken = *response.OpcNextPage
 		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken, "Total Count", totalCount)
