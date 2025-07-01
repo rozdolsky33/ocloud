@@ -201,6 +201,8 @@ ocloud/
 │   ├── identity/           # Identity-related commands
 │   │   ├── compartment/    # Compartment commands
 │   │   └── policy/         # Policy commands
+│   ├── network/            # Network-related commands
+│   │   └── subnet/         # Subnet commands
 │   ├── version/            # Version command
 │   └── root.go             # Root command
 ├── internal/               # Internal packages
@@ -220,6 +222,8 @@ ocloud/
 │       ├── identity/       # Identity services
 │       │   ├── compartment/ # Compartment service
 │       │   └── policy/     # Policy service
+│       ├── network/        # Network services
+│       │   └── subnet/     # Subnet service
 │       └── util/           # Utility functions and helpers
 └── main.go                 # Application entry point
 ```
@@ -237,6 +241,7 @@ The main command categories include:
 - `compute`: Commands for managing compute resources (instances, images, OKE clusters)
 - `identity`: Commands for managing identity resources (compartments, policies)
 - `database`: Commands for managing database resources (autonomous databases)
+- `network`: Commands for managing network resources (subnets)
 
 #### 4.2.2 internal/app
 
@@ -259,6 +264,7 @@ The main service categories include:
 - `compute`: Services for managing compute resources (instances, images, OKE clusters)
 - `identity`: Services for managing identity resources (compartments, policies)
 - `database`: Services for managing database resources (autonomous databases)
+- `network`: Services for managing network resources (subnets)
 - `util`: Common utility functions used across services
 
 #### 4.2.4 internal/oci
@@ -267,6 +273,7 @@ The `oci` package contains wrappers for OCI SDK clients. It provides factory fun
 - Compute services (instances, images, OKE)
 - Identity services (compartments, policies)
 - Database services (autonomous databases)
+- Network services (subnets)
 
 ## 5. Key Features and Implementation Details
 
@@ -285,6 +292,9 @@ OCloud provides comprehensive management for various OCI resources:
 
 #### 5.1.3 Database Resources
 - Autonomous Databases: List and find Autonomous Databases with detailed information
+
+#### 5.1.4 Network Resources
+- Subnets: List and find subnets with detailed information
 
 ### 5.2 Pagination
 
@@ -456,8 +466,10 @@ The project includes a comprehensive test script `test_ocloud.sh` that tests all
 - Identity commands:
   - identity compartment list/find
   - identity policy list/find
+- Network commands:
+  - network subnet list/find
 - Database commands:
-  - database autonomousdb list/find
+  - database autonomous list/find
 
 The script tests various flags and abbreviations for each command, following a consistent pattern throughout. It's designed to verify that all commands work as expected and can be used for regression testing.
 
