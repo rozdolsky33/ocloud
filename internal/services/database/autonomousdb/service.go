@@ -43,12 +43,13 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 		CompartmentId: &s.compartmentID,
 	}
 
+	// Add limit parameters if specified
 	if limit > 0 {
 		request.Limit = &limit
 		logger.LogWithLevel(s.logger, 3, "Setting limit parameter", "limit", limit)
 	}
 
-	// Add limit parameters if specified
+	// If pageNum > 1, we need to fetch the appropriate page token
 	if pageNum > 1 && limit > 0 {
 		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
 
@@ -100,6 +101,12 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 	if resp.OpcNextPage != nil {
 		// Estimate total count based on current page and items per rage
 		totalCount = pageNum*limit + limit
+	}
+
+	// Save the next page token if available
+	if resp.OpcNextPage != nil {
+		nextPageToken = *resp.OpcNextPage
+		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
 	}
 
 	// Process the databases

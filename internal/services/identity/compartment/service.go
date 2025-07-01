@@ -52,7 +52,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 		page := ""
 		currentPage := 1
 
-		for currentPage <= pageNum {
+		for currentPage < pageNum {
 			// Fetch page token, not actual data
 			// Use limit to ensure consistent patination
 			tokenRequest := identity.ListCompartmentsRequest{
@@ -69,11 +69,10 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 
 			resp, err := s.identityClient.ListCompartments(ctx, tokenRequest)
 			if err != nil {
-				return nil, 0, "", fmt.Errorf("error fetching token: %w", err)
+				return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
 			}
 
-			// If there is no next page, we've reached then end
-			// If there's no next page, we've reached the end
+			// If there is no next page, we've reached the end then
 			if resp.OpcNextPage == nil {
 				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
 					"currentPage", currentPage, "targetPage", pageNum)

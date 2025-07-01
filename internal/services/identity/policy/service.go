@@ -24,7 +24,7 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, string, error) {
 	logger.LogWithLevel(s.logger, 1, "Listing Policies", "limit", limit, "page", pageNum)
 
-	var allPolicies []Policy
+	var policies []Policy
 	var nextPageToken string
 	var totalCount int
 
@@ -33,49 +33,52 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 	request := identity.ListPoliciesRequest{
 		CompartmentId: &s.CompartmentID,
 	}
+
+	// Add limit parameters if specified
 	if limit > 0 {
 		request.Limit = &limit
 		logger.LogWithLevel(s.logger, 1, "Limiting policies to", "limit", limit)
 	}
-
+	// If pageNum > 1, we need to fetch the appropriate page token
 	if pageNum > 1 && limit > 0 {
 		logger.LogWithLevel(s.logger, 1, "Calculating page token for page", "pageNum", pageNum)
+
+		// We need to fetch page tokens until we reach the desired page
+		page := ""
+		currentPage := 1
+
+		for currentPage < pageNum {
+			// Fetch Just the page token, not actual data
+			// Usu the same limit to ensure consistent pagination
+			tokenRequest := identity.ListPoliciesRequest{
+				CompartmentId: &s.CompartmentID,
+				Page:          &page,
+			}
+
+			if limit > 0 {
+				tokenRequest.Limit = &limit
+			}
+
+			resp, err := s.identityClient.ListPolicies(ctx, tokenRequest)
+			if err != nil {
+				return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
+			}
+
+			// If there's no next page, we've reached the end
+			if resp.OpcNextPage == nil {
+				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
+					"currentPage", currentPage, "targetPage", pageNum)
+				// Return an empty result since the requested page is beyond available data
+				return []Policy{}, 0, "", nil
+			}
+			// Move to the next page
+			page = *resp.OpcNextPage
+			currentPage++
+		}
+		// Set the page token for the actual request
+		request.Page = &page
+		logger.LogWithLevel(s.logger, 1, "Using page token for page", "pageNum", pageNum, "token", page)
 	}
-
-	// We need to fetch page tokens until we reach the desired page
-	page := ""
-	currentPage := 1
-
-	for currentPage < pageNum {
-		// Fetch Just the page token, not actual data
-		// Usu the same limit to ensure consistent pagination
-		tokenRequest := identity.ListPoliciesRequest{
-			CompartmentId: &s.CompartmentID,
-			Page:          &page,
-		}
-		if limit > 0 {
-			tokenRequest.Limit = &limit
-		}
-
-		resp, err := s.identityClient.ListPolicies(ctx, tokenRequest)
-		if err != nil {
-			return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
-		}
-
-		// If there's no next page, we've reached the end
-		if resp.OpcNextPage == nil {
-			logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
-				"currentPage", currentPage, "targetPage", pageNum)
-			// Return an empty result since the requested page is beyond available data
-			return []Policy{}, 0, "", nil
-		}
-		// Move to the next page
-		page = *resp.OpcNextPage
-		currentPage++
-	}
-	// Set the page token for the actual request
-	request.Page = &page
-	logger.LogWithLevel(s.logger, 1, "Using page token for page", "pageNum", pageNum, "token", page)
 
 	// Fetch Policies for the request
 	resp, err := s.identityClient.ListPolicies(ctx, request)
@@ -99,19 +102,20 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 
 	// Process the policies
 	for _, p := range resp.Items {
-		allPolicies = append(allPolicies, mapToPolicies(p))
+		policies = append(policies, mapToPolicies(p))
 	}
 
 	// Calculate if there are more pages after the current page
 	hasNextPage := pageNum*limit < totalCount
+
 	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
-		"returnedCount", len(allPolicies),
+		"returnedCount", len(policies),
 		"totalCount", totalCount,
 		"page", pageNum,
 		"limit", limit,
 		"hasNextPage", hasNextPage)
 
-	return allPolicies, totalCount, nextPageToken, nil
+	return policies, totalCount, nextPageToken, nil
 }
 
 // Find performs a fuzzy search for policies based on the provided searchPattern and returns matching policy.

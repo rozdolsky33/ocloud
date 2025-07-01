@@ -40,6 +40,9 @@ var listExamples = `
   ocloud identity policy list --limit 5 --page 3 --json
 `
 
+// NewListCmd creates a new cobra.Command for listing all policies in a specified tenancy or compartment.
+// The command supports pagination through the --limit and --page flags for controlling list size and navigation.
+// It also provides optional JSON output for formatted results using the --json flag.
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
