@@ -217,7 +217,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, er
 		return nil, fmt.Errorf("listing clusters for search: %w", err)
 	}
 
-	// If search pattern is empty, return all clusters
+	// If a search pattern is empty, return all clusters
 	if searchPattern == "" {
 		return clusters, nil
 	}

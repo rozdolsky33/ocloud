@@ -9,13 +9,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Long description for the list command
+var listLong = `
+List all Oracle Kubernetes Engine (OKE) clusters in the specified compartment.
+
+This command displays information about all OKE clusters in the current compartment,
+including their names, Kubernetes versions, endpoints, and associated node pools.
+By default, it shows basic cluster information in a tabular format.
+
+Additional Information:
+- Use --json (-j) to output the results in JSON format
+- Use --limit (-m) to control the number of results per page
+- Use --page (-p) to navigate between pages of results
+`
+
+// Examples for the list command
+var listExamples = `
+  # List all OKE clusters in the current compartment
+  ocloud compute oke list
+
+  # List all OKE clusters and output in JSON format
+  ocloud compute oke list --json
+
+  # List OKE clusters with pagination (10 per page, page 2)
+  ocloud compute oke list --limit 10 --page 2
+`
+
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "List all Oracle Kubernetes Engine (OKE)",
-		Long:          "List all Kubernetes Engine (OKE) in the specified compartment.",
-		Example:       " ocloud compute oke list\n ocloud compute oke list --json\n ocloud compute oke list --limit 10 --page 2",
+		Short:         "List all Oracle Kubernetes Engine (OKE) clusters",
+		Long:          listLong,
+		Example:       listExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
