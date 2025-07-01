@@ -3,6 +3,7 @@ package oke
 import (
 	"context"
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"strings"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -88,7 +89,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, er
 	searchPattern = strings.ToLower(searchPattern)
 
 	for _, cluster := range clusters {
-		// Check if cluster name contains the search pattern
+		// Check if the cluster name contains the search pattern
 		if strings.Contains(strings.ToLower(cluster.Name), searchPattern) {
 			matchedClusters = append(matchedClusters, cluster)
 			continue
@@ -139,29 +140,55 @@ func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
 		Version:         *cluster.KubernetesVersion,
 		State:           cluster.LifecycleState,
 		PrivateEndpoint: *cluster.Endpoints.PrivateEndpoint,
-		NodePools:       []NodePool{}, // Initialize with an empty slice, will be populated later
+		VcnID:           *cluster.VcnId,
+		NodePools:       []NodePool{},
+		OKETags: util.ResourceTags{
+			FreeformTags: cluster.FreeformTags,
+			DefinedTags:  cluster.DefinedTags,
+		},
 	}
 }
 
 // mapToNodePool maps an OCI NodePoolSummary to our internal NodePool model.
 func mapToNodePool(nodePool containerengine.NodePoolSummary) NodePool {
-	// Calculate the total node count
 	var nodeCount int
 	if nodePool.NodeConfigDetails != nil && nodePool.NodeConfigDetails.Size != nil {
-		// Use the Size field from NodeConfigDetails if available
 		nodeCount = *nodePool.NodeConfigDetails.Size
 	} else if nodePool.QuantityPerSubnet != nil {
-		// Fall back to QuantityPerSubnet * number of subnets if Size is not available
 		nodeCount = *nodePool.QuantityPerSubnet * len(nodePool.SubnetIds)
 	}
 
+	// Extract image details from NodeSourceDetails
+	image := ""
+	if details, ok := nodePool.NodeSourceDetails.(containerengine.NodeSourceViaImageDetails); ok && details.ImageId != nil {
+		image = *details.ImageId
+	}
+
+	// Optional custom logic for parsing shapeConfig
+	ocpus := ""
+	memory := ""
+	if nodePool.NodeShapeConfig != nil {
+		if nodePool.NodeShapeConfig.Ocpus != nil {
+			ocpus = fmt.Sprintf("%.1f", *nodePool.NodeShapeConfig.Ocpus)
+		}
+		if nodePool.NodeShapeConfig.MemoryInGBs != nil {
+			memory = fmt.Sprintf("%.0f", *nodePool.NodeShapeConfig.MemoryInGBs)
+		}
+	}
+
 	return NodePool{
-		Name:              *nodePool.Name,
-		ID:                *nodePool.Id,
-		Version:           *nodePool.KubernetesVersion,
-		State:             nodePool.LifecycleState,
-		NodeShape:         *nodePool.NodeShape,
-		NodeCount:         nodeCount,
-		NodeSourceDetails: nodePool.NodeSourceDetails,
+		Name:      *nodePool.Name,
+		ID:        *nodePool.Id,
+		Version:   *nodePool.KubernetesVersion,
+		State:     nodePool.LifecycleState,
+		NodeShape: *nodePool.NodeShape,
+		NodeCount: nodeCount,
+		Image:     image,
+		Ocpus:     ocpus,
+		MemoryGB:  memory,
+		NodeTags: util.ResourceTags{
+			FreeformTags: nodePool.FreeformTags,
+			DefinedTags:  nodePool.DefinedTags,
+		},
 	}
 }
