@@ -55,3 +55,33 @@ func (p *Printer) PrintKeyValues(title string, data map[string]string, keys []st
 
 	t.Render()
 }
+
+// PrintTable renders a table with the given headers and rows.
+// This method is used for displaying data in a tabular format.
+func (p *Printer) PrintTable(title string, headers []string, rows [][]string) {
+	t := table.NewWriter()
+	t.SetOutputMirror(p.out)
+	t.SetStyle(table.StyleRounded)
+	t.Style().Title.Align = text.AlignCenter
+	t.SetTitle(title)
+
+	// Convert headers to table.Row
+
+	headerRow := make(table.Row, len(headers))
+	for i, h := range headers {
+		headerRow[i] = text.Colors{text.FgHiYellow}.Sprint(h)
+	}
+
+	t.AppendHeader(headerRow)
+
+	// Add rows to the table
+	for _, row := range rows {
+		tableRow := make(table.Row, len(row))
+		for i, cell := range row {
+			tableRow[i] = cell
+		}
+		t.AppendRow(tableRow)
+	}
+
+	t.Render()
+}

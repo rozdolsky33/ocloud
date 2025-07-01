@@ -8,8 +8,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-func ListSubnets(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing Subnets", "limit", limit, "page", page)
+func ListSubnets(appCtx *app.ApplicationContext, useJSON bool, limit, page int, sortBy string) error {
+	logger.LogWithLevel(appCtx.Logger, 1, "Listing Subnets", "limit", limit, "page", page, "sortBy", sortBy)
 
 	service, err := NewService(appCtx)
 	if err != nil {
@@ -28,7 +28,7 @@ func ListSubnets(appCtx *app.ApplicationContext, useJSON bool, limit, page int) 
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
-	}, useJSON)
+	}, useJSON, sortBy)
 
 	if err != nil {
 		return fmt.Errorf("printing subnets: %w", err)

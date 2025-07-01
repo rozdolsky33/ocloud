@@ -19,4 +19,11 @@ var (
 		Default:   FlagDefaultPage,
 		Usage:     flags.FlagDescPage,
 	}
+
+	SortFlag = flags.StringFlag{
+		Name:      flags.FlagNameSort,
+		Shorthand: flags.FlagShortSort,
+		Default:   "",
+		Usage:     flags.FlagDescSort,
+	}
 )
