@@ -8,6 +8,9 @@ import (
 	"strings"
 )
 
+// PrintSubnetTable displays a table of subnets with details such as name, CIDR, and DNS info.
+// Supports JSON output, pagination, and sorting by specified fields.
+// Returns an error if data marshaling or printing fails.
 func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, sortBy string) error {
 
 	// Create a new printer that writes to the application's standard output.
@@ -76,6 +79,12 @@ func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, paginati
 	return nil
 }
 
+// PrintSubnetInfo displays information about a list of subnets in either JSON format or a formatted table view.
+// Parameters:
+// - subnets: A slice of Subnet structs containing data to display.
+// - appCtx: A pointer to the application context, used for output and configuration.
+// - useJSON: A boolean indicating whether the output should be in JSON format.
+// Returns an error if JSON marshaling or other operations fail.
 func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)

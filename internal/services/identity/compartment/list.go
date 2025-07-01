@@ -26,7 +26,7 @@ func ListCompartments(appCtx *app.ApplicationContext, useJSON bool, limit, page 
 	}
 
 	// Display compartment information with pagination details
-	err = PrintCompartmentsInfo(compartments, appCtx, &util.PaginationInfo{
+	err = PrintCompartmentsTable(compartments, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,
