@@ -3,7 +3,14 @@
 # Test script for ocloud CLI
 # This script tests various combinations of commands and flags for the ocloud CLI
 
-# Source environment variables from .env file
+# Define color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Array to store errors
+errors=()
+
 # Function to print section headers
 print_header() {
     echo "============================================================"
@@ -13,9 +20,21 @@ print_header() {
 }
 
 # Function to run a command and print the command before executing
+# Captures exit code and displays errors in red
 run_command() {
     echo "$ $@"
     "$@"
+    exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        # Print error message in red
+        echo -e "${RED}Command failed with exit code $exit_code${NC}"
+
+        # Store the error for summary - concatenate all args into a single string
+        cmd_str="Command failed: $(printf "%s " "$@")"
+        errors+=("${cmd_str%?}")  # Remove trailing space
+    fi
+
     echo ""
 }
 
@@ -166,6 +185,33 @@ run_command ./bin/ocloud identity policy find "test" --json
 run_command ./bin/ocloud identity policy find "test" -j
 run_command ./bin/ocloud ident pol f "test"
 
+# Test network command
+print_header "Testing network command"
+run_command ./bin/ocloud network --help
+run_command ./bin/ocloud net --help
+
+# Test network subnet command
+print_header "Testing network subnet command"
+run_command ./bin/ocloud network subnet --help
+run_command ./bin/ocloud network sub --help
+run_command ./bin/ocloud net sub --help
+
+# Test network subnet list command
+print_header "Testing network subnet list command"
+run_command ./bin/ocloud network subnet list
+run_command ./bin/ocloud network subnet list
+run_command ./bin/ocloud network subnet list --limit 10 --page 1 --json
+run_command ./bin/ocloud network subnet list -m 10 -p 1 -j
+run_command ./bin/ocloud net sub l
+
+# Test network subnet find command
+print_header "Testing network subnet find command"
+run_command ./bin/ocloud network subnet find "test"
+run_command ./bin/ocloud network subnet find "test"
+run_command ./bin/ocloud network subnet find "test" --json
+run_command ./bin/ocloud network subnet find "test" -j
+run_command ./bin/ocloud net sub f "test"
+
 # Test database command
 print_header "Testing database command"
 run_command ./bin/ocloud database --help
@@ -173,24 +219,38 @@ run_command ./bin/ocloud db --help
 
 # Test database autonomousdb command
 print_header "Testing database autonomousdb command"
-run_command ./bin/ocloud database autonomousdb --help
+run_command ./bin/ocloud database autonomous --help
 run_command ./bin/ocloud database adb --help
 run_command ./bin/ocloud db adb --help
 
 # Test database autonomousdb list command
 print_header "Testing database autonomousdb list command"
-run_command ./bin/ocloud database autonomousdb list
-run_command ./bin/ocloud database autonomousdb list
-run_command ./bin/ocloud database autonomousdb list --limit 10 --page 1 --json
-run_command ./bin/ocloud database autonomousdb list -m 10 -p 1 -j
+run_command ./bin/ocloud database autonomous list
+run_command ./bin/ocloud database autonomous list
+run_command ./bin/ocloud database autonomous list --limit 10 --page 1 --json
+run_command ./bin/ocloud database autonomous list -m 10 -p 1 -j
 run_command ./bin/ocloud db adb l
 
 # Test database autonomousdb find command
 print_header "Testing database autonomousdb find command"
-run_command ./bin/ocloud database autonomousdb find "test"
-run_command ./bin/ocloud database autonomousdb find "test"
-run_command ./bin/ocloud database autonomousdb find "test" --json
-run_command ./bin/ocloud database autonomousdb find "test" -j
+run_command ./bin/ocloud database autonomous find "test"
+run_command ./bin/ocloud database autonomous find "test"
+run_command ./bin/ocloud database autonomous find "test" --json
+run_command ./bin/ocloud database autonomous find "test" -j
 run_command ./bin/ocloud db adb f "test"
 
 print_header "All tests completed"
+
+# Display error summary if there were any errors
+if [ ${#errors[@]} -gt 0 ]; then
+    echo -e "${RED}ERROR SUMMARY:${NC}"
+    echo -e "${RED}=============${NC}"
+    for error in "${errors[@]}"; do
+        echo -e "${RED}$error${NC}"
+    done
+    echo ""
+    echo -e "${RED}Total errors: ${#errors[@]}${NC}"
+    exit 1
+else
+    echo -e "${GREEN}All commands completed successfully!${NC}"
+fi

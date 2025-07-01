@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewDatabaseCmd creates a new cobra.Command to manage Oracle Cloud Infrastructure database services.
+// It provides functionality for managing Autonomous Databases, HeatWave MySQL, and other database types.
 func NewDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "database",

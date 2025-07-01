@@ -27,6 +27,7 @@ const (
 	FlagNameJSON               = "json"
 	FlagNameVersion            = "version"
 	FlagNameAllInformation     = "all"
+	FlagNameSort               = "sort"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -52,6 +53,7 @@ const (
 	FlagShortJSON               = "j"
 	FlagShortVersion            = "v"
 	FlagShortAllInformation     = "A"
+	FlagShortSort               = "s"
 )
 
 // FlagDescriptions contains help text for flags
@@ -79,6 +81,7 @@ const (
 	FlagDescJSON               = "Output information in JSON format"
 	FlagDescVersion            = "Print the version number of ocloud CLI"
 	FlagDescAllInformation     = "Show all information"
+	FlagDescSort               = "Sort results by field (name or cidr)"
 )
 
 // Flag values and defaults

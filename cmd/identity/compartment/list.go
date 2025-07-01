@@ -40,6 +40,8 @@ var listExamples = `
   ocloud identity compartment list --limit 5 --page 3 --json
 `
 
+// NewListCmd creates a new Cobra command for listing compartments in a specified tenancy or compartment.
+// It supports pagination and optional JSON output.
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",

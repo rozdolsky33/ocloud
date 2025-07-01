@@ -6,6 +6,7 @@ import (
 	"github.com/rozdolsky33/ocloud/cmd/compute"
 	"github.com/rozdolsky33/ocloud/cmd/database"
 	"github.com/rozdolsky33/ocloud/cmd/identity"
+	"github.com/rozdolsky33/ocloud/cmd/network"
 	"github.com/rozdolsky33/ocloud/cmd/version"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
@@ -24,18 +25,18 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	// Initialize global flags
 	flags.AddGlobalFlags(rootCmd)
 
-	// Add subcommands, passing in the ApplicationContext
-	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
-
 	// Add version command
 	rootCmd.AddCommand(version.NewVersionCommand(appCtx))
 
-	// Add version flag
 	version.AddVersionFlag(rootCmd)
+
+	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
 
 	rootCmd.AddCommand(identity.NewIdentityCmd(appCtx))
 
 	rootCmd.AddCommand(database.NewDatabaseCmd(appCtx))
+
+	rootCmd.AddCommand(network.NewNetworkCmd(appCtx))
 
 	return rootCmd
 }
