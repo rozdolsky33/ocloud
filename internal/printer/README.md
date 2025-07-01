@@ -8,6 +8,7 @@ The `Printer` struct is the main component of this package, providing methods to
 
 - JSON output with proper indentation
 - Key-value tables with ordered keys, titles, and colored values
+- Multi-column tables with responsive column widths and styled headers
 
 ## Installation
 
@@ -119,32 +120,66 @@ In this example:
 - Each key-value pair is separated by a horizontal line
 - The title is centered at the top of the table
 
-## Real-World Example
+### Printing a Multi-Column Table with Responsive Widths
 
-Here's a real-world example from the ocloud project that shows how to use the `Printer` to display instance information:
+To print a multi-column table with headers and rows:
 
 ```
-// PrintInstancesTable displays instances in a formatted table or JSON format.
-func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, pagination *PaginationInfo, useJSON bool) error {
+// Define table headers
+headers := []string{"Name", "CIDR", "Public IP", "DNS Label", "Subnet Domain"}
+
+// Create rows for the table
+rows := [][]string{
+    {"subnet-1", "10.0.0.0/24", "No", "subnet1", "subnet1.vcn.oraclevcn.com"},
+    {"subnet-2", "10.0.1.0/24", "Yes", "subnet2", "subnet2.vcn.oraclevcn.com"},
+    {"subnet-3", "10.0.2.0/24", "No", "subnet3", "subnet3.vcn.oraclevcn.com"},
+}
+
+// Print the table with a title
+p.PrintTable("Subnet List", headers, rows)
+```
+
+This will produce output similar to:
+
+```
+╭──────────────────────────────────────────────────────────────────╮
+│                         Subnet List                              │
+├─────────┬─────────────┬───────────┬───────────┬──────────────────┤
+│ NAME    │ CIDR        │ PUBLIC IP │ DNS LABEL │ SUBNET DOMAIN    │
+├─────────┼─────────────┼───────────┼───────────┼──────────────────┤
+│ subnet-1│ 10.0.0.0/24 │     No    │ subnet1   │ subnet1.vcn...   │
+│ subnet-2│ 10.0.1.0/24 │    Yes    │ subnet2   │ subnet2.vcn...   │
+│ subnet-3│ 10.0.2.0/24 │     No    │ subnet3   │ subnet3.vcn...   │
+╰─────────┴─────────────┴───────────┴───────────┴──────────────────╯
+```
+
+In this example:
+- Headers are displayed in bright yellow for better visibility
+- Column widths automatically adjust based on terminal width
+- Long text is truncated with ellipsis when necessary
+- CIDR and IP columns are automatically centered for better readability
+- The title is centered at the top of the table
+
+## Real-World Examples
+
+### Example 1: Using PrintKeyValues for Instance Details
+
+Here's a real-world example from the ocloud project that shows how to use the `PrintKeyValues` method to display detailed instance information:
+
+```
+// PrintInstancesInfo displays detailed information for each instance.
+func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, useJSON bool) error {
     // Create a new printer that writes to the application's standard output.
     p := printer.New(appCtx.Stdout)
 
     // If JSON output is requested, use the printer to marshal the response.
     if useJSON {
-        return marshalInstancesToJSON(p, instances, pagination)
+        return marshalInstancesToJSON(p, instances, nil)
     }
 
     // Handle the case where no instances are found.
     if len(instances) == 0 {
         fmt.Fprintln(appCtx.Stdout, "No instances found.")
-        if pagination != nil && pagination.TotalCount > 0 {
-            fmt.Fprintf(appCtx.Stdout, "Page %d is empty. Total records: %d\n", 
-                pagination.CurrentPage, pagination.TotalCount)
-            if pagination.CurrentPage > 1 {
-                fmt.Fprintf(appCtx.Stdout, "Try a lower page number (e.g., --page %d)\n", 
-                    pagination.CurrentPage-1)
-            }
-        }
         return nil
     }
 
@@ -184,6 +219,64 @@ func PrintInstancesTable(instances []Instance, appCtx *app.ApplicationContext, p
 }
 ```
 
+### Example 2: Using PrintTable for Subnet Listing
+
+Here's another example that shows how to use the `PrintTable` method to display a list of subnets in a tabular format:
+
+```
+// PrintSubnetTable displays subnets in a formatted table or JSON format.
+func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, sortBy string) error {
+    // Create a new printer that writes to the application's standard output.
+    p := printer.New(appCtx.Stdout)
+
+    // If JSON output is requested, use the printer to marshal the response.
+    if useJSON {
+        return util.MarshalDataToJSONResponse[Subnet](p, subnets, pagination)
+    }
+
+    // Handle the case where no subnets are found.
+    if len(subnets) == 0 {
+        fmt.Fprintln(appCtx.Stdout, "No Items found.")
+        return nil
+    }
+
+    // Define table headers
+    headers := []string{"Name", "CIDR", "Public IP", "DNS Label", "Subnet Domain"}
+
+    // Create rows for the table
+    rows := make([][]string, len(subnets))
+    for i, subnet := range subnets {
+        // Determine if public IP is allowed
+        publicIPAllowed := "No"
+        if !subnet.ProhibitPublicIPOnVnic {
+            publicIPAllowed = "Yes"
+        }
+
+        // Create a row for this subnet
+        rows[i] = []string{
+            subnet.Name,
+            subnet.CIDR,
+            publicIPAllowed,
+            subnet.DNSLabel,
+            subnet.SubnetDomainName,
+        }
+    }
+
+    // Create the colored title using components from the app context
+    title := util.FormatColoredTitle(appCtx, "Subnets")
+
+    // Print the table
+    p.PrintTable(title, headers, rows)
+
+    // Display pagination information if available
+    if pagination != nil {
+        fmt.Fprintf(appCtx.Stdout, "Page %d | Total: %d\n", pagination.CurrentPage, pagination.TotalCount)
+    }
+
+    return nil
+}
+```
+
 ## Styling Options
 
 The `Printer` uses the `StyleRounded` style from the go-pretty library for key-value tables. This style provides a clean and readable output with rounded corners.
@@ -196,13 +289,17 @@ The `PrintKeyValues` method applies yellow color to the values in the table:
 
 - Values: Yellow (`text.FgYellow`)
 
-This coloring helps to visually distinguish the values from the keys and makes the output more readable.
+The `PrintTable` method applies bright yellow color to the headers:
 
-In the real-world example, additional colors are applied to the title components:
+- Headers: Bright Yellow (`text.FgHiYellow`)
+
+This coloring helps to visually distinguish the values from the keys and the headers from the data, making the output more readable.
+
+In the real-world examples, additional colors are applied to the title components:
 
 - Tenancy name: Magenta (`text.FgMagenta`)
 - Compartment name: Cyan (`text.FgCyan`)
-- Instance name: Blue (`text.FgBlue`)
+- Resource name (e.g., instance, subnet): Blue (`text.FgBlue`)
 
 ## Customization
 
@@ -229,4 +326,6 @@ For more customization options, refer to the [go-pretty documentation](https://g
 
 ## Conclusion
 
-The `printer` package provides a simple and flexible way to display structured data in the terminal. It's particularly useful for displaying information about cloud resources, such as instances, in a readable and visually appealing format. The package supports both JSON output and tabular output, making it versatile for different use cases.
+The `printer` package provides a simple and flexible way to display structured data in the terminal. It's particularly useful for displaying information about cloud resources, such as instances, compartments, and subnets, in a readable and visually appealing format. The package supports JSON output, key-value tables, and multi-column tables, making it versatile for different use cases.
+
+The responsive design of the tables ensures that output looks good on different terminal sizes, and the automatic truncation of long text with ellipsis helps maintain readability. Special formatting for certain column types (like CIDR and IP addresses) further enhances the user experience.
