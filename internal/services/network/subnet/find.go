@@ -7,6 +7,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
+// FindSubnets finds and displays subnets based on the provided name pattern, optionally in JSON format.
+// It uses the application context for accessing configurations, logging, and output streams.
+// Returns an error if any operation fails during subnet retrieval or output generation.
 func FindSubnets(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Finding Subnets", "pattern", namePattern)
 

@@ -8,6 +8,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
+// ListSubnets retrieves and displays a list of subnets, utilizing pagination, sorting, and optional JSON output.
+// Parameters include an application context, a flag for JSON output, limit, page number, and a sorting key.
+// Returns an error if any issue occurs during retrieval or output generation.
 func ListSubnets(appCtx *app.ApplicationContext, useJSON bool, limit, page int, sortBy string) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Listing Subnets", "limit", limit, "page", page, "sortBy", sortBy)
 

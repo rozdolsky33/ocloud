@@ -2,22 +2,24 @@ package oke
 
 import (
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/text"
+	"sort"
+	"strings"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
-	// Create a new printer that writes to the application's standard output.
+// PrintOKETable groups cluster metadata and node‑pool details into **one**
+// responsive table per cluster. The first row summarizes the cluster; the
+// following rows list each node pool.
+func PrintOKETable(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
-	// Adjust the pagination information if available
 	if pagination != nil {
 		util.AdjustPaginationInfo(pagination)
 	}
 
-	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
 		return util.MarshalDataToJSONResponse[Cluster](p, clusters, pagination)
 	}
@@ -26,64 +28,119 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination
 		return nil
 	}
 
-	// Print each cluster as a separate key-value table with a colored title.
-	for _, cluster := range clusters {
-		// Create cluster data map
-		clusterData := map[string]string{
-			"ID":               cluster.ID,
-			"Name":             cluster.Name,
-			"Version":          cluster.Version,
-			"Created":          cluster.CreatedAt,
-			"State":            string(cluster.State),
-			"Private Endpoint": cluster.PrivateEndpoint,
-			"Node Pools Count": fmt.Sprintf("%d", len(cluster.NodePools)),
+	for _, c := range clusters {
+		// Header defines unified columns for both cluster + node‑pool rows.
+		headers := []string{
+			"Name",           // cluster or node‑pool name
+			"Type",           // "Cluster" or "NodePool"
+			"Version",        // k8s version
+			"Shape/Endpoint", // node shape or cluster endpoint
+			"Count/Created",  // node count or created timestamp
+			"State",          // lifecycle state
 		}
 
-		// Define ordered keys
-		orderedKeys := []string{
-			"ID", "Name", "Version", "Created", "State", "Private Endpoint", "Node Pools Count",
+		// Build rows — first row is the cluster summary.
+		rows := [][]string{
+			{
+				c.Name,
+				"Cluster",
+				c.Version,
+				c.PrivateEndpoint,
+				c.CreatedAt,
+				string(c.State),
+			},
 		}
 
-		title := util.FormatColoredTitle(appCtx, cluster.Name)
+		// Append node‑pool rows.
+		for _, np := range c.NodePools {
+			rows = append(rows, []string{
+				np.Name,
+				"NodePool",
+				np.Version,
+				np.NodeShape,
+				fmt.Sprintf("%d", np.NodeCount),
+				string(np.State),
+			})
+		}
 
-		// Call the printer method to render the key-value table for this cluster.
-		p.PrintKeyValues(title, clusterData, orderedKeys)
+		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s (%d node pools)", c.Name, len(c.NodePools)))
+		p.PrintTable(title, headers, rows)
+		fmt.Fprintln(appCtx.Stdout) // spacer between clusters
+	}
 
-		// Print node pool details if there are any
-		if len(cluster.NodePools) > 0 {
-			fmt.Fprintln(appCtx.Stdout, "\nNode Pools:", len(cluster.NodePools))
+	util.LogPaginationInfo(pagination, appCtx)
+	return nil
+}
 
-			// Print each cluster as a separate key-value table with a colored title.
-			for _, node := range cluster.NodePools {
-				// Create cluster data map
-				nodePoolData := map[string]string{
-					"ID":         node.ID,
-					"Version":    node.Version,
-					"Shape":      node.NodeShape,
-					"Node Count": fmt.Sprintf("%d", node.NodeCount),
-					"State":      string(node.State),
+// PrintOKEInfo prints a detailed, troubleshooting‑oriented view of OKE clusters
+// and their node pools.  Each cluster is rendered as:
+//  1. A summary key/value block containing operationally‑relevant metadata.
+//  2. A responsive table listing all node pools with the most useful columns
+//     for SRE triage.
+//
+// When --JSON is requested, the function defers to util.MarshalDataToJSONResponse.
+func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+	p := printer.New(appCtx.Stdout)
+
+	if pagination != nil {
+		util.AdjustPaginationInfo(pagination)
+	}
+
+	if useJSON {
+		return util.MarshalDataToJSONResponse[Cluster](p, clusters, pagination)
+	}
+
+	if util.ValidateAndReportEmpty(clusters, pagination, appCtx.Stdout) {
+		return nil
+	}
+
+	// Sort clusters by name for deterministic output.
+	sort.Slice(clusters, func(i, j int) bool {
+		return strings.ToLower(clusters[i].Name) < strings.ToLower(clusters[j].Name)
+	})
+
+	for _, c := range clusters {
+		summary := map[string]string{
+			"ID":               c.ID,
+			"Name":             c.Name,
+			"K8s Version":      c.Version,
+			"Created":          c.CreatedAt,
+			"State":            string(c.State),
+			"Private Endpoint": c.PrivateEndpoint,
+			"Node Pools":       fmt.Sprintf("%d", len(c.NodePools)),
+		}
+
+		order := []string{"ID", "Name", "K8s Version", "Created", "State", "Private Endpoint", "Node Pools"}
+
+		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s", c.Name))
+		p.PrintKeyValues(title, summary, order)
+		fmt.Fprintln(appCtx.Stdout) // spacer
+
+		//-----------------------------------------------------------------
+		// Node pool details (table)
+		//-----------------------------------------------------------------
+		if len(c.NodePools) > 0 {
+			headers := []string{"Node Pool", "Version", "Shape", "OCPUs", "Mem(GB)", "Node Cnt", "State"}
+			rows := make([][]string, len(c.NodePools))
+
+			for i, np := range c.NodePools {
+				rows[i] = []string{
+					np.Name,
+					np.Version,
+					np.NodeShape,
+					np.Ocpus,
+					np.MemoryGB,
+					fmt.Sprintf("%d", np.NodeCount),
+					string(np.State),
 				}
-
-				// Define ordered keys
-				nodePoolKeys := []string{
-					"ID", "Version", "Shape", "Node Count", "State"}
-
-				// Create the colored title using components from the app context.
-				coloredNodePool := text.Colors{text.FgMagenta}.Sprint("Node Pool")
-				nodeTitle := fmt.Sprintf("%s: %s: %s",
-					coloredNodePool,
-					node.Name,
-					cluster.Name)
-
-				// Call the printer method to render the key-value table for this cluster.
-				p.PrintKeyValues(nodeTitle, nodePoolData, nodePoolKeys)
-
-				// Add a separator between clusters
-				fmt.Fprintln(appCtx.Stdout, "")
 			}
 
-			return nil
+			tableTitle := util.FormatColoredTitle(appCtx, "Node Pools")
+			p.PrintTable(tableTitle, headers, rows)
+			fmt.Fprintln(appCtx.Stdout) // spacer between clusters
 		}
 	}
+
+	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }

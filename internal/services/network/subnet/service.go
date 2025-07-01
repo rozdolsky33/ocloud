@@ -124,6 +124,8 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 	return subnets, totalCount, nextPageToken, nil
 }
 
+// Find retrieves a slice of subnets whose attributes match the provided name pattern using fuzzy search.
+// It fetches all subnets, builds an index, performs a fuzzy search, and returns matched subnets or an error.
 func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error) {
 	logger.LogWithLevel(s.logger, 3, "finding subnet with bleve fuzzy search", "pattern", namePattern)
 	var allSubnets []Subnet
@@ -201,6 +203,7 @@ func mapToSubnets(s core.Subnet) Subnet {
 	}
 }
 
+// mapToIndexableSubnets converts a Subnet object into an IndexableSubnet by transforming its attributes as needed for indexing.
 func mapToIndexableSubnets(s Subnet) any {
 	return IndexableSubnet{
 		Name: strings.ToLower(s.Name),

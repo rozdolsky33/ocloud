@@ -73,11 +73,11 @@ run_command ./bin/ocloud comp inst l
 
 # Test compute instance find command
 print_header "Testing compute instance find command"
-run_command ./bin/ocloud compute instance find "test"
-run_command ./bin/ocloud compute instance find "test"
-run_command ./bin/ocloud compute instance find "test" --all --json
-run_command ./bin/ocloud compute instance find "test" -A -j
-run_command ./bin/ocloud comp inst f "test"
+run_command ./bin/ocloud compute instance find "roster"
+run_command ./bin/ocloud compute instance find "roster"
+run_command ./bin/ocloud compute instance find "roster" --all --json
+run_command ./bin/ocloud compute instance find "roster" -A -j
+run_command ./bin/ocloud comp inst f "roster"
 
 # Test compute image command
 print_header "Testing compute image command"
@@ -94,11 +94,11 @@ run_command ./bin/ocloud comp img l
 
 # Test compute image find command
 print_header "Testing compute image find command"
-run_command ./bin/ocloud compute image find "test"
-run_command ./bin/ocloud compute image find "test"
-run_command ./bin/ocloud compute image find "test" --json
-run_command ./bin/ocloud compute image find "test" -j
-run_command ./bin/ocloud comp img f "test"
+run_command ./bin/ocloud compute image find "ubuntu"
+run_command ./bin/ocloud compute image find "ubuntu"
+run_command ./bin/ocloud compute image find "ubuntu" --json
+run_command ./bin/ocloud compute image find "ubuntu" -j
+run_command ./bin/ocloud comp img f "ubuntu"
 
 # Test compute oke command
 print_header "Testing compute oke command"
@@ -115,11 +115,11 @@ run_command ./bin/ocloud comp oke l
 
 # Test compute oke find command
 print_header "Testing compute oke find command"
-run_command ./bin/ocloud compute oke find "test"
-run_command ./bin/ocloud compute oke find "test"
-run_command ./bin/ocloud compute oke find "test" --json
-run_command ./bin/ocloud compute oke find "test" -j
-run_command ./bin/ocloud comp oke f "test"
+run_command ./bin/ocloud compute oke find "orion"
+run_command ./bin/ocloud compute oke find "orion"
+run_command ./bin/ocloud compute oke find "orion" --json
+run_command ./bin/ocloud compute oke find "orion" -j
+run_command ./bin/ocloud comp oke f "orion"
 
 # Test with debug flag
 print_header "Testing with debug flag"
@@ -157,11 +157,11 @@ run_command ./bin/ocloud ident compart l
 
 # Test identity compartment find command
 print_header "Testing identity compartment find command"
-run_command ./bin/ocloud identity compartment find "test"
-run_command ./bin/ocloud identity compartment find "test"
-run_command ./bin/ocloud identity compartment find "test" --json
-run_command ./bin/ocloud identity compartment find "test" -j
-run_command ./bin/ocloud ident compart f "test"
+run_command ./bin/ocloud identity compartment find "sand"
+run_command ./bin/ocloud identity compartment find "sand"
+run_command ./bin/ocloud identity compartment find "sand" --json
+run_command ./bin/ocloud identity compartment find "sand" -j
+run_command ./bin/ocloud ident compart f "sand"
 
 # Test identity policy command
 print_header "Testing identity policy command"
@@ -179,11 +179,11 @@ run_command ./bin/ocloud ident pol l
 
 # Test identity policy find command
 print_header "Testing identity policy find command"
-run_command ./bin/ocloud identity policy find "test"
-run_command ./bin/ocloud identity policy find "test"
-run_command ./bin/ocloud identity policy find "test" --json
-run_command ./bin/ocloud identity policy find "test" -j
-run_command ./bin/ocloud ident pol f "test"
+run_command ./bin/ocloud identity policy find "monitor"
+run_command ./bin/ocloud identity policy find "monitor"
+run_command ./bin/ocloud identity policy find "monitor" --json
+run_command ./bin/ocloud identity policy find "monitor" -j
+run_command ./bin/ocloud ident pol f "monitor"
 
 # Test network command
 print_header "Testing network command"
@@ -206,11 +206,11 @@ run_command ./bin/ocloud net sub l
 
 # Test network subnet find command
 print_header "Testing network subnet find command"
-run_command ./bin/ocloud network subnet find "test"
-run_command ./bin/ocloud network subnet find "test"
-run_command ./bin/ocloud network subnet find "test" --json
-run_command ./bin/ocloud network subnet find "test" -j
-run_command ./bin/ocloud net sub f "test"
+run_command ./bin/ocloud network subnet find "pub"
+run_command ./bin/ocloud network subnet find "pub"
+run_command ./bin/ocloud network subnet find "pub" --json
+run_command ./bin/ocloud network subnet find "pub" -j
+run_command ./bin/ocloud net sub f "pub"
 
 # Test database command
 print_header "Testing database command"
