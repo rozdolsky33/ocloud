@@ -9,7 +9,7 @@ import (
 )
 
 func ListClusters(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing OKE clusters")
+	logger.LogWithLevel(appCtx.Logger, 1, "Listing OKE clusters", "limit", limit, "page", page)
 
 	service, err := NewService(appCtx)
 	if err != nil {
@@ -17,16 +17,16 @@ func ListClusters(appCtx *app.ApplicationContext, useJSON bool, limit, page int)
 	}
 
 	ctx := context.Background()
-	clusters, err := service.List(ctx)
+	clusters, totalCount, nextPageToken, err := service.List(ctx, limit, page)
 	if err != nil {
 		return fmt.Errorf("listing oke clusters: %w", err)
 	}
 
 	err = PrintOKETable(clusters, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
-		TotalCount:    len(clusters),
+		TotalCount:    totalCount,
 		Limit:         limit,
-		NextPageToken: "",
+		NextPageToken: nextPageToken,
 	}, useJSON)
 	if err != nil {
 		return fmt.Errorf("printing clusters: %w", err)

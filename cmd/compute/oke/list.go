@@ -15,15 +15,19 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"l"},
 		Short:         "List all Oracle Kubernetes Engine (OKE)",
 		Long:          "List all Kubernetes Engine (OKE) in the specified compartment.",
-		Example:       " ocloud compute oke list\n ocloud compute oke list --json",
+		Example:       " ocloud compute oke list\n ocloud compute oke list --json\n ocloud compute oke list --limit 10 --page 2",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
-	return cmd
 
+	// Add pagination flags
+	paginationFlags.LimitFlag.Add(cmd)
+	paginationFlags.PageFlag.Add(cmd)
+
+	return cmd
 }
 
 // RunListCommand handles the execution of the list command
