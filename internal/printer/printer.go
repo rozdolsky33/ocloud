@@ -69,8 +69,15 @@ func (p *Printer) MarshalToJSON(data interface{}) error {
 // -----------------------------------------------------------------------------
 
 // PrintKeyValues renders a table from a map, with ordered keys, a title, and
-// colored values.  Useful for detailed instance/subnet views.
+// colored values.
 func (p *Printer) PrintKeyValues(title string, data map[string]string, keys []string) {
+	termWidth := p.getTerminalWidth()
+	maxKeyWidth := 20
+	maxValWidth := termWidth - maxKeyWidth - 10 // Padding/border allowance
+	if maxValWidth < 20 {
+		maxValWidth = 20
+	}
+
 	t := table.NewWriter()
 	t.SetOutputMirror(p.out)
 	t.SetStyle(table.StyleRounded)
@@ -78,6 +85,22 @@ func (p *Printer) PrintKeyValues(title string, data map[string]string, keys []st
 	t.SetTitle(title)
 
 	t.AppendHeader(table.Row{"KEY", "VALUE"})
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{
+			Number:   1,
+			WidthMax: maxKeyWidth,
+			Transformer: func(val interface{}) string {
+				return truncate(fmt.Sprint(val), maxKeyWidth)
+			},
+		},
+		{
+			Number:   2,
+			WidthMax: maxValWidth,
+			Transformer: func(val interface{}) string {
+				return truncate(fmt.Sprint(val), maxValWidth)
+			},
+		},
+	})
 
 	for i, key := range keys {
 		if value, ok := data[key]; ok {
@@ -131,8 +154,6 @@ func (p *Printer) PrintTable(title string, headers []string, rows [][]string) {
 			Transformer: func(val interface{}) string {
 				return truncate(fmt.Sprint(val), maxPerCol)
 			},
-			// Optional: align numeric/text differently if desired
-			// Align: table.AlignLeft,
 		}
 
 		// Special case: align CIDR and IP columns to the center for readability
