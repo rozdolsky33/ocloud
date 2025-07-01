@@ -7,8 +7,12 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
+	"strings"
 )
 
+// NewService creates and initializes a new Service instance using the provided application context.
+// It returns the created Service or an error if initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	nc, err := oci.NewNetworkClient(cfg)
@@ -22,6 +26,8 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	}, nil
 }
 
+// List retrieves a paginated list of subnets based on the specified limit and page number within a compartment.
+// It returns the subnet slice, the total count of subnets, the next page token, and an error if any occurs.
 func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, int, string, error) {
 
 	var subnets []Subnet
@@ -119,9 +125,65 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 }
 
 func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error) {
-	return nil, nil
+	logger.LogWithLevel(s.logger, 3, "finding subnet with bleve fuzzy search", "pattern", namePattern)
+	var allSubnets []Subnet
+	// 1. Fetch all subnets in the compartment
+	allSubnets, err := s.fetchAllSubnets(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch all subnets: %w", err)
+	}
+	// 2. Build index
+	index, err := util.BuildIndex(allSubnets, func(s Subnet) any {
+		return mapToIndexableSubnets(s)
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to build index: %w", err)
+	}
+
+	// 3. Fuzzy search on multiple fields
+	fields := []string{"Name", "CIDR"}
+	matchedIdxs, err := util.FuzzySearchIndex(index, namePattern, fields)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fuzzy search index: %w", err)
+	}
+
+	// Return marched subnets
+	var matchedSubnets []Subnet
+	for _, idx := range matchedIdxs {
+		if idx >= 0 && idx < len(allSubnets) {
+			matchedSubnets = append(matchedSubnets, allSubnets[idx])
+		}
+	}
+
+	logger.LogWithLevel(s.logger, 2, "found subnet", "count", len(matchedSubnets))
+	return matchedSubnets, nil
 }
 
+// fetchAllSubnets retrieves all subnets within the specified compartment using pagination and returns them as a slice.
+func (s *Service) fetchAllSubnets(ctx context.Context) ([]Subnet, error) {
+	var allSubnets []Subnet
+	page := ""
+	for {
+		resp, err := s.networkClient.ListSubnets(ctx, core.ListSubnetsRequest{
+			CompartmentId: &s.compartmentID,
+			Page:          &page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list subnets: %w", err)
+		}
+		for _, s := range resp.Items {
+			allSubnets = append(allSubnets, mapToSubnets(s))
+		}
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = *resp.OpcNextPage
+	}
+	return allSubnets, nil
+}
+
+// mapToSubnets maps a core.Subnet object to a Subnet object while extracting and transforming its relevant fields.
 func mapToSubnets(s core.Subnet) Subnet {
 	return Subnet{
 		Name:                    *s.DisplayName,
@@ -136,5 +198,12 @@ func mapToSubnets(s core.Subnet) Subnet {
 		ProhibitInternetEgress:  *s.ProhibitInternetIngress,
 		DNSLabel:                *s.DnsLabel,
 		SubnetDomainName:        *s.SubnetDomainName,
+	}
+}
+
+func mapToIndexableSubnets(s Subnet) any {
+	return IndexableSubnet{
+		Name: strings.ToLower(s.Name),
+		CIDR: s.CIDR,
 	}
 }

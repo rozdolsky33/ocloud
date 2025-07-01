@@ -21,7 +21,7 @@ func FindSubnets(appCtx *app.ApplicationContext, namePattern string, useJSON boo
 		return fmt.Errorf("finding matched subnets: %w", err)
 	}
 
-	err = PrintSubnetInfo(matchedSubnets, appCtx, nil, useJSON, "")
+	err = PrintSubnetInfo(matchedSubnets, appCtx, useJSON)
 	if err != nil {
 		return fmt.Errorf("printing matched subnets: %w", err)
 	}

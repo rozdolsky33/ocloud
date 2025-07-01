@@ -23,7 +23,7 @@ func ListSubnets(appCtx *app.ApplicationContext, useJSON bool, limit, page int, 
 	}
 
 	// Display policies information with pagination details
-	err = PrintSubnetInfo(policies, appCtx, &util.PaginationInfo{
+	err = PrintSubnetTable(policies, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,

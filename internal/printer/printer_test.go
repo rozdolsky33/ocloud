@@ -144,3 +144,71 @@ func TestPrintKeyValues_MissingKey(t *testing.T) {
 		t.Fatalf("Expected output not to contain the key 'key2', got: %s", buf.String())
 	}
 }
+
+func TestPrintTable(t *testing.T) {
+	// Create a buffer to capture output
+	var buf bytes.Buffer
+
+	// Create a new printer with the buffer as output
+	p := New(&buf)
+
+	// Test data
+	title := "Test Table"
+	headers := []string{"Header1", "Header2", "Header3"}
+	rows := [][]string{
+		{"Row1Col1", "Row1Col2", "Row1Col3"},
+		{"Row2Col1", "Row2Col2", "Row2Col3"},
+	}
+
+	// Print the table
+	p.PrintTable(title, headers, rows)
+
+	// Check that the output contains the title
+	if !strings.Contains(buf.String(), title) {
+		t.Fatalf("Expected output to contain the title '%s', got: %s", title, buf.String())
+	}
+
+	// Check that the output contains the headers (converted to uppercase by the table library)
+	for _, header := range headers {
+		if !strings.Contains(buf.String(), strings.ToUpper(header)) {
+			t.Fatalf("Expected output to contain the header '%s', got: %s", strings.ToUpper(header), buf.String())
+		}
+	}
+
+	// Check that the output contains the row data
+	for _, row := range rows {
+		for _, cell := range row {
+			if !strings.Contains(buf.String(), cell) {
+				t.Fatalf("Expected output to contain the cell '%s', got: %s", cell, buf.String())
+			}
+		}
+	}
+}
+
+func TestPrintTable_EmptyData(t *testing.T) {
+	// Create a buffer to capture output
+	var buf bytes.Buffer
+
+	// Create a new printer with the buffer as output
+	p := New(&buf)
+
+	// Test with empty data
+	title := "Empty Table"
+	headers := []string{"Header1", "Header2"}
+	rows := [][]string{}
+
+	// Print the table
+	p.PrintTable(title, headers, rows)
+
+	// Check that the output contains the title
+	if !strings.Contains(buf.String(), title) {
+		t.Fatalf("Expected output to contain the title '%s', got: %s", title, buf.String())
+	}
+
+	// Check that the output contains the headers (converted to uppercase by the table library)
+	for _, header := range headers {
+		if !strings.Contains(buf.String(), strings.ToUpper(header)) {
+			t.Fatalf("Expected output to contain the header '%s', got: %s", strings.ToUpper(header), buf.String())
+		}
+	}
+}
