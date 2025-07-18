@@ -121,7 +121,7 @@ func resolveTenancyAndCompartment(ctx context.Context, cmd *cobra.Command, appCt
 // 1. Command line flag
 // 2. Environment variable
 // 3. Tenancy name lookup (if tenancy name is provided)
-// 4. OCI config file
+// 4. OCI configuration file
 // Returns the tenancy ID or an error if it cannot be resolved.
 func resolveTenancyID(cmd *cobra.Command) (string, error) {
 	// Check if tenancy ID is provided as a flag
@@ -153,12 +153,12 @@ func resolveTenancyID(cmd *cobra.Command) (string, error) {
 		}
 	}
 
-	// Load from an OCI config file as a last resort
+	// Load from an OCI configuration file as a last resort
 	tenancyID, err := config.GetTenancyOCID()
 	if err != nil {
 		return "", fmt.Errorf("could not load tenancy OCID: %w", err)
 	}
-	logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID from config file", "tenancyID", tenancyID)
+	logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID from configuration file", "tenancyID", tenancyID)
 	viper.Set(flags.FlagNameTenancyID, tenancyID)
 
 	return tenancyID, nil

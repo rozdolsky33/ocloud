@@ -269,6 +269,22 @@ ocloud --compartment my-compartment database autonomousdb find "my-database"
 ocloud --compartment my-compartment database autonomousdb list --json
 ```
 
+### Working with Configuration
+
+```bash
+# View tenancy mapping information
+ocloud config info map-file
+
+# View tenancy mapping information in JSON format
+ocloud config info map-file --json
+
+# Filter tenancy mappings by realm
+ocloud config info map-file --realm OC1
+
+# Filter tenancy mappings by realm and output in JSON format
+ocloud config info map-file --realm OC1 --json
+```
+
 ### Working with Different Tenancies
 
 ```bash
@@ -297,6 +313,11 @@ The project follows a modern Go application structure:
     - `instance/`: Instance-related commands
     - `image/`: Image-related commands
     - `oke/`: Oracle Kubernetes Engine commands
+  - `configuration/`: Configuration-related commands
+    - `root.go`: Configuration command and flags
+    - `info/`: Configuration information commands
+    - `auth/`: Authentication-related commands
+    - `flags/`: Configuration-specific flags
   - `identity/`: Identity-related commands
     - `root.go`: Identity command and flags
     - `compartment/`: Compartment-related commands

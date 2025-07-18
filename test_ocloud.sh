@@ -239,6 +239,28 @@ run_command ./bin/ocloud database autonomous find "test" --json
 run_command ./bin/ocloud database autonomous find "test" -j
 run_command ./bin/ocloud db adb f "test"
 
+# Test configuration command
+print_header "Testing configuration command"
+run_command ./bin/ocloud config --help
+run_command ./bin/ocloud conf --help
+
+# Test configuration info command
+print_header "Testing configuration info command"
+run_command ./bin/ocloud config info --help
+run_command ./bin/ocloud conf info --help
+run_command ./bin/ocloud conf i --help
+
+# Test configuration info map-file command
+print_header "Testing configuration info map-file command"
+run_command ./bin/ocloud config info map-file
+run_command ./bin/ocloud config info map-file --json
+run_command ./bin/ocloud config info map-file -j
+run_command ./bin/ocloud config info map-file --realm OC1
+run_command ./bin/ocloud config info map-file -r OC1
+run_command ./bin/ocloud config info map-file --realm OC1 --json
+run_command ./bin/ocloud config info map-file -r OC1 -j
+run_command ./bin/ocloud conf i mf
+
 print_header "All tests completed"
 
 # Display error summary if there were any errors

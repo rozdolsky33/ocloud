@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/cmd/compute"
+	"github.com/rozdolsky33/ocloud/cmd/configuration"
 	"github.com/rozdolsky33/ocloud/cmd/database"
 	"github.com/rozdolsky33/ocloud/cmd/identity"
 	"github.com/rozdolsky33/ocloud/cmd/network"
@@ -13,12 +14,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewRootCmd creates a new root command with all subcommands attached
+// NewRootCmd creates a new root command with all subcommands attached.
+// It sets up the command structure for the ocloud CLI tool, including compute, identity,
+// database, network, and configuration commands. Each subcommand provides specific
+// functionality for interacting with different aspects of Oracle Cloud Infrastructure.
 func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:          "ocloud",
 		Short:        "Interact with Oracle Cloud Infrastructure",
-		Long:         "",
+		Long:         "ocloud is a command-line tool for interacting with Oracle Cloud Infrastructure (OCI). It provides commands for managing compute instances, identity resources, databases, networking, and configuration settings.",
+		Example:      "  ocloud compute instance list\n  ocloud identity compartment list\n  ocloud database autonomousdb list\n  ocloud network subnet list\n  ocloud config info map-file",
 		SilenceUsage: true,
 	}
 
@@ -37,6 +42,8 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	rootCmd.AddCommand(database.NewDatabaseCmd(appCtx))
 
 	rootCmd.AddCommand(network.NewNetworkCmd(appCtx))
+
+	rootCmd.AddCommand(configuration.NewConfigCmd(appCtx))
 
 	return rootCmd
 }

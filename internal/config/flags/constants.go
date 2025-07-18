@@ -28,6 +28,7 @@ const (
 	FlagNameVersion            = "version"
 	FlagNameAllInformation     = "all"
 	FlagNameSort               = "sort"
+	FlagNameRealm              = "realm"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -54,6 +55,7 @@ const (
 	FlagShortVersion            = "v"
 	FlagShortAllInformation     = "A"
 	FlagShortSort               = "s"
+	FlagShortRealm              = "r"
 )
 
 // FlagDescriptions contains help text for flags
@@ -78,10 +80,11 @@ const (
 	FlagDescDisableConcurrency = "Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)"
 	FlagDescLimit              = "Maximum number of records to display per page"
 	FlagDescPage               = "Page number to display"
-	FlagDescJSON               = "Output information in JSON format"
+	FlagDescJSON               = "Output in JSON format"
 	FlagDescVersion            = "Print the version number of ocloud CLI"
 	FlagDescAllInformation     = "Show all information"
 	FlagDescSort               = "Sort results by field (name or cidr)"
+	FlagDescRealm              = "Filter by realm"
 )
 
 // Flag values and defaults

@@ -1,5 +1,5 @@
 // Command main is the entry point for the flag generator.
-// It extracts flag constants from the config package and updates the README.md file.
+// It extracts flag constants from the configuration package and updates the README.md file.
 package main
 
 import (
@@ -26,7 +26,7 @@ func main() {
 	}
 
 	// Extract flag constants
-	configDir := filepath.Join(projectRoot, "internal", "config")
+	configDir := filepath.Join(projectRoot, "internal", "configuration")
 	flagInfos, err := generator.ExtractFlagConstants(configDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error extracting flag constants: %v\n", err)

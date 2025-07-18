@@ -128,7 +128,7 @@ func TestResolveTenancyID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
-	// Test case 4: Tenancy ID from OCI config
+	// Test case 4: Tenancy ID from OCI configuration
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	err = os.Unsetenv(flags.EnvOCITenancyName)
@@ -140,7 +140,7 @@ func TestResolveTenancyID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
-	// Test case 5: Error case - tenancy name lookup fails but continues to OCI config
+	// Test case 5: Error case - tenancy name lookup fails but continues to OCI configuration
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	err = os.Setenv(flags.EnvOCITenancyName, "non-existent-tenancy")
@@ -152,7 +152,7 @@ func TestResolveTenancyID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "mock-tenancy-ocid", tenancyID)
 
-	// Test case 6: Error case - OCI config fails
+	// Test case 6: Error case - OCI configuration fails
 	cmd = &cobra.Command{}
 	cmd.Flags().String(flags.FlagNameTenancyID, "", "")
 	err = os.Unsetenv(flags.EnvOCITenancyName)

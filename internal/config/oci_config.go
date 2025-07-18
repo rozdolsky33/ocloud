@@ -115,7 +115,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 
 // LoadTenancyMap loads the tenancy mapping from disk at tenancyMapPath.
 // It logs debug information and returns a slice of OciTenancyEnvironment.
-func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
+func LoadTenancyMap() ([]MappingsFile, error) {
 	path := tenancyMapPath()
 	logger.LogWithLevel(logger.Logger, 3, "loading tenancy map", "path", path)
 
@@ -130,7 +130,7 @@ func LoadTenancyMap() ([]OCITenancyEnvironment, error) {
 		return nil, errors.Wrapf(err, "failed to read tenancy mapping file (%s)", path)
 	}
 
-	var tenancies []OCITenancyEnvironment
+	var tenancies []MappingsFile
 	if err := yaml.Unmarshal(data, &tenancies); err != nil {
 		logger.Logger.Error(err, "failed to parse tenancy mapping file", "path", path)
 		return nil, errors.Wrapf(err, "failed to parse tenancy mapping file (%s) - please check that the file is valid YAML", path)
