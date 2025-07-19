@@ -126,10 +126,16 @@ func (p *Printer) PrintTable(title string, headers []string, rows [][]string) {
 
 	// Calculate a reasonable max width per column.
 	// Rough formula: subtract borders/padding (≈3 chars per col), then divide.
-	pad := (len(headers) + 1) * 3
-	maxPerCol := (termWidth - pad) / len(headers)
-	if maxPerCol < 10 {
-		maxPerCol = 10 // never let columns get absurdly narrow
+	// Handle the case where headers is empty to avoid division by zero
+	var maxPerCol int
+	if len(headers) == 0 {
+		maxPerCol = termWidth - 10 // Use a reasonable default when no headers
+	} else {
+		pad := (len(headers) + 1) * 3
+		maxPerCol = (termWidth - pad) / len(headers)
+		if maxPerCol < 10 {
+			maxPerCol = 10 // never let columns get absurdly narrow
+		}
 	}
 
 	// Set up the table writer

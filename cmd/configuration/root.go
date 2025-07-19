@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"github.com/rozdolsky33/ocloud/cmd/configuration/auth"
 	"github.com/rozdolsky33/ocloud/cmd/configuration/info"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/spf13/cobra"
@@ -20,7 +21,7 @@ func NewConfigCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	// Add subcommands
 	cmd.AddCommand(info.NewInfoCmd(appCtx)) // info
-	// TODO: Add auth subcommand when implemented
+	cmd.AddCommand(auth.NewAuthCmd(appCtx)) // auth
 
 	return cmd
 }
