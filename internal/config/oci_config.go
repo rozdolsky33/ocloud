@@ -109,7 +109,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 	}
 
 	lookupErr := fmt.Errorf("tenancy %q not found in %s", tenancyName, path)
-	logger.Logger.Info("tenancy lookup failed", "error", lookupErr)
+	logger.Logger.Error(nil, "tenancy lookup failed", "error", lookupErr)
 	return "", errors.Wrap(lookupErr, "tenancy lookup failed - please check that the tenancy name is correct and exists in the mapping file")
 }
 
