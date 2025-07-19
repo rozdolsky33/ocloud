@@ -2,37 +2,41 @@ package auth
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/configuration/auth"
 	"github.com/spf13/cobra"
 )
 
-// NewAuthCmd creates a new cobra.Command for authenticating with OCI.
+// Short description for the auth command
+var authShort = "Authenticate with OCI and refresh session tokens"
+
+// Long description for the auth command
+var authLong = `Provides commands for authenticating with Oracle Cloud Infrastructure (OCI).
+
+This command group includes subcommands for authenticating with OCI and refreshing session tokens.
+It allows you to interactively select your desired profile and region for authentication.`
+
+// Examples for the auth command
+var authExamples = `  ocloud config auth authenticate
+  ocloud config auth authenticate -e
+  ocloud config auth authenticate --filter us`
+
+// NewAuthCmd creates a new cobra.Command for the auth command group.
 func NewAuthCmd(appCtx *app.ApplicationContext) *cobra.Command {
-	var envOnly bool
-	var filter string
-
 	cmd := &cobra.Command{
-		Use:     "auth",
-		Aliases: []string{"a"},
-		Short:   "Authenticate with OCI and refresh session tokens",
-		Long: `Runs the OCI CLI's session authenticate under the hood:
-
-    oci session authenticate --profile-name <PROFILE> --region <REGION>
-
-Interactively lets you pick your desired profile and region.`,
-		Example:       "  ocloud config auth\n  ocloud config auth -e\n  ocloud config auth --filter us",
+		Use:           "auth",
+		Aliases:       []string{"authenticate", "a"},
+		Short:         authShort,
+		Long:          authLong,
+		Example:       authExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger.LogWithLevel(appCtx.Logger, 1, "Initializing application")
-			return auth.AuthenticateWithOCI(appCtx, envOnly, filter)
+			// If no subcommand is specified, run the authenticate command
+			return NewAuthenticateCmd(appCtx).RunE(cmd, args)
 		},
 	}
 
-	// Add flags
-	cmd.Flags().BoolVarP(&envOnly, "env-only", "e", false, "Only output environment variables, don't run interactive authentication")
-	cmd.Flags().StringVarP(&filter, "filter", "f", "", "Filter regions by prefix (e.g., us, eu, ap)")
+	// Add subcommands
+	cmd.AddCommand(NewAuthenticateCmd(appCtx))
 
 	return cmd
 }

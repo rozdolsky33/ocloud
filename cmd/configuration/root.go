@@ -20,8 +20,8 @@ func NewConfigCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(info.NewInfoCmd(appCtx)) // info
-	cmd.AddCommand(auth.NewAuthCmd(appCtx)) // auth
+	cmd.AddCommand(info.NewInfoCmd(appCtx))
+	cmd.AddCommand(auth.NewAuthCmd(appCtx))
 
 	return cmd
 }

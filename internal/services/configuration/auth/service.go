@@ -8,38 +8,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/pkg/errors"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config"
 )
 
-// ConfigProvider is the OCI configuration provider used for authentication.
-var ConfigProvider common.ConfigurationProvider
-
-// RegionInfo represents an OCI region with its ID and name.
-type RegionInfo struct {
-	ID   string
-	Name string
-}
-
-// AuthenticationResult contains the result of the authentication process.
-type AuthenticationResult struct {
-	TenancyID   string
-	TenancyName string
-	Profile     string
-	Region      string
-}
-
-// Service provides methods for authenticating with OCI.
-type Service struct {
-	appCtx *app.ApplicationContext
-}
-
 // NewService creates a new authentication service.
 func NewService(appCtx *app.ApplicationContext) *Service {
 	return &Service{
 		appCtx: appCtx,
+		logger: appCtx.Logger,
 	}
 }
 
@@ -152,7 +130,7 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	os.Setenv("OCI_PROFILE", profile)
 	os.Setenv("OCI_REGION", region)
 
-	// Reload provider with chosen profile/region
+	// Reload provider with the chosen profile / region
 	if err := InitAuth(); err != nil {
 		return nil, errors.Wrap(err, "reloading config after auth")
 	}
@@ -163,14 +141,14 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
 
-	// Create result
+	// Create a result
 	result := &AuthenticationResult{
 		TenancyID: tenancyOCID,
 		Profile:   profile,
 		Region:    region,
 	}
 
-	// Try to get tenancy name from mapping file
+	// Try to get a tenancy name from a mapping file
 	tenancies, err := config.LoadTenancyMap()
 	if err == nil {
 		for _, t := range tenancies {
@@ -197,14 +175,14 @@ func (s *Service) GetCurrentEnvironment() (*AuthenticationResult, error) {
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
 
-	// Create result
+	// Create a result
 	result := &AuthenticationResult{
 		TenancyID: tenancyOCID,
 		Profile:   config.GetOCIProfile(),
 		Region:    os.Getenv("OCI_REGION"),
 	}
 
-	// Try to get tenancy name from mapping file
+	// Try to get a tenancy name from a mapping file
 	tenancies, err := config.LoadTenancyMap()
 	if err == nil {
 		for _, t := range tenancies {

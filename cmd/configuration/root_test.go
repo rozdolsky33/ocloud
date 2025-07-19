@@ -28,11 +28,15 @@ func TestConfigCommand(t *testing.T) {
 
 	// Test that the subcommands are added
 	subCmds := cmd.Commands()
-	assert.Equal(t, 1, len(subCmds), "configuration command should have 1 subcommand")
+	assert.Equal(t, 2, len(subCmds), "configuration command should have 2 subcommands")
 
 	// Check that the info subcommand is present
 	infoCmd := findSubCommand(subCmds, "info")
 	assert.NotNil(t, infoCmd, "configuration command should have info subcommand")
+
+	// Check that the auth subcommand is present
+	authCmd := findSubCommand(subCmds, "auth")
+	assert.NotNil(t, authCmd, "configuration command should have auth subcommand")
 }
 
 // findSubCommand is a helper function to find a subcommand by name
