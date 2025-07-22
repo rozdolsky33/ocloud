@@ -3,7 +3,6 @@ package auth
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
-	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/auth"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +33,6 @@ func NewAuthenticateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			logger.LogWithLevel(appCtx.Logger, 1, "Initializing application")
 			envOnly := flags.GetBoolFlag(cmd, flags.FlagNameEnvOnly, false)
 			filter := flags.GetStringFlag(cmd, flags.FlagNameFilter, "")
 			return auth.AuthenticateWithOCI(appCtx, envOnly, filter)

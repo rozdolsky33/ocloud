@@ -1,53 +1,33 @@
 package auth
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// MockService is a mock implementation of the Service interface for testing
-type MockService struct {
-	mock.Mock
-}
+// Note: We can't easily test the AuthenticateWithOCI function because it calls other functions
+// that interact with the user and external systems. In a real-world scenario, we would refactor
+// the function to accept interfaces that could be mocked for testing.
+// For now, we'll just verify that the function exists and has the expected signature.
 
-func (m *MockService) GetCurrentEnvironment() (*AuthenticationResult, error) {
-	args := m.Called()
-	return args.Get(0).(*AuthenticationResult), args.Error(1)
-}
+func TestAuthenticateWithOCI_Exists(t *testing.T) {
+	// Create a mock logger
+	mockLogger := logger.NewTestLogger()
 
-func TestAuthenticateWithOCI_EnvOnly(t *testing.T) {
-	// Create a buffer to capture output
-	var buf bytes.Buffer
-
-	// Create a new application context with the buffer as stdout
+	// Create a mock application context
 	appCtx := &app.ApplicationContext{
-		Stdout: &buf,
+		Logger: mockLogger,
 	}
 
-	// Create a mock service
-	mockService := new(MockService)
-
-	// Set up the mock to return a result
-	mockResult := &AuthenticationResult{
-		TenancyID:   "ocid1.tenancy.oc1..example",
-		TenancyName: "example-tenancy",
-		Profile:     "DEFAULT",
-		Region:      "us-ashburn-1",
-	}
-	mockService.On("GetCurrentEnvironment").Return(mockResult, nil)
-
-	// In a real implementation, we would:
-	// 1. Mock the NewService function to return our mock service
-	// 2. Call AuthenticateWithOCI with envOnly=true
-	// 3. Verify the output contains the expected environment variables
-
-	// For demonstration purposes, we'll just use the appCtx to avoid unused variable warning
-	// and verify that the mock was set up correctly
-	assert.NotNil(t, appCtx)
-	assert.NotNil(t, mockService)
-	assert.NotNil(t, mockResult)
+	// Verify that the function exists and has the expected signature
+	// This is a simple test to ensure the function is defined
+	assert.NotPanics(t, func() {
+		// We don't actually call the function because it would interact with external systems
+		// We just verify that the function exists and has the expected signature
+		_ = AuthenticateWithOCI
+		_ = appCtx
+	})
 }

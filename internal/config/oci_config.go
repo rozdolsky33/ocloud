@@ -18,6 +18,8 @@ var (
 	MockGetTenancyOCID func() (string, error)
 	// MockLookupTenancyID allows tests to override the LookupTenancyID function
 	MockLookupTenancyID func(tenancyName string) (string, error)
+	// MockLoadTenancyMap allows tests to override the LoadTenancyMap function
+	MockLoadTenancyMap func() ([]MappingsFile, error)
 )
 
 // DefaultTenancyMapPath defines the default file path for the OCI tenancy map configuration in the user's home directory.
@@ -116,6 +118,11 @@ func LookupTenancyID(tenancyName string) (string, error) {
 // LoadTenancyMap loads the tenancy mapping from disk at tenancyMapPath.
 // It logs debug information and returns a slice of OciTenancyEnvironment.
 func LoadTenancyMap() ([]MappingsFile, error) {
+	// Use mock function if set (for testing)
+	if MockLoadTenancyMap != nil {
+		return MockLoadTenancyMap()
+	}
+
 	path := tenancyMapPath()
 	logger.LogWithLevel(logger.Logger, 3, "loading tenancy map", "path", path)
 

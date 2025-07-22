@@ -16,14 +16,18 @@ import (
 
 // NewService creates a new authentication service.
 func NewService(appCtx *app.ApplicationContext) *Service {
-	return &Service{
-		cfg:    appCtx.Provider,
+	service := &Service{
+		appCtx: appCtx,
 		logger: appCtx.Logger,
 	}
+	logger.LogWithLevel(appCtx.Logger, 3, "Created new authentication service")
+	return service
 }
 
 // PromptForProfile prompts the user to select an OCI profile.
 func (s *Service) PromptForProfile() (string, error) {
+	logger.LogWithLevel(s.logger, 3, "Prompting user for OCI profile selection")
+
 	fmt.Println("Do you want to use the DEFAULT profile or enter a custom profile name?")
 	fmt.Println("1: Use DEFAULT profile")
 	fmt.Println("2: Enter custom profile name")
@@ -31,20 +35,25 @@ func (s *Service) PromptForProfile() (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	choice, err := reader.ReadString('\n')
 	if err != nil {
+		logger.LogWithLevel(s.logger, 1, "Error reading profile choice input", "error", err)
 		return "", errors.Wrap(err, "reading profile choice input")
 	}
 	choice = strings.TrimSpace(choice)
+	logger.LogWithLevel(s.logger, 3, "User selected profile choice", "choice", choice)
 
 	profile := "DEFAULT"
 	if choice == "2" {
 		fmt.Print("Enter profile name: ")
 		customProfile, err := reader.ReadString('\n')
 		if err != nil {
+			logger.LogWithLevel(s.logger, 1, "Error reading custom profile input", "error", err)
 			return "", errors.Wrap(err, "reading custom profile input")
 		}
 		profile = strings.TrimSpace(customProfile)
+		logger.LogWithLevel(s.logger, 1, "Using custom profile", "profile", profile)
 		fmt.Printf("Using profile: %s\n", profile)
 	} else {
+		logger.LogWithLevel(s.logger, 1, "Using DEFAULT profile")
 		fmt.Println("Using DEFAULT profile")
 	}
 
@@ -53,6 +62,8 @@ func (s *Service) PromptForProfile() (string, error) {
 
 // GetOCIRegions returns a list of all available OCI regions.
 func (s *Service) GetOCIRegions() []RegionInfo {
+	logger.LogWithLevel(s.logger, 3, "Getting list of OCI regions")
+
 	regions := []string{
 		"af-johannesburg-1", "ap-batam-1", "ap-chiyoda-1", "ap-chuncheon-1",
 		"ap-chuncheon-2", "ap-dcc-canberra-1", "ap-dcc-gazipur-1", "ap-hyderabad-1",
@@ -83,26 +94,33 @@ func (s *Service) GetOCIRegions() []RegionInfo {
 		})
 	}
 
+	logger.LogWithLevel(s.logger, 3, "Retrieved OCI regions", "count", len(regionInfos))
 	return regionInfos
 }
 
 // PromptForRegion prompts the user to select an OCI region.
 func (s *Service) PromptForRegion() (string, error) {
+	logger.LogWithLevel(s.logger, 3, "Prompting user for OCI region selection")
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter region number or name: ")
 	input, err := reader.ReadString('\n')
 	if err != nil {
+		logger.LogWithLevel(s.logger, 1, "Error reading region input", "error", err)
 		return "", errors.Wrap(err, "reading region input")
 	}
 	input = strings.TrimSpace(input)
+	logger.LogWithLevel(s.logger, 3, "User entered region input", "input", input)
 
 	regions := s.GetOCIRegions()
 	var chosen string
 
 	if idx, err := strconv.Atoi(input); err == nil && idx >= 1 && idx <= len(regions) {
 		chosen = regions[idx-1].Name
+		logger.LogWithLevel(s.logger, 3, "Selected region by index", "index", idx, "region", chosen)
 	} else {
 		chosen = input
+		logger.LogWithLevel(s.logger, 3, "Selected region by name", "region", chosen)
 	}
 
 	return chosen, nil
@@ -110,22 +128,32 @@ func (s *Service) PromptForRegion() (string, error) {
 
 // Authenticate authenticates with OCI using the specified profile and region.
 func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, error) {
+	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "profile", profile, "region", region)
+
 	// Authenticate via OCI CLI
 	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
 	ociCmd.Stdout = os.Stdout
 	ociCmd.Stderr = os.Stderr
+
+	logger.LogWithLevel(s.logger, 3, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
 	if err := ociCmd.Run(); err != nil {
+		logger.LogWithLevel(s.logger, 1, "Failed to run OCI CLI command", "error", err)
 		return nil, errors.Wrap(err, "failed to run `oci session authenticate`")
 	}
+	logger.LogWithLevel(s.logger, 3, "OCI CLI command completed successfully")
 
 	// Set environment variables
 	os.Setenv("OCI_PROFILE", profile)
 	os.Setenv("OCI_REGION", region)
+	logger.LogWithLevel(s.logger, 3, "Set environment variables", "OCI_PROFILE", profile, "OCI_REGION", region)
 
-	tenancyOCID, err := s.cfg.TenancyOCID()
+	logger.LogWithLevel(s.logger, 3, "Fetching tenancy OCID")
+	tenancyOCID, err := s.appCtx.Provider.TenancyOCID()
 	if err != nil {
+		logger.LogWithLevel(s.logger, 1, "Failed to fetch tenancy OCID", "error", err)
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
+	logger.LogWithLevel(s.logger, 3, "Fetched tenancy OCID", "tenancyOCID", tenancyOCID)
 
 	// Create a result
 	result := &AuthenticationResult{
@@ -135,8 +163,11 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	}
 
 	// Try to get a tenancy name from a mapping file
+	logger.LogWithLevel(s.logger, 3, "Attempting to get tenancy name from mapping file")
 	tenancies, err := config.LoadTenancyMap()
-	if err == nil {
+	if err != nil {
+		logger.LogWithLevel(s.logger, 3, "Failed to load tenancy map, continuing without tenancy name", "error", err)
+	} else {
 		for _, t := range tenancies {
 			if t.TenancyID == tenancyOCID {
 				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
@@ -144,52 +175,89 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 				break
 			}
 		}
+
+		if result.TenancyName == "" {
+			logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
+		}
 	}
 
+	logger.LogWithLevel(s.logger, 1, "Authentication successful", "profile", profile, "region", region, "tenancyID", tenancyOCID, "tenancyName", result.TenancyName)
 	return result, nil
 }
 
 // GetCurrentEnvironment returns the current OCI environment variables.
 func (s *Service) GetCurrentEnvironment() (*AuthenticationResult, error) {
+	logger.LogWithLevel(s.logger, 3, "Getting current OCI environment")
+
 	// Fetch root compartment (tenancy) OCID
-	tenancyOCID, err := s.cfg.TenancyOCID()
+	logger.LogWithLevel(s.logger, 3, "Fetching tenancy OCID")
+	tenancyOCID, err := s.appCtx.Provider.TenancyOCID()
 	if err != nil {
+		logger.LogWithLevel(s.logger, 1, "Failed to fetch tenancy OCID", "error", err)
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
+	logger.LogWithLevel(s.logger, 3, "Fetched tenancy OCID", "tenancyOCID", tenancyOCID)
+
+	// Get profile and region from environment
+	profile := config.GetOCIProfile()
+	region := os.Getenv("OCI_REGION")
+	logger.LogWithLevel(s.logger, 3, "Retrieved environment variables", "profile", profile, "region", region)
 
 	// Create a result
 	result := &AuthenticationResult{
 		TenancyID: tenancyOCID,
-		Profile:   config.GetOCIProfile(),
-		Region:    os.Getenv("OCI_REGION"),
+		Profile:   profile,
+		Region:    region,
 	}
 
 	// Try to get a tenancy name from a mapping file
+	logger.LogWithLevel(s.logger, 3, "Attempting to get tenancy name from mapping file")
 	tenancies, err := config.LoadTenancyMap()
-	if err == nil {
+	if err != nil {
+		logger.LogWithLevel(s.logger, 3, "Failed to load tenancy map, continuing without tenancy name", "error", err)
+	} else {
 		for _, t := range tenancies {
 			if t.TenancyID == tenancyOCID {
+				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
 				result.TenancyName = t.Tenancy
 				break
 			}
 		}
+
+		if result.TenancyName == "" {
+			logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
+		}
 	}
 
+	logger.LogWithLevel(s.logger, 1, "Retrieved current environment", "profile", profile, "region", region, "tenancyID", tenancyOCID, "tenancyName", result.TenancyName)
 	return result, nil
 }
 
+// promptYesNo prompts the user with a yes/no question and returns true for yes and false for no.
 func promptYesNo(question string) bool {
+	logger := logger.Logger // Use the package-level logger since this is not a method
+	logger.V(3).Info("Prompting user with yes/no question", "question", question)
+
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Printf("%s [y/n]: ", question)
-		input, _ := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			logger.V(3).Info("Error reading user input, defaulting to 'no'", "error", err)
+			return false
+		}
+
 		input = strings.ToLower(strings.TrimSpace(input))
+		logger.V(3).Info("User entered response", "input", input)
 
 		if input == "y" || input == "yes" {
+			logger.V(3).Info("User selected 'yes'")
 			return true
 		} else if input == "n" || input == "no" {
+			logger.V(3).Info("User selected 'no'")
 			return false
 		} else {
+			logger.V(3).Info("Invalid input, prompting again", "input", input)
 			fmt.Println("Please enter y or n.")
 		}
 	}
