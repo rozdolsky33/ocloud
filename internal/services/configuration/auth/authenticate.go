@@ -1,9 +1,13 @@
 package auth
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
+	"os"
+	"strings"
 )
 
 // AuthenticateWithOCI handles the authentication process with OCI.
@@ -17,13 +21,10 @@ func AuthenticateWithOCI(appCtx *app.ApplicationContext, envOnly bool, filter st
 	// Create a new service
 	service := NewService(appCtx)
 
-	var result *AuthenticationResult
-	var err error
-
 	if envOnly {
 		// In env-only mode, skip interactive prompts and authentication
 		// Just get the current environment variables
-		result, err = service.GetCurrentEnvironment()
+		_, err := service.GetCurrentEnvironment()
 		if err != nil {
 			return fmt.Errorf("getting current environment: %w", err)
 		}
@@ -48,23 +49,38 @@ func AuthenticateWithOCI(appCtx *app.ApplicationContext, envOnly bool, filter st
 		fmt.Printf("Using region: %s\n", region)
 
 		// Authenticate with OCI
-		result, err = service.Authenticate(profile, region)
+		_, err = service.Authenticate(profile, region)
 		if err != nil {
 			return fmt.Errorf("authenticating with OCI: %w", err)
 		}
-	}
+		err = info.ViewConfiguration(appCtx, false, "")
+		if err != nil {
+			return fmt.Errorf("viewing configuration: %w", err)
+		}
 
-	// Print export for compartment and tenancy
-	fmt.Printf("export OCI_COMPARTMENT=%s\n", result.TenancyID)
-	fmt.Printf("export OCI_CLI_TENANCY=%s\n", result.TenancyID)
+		err = PrintExportVariable()
+		fmt.Println("\nExport the following environment variables to use them in the future")
 
-	// Print export for tenancy name if available
-	if result.TenancyName != "" {
-		fmt.Printf("export OCI_TENANCY_NAME=%s\n", result.TenancyName)
-	}
+		if promptYesNo("Do you want to set OCI_TENANCY_NAME and OCI_COMPARTMENT?") {
+			reader := bufio.NewReader(os.Stdin)
 
-	if !envOnly {
-		fmt.Println("✅ Authentication complete. Run `eval $(ocloud config auth -e)` to set your env.")
+			fmt.Print("Enter OCI_TENANCY_NAME: ")
+			tenancy, _ := reader.ReadString('\n')
+
+			fmt.Print("Enter OCI_COMPARTMENT: ")
+			compartment, _ := reader.ReadString('\n')
+
+			tenancy = strings.TrimSpace(tenancy)
+			compartment = strings.TrimSpace(compartment)
+
+			fmt.Println()
+			// Output export statements
+			fmt.Printf("export OCI_TENANCY_NAME=%q\n", tenancy)
+			fmt.Printf("export OCI_COMPARTMENT=%q\n", compartment)
+		} else {
+			fmt.Println("Skipping variable setup.")
+		}
+
 	}
 
 	return nil

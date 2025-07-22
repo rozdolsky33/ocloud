@@ -11,7 +11,6 @@ import (
 // DisplayRegionsTable displays the available OCI regions in a table format.
 // If the filter is not empty, it filters the regions by prefix.
 func DisplayRegionsTable(regions []RegionInfo, appCtx *app.ApplicationContext, filter string) error {
-	// Create a new printer
 	p := printer.New(appCtx.Stdout)
 
 	// Group regions by their prefix (e.g., us, eu, ap)
@@ -19,9 +18,7 @@ func DisplayRegionsTable(regions []RegionInfo, appCtx *app.ApplicationContext, f
 
 	// Filter regions by prefix if filter is provided
 	if filter != "" {
-		// Convert filter to lowercase for case-insensitive comparison
 		filter = strings.ToLower(filter)
-
 		// Create a new map with only the filtered regions
 		filteredGroups := make(map[string][]RegionInfo)
 		for prefix, prefixRegions := range regionGroups {
@@ -36,34 +33,26 @@ func DisplayRegionsTable(regions []RegionInfo, appCtx *app.ApplicationContext, f
 
 	// Process each region group
 	for prefix, prefixRegions := range regionGroups {
-		// Create a title for the group with magenta color
 		regionTitle := getRegionGroupTitle(prefix)
 		groupTitle := text.Colors{text.FgMagenta}.Sprint(fmt.Sprintf("%s", regionTitle))
 
 		// Create rows for the region table
 		var rows [][]string
 
-		// Add an empty row for spacing
 		rows = append(rows, []string{""})
 
-		// Add the regions in rows with multiple regions per row
 		var currentRegions []string
 
 		for i, region := range prefixRegions {
-			// Format each region as "ID: region-name" with color
 			regionName := text.Colors{text.FgGreen}.Sprint(region.Name)
 			regionID := text.Colors{text.FgRed}.Sprint(region.ID)
 			formattedRegion := fmt.Sprintf("%s: %s", regionID, regionName)
 			currentRegions = append(currentRegions, formattedRegion)
-
-			// Start a new row after every 3 regions or at the end
 			if (i+1)%5 == 0 || i == len(prefixRegions)-1 {
 				rows = append(rows, []string{strings.Join(currentRegions, "  ")})
 				currentRegions = nil
 			}
 		}
-
-		// Call the printer method to render the table with the region title and regions
 		p.PrintTable(groupTitle, []string{"Available OCI Regions"}, rows)
 	}
 
@@ -105,4 +94,12 @@ func getRegionGroupTitle(prefix string) string {
 		return title
 	}
 	return prefix
+}
+
+func PrintExportVariable() error {
+	tenancyName := text.Colors{text.FgYellow}.Sprint("export OCI_TENANCY_NAME=")
+	compartment := text.Colors{text.FgYellow}.Sprint("export OCI_COMPARTMENT=", "\n")
+	fmt.Printf(tenancyName + "\n")
+	fmt.Printf(compartment)
+	return nil
 }

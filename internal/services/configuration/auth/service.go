@@ -3,6 +3,7 @@ package auth
 import (
 	"bufio"
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"os"
 	"os/exec"
 	"strconv"
@@ -16,15 +17,9 @@ import (
 // NewService creates a new authentication service.
 func NewService(appCtx *app.ApplicationContext) *Service {
 	return &Service{
-		appCtx: appCtx,
+		cfg:    appCtx.Provider,
 		logger: appCtx.Logger,
 	}
-}
-
-// InitAuth initializes the OCI authentication configuration.
-func InitAuth() error {
-	ConfigProvider = config.LoadOCIConfig()
-	return nil
 }
 
 // PromptForProfile prompts the user to select an OCI profile.
@@ -58,7 +53,6 @@ func (s *Service) PromptForProfile() (string, error) {
 
 // GetOCIRegions returns a list of all available OCI regions.
 func (s *Service) GetOCIRegions() []RegionInfo {
-	// Static list of OCI regions
 	regions := []string{
 		"af-johannesburg-1", "ap-batam-1", "ap-chiyoda-1", "ap-chuncheon-1",
 		"ap-chuncheon-2", "ap-dcc-canberra-1", "ap-dcc-gazipur-1", "ap-hyderabad-1",
@@ -81,7 +75,6 @@ func (s *Service) GetOCIRegions() []RegionInfo {
 		"us-thames-1",
 	}
 
-	// Convert to RegionInfo
 	var regionInfos []RegionInfo
 	for i, r := range regions {
 		regionInfos = append(regionInfos, RegionInfo{
@@ -109,7 +102,6 @@ func (s *Service) PromptForRegion() (string, error) {
 	if idx, err := strconv.Atoi(input); err == nil && idx >= 1 && idx <= len(regions) {
 		chosen = regions[idx-1].Name
 	} else {
-		// Assume the input is a region name
 		chosen = input
 	}
 
@@ -130,13 +122,7 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	os.Setenv("OCI_PROFILE", profile)
 	os.Setenv("OCI_REGION", region)
 
-	// Reload provider with the chosen profile / region
-	if err := InitAuth(); err != nil {
-		return nil, errors.Wrap(err, "reloading config after auth")
-	}
-
-	// Fetch root compartment (tenancy) OCID
-	tenancyOCID, err := ConfigProvider.TenancyOCID()
+	tenancyOCID, err := s.cfg.TenancyOCID()
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
@@ -153,6 +139,7 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	if err == nil {
 		for _, t := range tenancies {
 			if t.TenancyID == tenancyOCID {
+				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
 				result.TenancyName = t.Tenancy
 				break
 			}
@@ -164,13 +151,8 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 
 // GetCurrentEnvironment returns the current OCI environment variables.
 func (s *Service) GetCurrentEnvironment() (*AuthenticationResult, error) {
-	// Initialize auth
-	if err := InitAuth(); err != nil {
-		return nil, errors.Wrap(err, "initializing auth")
-	}
-
 	// Fetch root compartment (tenancy) OCID
-	tenancyOCID, err := ConfigProvider.TenancyOCID()
+	tenancyOCID, err := s.cfg.TenancyOCID()
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
@@ -194,4 +176,21 @@ func (s *Service) GetCurrentEnvironment() (*AuthenticationResult, error) {
 	}
 
 	return result, nil
+}
+
+func promptYesNo(question string) bool {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Printf("%s [y/n]: ", question)
+		input, _ := reader.ReadString('\n')
+		input = strings.ToLower(strings.TrimSpace(input))
+
+		if input == "y" || input == "yes" {
+			return true
+		} else if input == "n" || input == "no" {
+			return false
+		} else {
+			fmt.Println("Please enter y or n.")
+		}
+	}
 }
