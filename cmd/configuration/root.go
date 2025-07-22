@@ -7,21 +7,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewConfigCmd creates the `configuration` command for managing ocloud CLI configurations and related operations.
+// NewConfigCmd creates the `configuration` command for managing ocloud CLI configurations, authentication with OCI,
+// and viewing configuration information such as tenancy mappings.
 func NewConfigCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "config",
 		Aliases:       []string{"conf"},
-		Short:         "Manage ocloud CLI configurations",
-		Long:          "Manage ocloud CLI configurations with OCI such as authentication, view configuration information, and more.",
-		Example:       "  ocloud config info map-file\n  ocloud config info map-file --json\n  ocloud config info map-file --realm OC1",
+		Short:         "Manage ocloud CLI configurations and authentication",
+		Long:          "Manage ocloud CLI configurations and authentication with Oracle Cloud Infrastructure (OCI).\n\nThis command group provides functionality for:\n- Authenticating with OCI and refreshing session tokens\n- Viewing configuration information such as tenancy mappings",
+		Example:       "  ocloud config session\n  ocloud config info\n ",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
 	// Add subcommands
 	cmd.AddCommand(info.NewInfoCmd(appCtx))
-	cmd.AddCommand(auth.NewAuthCmd(appCtx))
+	cmd.AddCommand(auth.NewSessionCmd(appCtx))
 
 	return cmd
 }

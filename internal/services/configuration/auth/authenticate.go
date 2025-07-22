@@ -13,10 +13,9 @@ import (
 // AuthenticateWithOCI handles the authentication process with OCI.
 // It prompts the user for profile and region selection, authenticates with OCI,
 // and returns the result of the authentication process.
-// If envOnly is true, it skips the interactive prompts and only outputs the environment variables.
 // If the filter is not empty, it filters the regions by prefix.
-func AuthenticateWithOCI(appCtx *app.ApplicationContext, envOnly bool, filter string) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Authenticating with OCI", "envOnly", envOnly, "filter", filter)
+func AuthenticateWithOCI(appCtx *app.ApplicationContext, filter string) error {
+	logger.LogWithLevel(appCtx.Logger, 1, "Authenticating with OCI", "filter", filter)
 
 	// Create a new service
 	logger.LogWithLevel(appCtx.Logger, 3, "Creating authentication service")
@@ -25,26 +24,14 @@ func AuthenticateWithOCI(appCtx *app.ApplicationContext, envOnly bool, filter st
 	var result *AuthenticationResult
 	var err error
 
-	if envOnly {
-		// In env-only mode, skip interactive prompts and authentication
-		// Just get the current environment variables
-		logger.LogWithLevel(appCtx.Logger, 3, "Environment-only mode, getting current environment")
-		result, err = service.GetCurrentEnvironment()
-		if err != nil {
-			logger.LogWithLevel(appCtx.Logger, 1, "Failed to get current environment", "error", err)
-			return fmt.Errorf("getting current environment: %w", err)
-		}
-		logger.LogWithLevel(appCtx.Logger, 3, "Retrieved current environment", "tenancyID", result.TenancyID, "tenancyName", result.TenancyName)
-	} else {
-		// Perform interactive authentication
-		logger.LogWithLevel(appCtx.Logger, 3, "Starting interactive authentication")
-		result, err = performInteractiveAuthentication(appCtx, service, filter)
-		if err != nil {
-			logger.LogWithLevel(appCtx.Logger, 1, "Failed to perform interactive authentication", "error", err)
-			return fmt.Errorf("performing interactive authentication: %w", err)
-		}
-		logger.LogWithLevel(appCtx.Logger, 3, "Interactive authentication completed", "tenancyID", result.TenancyID, "tenancyName", result.TenancyName)
+	// Perform interactive authentication
+	logger.LogWithLevel(appCtx.Logger, 3, "Starting interactive authentication")
+	result, err = performInteractiveAuthentication(appCtx, service, filter)
+	if err != nil {
+		logger.LogWithLevel(appCtx.Logger, 1, "Failed to perform interactive authentication", "error", err)
+		return fmt.Errorf("performing interactive authentication: %w", err)
 	}
+	logger.LogWithLevel(appCtx.Logger, 3, "Interactive authentication completed", "tenancyID", result.TenancyID, "tenancyName", result.TenancyName)
 
 	// Display environment variables
 	logger.LogWithLevel(appCtx.Logger, 3, "Displaying environment variables")
@@ -54,10 +41,8 @@ func AuthenticateWithOCI(appCtx *app.ApplicationContext, envOnly bool, filter st
 		return fmt.Errorf("printing export variables: %w", err)
 	}
 
-	if !envOnly {
-		logger.LogWithLevel(appCtx.Logger, 3, "Displaying instructions for persisting environment variables")
-		fmt.Println("\nTo persist your selection, export the following environment variables in your shell:")
-	}
+	logger.LogWithLevel(appCtx.Logger, 3, "Displaying instructions for persisting environment variables")
+	fmt.Println("\nTo persist your selection, export the following environment variables in your shell:")
 
 	logger.LogWithLevel(appCtx.Logger, 1, "Authentication process completed successfully")
 	return nil

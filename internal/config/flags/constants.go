@@ -29,7 +29,6 @@ const (
 	FlagNameAllInformation     = "all"
 	FlagNameSort               = "sort"
 	FlagNameRealm              = "realm"
-	FlagNameEnvOnly            = "env-only"
 	FlagNameFilter             = "filter"
 )
 
@@ -58,7 +57,6 @@ const (
 	FlagShortAllInformation     = "A"
 	FlagShortSort               = "s"
 	FlagShortRealm              = "r"
-	FlagShortEnvOnly            = "e"
 	FlagShortFilter             = "f"
 )
 
@@ -89,7 +87,6 @@ const (
 	FlagDescAllInformation     = "Show all information"
 	FlagDescSort               = "Sort results by field (name or cidr)"
 	FlagDescRealm              = "Filter by realm"
-	FlagDescEnvOnly            = "Only output environment variables, don't run interactive authentication"
 	FlagDescFilter             = "Filter regions by prefix (e.g., us, eu, ap)"
 )
 

@@ -25,10 +25,6 @@ func TestNewAuthenticateCmd(t *testing.T) {
 	assert.NotNil(t, cmd.RunE)
 
 	// Verify the flags
-	envOnlyFlag := cmd.Flags().Lookup("env-only")
-	assert.NotNil(t, envOnlyFlag)
-	assert.Equal(t, "e", envOnlyFlag.Shorthand)
-	assert.Equal(t, "false", envOnlyFlag.DefValue)
 
 	filterFlag := cmd.Flags().Lookup("filter")
 	assert.NotNil(t, filterFlag)

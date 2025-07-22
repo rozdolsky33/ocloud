@@ -20,9 +20,9 @@ func TestConfigCommand(t *testing.T) {
 	// Test that the configuration command is properly configured
 	assert.Equal(t, "config", cmd.Use)
 	assert.Equal(t, []string{"conf"}, cmd.Aliases)
-	assert.Equal(t, "Manage ocloud CLI configurations", cmd.Short)
-	assert.Equal(t, "Manage ocloud CLI configurations with OCI such as authentication, view configuration information, and more.", cmd.Long)
-	assert.Contains(t, cmd.Example, "ocloud config info map-file")
+	assert.Equal(t, "Manage ocloud CLI configurations and authentication", cmd.Short)
+	assert.Equal(t, "Manage ocloud CLI configurations and authentication with Oracle Cloud Infrastructure (OCI).\n\nThis command group provides functionality for:\n- Authenticating with OCI and refreshing session tokens\n- Viewing configuration information such as tenancy mappings", cmd.Long)
+	assert.Contains(t, cmd.Example, "ocloud config session")
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
@@ -34,9 +34,9 @@ func TestConfigCommand(t *testing.T) {
 	infoCmd := findSubCommand(subCmds, "info")
 	assert.NotNil(t, infoCmd, "configuration command should have info subcommand")
 
-	// Check that the auth subcommand is present
-	authCmd := findSubCommand(subCmds, "auth")
-	assert.NotNil(t, authCmd, "configuration command should have auth subcommand")
+	// Check that the session subcommand is present
+	sessionCmd := findSubCommand(subCmds, "session")
+	assert.NotNil(t, sessionCmd, "configuration command should have session subcommand")
 }
 
 // findSubCommand is a helper function to find a subcommand by name

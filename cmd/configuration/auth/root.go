@@ -5,28 +5,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Short description for the auth command
-var authShort = "Authenticate with OCI and refresh session tokens"
+// Short description for the session command
+var sessionShort = "Authenticate with OCI and refresh session tokens"
 
-// Long description for the auth command
-var authLong = `Provides commands for authenticating with Oracle Cloud Infrastructure (OCI).
+// Long description for the session command
+var sessionLong = `Provides commands for authenticating with Oracle Cloud Infrastructure (OCI).
 
 This command group includes subcommands for authenticating with OCI and refreshing session tokens.
 It allows you to interactively select your desired profile and region for authentication.`
 
-// Examples for the auth command
-var authExamples = `  ocloud config auth authenticate
-  ocloud config auth authenticate -e
-  ocloud config auth authenticate --filter us`
+// Examples for the session command
+var sessionExamples = `  ocloud config session authenticate
+  ocloud config session authenticate --filter us`
 
-// NewAuthCmd creates a new cobra.Command for the auth command group.
-func NewAuthCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewSessionCmd creates a new cobra.Command for the session command group.
+func NewSessionCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "auth",
-		Aliases:       []string{"authenticate", "a"},
-		Short:         authShort,
-		Long:          authLong,
-		Example:       authExamples,
+		Use:           "session",
+		Aliases:       []string{"s"},
+		Short:         sessionShort,
+		Long:          sessionLong,
+		Example:       sessionExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
