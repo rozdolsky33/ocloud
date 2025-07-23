@@ -2,7 +2,6 @@ package info
 
 import (
 	configurationFlags "github.com/rozdolsky33/ocloud/cmd/configuration/flags"
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
@@ -38,7 +37,7 @@ var mapFileExamples = `
 `
 
 // ViewMappingFile creates a new command for viewing the tenancy mapping file
-func ViewMappingFile(appCtx *app.ApplicationContext) *cobra.Command {
+func ViewMappingFile() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "map-file",
 		Aliases:       []string{"mf", "tf"},
@@ -48,7 +47,7 @@ func ViewMappingFile(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunViewFileMappingCommand(cmd, appCtx)
+			return RunViewFileMappingCommand(cmd)
 		},
 	}
 
@@ -62,11 +61,11 @@ func ViewMappingFile(appCtx *app.ApplicationContext) *cobra.Command {
 }
 
 // RunViewFileMappingCommand handles the execution of the map-file command
-func RunViewFileMappingCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+func RunViewFileMappingCommand(cmd *cobra.Command) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	realm := flags.GetStringFlag(cmd, flags.FlagNameRealm, "")
 
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running map-file command", "json", useJSON, "realm", realm)
-	return info.ViewConfiguration(appCtx, useJSON, realm)
+	return info.ViewConfiguration(useJSON, realm)
 }

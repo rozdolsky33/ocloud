@@ -13,6 +13,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/core"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
@@ -20,7 +21,12 @@ import (
 // NewService creates a new Service instance with OCI compute and network clients using the provided ApplicationContext.
 // Returns a Service pointer and an error if the initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
+	// If Provider is nil, load the OCI config
 	cfg := appCtx.Provider
+	if cfg == nil {
+		cfg = config.LoadOCIConfig()
+	}
+
 	cc, err := oci.NewComputeClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute client: %w", err)

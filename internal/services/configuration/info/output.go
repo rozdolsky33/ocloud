@@ -3,20 +3,20 @@ package info
 import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
+	"os"
 	"strings"
 )
 
 // PrintMappingsFile displays tenancy mapping information in a formatted table or JSON format.
 // It takes a slice of MappingsFile, the application context, and a boolean indicating whether to use JSON format.
 // Returns an error if the display operation fails.
-func PrintMappingsFile(mappings []appConfig.MappingsFile, appCtx *app.ApplicationContext, useJSON bool) error {
+func PrintMappingsFile(mappings []appConfig.MappingsFile, useJSON bool) error {
 
 	// Create a new printer that writes to the application's standard output
-	p := printer.New(appCtx.Stdout)
+	p := printer.New(os.Stdout)
 
 	// If JSON output is requested, use the printer to marshal the response
 	if useJSON {
@@ -27,7 +27,7 @@ func PrintMappingsFile(mappings []appConfig.MappingsFile, appCtx *app.Applicatio
 		return p.MarshalToJSON(mappings)
 	}
 
-	if util.ValidateAndReportEmpty(mappings, nil, appCtx.Stdout) {
+	if util.ValidateAndReportEmpty(mappings, nil, os.Stdout) {
 		return nil
 	}
 

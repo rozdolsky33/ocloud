@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/stretchr/testify/assert"
 )
@@ -66,16 +65,11 @@ func TestPrintMappingsFile(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create a buffer to capture output
+			// Create a buffer to capture the output
 			var buf bytes.Buffer
 
-			// Create a mock application context with the buffer as stdout
-			appCtx := &app.ApplicationContext{
-				Stdout: &buf,
-			}
-
 			// Call PrintMappingsFile
-			err := PrintMappingsFile(tc.mappings, appCtx, tc.useJSON)
+			err := PrintMappingsFile(tc.mappings, tc.useJSON)
 
 			// Verify the results
 			assert.NoError(t, err)

@@ -15,12 +15,16 @@ import (
 )
 
 // NewService creates a new authentication service.
-func NewService(appCtx *app.ApplicationContext) *Service {
-	service := &Service{
-		appCtx: appCtx,
-		logger: appCtx.Logger,
+func NewService() *Service {
+	appCtx := &app.ApplicationContext{
+		Logger: logger.Logger,
 	}
-	logger.LogWithLevel(appCtx.Logger, 3, "Created new authentication service")
+
+	service := &Service{
+		logger:   appCtx.Logger,
+		Provider: config.LoadOCIConfig(),
+	}
+	logger.LogWithLevel(service.logger, 3, "Created new authentication service")
 	return service
 }
 
@@ -148,7 +152,7 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	logger.LogWithLevel(s.logger, 3, "Set environment variables", "OCI_PROFILE", profile, "OCI_REGION", region)
 
 	logger.LogWithLevel(s.logger, 3, "Fetching tenancy OCID")
-	tenancyOCID, err := s.appCtx.Provider.TenancyOCID()
+	tenancyOCID, err := s.Provider.TenancyOCID()
 	if err != nil {
 		logger.LogWithLevel(s.logger, 1, "Failed to fetch tenancy OCID", "error", err)
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
@@ -191,14 +195,14 @@ func (s *Service) GetCurrentEnvironment() (*AuthenticationResult, error) {
 
 	// Fetch root compartment (tenancy) OCID
 	logger.LogWithLevel(s.logger, 3, "Fetching tenancy OCID")
-	tenancyOCID, err := s.appCtx.Provider.TenancyOCID()
+	tenancyOCID, err := s.Provider.TenancyOCID()
 	if err != nil {
 		logger.LogWithLevel(s.logger, 1, "Failed to fetch tenancy OCID", "error", err)
 		return nil, errors.Wrap(err, "fetching tenancy OCID")
 	}
 	logger.LogWithLevel(s.logger, 3, "Fetched tenancy OCID", "tenancyOCID", tenancyOCID)
 
-	// Get profile and region from environment
+	// Get profile and region from the environment
 	profile := config.GetOCIProfile()
 	region := os.Getenv("OCI_REGION")
 	logger.LogWithLevel(s.logger, 3, "Retrieved environment variables", "profile", profile, "region", region)

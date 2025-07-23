@@ -2,7 +2,6 @@ package info
 
 import (
 	"fmt"
-	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"strings"
@@ -10,10 +9,8 @@ import (
 
 // NewService initializes a new Service instance with the provided application context.
 // Returns a Service pointer.
-func NewService(appCtx *app.ApplicationContext) *Service {
-	return &Service{
-		logger: appCtx.Logger,
-	}
+func NewService() *Service {
+	return &Service{}
 }
 
 // LoadTenancyMappings loads the tenancy mappings from the file and filters them by realm if specified.

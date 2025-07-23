@@ -3,47 +3,40 @@ package auth
 import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/printer"
+	"os"
 	"strings"
 )
 
 // DisplayRegionsTable displays the available OCI regions in a table format.
 // If the filter is not empty, it filters the regions by prefix.
-func DisplayRegionsTable(regions []RegionInfo, appCtx *app.ApplicationContext, filter string) error {
-	logger := appCtx.Logger
-	logger.V(3).Info("Displaying regions table", "totalRegions", len(regions), "filter", filter)
+func DisplayRegionsTable(regions []RegionInfo, filter string) error {
 
-	p := printer.New(appCtx.Stdout)
+	p := printer.New(os.Stdout)
 
 	// Group regions by their prefix (e.g., us, eu, ap)
 	regionGroups := groupRegionsByPrefix(regions)
-	logger.V(3).Info("Grouped regions by prefix", "groupCount", len(regionGroups))
 
 	// Filter regions by prefix if filter is provided
 	if filter != "" {
-		logger.V(3).Info("Filtering regions by prefix", "filter", filter)
 		filter = strings.ToLower(filter)
 		// Create a new map with only the filtered regions
 		filteredGroups := make(map[string][]RegionInfo)
 		for prefix, prefixRegions := range regionGroups {
 			if strings.HasPrefix(strings.ToLower(prefix), filter) {
 				filteredGroups[prefix] = prefixRegions
-				logger.V(3).Info("Including region group in filter", "prefix", prefix, "regionCount", len(prefixRegions))
 			}
 		}
 
 		// Replace the original map with the filtered one
 		regionGroups = filteredGroups
-		logger.V(3).Info("After filtering", "groupCount", len(regionGroups))
 	}
 
 	// Process each region group
 	for prefix, prefixRegions := range regionGroups {
 		regionTitle := getRegionGroupTitle(prefix)
 		groupTitle := text.Colors{text.FgMagenta}.Sprint(fmt.Sprintf("%s", regionTitle))
-		logger.V(3).Info("Processing region group", "prefix", prefix, "title", regionTitle, "regionCount", len(prefixRegions))
 
 		// Create rows for the region table
 		var rows [][]string
@@ -65,7 +58,6 @@ func DisplayRegionsTable(regions []RegionInfo, appCtx *app.ApplicationContext, f
 		p.PrintTable(groupTitle, []string{"Available OCI Regions"}, rows)
 	}
 
-	logger.V(3).Info("Finished displaying regions table")
 	return nil
 }
 

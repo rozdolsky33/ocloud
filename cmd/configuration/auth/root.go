@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +18,7 @@ var sessionExamples = `  ocloud config session authenticate
   ocloud config session authenticate --filter us`
 
 // NewSessionCmd creates a new cobra.Command for the session command group.
-func NewSessionCmd(appCtx *app.ApplicationContext) *cobra.Command {
+func NewSessionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "session",
 		Aliases:       []string{"s"},
@@ -30,12 +29,12 @@ func NewSessionCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// If no subcommand is specified, run the authenticate command
-			return NewAuthenticateCmd(appCtx).RunE(cmd, args)
+			return NewAuthenticateCmd().RunE(cmd, args)
 		},
 	}
 
 	// Add subcommands
-	cmd.AddCommand(NewAuthenticateCmd(appCtx))
+	cmd.AddCommand(NewAuthenticateCmd())
 
 	return cmd
 }

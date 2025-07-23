@@ -1,13 +1,12 @@
 package info
 
 import (
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/spf13/cobra"
 )
 
 // NewInfoCmd creates a new cobra.Command for viewing information about ocloud environment configuration.
 // It provides subcommands for viewing tenancy mapping information and other configuration details.
-func NewInfoCmd(appCtx *app.ApplicationContext) *cobra.Command {
+func NewInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "info",
 		Aliases:       []string{"i"},
@@ -19,7 +18,7 @@ func NewInfoCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(ViewMappingFile(appCtx))
+	cmd.AddCommand(ViewMappingFile())
 
 	return cmd
 }

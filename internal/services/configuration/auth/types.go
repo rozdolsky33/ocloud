@@ -2,7 +2,7 @@ package auth
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/oracle/oci-go-sdk/v65/common"
 )
 
 // RegionInfo represents an OCI region with its ID and name.
@@ -24,6 +24,6 @@ type AuthenticationResult struct {
 // and retrieving environment variables.
 // The service uses the application context for configuration, logging, and output.
 type Service struct {
-	appCtx *app.ApplicationContext
-	logger logr.Logger
+	Provider common.ConfigurationProvider
+	logger   logr.Logger
 }

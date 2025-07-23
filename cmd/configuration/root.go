@@ -3,13 +3,12 @@ package configuration
 import (
 	"github.com/rozdolsky33/ocloud/cmd/configuration/auth"
 	"github.com/rozdolsky33/ocloud/cmd/configuration/info"
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/spf13/cobra"
 )
 
 // NewConfigCmd creates the `configuration` command for managing ocloud CLI configurations, authentication with OCI,
 // and viewing configuration information such as tenancy mappings.
-func NewConfigCmd(appCtx *app.ApplicationContext) *cobra.Command {
+func NewConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "config",
 		Aliases:       []string{"conf"},
@@ -21,8 +20,8 @@ func NewConfigCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(info.NewInfoCmd(appCtx))
-	cmd.AddCommand(auth.NewSessionCmd(appCtx))
+	cmd.AddCommand(info.NewInfoCmd())
+	cmd.AddCommand(auth.NewSessionCmd())
 
 	return cmd
 }

@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/auth"
 	"github.com/spf13/cobra"
@@ -22,7 +21,7 @@ var authenticateExamples = `  ocloud config session authenticate
   ocloud config session authenticate --filter us`
 
 // NewAuthenticateCmd creates a new cobra.Command for authenticating with OCI.
-func NewAuthenticateCmd(appCtx *app.ApplicationContext) *cobra.Command {
+func NewAuthenticateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "authenticate",
 		Aliases:       []string{"auth", "a"},
@@ -33,7 +32,7 @@ func NewAuthenticateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			filter := flags.GetStringFlag(cmd, flags.FlagNameFilter, "")
-			return auth.AuthenticateWithOCI(appCtx, filter)
+			return auth.AuthenticateWithOCI(filter)
 		},
 	}
 
