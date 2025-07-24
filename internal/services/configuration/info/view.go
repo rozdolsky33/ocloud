@@ -9,16 +9,13 @@ import (
 // If the realm is not empty, it filters the mappings by the specified realm.
 func ViewConfiguration(useJSON bool, realm string) error {
 
-	// Create a new service
 	service := NewService()
 
-	// Load tenancy mappings
 	result, err := service.LoadTenancyMappings(realm)
 	if err != nil {
 		return fmt.Errorf("loading tenancy mappings: %w", err)
 	}
 
-	// Display tenancy mapping information
 	err = PrintMappingsFile(result.Mappings, useJSON)
 	if err != nil {
 		return fmt.Errorf("printing tenancy mappings: %w", err)

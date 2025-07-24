@@ -35,12 +35,10 @@ func isNoContextCommand() bool {
 		"-v":        true,
 	}
 
-	// Check for direct command match
 	if noContextCommands[args[1]] {
 		return true
 	}
 
-	// Check for flag match
 	for _, arg := range args[1:] {
 		if noContextFlags[arg] {
 			return true
