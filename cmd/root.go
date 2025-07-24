@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/cmd/compute"
+	"github.com/rozdolsky33/ocloud/cmd/configuration"
 	"github.com/rozdolsky33/ocloud/cmd/database"
 	"github.com/rozdolsky33/ocloud/cmd/identity"
 	"github.com/rozdolsky33/ocloud/cmd/network"
@@ -16,10 +17,8 @@ import (
 
 // CommandRegistry holds information about commands that don't need a full application context
 type CommandRegistry struct {
-	// Commands that don't need context
 	NoContextCommands map[string]bool
-	// Flags that indicate a command doesn't need context
-	NoContextFlags map[string]bool
+	NoContextFlags    map[string]bool
 }
 
 // DefaultRegistry is the global command registry
@@ -105,6 +104,8 @@ func createRootCmdWithoutContext() *cobra.Command {
 	// Currently, only the version command doesn't need context
 	rootCmd.AddCommand(version.NewVersionCommand(nil))
 	version.AddVersionFlag(rootCmd)
+
+	rootCmd.AddCommand(configuration.NewConfigCmd())
 
 	// Set the default behavior to show help
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {

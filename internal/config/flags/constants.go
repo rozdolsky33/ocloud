@@ -28,6 +28,8 @@ const (
 	FlagNameVersion            = "version"
 	FlagNameAllInformation     = "all"
 	FlagNameSort               = "sort"
+	FlagNameRealm              = "realm"
+	FlagNameFilter             = "filter"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -54,6 +56,8 @@ const (
 	FlagShortVersion            = "v"
 	FlagShortAllInformation     = "A"
 	FlagShortSort               = "s"
+	FlagShortRealm              = "r"
+	FlagShortFilter             = "f"
 )
 
 // FlagDescriptions contains help text for flags
@@ -82,6 +86,8 @@ const (
 	FlagDescVersion            = "Print the version number of ocloud CLI"
 	FlagDescAllInformation     = "Show all information"
 	FlagDescSort               = "Sort results by field (name or cidr)"
+	FlagDescRealm              = "Filter by realm"
+	FlagDescFilter             = "Filter regions by prefix (e.g., us, eu, ap)"
 )
 
 // Flag values and defaults

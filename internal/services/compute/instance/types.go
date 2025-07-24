@@ -7,7 +7,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// Service encapsulates OCI compute/network clients and config.
+// Service encapsulates OCI compute/network clients and configuration.
 // It provides methods to list and find instances without printing directly.
 type Service struct {
 	compute           core.ComputeClient
