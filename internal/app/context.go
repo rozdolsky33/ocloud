@@ -208,8 +208,25 @@ func resolveCompartmentID(ctx context.Context, appCtx *ApplicationContext) (stri
 	idClient := appCtx.IdentityClient
 	tenancyOCID := appCtx.TenancyID
 
+	// Ensure we have a valid tenancyOCID
+	if tenancyOCID == "" {
+		return "", fmt.Errorf("tenancy ID is not set")
+	}
+
 	// If the compartment name is not set, use tenancy ID as fallback
 	if compartmentName == "" {
+		// Check if we have a tenancy name set
+		if appCtx.TenancyName != "" {
+			logger.LogWithLevel(logger.CmdLogger, 3, "compartment name not set, but tenancy name is available, looking up tenancy ID", "tenancyName", appCtx.TenancyName)
+			// Try to look up the tenancy ID from the mapping file
+			lookupID, err := config.LookupTenancyID(appCtx.TenancyName)
+			if err == nil && lookupID != "" {
+				logger.LogWithLevel(logger.CmdLogger, 3, "found tenancy ID in mapping file", "tenancyName", appCtx.TenancyName, "tenancyID", lookupID)
+				return lookupID, nil
+			}
+		}
+
+		// If tenancy name lookup failed or tenancy name is not set, use tenancy ID as fallback
 		logger.LogWithLevel(logger.CmdLogger, 3, "compartment name not set, using tenancy ID as fallback", "tenancyID", tenancyOCID)
 		return tenancyOCID, nil
 	}

@@ -27,6 +27,11 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 		cfg = config.LoadOCIConfig()
 	}
 
+	// Ensure we have a valid compartment ID
+	if appCtx.CompartmentID == "" {
+		return nil, fmt.Errorf("compartment ID is not set, please specify a compartment using the --compartment flag or set the OCI_COMPARTMENT environment variable")
+	}
+
 	cc, err := oci.NewComputeClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute client: %w", err)
@@ -58,6 +63,11 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
 		"limit", limit,
 		"pageNum", pageNum)
+
+	// Ensure we have a valid compartment ID
+	if s.compartmentID == "" {
+		return nil, 0, "", fmt.Errorf("compartment ID is not set, please specify a compartment using the --compartment flag or set the OCI_COMPARTMENT environment variable")
+	}
 
 	// Initialize variables
 	var instances []Instance
@@ -253,6 +263,11 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 	// Start overall performance tracking
 	overallStartTime := time.Now()
 	logger.LogWithLevel(s.logger, 1, "finding instances", "pattern", searchPattern)
+
+	// Ensure we have a valid compartment ID
+	if s.compartmentID == "" {
+		return nil, fmt.Errorf("compartment ID is not set, please specify a compartment using the --compartment flag or set the OCI_COMPARTMENT environment variable")
+	}
 
 	var instanceMap = make(map[string]*Instance)
 	var allInstances []Instance
