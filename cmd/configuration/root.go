@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"github.com/rozdolsky33/ocloud/cmd/configuration/auth"
 	"github.com/rozdolsky33/ocloud/cmd/configuration/info"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ func NewConfigCmd() *cobra.Command {
 
 	// Add subcommands
 	cmd.AddCommand(info.NewInfoCmd())
-	//cmd.AddCommand(auth.NewSessionCmd())
+	cmd.AddCommand(auth.NewSessionCmd())
 
 	return cmd
 }
