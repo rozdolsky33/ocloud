@@ -63,67 +63,33 @@ func TestRootCommandWithoutContext(t *testing.T) {
 	assert.Nil(t, computeCmd, "compute command should not be added as a subcommand")
 }
 
-// TestIsNoContextCommand tests the IsNoContextCommand method of the CommandRegistry
+// TestIsNoContextCommand tests the isNoContextCommand function
 func TestIsNoContextCommand(t *testing.T) {
 	// Save original os.Args
 	originalArgs := os.Args
 	defer func() { os.Args = originalArgs }()
 
-	// Create a test registry
-	registry := &CommandRegistry{
-		NoContextCommands: map[string]bool{
-			"version": true,
-			"test":    true,
-		},
-		NoContextFlags: map[string]bool{
-			"--version": true,
-			"-v":        true,
-			"--test":    true,
-		},
-	}
-
 	// Test with version command
 	os.Args = []string{"ocloud", "version"}
-	assert.True(t, registry.IsNoContextCommand(), "should return true for 'version' command")
+	assert.True(t, isNoContextCommand(), "should return true for 'version' command")
 
-	// Test with test command
-	os.Args = []string{"ocloud", "test"}
-	assert.True(t, registry.IsNoContextCommand(), "should return true for 'test' command")
+	// Test with config command
+	os.Args = []string{"ocloud", "config"}
+	assert.True(t, isNoContextCommand(), "should return true for 'config' command")
 
 	// Test with version flag (short)
 	os.Args = []string{"ocloud", "-v"}
-	assert.True(t, registry.IsNoContextCommand(), "should return true for '-v' flag")
+	assert.True(t, isNoContextCommand(), "should return true for '-v' flag")
 
 	// Test with version flag (long)
 	os.Args = []string{"ocloud", "--version"}
-	assert.True(t, registry.IsNoContextCommand(), "should return true for '--version' flag")
-
-	// Test with test flag
-	os.Args = []string{"ocloud", "--test"}
-	assert.True(t, registry.IsNoContextCommand(), "should return true for '--test' flag")
+	assert.True(t, isNoContextCommand(), "should return true for '--version' flag")
 
 	// Test with other command
 	os.Args = []string{"ocloud", "compute", "instance", "list"}
-	assert.False(t, registry.IsNoContextCommand(), "should return false for other commands")
+	assert.False(t, isNoContextCommand(), "should return false for other commands")
 
 	// Test with no arguments
 	os.Args = []string{"ocloud"}
-	assert.False(t, registry.IsNoContextCommand(), "should return false when no arguments are provided")
-}
-
-// TestCommandRegistryMethods tests the methods of the CommandRegistry
-func TestCommandRegistryMethods(t *testing.T) {
-	// Create a test registry
-	registry := &CommandRegistry{
-		NoContextCommands: map[string]bool{},
-		NoContextFlags:    map[string]bool{},
-	}
-
-	// Test RegisterNoContextCommand
-	registry.RegisterNoContextCommand("test")
-	assert.True(t, registry.NoContextCommands["test"], "test command should be registered")
-
-	// Test RegisterNoContextFlag
-	registry.RegisterNoContextFlag("--test")
-	assert.True(t, registry.NoContextFlags["--test"], "test flag should be registered")
+	assert.False(t, isNoContextCommand(), "should return false when no arguments are provided")
 }

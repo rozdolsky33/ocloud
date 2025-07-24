@@ -15,49 +15,34 @@ import (
 	"os"
 )
 
-// CommandRegistry holds information about commands that don't need a full application context
-type CommandRegistry struct {
-	NoContextCommands map[string]bool
-	NoContextFlags    map[string]bool
-}
-
-// DefaultRegistry is the global command registry
-var DefaultRegistry = &CommandRegistry{
-	NoContextCommands: map[string]bool{
-		"version": true,
-		"config":  true,
-	},
-	NoContextFlags: map[string]bool{
-		"--version": true,
-		"-v":        true,
-	},
-}
-
-// RegisterNoContextCommand adds a command to the registry of commands that don't need context
-func (r *CommandRegistry) RegisterNoContextCommand(cmdName string) {
-	r.NoContextCommands[cmdName] = true
-}
-
-// RegisterNoContextFlag adds a flag to the registry of flags that don't need context
-func (r *CommandRegistry) RegisterNoContextFlag(flagName string) {
-	r.NoContextFlags[flagName] = true
-}
-
-// IsNoContextCommand checks if the command being run is one that doesn't need context
-func (r *CommandRegistry) IsNoContextCommand() bool {
+// noContextCommandChecker provides functionality to check if a command doesn't need a full application context
+// This is a simplified version of the previous CommandRegistry, removing unused methods
+func isNoContextCommand() bool {
 	args := os.Args
 	if len(args) < 2 {
 		return false
 	}
 
+	// Commands that don't need context
+	noContextCommands := map[string]bool{
+		"version": true,
+		"config":  true,
+	}
+
+	// Flags that don't need context
+	noContextFlags := map[string]bool{
+		"--version": true,
+		"-v":        true,
+	}
+
 	// Check for direct command match
-	if r.NoContextCommands[args[1]] {
+	if noContextCommands[args[1]] {
 		return true
 	}
 
 	// Check for flag match
 	for _, arg := range args[1:] {
-		if r.NoContextFlags[arg] {
+		if noContextFlags[arg] {
 			return true
 		}
 	}
@@ -132,7 +117,7 @@ func Execute(ctx context.Context) error {
 	}
 
 	// Check if we're running a command that doesn't need context
-	if DefaultRegistry.IsNoContextCommand() {
+	if isNoContextCommand() {
 		// Create a root command without application context
 		root := createRootCmdWithoutContext()
 
