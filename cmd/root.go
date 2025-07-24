@@ -25,6 +25,7 @@ type CommandRegistry struct {
 var DefaultRegistry = &CommandRegistry{
 	NoContextCommands: map[string]bool{
 		"version": true,
+		"config":  true,
 	},
 	NoContextFlags: map[string]bool{
 		"--version": true,
@@ -64,32 +65,10 @@ func (r *CommandRegistry) IsNoContextCommand() bool {
 	return false
 }
 
-// NewRootCmd creates a new root command with all subcommands attached
-func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
-	rootCmd := &cobra.Command{
-		Use:          "ocloud",
-		Short:        "Interact with Oracle Cloud Infrastructure",
-		Long:         "",
-		SilenceUsage: true,
-	}
-
-	// Initialize global flags
-	flags.AddGlobalFlags(rootCmd)
-
-	rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
-
-	rootCmd.AddCommand(identity.NewIdentityCmd(appCtx))
-
-	rootCmd.AddCommand(database.NewDatabaseCmd(appCtx))
-
-	rootCmd.AddCommand(network.NewNetworkCmd(appCtx))
-
-	return rootCmd
-}
-
-// createRootCmdWithoutContext creates a root command without application context
-// This is used for commands that don't need a full context
-func createRootCmdWithoutContext() *cobra.Command {
+// createRootCmd creates a root command with or without application context
+// If appCtx is nil, only commands that don't need context are added
+// If appCtx is not nil, all commands are added
+func createRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:          "ocloud",
 		Short:        "Interact with Oracle Cloud Infrastructure",
@@ -101,11 +80,31 @@ func createRootCmdWithoutContext() *cobra.Command {
 	flags.AddGlobalFlags(rootCmd)
 
 	// Add commands that don't need context
-	// Currently, only the version command doesn't need context
-	rootCmd.AddCommand(version.NewVersionCommand(nil))
+	rootCmd.AddCommand(version.NewVersionCommand())
 	version.AddVersionFlag(rootCmd)
-
 	rootCmd.AddCommand(configuration.NewConfigCmd())
+
+	// If appCtx is not nil, add commands that need context
+	if appCtx != nil {
+		rootCmd.AddCommand(compute.NewComputeCmd(appCtx))
+		rootCmd.AddCommand(identity.NewIdentityCmd(appCtx))
+		rootCmd.AddCommand(database.NewDatabaseCmd(appCtx))
+		rootCmd.AddCommand(network.NewNetworkCmd(appCtx))
+	}
+
+	return rootCmd
+}
+
+// NewRootCmd creates a new root command with all subcommands attached
+func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
+	rootCmd := createRootCmd(appCtx)
+	return rootCmd
+}
+
+// createRootCmdWithoutContext creates a root command without application context
+// This is used for commands that don't need a full context
+func createRootCmdWithoutContext() *cobra.Command {
+	rootCmd := createRootCmd(nil)
 
 	// Set the default behavior to show help
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
