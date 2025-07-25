@@ -38,11 +38,8 @@ func DisplayRegionsTable(regions []RegionInfo, filter string) error {
 		regionTitle := getRegionGroupTitle(prefix)
 		groupTitle := text.Colors{text.FgMagenta}.Sprint(fmt.Sprintf("%s", regionTitle))
 
-		// Create rows for the region table
 		var rows [][]string
-
 		rows = append(rows, []string{""})
-
 		var currentRegions []string
 
 		for i, region := range prefixRegions {
@@ -50,7 +47,7 @@ func DisplayRegionsTable(regions []RegionInfo, filter string) error {
 			regionID := text.Colors{text.FgRed}.Sprint(region.ID)
 			formattedRegion := fmt.Sprintf("%s: %s", regionID, regionName)
 			currentRegions = append(currentRegions, formattedRegion)
-			if (i+1)%5 == 0 || i == len(prefixRegions)-1 {
+			if (i+1)%4 == 0 || i == len(prefixRegions)-1 {
 				rows = append(rows, []string{strings.Join(currentRegions, "  ")})
 				currentRegions = nil
 			}
@@ -77,7 +74,6 @@ func groupRegionsByPrefix(regions []RegionInfo) map[string][]RegionInfo {
 		}
 	}
 
-	// Log the results
 	for prefix, regions := range regionGroups {
 		logger.LogWithLevel(logger.Logger, 3, "Region group", "prefix", prefix, "count", len(regions))
 	}
@@ -112,30 +108,38 @@ func getRegionGroupTitle(prefix string) string {
 	return prefix
 }
 
-// PrintExportVariable prints the environment variables with color and proper spacing.
-// If tenancyName and compartment are provided, they are included in the output.
-func PrintExportVariable(tenancyName, compartment string) error {
-	logger.LogWithLevel(logger.Logger, 3, "Printing export variables", "tenancyName", tenancyName, "compartment", compartment)
+// PrintExportVariable prints the environment variables in a centered table with color.
+// If profile, tenancyName and compartment are provided, they are included in the output.
+func PrintExportVariable(profile, tenancyName, compartment string) error {
+	logger.LogWithLevel(logger.Logger, 3, "Printing export variables", "profile", profile, "tenancyName", tenancyName, "compartment", compartment)
 
-	// Format the export statements with color
-	tenancyNameVar := text.Colors{text.FgYellow}.Sprint("export OCI_TENANCY_NAME=")
-	compartmentVar := text.Colors{text.FgYellow}.Sprint("export OCI_COMPARTMENT=")
+	// Create a map of environment variables to export
+	exportVars := make(map[string]string)
 
-	// Add the values if provided
+	if profile != "" {
+		exportVars["OCI_CLI_PROFILE"] = profile
+		logger.LogWithLevel(logger.Logger, 3, "Added profile to export variables", "profile", profile)
+	}
+
 	if tenancyName != "" {
-		tenancyNameVar += fmt.Sprintf("%q", tenancyName)
-		logger.LogWithLevel(logger.Logger, 3, "Added tenancy name to export variable", "tenancyName", tenancyName)
+		exportVars["OCI_TENANCY_NAME"] = tenancyName
+		logger.LogWithLevel(logger.Logger, 3, "Added tenancy name to export variables", "tenancyName", tenancyName)
 	}
 
 	if compartment != "" {
-		compartmentVar += fmt.Sprintf("%q", compartment)
-		logger.LogWithLevel(logger.Logger, 3, "Added compartment to export variable", "compartment", compartment)
+		exportVars["OCI_COMPARTMENT"] = compartment
+		logger.LogWithLevel(logger.Logger, 3, "Added compartment to export variables", "compartment", compartment)
 	}
 
-	// Print with proper spacing
-	fmt.Println(tenancyNameVar)
-	fmt.Println(compartmentVar)
-	logger.LogWithLevel(logger.Logger, 3, "Printed export variables")
+	// Create a printer and print the export variables in a table
+	p := printer.New(os.Stdout)
+	title := "Export Variable"
+	message := "ENVIRONMENT VARIABLES"
+	p.ResultTable(title, message, exportVars)
+
+	logger.LogWithLevel(logger.Logger, 3, "Printed export variables in table")
+
+	fmt.Println("\nTo persist your selection, export the following environment variables in your shell:")
 
 	return nil
 }

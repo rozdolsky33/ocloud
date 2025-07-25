@@ -146,10 +146,9 @@ func (p *Printer) PrintTable(title string, headers []string, rows [][]string) {
 	for i, h := range headers {
 		headerRow[i] = text.Colors{text.FgHiYellow}.Sprint(h)
 
-		// Capture i and h for the transformer closure
 		idx := i
 		colConfigs[i] = table.ColumnConfig{
-			Number:   i + 1, // 1‑based index
+			Number:   i + 1,
 			WidthMax: maxPerCol,
 			Transformer: func(val interface{}) string {
 				return truncate(fmt.Sprint(val), maxPerCol)
@@ -175,4 +174,51 @@ func (p *Printer) PrintTable(title string, headers []string, rows [][]string) {
 	}
 
 	t.Render()
+}
+
+// -----------------------------------------------------------------------------
+// Create end result table
+// -----------------------------------------------------------------------------
+
+// ResultTable renders a table with export variables centered in the terminal.
+// The table is displayed as a single box with a title, message, and information on a single line.
+func (p *Printer) ResultTable(title string, message string, exportVars map[string]string) {
+
+	t := table.NewWriter()
+
+	t.SetStyle(table.StyleRounded)
+	t.Style().Title.Align = text.AlignCenter
+	t.SetTitle(text.Colors{text.FgMagenta}.Sprint(title))
+
+	if message != "" {
+		t.AppendHeader(table.Row{text.Colors{text.FgGreen}.Sprint(message)})
+	}
+
+	t.AppendRow(table.Row{""})
+
+	// Combine all export variables into a single line
+	var exportCommands []string
+	for varName, varValue := range exportVars {
+		exportCmd := text.Colors{text.FgYellow}.Sprint("export "+varName+"=") + "\"" + varValue + "\""
+		exportCommands = append(exportCommands, exportCmd)
+	}
+
+	// Join all export commands with spaces and add as a single row
+	t.AppendRow(table.Row{strings.Join(exportCommands, " ")})
+	t.AppendRow(table.Row{""})
+
+	// Render the table
+	tableStr := t.Render()
+	indentation := "\t"
+
+	// Add indentation to each line
+	lines := strings.Split(tableStr, "\n")
+	for i, line := range lines {
+		if line != "" {
+			lines[i] = indentation + line
+		}
+	}
+
+	// Print the indented table
+	fmt.Fprintln(p.out, strings.Join(lines, "\n"))
 }
