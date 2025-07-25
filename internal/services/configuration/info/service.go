@@ -2,6 +2,7 @@ package info
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"strings"
@@ -10,7 +11,13 @@ import (
 // NewService initializes a new Service instance with the provided application context.
 // Returns a Service pointer.
 func NewService() *Service {
-	return &Service{}
+	appCtx := &app.ApplicationContext{
+		Logger: logger.Logger,
+	}
+	service := &Service{
+		logger: appCtx.Logger,
+	}
+	return service
 }
 
 // LoadTenancyMappings loads the tenancy mappings from the file and filters them by realm if specified.
@@ -26,7 +33,6 @@ func (s *Service) LoadTenancyMappings(realm string) (*TenancyMappingResult, erro
 	// Filter by realm if specified
 	var filteredMappings []appConfig.MappingsFile
 	for _, tenancy := range tenancies {
-		// Filter by realm if specified (case-insensitive)
 		if realm != "" && !strings.EqualFold(tenancy.Realm, realm) {
 			continue
 		}

@@ -1,7 +1,9 @@
 package auth
 
 import (
+	configurationFlags "github.com/rozdolsky33/ocloud/cmd/configuration/flags"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/auth"
 	"github.com/spf13/cobra"
 )
@@ -10,15 +12,16 @@ import (
 var authenticateShort = "Authenticate with OCI and refresh session tokens"
 
 // Long description for the authenticate command
-var authenticateLong = `Runs the OCI CLI's session authenticate under the hood:
-
-    oci session authenticate --profile-name <PROFILE> --region <REGION>
-
-Interactively lets you pick your desired profile and region.`
+var authenticateLong = `Interactively guides you through the authentication process with OCI.
+Allows you to select your desired profile and region.
+You can use --filter to filter regions by prefix and --realm to filter by realm.
+If a tenancy-mapping file is present, the --realm flag will also filter tenancy mappings by the specified realm.`
 
 // Examples for the authenticate command
 var authenticateExamples = `  ocloud config session authenticate 
-  ocloud config session authenticate --filter us`
+  ocloud config session authenticate --filter us
+  ocloud config session authenticate --realm OC1
+  ocloud config session auth -f us -r OC2`
 
 // NewAuthenticateCmd creates a new cobra.Command for authenticating with OCI.
 func NewAuthenticateCmd() *cobra.Command {
@@ -31,12 +34,21 @@ func NewAuthenticateCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			filter := flags.GetStringFlag(cmd, flags.FlagNameFilter, "")
-			return auth.AuthenticateWithOCI(filter)
+			return RunAuthenticateCommand(cmd)
 		},
 	}
+	// Add filter flag
+	configurationFlags.FilterFlag.Add(cmd)
 
-	FilterFlag.Add(cmd)
+	// Add realm filter flag
+	configurationFlags.RealmFlag.Add(cmd)
 
 	return cmd
+}
+
+func RunAuthenticateCommand(cmd *cobra.Command) error {
+	filter := flags.GetStringFlag(cmd, flags.FlagNameFilter, "")
+	realm := flags.GetStringFlag(cmd, flags.FlagNameRealm, "")
+	logger.LogWithLevel(logger.CmdLogger, 1, "Running authenticate command", "filter", filter, "realm", realm)
+	return auth.AuthenticateWithOCI(filter, realm)
 }

@@ -2,6 +2,7 @@ package info
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
 // ViewConfiguration displays the tenancy mapping information.
@@ -9,9 +10,10 @@ import (
 // If the realm is not empty, it filters the mappings by the specified realm.
 func ViewConfiguration(useJSON bool, realm string) error {
 
-	service := NewService()
+	s := NewService()
+	logger.LogWithLevel(s.logger, 1, "ViewConfiguration", "realm", realm)
 
-	result, err := service.LoadTenancyMappings(realm)
+	result, err := s.LoadTenancyMappings(realm)
 	if err != nil {
 		return fmt.Errorf("loading tenancy mappings: %w", err)
 	}

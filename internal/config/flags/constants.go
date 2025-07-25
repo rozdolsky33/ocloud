@@ -86,7 +86,7 @@ const (
 	FlagDescVersion            = "Print the version number of ocloud CLI"
 	FlagDescAllInformation     = "Show all information"
 	FlagDescSort               = "Sort results by field (name or cidr)"
-	FlagDescRealm              = "Filter by realm"
+	FlagDescRealm              = "Filter by realm (e.g., OC1, OC2, OC2)"
 	FlagDescFilter             = "Filter regions by prefix (e.g., us, eu, ap)"
 )
 

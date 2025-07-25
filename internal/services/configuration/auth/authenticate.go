@@ -13,13 +13,13 @@ import (
 // It prompts the user for profile and region selection, authenticates with OCI,
 // and returns the result of the authentication process.
 // If the filter is not empty, it filters the regions by prefix.
-func AuthenticateWithOCI(filter string) error {
+func AuthenticateWithOCI(filter, realm string) error {
 
 	s := NewService()
 
-	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "filter", filter)
+	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "filter", filter, "realm", realm)
 
-	result, err = performInteractiveAuthentication(s, filter)
+	result, err = performInteractiveAuthentication(s, filter, realm)
 	if err != nil {
 		return fmt.Errorf("performing interactive authentication: %w", err)
 	}
@@ -41,7 +41,7 @@ func AuthenticateWithOCI(filter string) error {
 // performInteractiveAuthentication handles the interactive authentication process.
 // It prompts the user for profile and region selection, authenticates with OCI,
 // and returns the result of the authentication process.
-func performInteractiveAuthentication(s *Service, filter string) (*AuthenticationResult, error) {
+func performInteractiveAuthentication(s *Service, filter, realm string) (*AuthenticationResult, error) {
 	// Prompt for profile selection
 	profile, err := s.PromptForProfile()
 	if err != nil {
@@ -78,7 +78,7 @@ func performInteractiveAuthentication(s *Service, filter string) (*Authenticatio
 	logger.LogWithLevel(s.logger, 3, "Authentication successful", "profile", profile, "region", region)
 
 	// View configuration
-	err = info.ViewConfiguration(false, "") // TODO: filter by realm
+	err = info.ViewConfiguration(false, realm)
 	if err != nil {
 		return nil, fmt.Errorf("viewing configuration: %w", err)
 	}
