@@ -3,11 +3,26 @@ package auth
 import (
 	"bufio"
 	"fmt"
+	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
 	"os"
 	"strings"
 )
+
+// viewConfigurationWithErrorHandling is a helper function to handle viewing configuration
+// and handling common errors like missing tenancy mapping file.
+func viewConfigurationWithErrorHandling(log logr.Logger, realm string) error {
+	err := info.ViewConfiguration(false, realm)
+	if err != nil {
+		if strings.Contains(err.Error(), "tenancy mapping file not found") {
+			logger.LogWithLevel(log, 2, "Tenancy mapping file not found, continuing without it", "error", err)
+			return nil
+		}
+		return fmt.Errorf("viewing configuration: %w", err)
+	}
+	return nil
+}
 
 // AuthenticateWithOCI handles the authentication process with OCI.
 // It prompts the user for profile and region selection, authenticates with OCI,
@@ -47,7 +62,13 @@ func performInteractiveAuthentication(s *Service, filter, realm string) (*Authen
 	if err != nil {
 		return nil, fmt.Errorf("selecting profile: %w", err)
 	}
+
 	logger.LogWithLevel(s.logger, 1, "Profile selected", "profile", profile)
+
+	err = viewConfigurationWithErrorHandling(s.logger, realm)
+	if err != nil {
+		return nil, fmt.Errorf("viewing configuration: %w", err)
+	}
 
 	// Display regions in a table
 	logger.LogWithLevel(s.logger, 3, "Getting OCI regions")
@@ -77,8 +98,7 @@ func performInteractiveAuthentication(s *Service, filter, realm string) (*Authen
 
 	logger.LogWithLevel(s.logger, 3, "Authentication successful", "profile", profile, "region", region)
 
-	// View configuration
-	err = info.ViewConfiguration(false, realm)
+	err = viewConfigurationWithErrorHandling(s.logger, realm)
 	if err != nil {
 		return nil, fmt.Errorf("viewing configuration: %w", err)
 	}
