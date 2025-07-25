@@ -48,6 +48,13 @@ run_command ./bin/ocloud --version
 print_header "Testing root command with help"
 run_command ./bin/ocloud --help
 
+# Test config info map-file command
+print_header "Testing config info map-file command"
+run_command ./bin/ocloud config info map-file
+run_command ./bin/ocloud config info map-file --json
+run_command ./bin/ocloud config info map-file --realm OC1
+run_command ./bin/ocloud config info map-file --realm OC1 --json
+
 # Test root command with global flags
 print_header "Testing root command with global flags"
 run_command ./bin/ocloud --compartment $OCI_COMPARTMENT

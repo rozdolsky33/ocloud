@@ -3,7 +3,6 @@ package version
 import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/buildinfo"
-	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/spf13/cobra"
 	"io"
@@ -21,12 +20,9 @@ type VersionInfo struct {
 // Returns a *cobra.Command that can be added to the root command
 // This function was refactored to return *cobra.Command directly instead of *VersionInfo
 // to fix an issue with adding the command to the root command
-func NewVersionCommand(appCtx *app.ApplicationContext) *cobra.Command {
+func NewVersionCommand() *cobra.Command {
 	// If appCtx is nil, use os.Stdout as the default writer
 	var writer io.Writer = os.Stdout
-	if appCtx != nil {
-		writer = appCtx.Stdout
-	}
 
 	vc := &VersionInfo{
 		writer: writer,

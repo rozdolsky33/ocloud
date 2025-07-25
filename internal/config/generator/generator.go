@@ -40,7 +40,7 @@ func GenerateReadmeTable(flagInfos []FlagInfo, title string) string {
 	return buf.String()
 }
 
-// ExtractFlagConstants extracts flag constants from the config package.
+// ExtractFlagConstants extracts flag constants from the configuration package.
 func ExtractFlagConstants(configDir string) (map[string][]FlagInfo, error) {
 	// Parse the flags/constants.go file
 	fset := token.NewFileSet()
