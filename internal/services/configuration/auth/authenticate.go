@@ -104,21 +104,16 @@ func performInteractiveAuthentication(s *Service, filter string) (*Authenticatio
 
 		logger.LogWithLevel(s.logger, 3, "Custom environment variables entered", "tenancyName", tenancy, "compartment", compartment)
 
-		// Update the result with custom values
 		if tenancy != "" {
 			result.TenancyName = tenancy
 			logger.LogWithLevel(s.logger, 3, "Updated tenancy name", "tenancyName", tenancy)
 		}
 
-		// Store compartment in the CompartmentName field
 		if compartment != "" {
 			result.CompartmentName = compartment
 			logger.LogWithLevel(s.logger, 3, "Updated compartment", "compartment", compartment)
-		} else {
-			// If a compartment is not provided
-			result.CompartmentName = ""
-			logger.LogWithLevel(s.logger, 3, "Using tenancy name as compartment name", "compartmentName", result.TenancyName)
 		}
+
 	} else {
 		logger.LogWithLevel(s.logger, 3, "Skipping variable setup")
 		fmt.Println("\n Skipping variable setup.")

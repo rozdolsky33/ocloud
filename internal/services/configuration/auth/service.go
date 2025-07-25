@@ -179,76 +179,14 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 			if t.TenancyID == tenancyOCID {
 				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
 				result.TenancyName = t.Tenancy
-				// Set the compartment name to tenancy name by default
-				result.CompartmentName = t.Tenancy
 				logger.LogWithLevel(s.logger, 3, "Set compartment name to tenancy name", "compartmentName", t.Tenancy)
 				break
 			}
 		}
-
-		if result.TenancyName == "" {
-			logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
-			// Set the compartment name to empty string if the tenancy name is not found
-			result.CompartmentName = ""
-			logger.LogWithLevel(s.logger, 3, "Set compartment name to empty string")
-		}
+		logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
 	}
 
 	logger.LogWithLevel(s.logger, 1, "Authentication successful", "profile", profile, "region", region, "tenancyID", tenancyOCID, "tenancyName", result.TenancyName)
-	return result, nil
-}
-
-// GetCurrentEnvironment returns the current OCI environment variables.
-func (s *Service) GetCurrentEnvironment() (*AuthenticationResult, error) {
-	logger.LogWithLevel(s.logger, 3, "Getting current OCI environment")
-
-	// Fetch root compartment (tenancy) OCID
-	logger.LogWithLevel(s.logger, 3, "Fetching tenancy OCID")
-	tenancyOCID, err := s.Provider.TenancyOCID()
-
-	if err != nil {
-		return nil, errors.Wrap(err, "fetching tenancy OCID")
-	}
-
-	logger.LogWithLevel(s.logger, 3, "Fetched tenancy OCID", "tenancyOCID", tenancyOCID)
-
-	// Get profile and region from the environment
-	profile := config.GetOCIProfile()
-	region := os.Getenv("OCI_REGION")
-	logger.LogWithLevel(s.logger, 3, "Retrieved environment variables", "profile", profile, "region", region)
-
-	result := &AuthenticationResult{
-		TenancyID: tenancyOCID,
-		Profile:   profile,
-		Region:    region,
-	}
-
-	// Try to get a tenancy name from a mapping file
-	logger.LogWithLevel(s.logger, 3, "Attempting to get tenancy name from mapping file")
-	tenancies, err := config.LoadTenancyMap()
-	if err != nil {
-		logger.LogWithLevel(s.logger, 3, "Failed to load tenancy map, continuing without tenancy name", "error", err)
-	} else {
-		for _, t := range tenancies {
-			if t.TenancyID == tenancyOCID {
-				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
-				result.TenancyName = t.Tenancy
-				// Set the compartment name to tenancy name by default
-				result.CompartmentName = t.Tenancy
-				logger.LogWithLevel(s.logger, 3, "Set compartment name to tenancy name", "compartmentName", t.Tenancy)
-				break
-			}
-		}
-
-		if result.TenancyName == "" {
-			logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
-			// Set the compartment name to empty string if the tenancy name is not found
-			result.CompartmentName = ""
-			logger.LogWithLevel(s.logger, 3, "Set compartment name to empty string")
-		}
-	}
-
-	logger.LogWithLevel(s.logger, 1, "Retrieved current environment", "profile", profile, "region", region, "tenancyID", tenancyOCID, "tenancyName", result.TenancyName)
 	return result, nil
 }
 
