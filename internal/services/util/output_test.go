@@ -11,7 +11,7 @@ import (
 
 // TestMarshalDataToJSON tests the MarshalDataToJSONResponse function
 func TestMarshalDataToJSON(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create a printer that writes to the buffer
@@ -89,4 +89,36 @@ func TestFormatColoredTitle(t *testing.T) {
 	emptyAppCtx := &app.ApplicationContext{}
 	title = FormatColoredTitle(emptyAppCtx, "TestName")
 	assert.Contains(t, title, "TestName")
+}
+
+// TestSplitTextByMaxWidth tests the SplitTextByMaxWidth function
+func TestSplitTextByMaxWidth(t *testing.T) {
+	// Test with an empty string
+	result := SplitTextByMaxWidth("")
+	assert.Equal(t, []string{""}, result, "Empty string should return a slice with an empty string")
+
+	// Test with a single word
+	result = SplitTextByMaxWidth("SingleWord")
+	assert.Equal(t, []string{"SingleWord"}, result, "Single word should return a slice with that word")
+
+	// Test with a short string that fits in one line
+	result = SplitTextByMaxWidth("This is a short string")
+	assert.Equal(t, []string{"This is a short string"}, result, "Short string should return a slice with that string")
+
+	// Test with a long string that needs to be split
+	longString := "This is a very long string that should be split into multiple lines because it exceeds the maximum width"
+	result = SplitTextByMaxWidth(longString)
+	assert.Greater(t, len(result), 1, "Long string should be split into multiple lines")
+
+	// Test with a string that has exactly the max width
+	// The max width in the function is 30 characters
+	exactWidthString := "This string has exactly thirty"
+	result = SplitTextByMaxWidth(exactWidthString)
+	assert.Equal(t, 1, len(result), "String with exact max width should not be split")
+
+	// Test with a string that has multiple spaces
+	multiSpaceString := "This   string   has   multiple   spaces"
+	result = SplitTextByMaxWidth(multiSpaceString)
+	// The function uses strings.Fields which normalizes spaces, but also splits by max width
+	assert.Equal(t, []string{"This string has multiple", "spaces"}, result, "String with multiple spaces should be normalized and split if needed")
 }
