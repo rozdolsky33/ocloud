@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/rozdolsky33/ocloud/cmd/internal/cmdcreate"
 	"github.com/rozdolsky33/ocloud/internal/app"
 )
 
@@ -47,7 +48,7 @@ func findSubcommand(cmd *cobra.Command, name string) *cobra.Command {
 // TestRootCommandWithoutContext tests the root command created without context
 func TestRootCommandWithoutContext(t *testing.T) {
 	// Create a root command without context
-	rootCmd := createRootCmdWithoutContext()
+	rootCmd := cmdcreate.CreateRootCmdWithoutContext()
 
 	// Test that the root command is properly configured
 	assert.Equal(t, "ocloud", rootCmd.Use)
@@ -58,9 +59,14 @@ func TestRootCommandWithoutContext(t *testing.T) {
 	versionCmd := findSubcommand(rootCmd, "version")
 	assert.NotNil(t, versionCmd, "version command should be added as a subcommand")
 
-	// Test that other commands are not added
+	// Test that placeholder commands are added
 	computeCmd := findSubcommand(rootCmd, "compute")
-	assert.Nil(t, computeCmd, "compute command should not be added as a subcommand")
+	assert.NotNil(t, computeCmd, "compute command should be added as a placeholder subcommand")
+	
+	// Verify it's a placeholder by checking that it returns an error when run
+	err := computeCmd.RunE(computeCmd, []string{})
+	assert.Error(t, err, "placeholder command should return an error when run")
+	assert.Contains(t, err.Error(), "requires application initialization", "error message should indicate initialization is required")
 }
 
 // TestIsNoContextCommand tests the isNoContextCommand function
@@ -91,5 +97,5 @@ func TestIsNoContextCommand(t *testing.T) {
 
 	// Test with no arguments
 	os.Args = []string{"ocloud"}
-	assert.False(t, isNoContextCommand(), "should return false when no arguments are provided")
+	assert.True(t, isNoContextCommand(), "should return true when no arguments are provided (just the program name)")
 }
