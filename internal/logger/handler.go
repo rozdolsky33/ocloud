@@ -22,7 +22,7 @@ const (
 	BrightYellow       = "\033[93m"
 	Cyan               = "\033[36m"
 	CyanDim            = "\033[36;2m"
-	// this mirrors the limit value from the internal slog package
+	// this mirrors the limit value from the shared slog package
 	maxBufferSize = 16384
 	dateFormat    = time.Stamp
 )
