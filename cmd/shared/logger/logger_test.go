@@ -16,7 +16,7 @@ func TestSetLogLevel(t *testing.T) {
 	originalArgs := os.Args
 	originalLogLevel := logger.LogLevel
 	originalColoredOutput := logger.ColoredOutput
-	
+
 	// Restore original values after the test
 	defer func() {
 		os.Args = originalArgs
@@ -81,7 +81,7 @@ func TestSetLogLevel(t *testing.T) {
 // This test is skipped because the function calls os.Exit(0) which would terminate the test
 func TestSetLogLevelWithVersionFlag(t *testing.T) {
 	t.Skip("Skipping test because SetLogLevel calls os.Exit(0) when version flags are present")
-	
+
 	// In a real test environment, we might use a custom exit function that can be mocked
 	// For example:
 	//

@@ -16,7 +16,7 @@ func TestPrintOCIConfiguration(t *testing.T) {
 	originalProfile := os.Getenv("OCI_CLI_PROFILE")
 	originalTenancy := os.Getenv(flags.EnvOCITenancyName)
 	originalCompartment := os.Getenv(flags.EnvOCICompartment)
-	
+
 	// Restore environment variables after the test
 	defer func() {
 		os.Setenv("OCI_CLI_PROFILE", originalProfile)
@@ -28,7 +28,7 @@ func TestPrintOCIConfiguration(t *testing.T) {
 	os.Unsetenv("OCI_CLI_PROFILE")
 	os.Unsetenv(flags.EnvOCITenancyName)
 	os.Unsetenv(flags.EnvOCICompartment)
-	
+
 	// This should not panic
 	assert.NotPanics(t, func() {
 		PrintOCIConfiguration()
@@ -38,7 +38,7 @@ func TestPrintOCIConfiguration(t *testing.T) {
 	os.Setenv("OCI_CLI_PROFILE", "test-profile")
 	os.Setenv(flags.EnvOCITenancyName, "test-tenancy")
 	os.Setenv(flags.EnvOCICompartment, "test-compartment")
-	
+
 	// This should not panic
 	assert.NotPanics(t, func() {
 		PrintOCIConfiguration()
@@ -48,7 +48,7 @@ func TestPrintOCIConfiguration(t *testing.T) {
 	os.Setenv("OCI_CLI_PROFILE", "test-profile")
 	os.Unsetenv(flags.EnvOCITenancyName)
 	os.Setenv(flags.EnvOCICompartment, "test-compartment")
-	
+
 	// This should not panic
 	assert.NotPanics(t, func() {
 		PrintOCIConfiguration()
