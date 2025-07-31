@@ -180,7 +180,7 @@ func (s *Service) fetchAllPolicies(ctx context.Context) ([]Policy, error) {
 	return allPolicies, nil
 }
 
-// mapToPolicies converts an identity.Policy object to an internal Policy representation, mapping all fields correspondingly.
+// mapToPolicies converts an identity.Policy object to an shared Policy representation, mapping all fields correspondingly.
 func mapToPolicies(policy identity.Policy) Policy {
 	return Policy{
 		Name:        *policy.Name,

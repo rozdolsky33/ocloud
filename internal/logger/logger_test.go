@@ -80,7 +80,7 @@ func TestInitLogger(t *testing.T) {
 	assert.NotNil(t, Logger.GetSink())
 
 	// Test with a nil logger
-	// This is hard to test directly since we can't easily check the internal state
+	// This is hard to test directly since we can't easily check the shared state
 	// of the logger, but we can at least verify it doesn't panic
 	InitLogger(logr.Logger{})
 	assert.NotNil(t, Logger)

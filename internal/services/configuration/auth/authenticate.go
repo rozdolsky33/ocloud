@@ -11,7 +11,7 @@ import (
 )
 
 // viewConfigurationWithErrorHandling is a helper function to handle viewing configuration
-// and handling common errors like missing tenancy mapping file.
+// and handling common errors like a missing tenancy mapping file.
 func viewConfigurationWithErrorHandling(log logr.Logger, realm string) error {
 	err := info.ViewConfiguration(false, realm)
 	if err != nil {
