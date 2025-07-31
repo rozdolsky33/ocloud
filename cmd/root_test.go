@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/rozdolsky33/ocloud/cmd/internal/cmdcreate"
+	"github.com/rozdolsky33/ocloud/cmd/shared/cmdcreate"
 	"github.com/rozdolsky33/ocloud/internal/app"
 )
 
@@ -62,7 +62,7 @@ func TestRootCommandWithoutContext(t *testing.T) {
 	// Test that placeholder commands are added
 	computeCmd := findSubcommand(rootCmd, "compute")
 	assert.NotNil(t, computeCmd, "compute command should be added as a placeholder subcommand")
-	
+
 	// Verify it's a placeholder by checking that it returns an error when run
 	err := computeCmd.RunE(computeCmd, []string{})
 	assert.Error(t, err, "placeholder command should return an error when run")
@@ -83,15 +83,15 @@ func TestIsNoContextCommand(t *testing.T) {
 	os.Args = []string{"ocloud", "config"}
 	assert.True(t, isNoContextCommand(), "should return true for 'config' command")
 
-	// Test with version flag (short)
+	// Test with a version flag (short)
 	os.Args = []string{"ocloud", "-v"}
 	assert.True(t, isNoContextCommand(), "should return true for '-v' flag")
 
-	// Test with version flag (long)
+	// Test with a version flag (long)
 	os.Args = []string{"ocloud", "--version"}
 	assert.True(t, isNoContextCommand(), "should return true for '--version' flag")
 
-	// Test with other command
+	// Test with another command
 	os.Args = []string{"ocloud", "compute", "instance", "list"}
 	assert.False(t, isNoContextCommand(), "should return false for other commands")
 

@@ -268,7 +268,7 @@ func (s *Service) getClusterNodePools(ctx context.Context, clusterID string) ([]
 	return clusterNodePools, nil
 }
 
-// mapToCluster maps an OCI ClusterSummary to our internal Cluster model.
+// mapToCluster maps an OCI ClusterSummary to our shared Cluster model.
 // It initializes the NodePools field as an empty slice, which will be populated later.
 func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
 	return Cluster{
@@ -287,7 +287,7 @@ func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
 	}
 }
 
-// mapToNodePool maps an OCI NodePoolSummary to our internal NodePool model.
+// mapToNodePool maps an OCI NodePoolSummary to our shared NodePool model.
 func mapToNodePool(nodePool containerengine.NodePoolSummary) NodePool {
 	var nodeCount int
 	if nodePool.NodeConfigDetails != nil && nodePool.NodeConfigDetails.Size != nil {

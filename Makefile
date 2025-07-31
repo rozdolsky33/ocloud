@@ -78,11 +78,6 @@ lint:
 	@echo "Linting code..."
 	@$(GOLANGCI_LINT) run --no-config ./...
 
-# Generate code
-generate:
-	@echo "Generating code..."
-	@go generate ./...
-
 # Clean build artifacts
 clean:
 	@echo "Cleaning up..."
@@ -127,7 +122,6 @@ help:
 	@echo "  fmt-check      Checks if Go source files are formatted correctly"
 	@echo "  vet            Runs go vet on the code"
 	@echo "  lint           Runs golangci-lint on the code"
-	@echo "  generate       Runs go generate to update generated code"
 	@echo "  clean          Removes build artifacts"
 	@echo "  release        Builds binaries for all supported platforms and creates zip archives"
 	@echo "  compile        Compiles binaries for all supported platforms"

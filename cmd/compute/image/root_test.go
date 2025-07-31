@@ -80,6 +80,6 @@ func findSubCommand(cmd *cobra.Command, name string) *cobra.Command {
 // TestInitApp tests the app.InitApp function
 func TestInitApp(t *testing.T) {
 	// This is just a placeholder test since we can't easily test InitApp without mocking the OCI SDK
-	// The actual InitApp function is tested in the internal/app package
+	// The actual InitApp function is tested in the shared/app package
 	t.Skip("Skipping test for InitApp since it requires mocking the OCI SDK")
 }
