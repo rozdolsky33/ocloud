@@ -19,8 +19,10 @@ import (
 // This is a simplified version of the previous CommandRegistry, removing unused methods
 func isNoContextCommand() bool {
 	args := os.Args
+	// If no arguments are provided (just the program name), we don't need context
+	// This avoids initialization when just displaying help/usage information
 	if len(args) < 2 {
-		return false
+		return true
 	}
 
 	// Commands that don't need context
@@ -46,6 +48,16 @@ func isNoContextCommand() bool {
 	}
 
 	return false
+}
+
+// isRootCommandWithoutSubcommands checks if the command being executed is the root command without any subcommands or flags
+// This is used to determine whether to display the banner and configuration details
+func isRootCommandWithoutSubcommands() bool {
+	args := os.Args
+
+	// Only display the banner and configuration details when running the root command without any subcommands or flags
+	// This means only when running "./ocloud" with no additional arguments
+	return len(args) == 1
 }
 
 // createRootCmd creates a root command with or without application context
@@ -89,12 +101,105 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func createRootCmdWithoutContext() *cobra.Command {
 	rootCmd := createRootCmd(nil)
 
+	// Add placeholder commands for help display
+	addPlaceholderCommands(rootCmd)
+
+	rootCmd.SetHelpTemplate(`
+{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
+
+{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`)
+
 	// Set the default behavior to show help
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	}
 
 	return rootCmd
+}
+
+// addPlaceholderCommands adds placeholder commands that will be displayed in help
+// but will show a message about needing to initialize if they're actually run
+func addPlaceholderCommands(rootCmd *cobra.Command) {
+	// Add compute command
+	computeCmd := &cobra.Command{
+		Use:   "compute",
+		Short: "Manage OCI compute services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("this command requires application initialization")
+		},
+	}
+	rootCmd.AddCommand(computeCmd)
+
+	// Add identity command
+	identityCmd := &cobra.Command{
+		Use:   "identity",
+		Short: "Manage OCI identity services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("this command requires application initialization")
+		},
+	}
+	rootCmd.AddCommand(identityCmd)
+
+	// Add database command
+	databaseCmd := &cobra.Command{
+		Use:   "database",
+		Short: "Manage OCI Database services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("this command requires application initialization")
+		},
+	}
+	rootCmd.AddCommand(databaseCmd)
+
+	// Add network command
+	networkCmd := &cobra.Command{
+		Use:   "network",
+		Short: "Manage OCI networking services",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return fmt.Errorf("this command requires application initialization")
+		},
+	}
+	rootCmd.AddCommand(networkCmd)
+}
+
+// displayConfigurationDetails displays the current configuration details
+// and checks if required environment variables are set
+func displayConfigurationDetails() {
+	// Display the banner in plain color
+	fmt.Println(" ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗ ")
+	fmt.Println("██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗")
+	fmt.Println("██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║")
+	fmt.Println("██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║")
+	fmt.Println("╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝")
+	fmt.Println(" ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝")
+	fmt.Println()
+
+	fmt.Println("\033[1mConfiguration Details:\033[0m")
+
+	// Check OCI_CLI_PROFILE
+	profile := os.Getenv("OCI_CLI_PROFILE")
+	if profile == "" {
+		fmt.Println("  \033[33mOCI_CLI_PROFILE\033[0m: \033[31mNot set - Please set profile\033[0m")
+	} else {
+		fmt.Printf("  \033[33mOCI_CLI_PROFILE\033[0m: %s\n", profile)
+	}
+
+	// Check OCI_TENANCY_NAME
+	tenancyName := os.Getenv(flags.EnvOCITenancyName)
+	if tenancyName == "" {
+		fmt.Println("  \033[33mOCI_TENANCY_NAME\033[0m: \033[31mNot set - Please set tenancy\033[0m")
+	} else {
+		fmt.Printf("  \033[33mOCI_TENANCY_NAME\033[0m: %s\n", tenancyName)
+	}
+
+	// Check OCI_COMPARTMENT
+	compartment := os.Getenv(flags.EnvOCICompartment)
+	if compartment == "" {
+		fmt.Println("  \033[33mOCI_COMPARTMENT\033[0m: \033[31mNot set - Please set compartmen name\033[0m")
+	} else {
+		fmt.Printf("  \033[33mOCI_COMPARTMENT\033[0m: %s\n", compartment)
+	}
+
+	fmt.Println()
 }
 
 // Execute runs the root command with the given context.
@@ -119,6 +224,11 @@ func Execute(ctx context.Context) error {
 		// Create a root command without application context
 		root := createRootCmdWithoutContext()
 
+		// Display configuration details only for the root command without subcommands
+		if isRootCommandWithoutSubcommands() {
+			displayConfigurationDetails()
+		}
+
 		// Execute the command
 		if err := root.ExecuteContext(ctx); err != nil {
 			return fmt.Errorf("failed to execute root command: %w", err)
@@ -131,6 +241,11 @@ func Execute(ctx context.Context) error {
 	appCtx, err := InitializeAppContext(ctx, tempRoot)
 	if err != nil {
 		return fmt.Errorf("initializing app context: %w", err)
+	}
+
+	// Display configuration details only for the root command without subcommands
+	if isRootCommandWithoutSubcommands() {
+		displayConfigurationDetails()
 	}
 
 	// Create the real root command with the ApplicationContext
