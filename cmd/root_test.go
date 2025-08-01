@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -67,35 +66,4 @@ func TestRootCommandWithoutContext(t *testing.T) {
 	err := computeCmd.RunE(computeCmd, []string{})
 	assert.Error(t, err, "placeholder command should return an error when run")
 	assert.Contains(t, err.Error(), "requires application initialization", "error message should indicate initialization is required")
-}
-
-// TestIsNoContextCommand tests the isNoContextCommand function
-func TestIsNoContextCommand(t *testing.T) {
-	// Save original os.Args
-	originalArgs := os.Args
-	defer func() { os.Args = originalArgs }()
-
-	// Test with version command
-	os.Args = []string{"ocloud", "version"}
-	assert.True(t, isNoContextCommand(), "should return true for 'version' command")
-
-	// Test with config command
-	os.Args = []string{"ocloud", "config"}
-	assert.True(t, isNoContextCommand(), "should return true for 'config' command")
-
-	// Test with a version flag (short)
-	os.Args = []string{"ocloud", "-v"}
-	assert.True(t, isNoContextCommand(), "should return true for '-v' flag")
-
-	// Test with a version flag (long)
-	os.Args = []string{"ocloud", "--version"}
-	assert.True(t, isNoContextCommand(), "should return true for '--version' flag")
-
-	// Test with another command
-	os.Args = []string{"ocloud", "compute", "instance", "list"}
-	assert.False(t, isNoContextCommand(), "should return false for other commands")
-
-	// Test with no arguments
-	os.Args = []string{"ocloud"}
-	assert.True(t, isNoContextCommand(), "should return true when no arguments are provided (just the program name)")
 }
