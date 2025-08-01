@@ -1,20 +1,52 @@
 package display
 
 import (
+	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/buildinfo"
 	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
+	"os/exec"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
+
+var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$`)
+var expiredRe = regexp.MustCompile(`(?i)^Session has expired\s*$`)
+
+// CheckOCISessionValidity checks the validity of the OCI session
+func CheckOCISessionValidity() string {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "oci", "session", "validate", "--local")
+	out, err := cmd.CombinedOutput()
+	raw := strings.TrimSpace(string(out))
+
+	if matches := validRe.FindStringSubmatch(raw); len(matches) > 1 {
+		return fmt.Sprintf("\033[32mValid until %s\033[0m", matches[1])
+	} else if expiredRe.MatchString(raw) {
+		return "\033[31mSession Expired\033[0m"
+	} else {
+		if err != nil {
+			return fmt.Sprintf("\033[31mError checking session: %v\033[0m", err)
+		} else {
+			return fmt.Sprintf("\033[33mUnknown status: %s\033[0m", raw)
+		}
+	}
+}
 
 // PrintOCIConfiguration displays the current configuration details
 // and checks if required environment variables are set
 func PrintOCIConfiguration() {
 	displayBanner()
 
-	fmt.Println("\033[1mConfiguration Details:\033[0m")
+	// Get session status and display it with configuration details
+	sessionStatus := CheckOCISessionValidity()
+	fmt.Printf("\033[1mConfiguration Details:\033[0m %s\n", sessionStatus)
 
 	profile := os.Getenv("OCI_CLI_PROFILE")
 	if profile == "" {
@@ -63,6 +95,6 @@ func displayBanner() {
 	fmt.Println("╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝")
 	fmt.Println(" ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝")
 	fmt.Println()
-	fmt.Printf("  \033[33mVersion\033[0m: \033[32m%s\033[0m\n", buildinfo.Version)
+	fmt.Printf("\t      \033[33mVersion\033[0m: \033[32m%s\033[0m\n", buildinfo.Version)
 	fmt.Println()
 }
