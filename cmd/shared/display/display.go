@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/buildinfo"
 	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
 
@@ -61,5 +62,7 @@ func displayBanner() {
 	fmt.Println("██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║")
 	fmt.Println("╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝")
 	fmt.Println(" ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝")
+	fmt.Println()
+	fmt.Printf("  \033[33mVersion\033[0m: \033[32m%s\033[0m\n", buildinfo.Version)
 	fmt.Println()
 }
