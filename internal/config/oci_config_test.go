@@ -75,7 +75,7 @@ func TestGetOCIProfile(t *testing.T) {
 	assert.Equal(t, customProfile, profile)
 }
 
-// TestTenancyMapPath tests the tenancyMapPath function
+// TestTenancyMapPath tests the TenancyMapPath function
 func TestTenancyMapPath(t *testing.T) {
 	cleanup := setupTest(t)
 	defer cleanup()
@@ -87,7 +87,7 @@ func TestTenancyMapPath(t *testing.T) {
 		return
 	}
 
-	path := tenancyMapPath()
+	path := TenancyMapPath()
 	assert.Equal(t, DefaultTenancyMapPath, path)
 
 	// Test custom path when environment variable is set
@@ -96,7 +96,7 @@ func TestTenancyMapPath(t *testing.T) {
 	if err != nil {
 		return
 	}
-	path = tenancyMapPath()
+	path = TenancyMapPath()
 	assert.Equal(t, customPath, path)
 }
 
