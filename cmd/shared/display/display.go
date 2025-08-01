@@ -14,6 +14,17 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
+const (
+	reset = "\033[0m"
+	bold  = "\033[1m"
+
+	red   = "\033[31m"
+	green = "\033[32m"
+	yel   = "\033[33m"
+)
+
+func colorize(s, color string) string { return color + s + reset }
+
 var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$`)
 var expiredRe = regexp.MustCompile(`(?i)^Session has expired\s*$`)
 
@@ -27,14 +38,14 @@ func CheckOCISessionValidity() string {
 	raw := strings.TrimSpace(string(out))
 
 	if matches := validRe.FindStringSubmatch(raw); len(matches) > 1 {
-		return fmt.Sprintf("\033[32mValid until %s\033[0m", matches[1])
+		return colorize(fmt.Sprintf("Valid until %s", matches[1]), green)
 	} else if expiredRe.MatchString(raw) {
-		return "\033[31mSession Expired\033[0m"
+		return colorize("Session Expired", red)
 	} else {
 		if err != nil {
-			return fmt.Sprintf("\033[31mError checking session: %v\033[0m", err)
+			return colorize(fmt.Sprintf("Error checking session: %v", err), red)
 		} else {
-			return fmt.Sprintf("\033[33mUnknown status: %s\033[0m", raw)
+			return colorize(fmt.Sprintf("Unknown status: %s", raw), yel)
 		}
 	}
 }
@@ -44,42 +55,39 @@ func CheckOCISessionValidity() string {
 func PrintOCIConfiguration() {
 	displayBanner()
 
-	// Get session status and display it with configuration details
 	sessionStatus := CheckOCISessionValidity()
-	fmt.Printf("\033[1mConfiguration Details:\033[0m %s\n", sessionStatus)
+	fmt.Printf("%s %s\n", colorize("Configuration Details:", bold), sessionStatus)
 
 	profile := os.Getenv("OCI_CLI_PROFILE")
 	if profile == "" {
-		fmt.Println("  \033[33mOCI_CLI_PROFILE\033[0m: \033[31mNot set - Please set profile\033[0m")
+		fmt.Printf("  %s: %s\n", colorize("OCI_CLI_PROFILE", yel), colorize("Not set - Please set profile", red))
 	} else {
-		fmt.Printf("  \033[33mOCI_CLI_PROFILE\033[0m: %s\n", profile)
+		fmt.Printf("  %s: %s\n", colorize("OCI_CLI_PROFILE", yel), profile)
 	}
 
 	tenancyName := os.Getenv(flags.EnvOCITenancyName)
 	if tenancyName == "" {
-		fmt.Println("  \033[33mOCI_TENANCY_NAME\033[0m: \033[31mNot set - Please set tenancy\033[0m")
+		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_NAME", yel), colorize("Not set - Please set tenancy", red))
 	} else {
-		fmt.Printf("  \033[33mOCI_TENANCY_NAME\033[0m: %s\n", tenancyName)
+		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_NAME", yel), tenancyName)
 	}
 
 	compartment := os.Getenv(flags.EnvOCICompartment)
 	if compartment == "" {
-		fmt.Println("  \033[33mOCI_COMPARTMENT\033[0m: \033[31mNot set - Please set compartmen name\033[0m")
+		fmt.Printf("  %s: %s\n", colorize("OCI_COMPARTMENT", yel), colorize("Not set - Please set compartmen name", red))
 	} else {
-		fmt.Printf("  \033[33mOCI_COMPARTMENT\033[0m: %s\n", compartment)
+		fmt.Printf("  %s: %s\n", colorize("OCI_COMPARTMENT", yel), compartment)
 	}
+
 	path := config.TenancyMapPath()
 	_, err := os.Stat(path)
 
 	if os.IsNotExist(err) {
-		// This block executes if the file does not exist.
-		fmt.Println("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: \033[31mNot set (file not found)\033[0m")
+		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_MAP_PATH", yel), colorize("Not set (file not found)", red))
 	} else if err != nil {
-		// This block handles other potential errors, e.g., permission denied.
-		fmt.Printf("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: \033[31mError checking file: %v\033[0m\n", err)
+		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_MAP_PATH", yel), colorize(fmt.Sprintf("Error checking file: %v", err), red))
 	} else {
-		// If err is nil, the stat was successful and the file exists.
-		fmt.Printf("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: %s\n", path)
+		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_MAP_PATH", yel), path)
 	}
 
 	fmt.Println()
@@ -95,6 +103,6 @@ func displayBanner() {
 	fmt.Println("╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝")
 	fmt.Println(" ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝")
 	fmt.Println()
-	fmt.Printf("\t      \033[33mVersion\033[0m: \033[32m%s\033[0m\n", buildinfo.Version)
+	fmt.Printf("\t      %s: %s\n", colorize("Version", bold), colorize(buildinfo.Version, green))
 	fmt.Println()
 }
