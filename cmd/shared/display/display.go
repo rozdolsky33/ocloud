@@ -2,6 +2,7 @@ package display
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
 
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
@@ -34,12 +35,26 @@ func PrintOCIConfiguration() {
 	} else {
 		fmt.Printf("  \033[33mOCI_COMPARTMENT\033[0m: %s\n", compartment)
 	}
+	path := config.TenancyMapPath()
+	_, err := os.Stat(path)
+
+	if os.IsNotExist(err) {
+		// This block executes if the file does not exist.
+		fmt.Println("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: \033[31mNot set (file not found)\033[0m")
+	} else if err != nil {
+		// This block handles other potential errors, e.g., permission denied.
+		fmt.Printf("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: \033[31mError checking file: %v\033[0m\n", err)
+	} else {
+		// If err is nil, the stat was successful and the file exists.
+		fmt.Printf("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: %s\n", path)
+	}
 
 	fmt.Println()
 }
 
 // displayBanner displays the OCloud ASCII art banner
 func displayBanner() {
+	fmt.Println()
 	fmt.Println(" ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗ ")
 	fmt.Println("██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗")
 	fmt.Println("██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║")
