@@ -51,11 +51,6 @@ func CreateRootCmdWithoutContext() *cobra.Command {
 	// Add placeholder commands for help display
 	addPlaceholderCommands(rootCmd)
 
-	rootCmd.SetHelpTemplate(`
-{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
-
-{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`)
-
 	// Set the default behavior to show help
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()

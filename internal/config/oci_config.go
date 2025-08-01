@@ -93,7 +93,7 @@ func LookupTenancyID(tenancyName string) (string, error) {
 	}
 
 	// Normal implementation
-	path := tenancyMapPath()
+	path := TenancyMapPath()
 	logger.LogWithLevel(logger.Logger, 3, "looking up tenancy in map", "tenancy", tenancyName, "path", path)
 
 	tenancies, err := LoadTenancyMap()
@@ -113,10 +113,10 @@ func LookupTenancyID(tenancyName string) (string, error) {
 	return "", errors.Wrap(lookupErr, "tenancy lookup failed - please check that the tenancy name is correct and exists in the mapping file")
 }
 
-// LoadTenancyMap loads the tenancy mapping from disk at tenancyMapPath.
+// LoadTenancyMap loads the tenancy mapping from the disk at TenancyMapPath.
 // It logs debug information and returns a slice of OciTenancyEnvironment.
 func LoadTenancyMap() ([]MappingsFile, error) {
-	path := tenancyMapPath()
+	path := TenancyMapPath()
 	logger.LogWithLevel(logger.Logger, 3, "loading tenancy map", "path", path)
 
 	if err := ensureFile(path); err != nil {
@@ -162,8 +162,8 @@ func getUserHomeDir() (string, error) {
 	return dir, nil
 }
 
-// tenancyMapPath returns either the overridden path or the default.
-func tenancyMapPath() string {
+// TenancyMapPath returns either the overridden path or the default.
+func TenancyMapPath() string {
 	if p := os.Getenv(EnvTenancyMapPath); p != "" {
 		logger.LogWithLevel(logger.Logger, 3, "using tenancy map from env", "path", p)
 		return p
