@@ -37,6 +37,9 @@ run_command() {
 
     echo ""
 }
+# Test version command and flag
+print_header "Testing ocloud settings"
+run_command ./bin/ocloud
 
 # Test version command and flag
 print_header "Testing version command and flag"
@@ -245,6 +248,10 @@ run_command ./bin/ocloud database autonomous find "test"
 run_command ./bin/ocloud database autonomous find "test" --json
 run_command ./bin/ocloud database autonomous find "test" -j
 run_command ./bin/ocloud db adb f "test"
+
+# Test version command and flag
+print_header "Testing ocloud settings"
+run_command ./bin/ocloud
 
 print_header "All tests completed"
 
