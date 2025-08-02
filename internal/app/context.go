@@ -69,14 +69,14 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, erro
 
 // configureClientRegion checks the `OCI_REGION` environment variable and overrides the client's region if it is set.
 func configureClientRegion(client identity.IdentityClient) {
-	if region, ok := os.LookupEnv(flags.EnvOCIRegion); ok {
+	if region, ok := os.LookupEnv(flags.EnvKeyRegion); ok {
 		client.SetRegion(region)
 		logger.LogWithLevel(logger.CmdLogger, 3, "overriding region from env", "region", region)
 	}
 }
 
 // determineConcurrencyStatus determines whether determineConcurrencyStatus is enabled based on command flags and specific CLI arguments.
-// Returns true if determineConcurrencyStatus is enabled, or false if explicitly disabled via flags or defaults to enabled.
+// Returns true if determineConcurrencyStatus is enabled, or false if explicitly disabled via flags or defaults to enable.
 func determineConcurrencyStatus(cmd *cobra.Command) bool {
 	disable := flags.GetBoolFlag(cmd, flags.FlagNameDisableConcurrency, false)
 	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
@@ -132,14 +132,14 @@ func resolveTenancyID(cmd *cobra.Command) (string, error) {
 	}
 
 	// Check if tenancy ID is provided as an environment variable
-	if envTenancy := os.Getenv(flags.EnvOCITenancy); envTenancy != "" {
+	if envTenancy := os.Getenv(flags.EnvKeyCLITenancy); envTenancy != "" {
 		logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID from env", "tenancyID", envTenancy)
 		viper.Set(flags.FlagNameTenancyID, envTenancy)
 		return envTenancy, nil
 	}
 
 	// Check if the tenancy name is provided as an environment variable
-	if envTenancyName := os.Getenv(flags.EnvOCITenancyName); envTenancyName != "" {
+	if envTenancyName := os.Getenv(flags.EnvKeyTenancyName); envTenancyName != "" {
 		lookupID, err := config.LookupTenancyID(envTenancyName)
 		if err != nil {
 			// Log the error but continue with the next method of resolving the tenancy ID
@@ -179,7 +179,7 @@ func resolveTenancyName(cmd *cobra.Command, tenancyID string) string {
 	}
 
 	// Check if the tenancy name is provided as an environment variable
-	if envTenancyName := os.Getenv(flags.EnvOCITenancyName); envTenancyName != "" {
+	if envTenancyName := os.Getenv(flags.EnvKeyTenancyName); envTenancyName != "" {
 		logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy name from env", "tenancyName", envTenancyName)
 		viper.Set(flags.FlagNameTenancyName, envTenancyName)
 		return envTenancyName

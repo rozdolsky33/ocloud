@@ -20,10 +20,7 @@ Searchable Fields:
 - Statement: Policy statements
 
 The search pattern is automatically wrapped with wildcards, so partial matches are supported.
-For example, searching for "admin" will match "administrators", "admin-policy", etc.
-
-You can also search for specific tag values by using the tag key and value in your search pattern.
-For example, "environment:production" will find policies with that specific tag.
+For example, searching for "admin" will match "administrators" etc.
 `
 
 // Examples for the find command
@@ -59,7 +56,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running policy find command", "pattern", namePattern, "json", useJSON)
 	return policy.FindPolicies(appCtx, namePattern, useJSON)
 }

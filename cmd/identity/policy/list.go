@@ -71,7 +71,6 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running policy list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
 	return policy.ListPolicies(appCtx, useJSON, limit, page)
 }

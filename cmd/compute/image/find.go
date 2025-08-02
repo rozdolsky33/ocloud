@@ -19,14 +19,10 @@ Searchable Fields:
 - ImageOSVersion: Operating system version of the image
 - OperatingSystem: Operating system of the image
 - LunchMode: Launch mode of the image
-- Tags: All image tags in "key:value" format (e.g., "os_version:8.10")
-- TagValues: Just the values of tags without keys (e.g., "8.10")
+- Tags: All image tags in format (e.g., "flock")
 
 The search pattern is automatically wrapped with wildcards, so partial matches are supported.
-For example, searching for "oracle" will match "oracle-linux", "oracle-vm", etc.
-
-You can also search for specific tag values by using the tag key and value in your search pattern.
-For example, "os_version:8.10" will find images with that specific tag.
+For example, searching for "oracle" will match "oracle" etc.
 `
 
 // Examples for the find command
@@ -36,9 +32,6 @@ var findExamples = `
 
   # Find images with a specific operating system
   ocloud compute image find linux
-
-  # Find images with a specific tag value
-  ocloud compute image find os_version:8.10
 
   # Find images with a specific tag value (searching just the value)
   ocloud compute image find 8.10

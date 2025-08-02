@@ -13,21 +13,21 @@ import (
 // We can't easily test the actual output since it writes to stdout
 func TestPrintOCIConfiguration(t *testing.T) {
 	// Save original environment variables
-	originalProfile := os.Getenv("OCI_CLI_PROFILE")
-	originalTenancy := os.Getenv(flags.EnvOCITenancyName)
-	originalCompartment := os.Getenv(flags.EnvOCICompartment)
+	originalProfile := os.Getenv(flags.EnvKeyProfile)
+	originalTenancy := os.Getenv(flags.EnvKeyTenancyName)
+	originalCompartment := os.Getenv(flags.EnvKeyCompartment)
 
 	// Restore environment variables after the test
 	defer func() {
-		os.Setenv("OCI_CLI_PROFILE", originalProfile)
-		os.Setenv(flags.EnvOCITenancyName, originalTenancy)
-		os.Setenv(flags.EnvOCICompartment, originalCompartment)
+		os.Setenv(flags.EnvKeyProfile, originalProfile)
+		os.Setenv(flags.EnvKeyTenancyName, originalTenancy)
+		os.Setenv(flags.EnvKeyCompartment, originalCompartment)
 	}()
 
 	// Test case 1: No environment variables set
-	os.Unsetenv("OCI_CLI_PROFILE")
-	os.Unsetenv(flags.EnvOCITenancyName)
-	os.Unsetenv(flags.EnvOCICompartment)
+	os.Unsetenv(flags.EnvKeyProfile)
+	os.Unsetenv(flags.EnvKeyTenancyName)
+	os.Unsetenv(flags.EnvKeyCompartment)
 
 	// This should not panic
 	assert.NotPanics(t, func() {
@@ -35,9 +35,9 @@ func TestPrintOCIConfiguration(t *testing.T) {
 	}, "PrintOCIConfiguration should not panic when no environment variables are set")
 
 	// Test case 2: All environment variables set
-	os.Setenv("OCI_CLI_PROFILE", "test-profile")
-	os.Setenv(flags.EnvOCITenancyName, "test-tenancy")
-	os.Setenv(flags.EnvOCICompartment, "test-compartment")
+	os.Setenv(flags.EnvKeyProfile, "test-profile")
+	os.Setenv(flags.EnvKeyTenancyName, "test-tenancy")
+	os.Setenv(flags.EnvKeyCompartment, "test-compartment")
 
 	// This should not panic
 	assert.NotPanics(t, func() {
@@ -45,9 +45,9 @@ func TestPrintOCIConfiguration(t *testing.T) {
 	}, "PrintOCIConfiguration should not panic when all environment variables are set")
 
 	// Test case 3: Some environment variables set
-	os.Setenv("OCI_CLI_PROFILE", "test-profile")
-	os.Unsetenv(flags.EnvOCITenancyName)
-	os.Setenv(flags.EnvOCICompartment, "test-compartment")
+	os.Setenv(flags.EnvKeyProfile, "test-profile")
+	os.Unsetenv(flags.EnvKeyTenancyName)
+	os.Setenv(flags.EnvKeyCompartment, "test-compartment")
 
 	// This should not panic
 	assert.NotPanics(t, func() {

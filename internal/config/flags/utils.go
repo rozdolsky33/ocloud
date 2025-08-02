@@ -10,7 +10,7 @@
 //
 // Example:
 //   debug := flags.GetBoolFlag(cmd, "debug", false)
-//   name := flags.GetStringFlag(cmd, "name", "default-name")
+//   name: = flags.GetStringFlag(cmd, "name", "default-name")
 
 package flags
 
