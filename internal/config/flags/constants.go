@@ -84,6 +84,7 @@ const (
 	EnvKeyCLITenancy     = "OCI_CLI_TENANCY"
 	EnvKeyTenancyName    = "OCI_TENANCY_NAME"
 	EnvKeyCompartment    = "OCI_COMPARTMENT"
+	EnvKeyAutoRefresher  = "OCI_AUTH_AUTO_REFRESHER"
 	EnvKeyRegion         = "OCI_REGION"
 	EnvKeyTenancyMapPath = "OCI_TENANCY_MAP_PATH"
 )
