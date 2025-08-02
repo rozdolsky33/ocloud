@@ -1,29 +1,9 @@
 package auth
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
-	"os"
-	"strings"
 )
-
-// viewConfigurationWithErrorHandling is a helper function to handle viewing configuration
-// and handling common errors like a missing tenancy mapping file.
-func viewConfigurationWithErrorHandling(log logr.Logger, realm string) error {
-	err := info.ViewConfiguration(false, realm)
-	if err != nil {
-		if strings.Contains(err.Error(), "tenancy mapping file not found") {
-			logger.LogWithLevel(log, 2, "Tenancy mapping file not found, continuing without it", "error", err)
-			return nil
-		}
-		return fmt.Errorf("viewing configuration: %w", err)
-	}
-	return nil
-}
 
 // AuthenticateWithOCI handles the authentication process with OCI.
 // It prompts the user for profile and region selection, authenticates with OCI,
@@ -35,7 +15,7 @@ func AuthenticateWithOCI(filter, realm string) error {
 
 	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "filter", filter, "realm", realm)
 
-	result, err := performInteractiveAuthentication(s, filter, realm)
+	result, err := s.performInteractiveAuthentication(filter, realm)
 	if err != nil {
 		return fmt.Errorf("performing interactive authentication: %w", err)
 	}
@@ -51,98 +31,15 @@ func AuthenticateWithOCI(filter, realm string) error {
 	logger.LogWithLevel(s.logger, 1, "Authentication process completed successfully")
 
 	logger.LogWithLevel(s.logger, 1, "Starting OCI auth refresher for profile", "profile", result.Profile)
-	if err := RunOCIAuthRefresher(result.Profile); err != nil {
-		logger.LogWithLevel(s.logger, 1, "Failed to start OCI auth refresher", "error", err)
+	// Prompt for custom environment variables
+	if s.promptYesNo("Do you want to set OCI_AUTH_AUTO_REFRESHER") {
+		if err := s.runOCIAuthRefresher(result.Profile); err != nil {
+			logger.LogWithLevel(s.logger, 1, "Failed to start OCI auth refresher", "error", err)
+		}
+		logger.LogWithLevel(s.logger, 1, "OCI auth refresher enabled")
+	} else {
+		logger.LogWithLevel(s.logger, 1, "OCI auth refresher disabled")
 	}
 
 	return nil
-}
-
-// performInteractiveAuthentication handles the interactive authentication process.
-// It prompts the user for profile and region selection, authenticates with OCI,
-// and returns the result of the authentication process.
-func performInteractiveAuthentication(s *Service, filter, realm string) (*AuthenticationResult, error) {
-	profile, err := s.PromptForProfile()
-	if err != nil {
-		return nil, fmt.Errorf("selecting profile: %w", err)
-	}
-
-	logger.LogWithLevel(s.logger, 1, "Profile selected", "profile", profile)
-
-	err = viewConfigurationWithErrorHandling(s.logger, realm)
-	if err != nil {
-		return nil, fmt.Errorf("viewing configuration: %w", err)
-	}
-
-	// Display regions in a table
-	logger.LogWithLevel(s.logger, 3, "Getting OCI regions")
-	regions := s.GetOCIRegions()
-	logger.LogWithLevel(s.logger, 3, "Displaying regions table", "regionCount", len(regions), "filter", filter)
-
-	if err := DisplayRegionsTable(regions, filter); err != nil {
-		return nil, fmt.Errorf("displaying regions: %w", err)
-	}
-
-	// Prompt for region selection
-	region, err := s.PromptForRegion()
-	if err != nil {
-		return nil, fmt.Errorf("selecting region: %w", err)
-	}
-
-	fmt.Printf("Using region: %s\n", region)
-	logger.LogWithLevel(s.logger, 3, "Region selected", "region", region)
-
-	// Authenticate with OCI
-	logger.LogWithLevel(s.logger, 3, "Authenticating with OCI", "profile", profile, "region", region)
-	result, err := s.Authenticate(profile, region)
-
-	if err != nil {
-		return nil, fmt.Errorf("authenticating with OCI: %w", err)
-	}
-
-	logger.LogWithLevel(s.logger, 3, "Authentication successful", "profile", profile, "region", region)
-
-	err = viewConfigurationWithErrorHandling(s.logger, realm)
-	if err != nil {
-		return nil, fmt.Errorf("viewing configuration: %w", err)
-	}
-
-	// Prompt for custom environment variables
-	if s.promptYesNo("Do you want to set OCI_TENANCY_NAME and OCI_COMPARTMENT?") {
-		reader := bufio.NewReader(os.Stdin)
-
-		fmt.Printf("Enter %s: ", flags.EnvKeyTenancyName)
-		tenancy, err := reader.ReadString('\n')
-		if err != nil {
-			logger.LogWithLevel(s.logger, 3, "Error reading tenancy name input", "error", err)
-		}
-
-		fmt.Printf("Enter %s: ", flags.EnvKeyCompartment)
-		compartment, err := reader.ReadString('\n')
-		if err != nil {
-			logger.LogWithLevel(s.logger, 3, "Error reading compartment input", "error", err)
-		}
-
-		tenancy = strings.TrimSpace(tenancy)
-		compartment = strings.TrimSpace(compartment)
-
-		logger.LogWithLevel(s.logger, 3, "Custom environment variables entered", "tenancyName", tenancy, "compartment", compartment)
-
-		if tenancy != "" {
-			result.TenancyName = tenancy
-			logger.LogWithLevel(s.logger, 3, "Updated tenancy name", "tenancyName", tenancy)
-		}
-
-		if compartment != "" {
-			result.CompartmentName = compartment
-			logger.LogWithLevel(s.logger, 3, "Updated compartment", "compartment", compartment)
-		}
-
-	} else {
-		logger.LogWithLevel(s.logger, 3, "Skipping variable setup")
-		fmt.Println("\n Skipping variable setup.")
-	}
-
-	logger.LogWithLevel(s.logger, 1, "Interactive authentication completed successfully", "profile", profile, "region", region)
-	return result, nil
 }

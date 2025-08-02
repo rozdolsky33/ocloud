@@ -2,9 +2,12 @@ package auth
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
+	"github.com/rozdolsky33/ocloud/scripts"
 	"os"
 	"os/exec"
 	"strconv"
@@ -29,8 +32,64 @@ func NewService() *Service {
 	return service
 }
 
+// Authenticate authenticates with OCI using the specified profile and region.
+func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, error) {
+	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "profile", profile, "region", region)
+
+	// Authenticate via OCI CLI
+	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
+	ociCmd.Stdout = os.Stdout
+	ociCmd.Stderr = os.Stderr
+
+	logger.LogWithLevel(s.logger, 3, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
+
+	if err := ociCmd.Run(); err != nil {
+		return nil, errors.Wrap(err, "failed to run `oci session authenticate`")
+	}
+
+	logger.LogWithLevel(s.logger, 3, "OCI CLI command completed successfully")
+
+	os.Setenv(flags.EnvKeyProfile, profile)
+	os.Setenv(flags.EnvKeyRegion, region)
+
+	logger.LogWithLevel(s.logger, 3, "Set environment variables", "OCI_PROFILE", profile, "OCI_REGION", region)
+
+	tenancyOCID, err := s.Provider.TenancyOCID()
+	if err != nil {
+		return nil, errors.Wrap(err, "fetching tenancy OCID")
+	}
+
+	logger.LogWithLevel(s.logger, 3, "Fetched tenancy OCID", "tenancyOCID", tenancyOCID)
+
+	result := &AuthenticationResult{
+		TenancyID: tenancyOCID,
+		Profile:   profile,
+		Region:    region,
+	}
+
+	// Try to get a tenancy name from a mapping file
+	logger.LogWithLevel(s.logger, 3, "Attempting to get tenancy name from mapping file")
+	tenancies, err := config.LoadTenancyMap()
+	if err != nil {
+		logger.LogWithLevel(s.logger, 3, "Failed to load tenancy map, continuing without tenancy name", "error", err)
+	} else {
+		for _, t := range tenancies {
+			if t.TenancyID == tenancyOCID {
+				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
+				result.TenancyName = t.Tenancy
+				logger.LogWithLevel(s.logger, 3, "Set compartment name to tenancy name", "compartmentName", t.Tenancy)
+				break
+			}
+		}
+		logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
+	}
+
+	logger.LogWithLevel(s.logger, 1, "Authentication successful", "profile", profile, "region", region, "tenancyID", tenancyOCID, "tenancyName", result.TenancyName)
+	return result, nil
+}
+
 // PromptForProfile prompts the user to select an OCI profile.
-func (s *Service) PromptForProfile() (string, error) {
+func (s *Service) promptForProfile() (string, error) {
 	logger.LogWithLevel(s.logger, 3, "Prompting user for OCI profile selection")
 
 	fmt.Println("Do you want to use the DEFAULT profile or enter a custom profile name?")
@@ -69,7 +128,7 @@ func (s *Service) PromptForProfile() (string, error) {
 }
 
 // GetOCIRegions returns a list of all available OCI regions.
-func (s *Service) GetOCIRegions() []RegionInfo {
+func (s *Service) getOCIRegions() []RegionInfo {
 	logger.LogWithLevel(s.logger, 3, "Getting list of OCI regions")
 
 	regions := []string{
@@ -106,7 +165,7 @@ func (s *Service) GetOCIRegions() []RegionInfo {
 }
 
 // PromptForRegion prompts the user to select an OCI region.
-func (s *Service) PromptForRegion() (string, error) {
+func (s *Service) promptForRegion() (string, error) {
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter region number or name: ")
@@ -119,7 +178,7 @@ func (s *Service) PromptForRegion() (string, error) {
 	input = strings.TrimSpace(input)
 	logger.LogWithLevel(s.logger, 3, "User entered region input", "input", input)
 
-	regions := s.GetOCIRegions()
+	regions := s.getOCIRegions()
 	var chosen string
 
 	if idx, err := strconv.Atoi(input); err == nil && idx >= 1 && idx <= len(regions) {
@@ -133,62 +192,133 @@ func (s *Service) PromptForRegion() (string, error) {
 	return chosen, nil
 }
 
-// Authenticate authenticates with OCI using the specified profile and region.
-func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, error) {
-	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "profile", profile, "region", region)
-
-	// Authenticate via OCI CLI
-	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
-	ociCmd.Stdout = os.Stdout
-	ociCmd.Stderr = os.Stderr
-
-	logger.LogWithLevel(s.logger, 3, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
-
-	if err := ociCmd.Run(); err != nil {
-		return nil, errors.Wrap(err, "failed to run `oci session authenticate`")
-	}
-
-	logger.LogWithLevel(s.logger, 3, "OCI CLI command completed successfully")
-
-	// Set environment variables TODO:
-	//os.Setenv("OCI_PROFILE", profile)
-	os.Setenv(flags.EnvKeyProfile, profile)
-	os.Setenv(flags.EnvKeyRegion, region)
-
-	logger.LogWithLevel(s.logger, 3, "Set environment variables", "OCI_PROFILE", profile, "OCI_REGION", region)
-
-	tenancyOCID, err := s.Provider.TenancyOCID()
+// performInteractiveAuthentication handles the interactive authentication process.
+// It prompts the user for profile and region selection, authenticates with OCI,
+// and returns the result of the authentication process.
+func (s *Service) performInteractiveAuthentication(filter, realm string) (*AuthenticationResult, error) {
+	profile, err := s.promptForProfile()
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching tenancy OCID")
+		return nil, fmt.Errorf("selecting profile: %w", err)
 	}
 
-	logger.LogWithLevel(s.logger, 3, "Fetched tenancy OCID", "tenancyOCID", tenancyOCID)
+	logger.LogWithLevel(s.logger, 1, "Profile selected", "profile", profile)
 
-	result := &AuthenticationResult{
-		TenancyID: tenancyOCID,
-		Profile:   profile,
-		Region:    region,
-	}
-
-	// Try to get a tenancy name from a mapping file
-	logger.LogWithLevel(s.logger, 3, "Attempting to get tenancy name from mapping file")
-	tenancies, err := config.LoadTenancyMap()
+	err = info.ViewConfiguration(false, realm)
 	if err != nil {
-		logger.LogWithLevel(s.logger, 3, "Failed to load tenancy map, continuing without tenancy name", "error", err)
-	} else {
-		for _, t := range tenancies {
-			if t.TenancyID == tenancyOCID {
-				logger.LogWithLevel(s.logger, 3, "Found tenancy name in mapping file", "tenancy", t.Tenancy)
-				result.TenancyName = t.Tenancy
-				logger.LogWithLevel(s.logger, 3, "Set compartment name to tenancy name", "compartmentName", t.Tenancy)
-				break
-			}
+		return nil, fmt.Errorf("viewing configuration: %w", err)
+	}
+
+	// Display regions in a table
+	logger.LogWithLevel(s.logger, 3, "Getting OCI regions")
+	regions := s.getOCIRegions()
+	logger.LogWithLevel(s.logger, 3, "Displaying regions table", "regionCount", len(regions), "filter", filter)
+
+	if err := DisplayRegionsTable(regions, filter); err != nil {
+		return nil, fmt.Errorf("displaying regions: %w", err)
+	}
+
+	// Prompt for region selection
+	region, err := s.promptForRegion()
+	if err != nil {
+		return nil, fmt.Errorf("selecting region: %w", err)
+	}
+
+	fmt.Printf("Using region: %s\n", region)
+	logger.LogWithLevel(s.logger, 3, "Region selected", "region", region)
+
+	// Authenticate with OCI
+	logger.LogWithLevel(s.logger, 3, "Authenticating with OCI", "profile", profile, "region", region)
+	result, err := s.Authenticate(profile, region)
+
+	if err != nil {
+		return nil, fmt.Errorf("authenticating with OCI: %w", err)
+	}
+
+	logger.LogWithLevel(s.logger, 3, "Authentication successful", "profile", profile, "region", region)
+
+	err = info.ViewConfiguration(false, realm)
+	if err != nil {
+		return nil, fmt.Errorf("viewing configuration: %w", err)
+	}
+
+	// Prompt for custom environment variables
+	if s.promptYesNo("Do you want to set OCI_TENANCY_NAME and OCI_COMPARTMENT?") {
+		reader := bufio.NewReader(os.Stdin)
+
+		fmt.Printf("Enter %s: ", flags.EnvKeyTenancyName)
+		tenancy, err := reader.ReadString('\n')
+		if err != nil {
+			logger.LogWithLevel(s.logger, 3, "Error reading tenancy name input", "error", err)
 		}
-		logger.LogWithLevel(s.logger, 3, "No matching tenancy found in mapping file", "tenancyOCID", tenancyOCID)
+
+		fmt.Printf("Enter %s: ", flags.EnvKeyCompartment)
+		compartment, err := reader.ReadString('\n')
+		if err != nil {
+			logger.LogWithLevel(s.logger, 3, "Error reading compartment input", "error", err)
+		}
+
+		tenancy = strings.TrimSpace(tenancy)
+		compartment = strings.TrimSpace(compartment)
+
+		logger.LogWithLevel(s.logger, 3, "Custom environment variables entered", "tenancyName", tenancy, "compartment", compartment)
+
+		if tenancy != "" {
+			result.TenancyName = tenancy
+			logger.LogWithLevel(s.logger, 3, "Updated tenancy name", "tenancyName", tenancy)
+		}
+
+		if compartment != "" {
+			result.CompartmentName = compartment
+			logger.LogWithLevel(s.logger, 3, "Updated compartment", "compartment", compartment)
+		}
+
+	} else {
+		logger.LogWithLevel(s.logger, 3, "Skipping variable setup")
+		fmt.Println("\n Skipping variable setup.")
 	}
 
-	logger.LogWithLevel(s.logger, 1, "Authentication successful", "profile", profile, "region", region, "tenancyID", tenancyOCID, "tenancyName", result.TenancyName)
+	logger.LogWithLevel(s.logger, 1, "Interactive authentication completed successfully", "profile", profile, "region", region)
 	return result, nil
+}
+
+// RunOCIAuthRefresher runs the OCI auth refresher script for the specified profile.
+func (s *Service) runOCIAuthRefresher(profile string) error {
+	logger.LogWithLevel(logger.Logger, 1, "Running OCI auth refresher script", "profile", profile)
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	scriptDir := fmt.Sprintf("%s/.oci/scripts", homeDir)
+	if err := os.MkdirAll(scriptDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create script directory: %w", err)
+	}
+
+	scriptPath := fmt.Sprintf("%s/oci_auth_refresher.sh", scriptDir)
+
+	// Write the embedded script bytes to the disk
+	if err := os.WriteFile(scriptPath, scripts.OCIAuthRefresher, 0o700); err != nil {
+		return fmt.Errorf("failed to write OCI auth refresher script to file: %w", err)
+	}
+
+	// Use a background context so it can run indefinitely
+	ctx := context.Background()
+
+	cmd := exec.CommandContext(ctx, "bash", "-c", fmt.Sprintf("NOHUP=1 %s %s", scriptPath, profile))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start OCI auth refresher script: %w", err)
+	}
+
+	pid := cmd.Process.Pid
+	logger.LogWithLevel(logger.Logger, 1, "OCI auth refresher script started", "profile", profile, "pid", pid)
+
+	fmt.Printf("\nOCI auth refresher started for profile %s with PID %d\n", profile, pid)
+	fmt.Printf("You can verify it's running with: pgrep -af oci_auth_refresher.sh\n\n")
+	return nil
 }
 
 // promptYesNo prompts the user with a yes/no question and returns true for yes and false for no.
