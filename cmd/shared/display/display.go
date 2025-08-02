@@ -3,6 +3,7 @@ package display
 import (
 	"context"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/rozdolsky33/ocloud/buildinfo"
 	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
@@ -12,6 +13,15 @@ import (
 	"time"
 
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+)
+
+// Color functions for better Windows terminal support
+var (
+	boldStyle    = color.New(color.Bold)
+	redStyle     = color.New(color.FgRed)
+	greenStyle   = color.New(color.FgGreen)
+	yellowStyle  = color.New(color.FgYellow)
+	regularStyle = color.New(color.FgWhite)
 )
 
 var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$`)
@@ -27,14 +37,14 @@ func CheckOCISessionValidity() string {
 	raw := strings.TrimSpace(string(out))
 
 	if matches := validRe.FindStringSubmatch(raw); len(matches) > 1 {
-		return fmt.Sprintf("\033[32mValid until %s\033[0m", matches[1])
+		return greenStyle.Sprintf("Valid until %s", matches[1])
 	} else if expiredRe.MatchString(raw) {
-		return "\033[31mSession Expired\033[0m"
+		return redStyle.Sprint("Session Expired")
 	} else {
 		if err != nil {
-			return fmt.Sprintf("\033[31mError checking session: %v\033[0m", err)
+			return redStyle.Sprintf("Error checking session: %v", err)
 		} else {
-			return fmt.Sprintf("\033[33mUnknown status: %s\033[0m", raw)
+			return yellowStyle.Sprintf("Unknown status: %s", raw)
 		}
 	}
 }
@@ -44,42 +54,39 @@ func CheckOCISessionValidity() string {
 func PrintOCIConfiguration() {
 	displayBanner()
 
-	// Get session status and display it with configuration details
 	sessionStatus := CheckOCISessionValidity()
-	fmt.Printf("\033[1mConfiguration Details:\033[0m %s\n", sessionStatus)
+	fmt.Printf("%s %s\n", boldStyle.Sprint("Configuration Details:"), sessionStatus)
 
-	profile := os.Getenv("OCI_CLI_PROFILE")
+	profile := os.Getenv(flags.EnvKeyProfile)
 	if profile == "" {
-		fmt.Println("  \033[33mOCI_CLI_PROFILE\033[0m: \033[31mNot set - Please set profile\033[0m")
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), redStyle.Sprint("Not set - Please set profile"))
 	} else {
-		fmt.Printf("  \033[33mOCI_CLI_PROFILE\033[0m: %s\n", profile)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), profile)
 	}
 
-	tenancyName := os.Getenv(flags.EnvOCITenancyName)
+	tenancyName := os.Getenv(flags.EnvKeyTenancyName)
 	if tenancyName == "" {
-		fmt.Println("  \033[33mOCI_TENANCY_NAME\033[0m: \033[31mNot set - Please set tenancy\033[0m")
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyName), redStyle.Sprint("Not set - Please set tenancy"))
 	} else {
-		fmt.Printf("  \033[33mOCI_TENANCY_NAME\033[0m: %s\n", tenancyName)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyName), tenancyName)
 	}
 
-	compartment := os.Getenv(flags.EnvOCICompartment)
+	compartment := os.Getenv(flags.EnvKeyCompartment)
 	if compartment == "" {
-		fmt.Println("  \033[33mOCI_COMPARTMENT\033[0m: \033[31mNot set - Please set compartmen name\033[0m")
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), redStyle.Sprint("Not set - Please set compartmen name"))
 	} else {
-		fmt.Printf("  \033[33mOCI_COMPARTMENT\033[0m: %s\n", compartment)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), compartment)
 	}
+
 	path := config.TenancyMapPath()
 	_, err := os.Stat(path)
 
 	if os.IsNotExist(err) {
-		// This block executes if the file does not exist.
-		fmt.Println("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: \033[31mNot set (file not found)\033[0m")
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), redStyle.Sprint("Not set (file not found)"))
 	} else if err != nil {
-		// This block handles other potential errors, e.g., permission denied.
-		fmt.Printf("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: \033[31mError checking file: %v\033[0m\n", err)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), redStyle.Sprintf("Error checking file: %v", err))
 	} else {
-		// If err is nil, the stat was successful and the file exists.
-		fmt.Printf("  \033[33mOCI_TENANCY_MAP_PATH\033[0m: %s\n", path)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), path)
 	}
 
 	fmt.Println()
@@ -95,6 +102,6 @@ func displayBanner() {
 	fmt.Println("╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝")
 	fmt.Println(" ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝")
 	fmt.Println()
-	fmt.Printf("\t      \033[33mVersion\033[0m: \033[32m%s\033[0m\n", buildinfo.Version)
+	fmt.Printf("\t      %s: %s\n", regularStyle.Sprint("Version"), regularStyle.Sprint(buildinfo.Version))
 	fmt.Println()
 }

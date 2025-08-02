@@ -24,16 +24,16 @@ Additional Information:
 // Examples for the map-file command
 var mapFileExamples = `
   # View the tenancy mapping information
-  ocloud configuration info map-file
+  ocloud config info map-file
 
   # View the tenancy mapping information in JSON format
-  ocloud configuration info map-file --json
+  ocloud config info map-file --json
 
   # Filter tenancy mappings by realm
-  ocloud configuration info map-file --realm OC1
+  ocloud config info map-file --realm OC1
 
   # Filter tenancy mappings by realm and output in JSON format
-  ocloud configuration info map-file --realm OC1 --json
+  ocloud config info map-file --realm OC1 --json
 `
 
 // ViewMappingFile creates a new command for viewing the tenancy mapping file

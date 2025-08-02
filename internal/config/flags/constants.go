@@ -78,10 +78,21 @@ const (
 	CobraAnnotationKey                = "cobra_annotation_flag_set_by_cobra"
 )
 
-// Environment variables
+// Environment variable keys
 const (
-	EnvOCITenancy     = "OCI_CLI_TENANCY"
-	EnvOCITenancyName = "OCI_TENANCY_NAME"
-	EnvOCICompartment = "OCI_COMPARTMENT"
-	EnvOCIRegion      = "OCI_REGION"
+	EnvKeyProfile        = "OCI_CLI_PROFILE"
+	EnvKeyCLITenancy     = "OCI_CLI_TENANCY"
+	EnvKeyTenancyName    = "OCI_TENANCY_NAME"
+	EnvKeyCompartment    = "OCI_COMPARTMENT"
+	EnvKeyRegion         = "OCI_REGION"
+	EnvKeyTenancyMapPath = "OCI_TENANCY_MAP_PATH"
+)
+
+// File/system names & defaults
+const (
+	DefaultProfileName = "DEFAULT"
+
+	OCIConfigDirName   = ".oci"
+	OCIConfigFileName  = "config"
+	TenancyMapFileName = "tenancy-map.yaml"
 )

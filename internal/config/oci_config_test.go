@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,8 +16,8 @@ import (
 func setupTest(t *testing.T) func() {
 	// Save original environment variables to restore later
 	originalEnvVars := map[string]string{
-		envProfileKey:     os.Getenv(envProfileKey),
-		EnvTenancyMapPath: os.Getenv(EnvTenancyMapPath),
+		flags.EnvKeyProfile:        os.Getenv(flags.EnvKeyProfile),
+		flags.EnvKeyTenancyMapPath: os.Getenv(flags.EnvKeyTenancyMapPath),
 	}
 
 	// Create a temporary directory for test files
@@ -56,17 +57,17 @@ func TestGetOCIProfile(t *testing.T) {
 	defer cleanup()
 
 	// Test default profile when environment variable is not set
-	err := os.Unsetenv(envProfileKey)
+	err := os.Unsetenv(flags.EnvKeyProfile)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	profile := GetOCIProfile()
-	assert.Equal(t, defaultProfile, profile)
+	assert.Equal(t, flags.DefaultProfileName, profile)
 
 	// Test custom profile when environment variable is set
 	customProfile := "CUSTOM_PROFILE"
-	err = os.Setenv(envProfileKey, customProfile)
+	err = os.Setenv(flags.EnvKeyProfile, customProfile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -81,7 +82,7 @@ func TestTenancyMapPath(t *testing.T) {
 	defer cleanup()
 
 	// Test default path when environment variable is not set
-	err := os.Unsetenv(EnvTenancyMapPath)
+	err := os.Unsetenv(flags.EnvKeyTenancyMapPath)
 	if err != nil {
 		t.Error(err)
 		return
@@ -92,7 +93,7 @@ func TestTenancyMapPath(t *testing.T) {
 
 	// Test custom path when environment variable is set
 	customPath := "/custom/path/to/tenancy-map.yaml"
-	err = os.Setenv(EnvTenancyMapPath, customPath)
+	err = os.Setenv(flags.EnvKeyTenancyMapPath, customPath)
 	if err != nil {
 		return
 	}
@@ -158,7 +159,7 @@ func TestLoadTenancyMap(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set the environment variable to point to the test file
-	err = os.Setenv(EnvTenancyMapPath, validMapFile)
+	err = os.Setenv(flags.EnvKeyTenancyMapPath, validMapFile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -175,7 +176,7 @@ func TestLoadTenancyMap(t *testing.T) {
 	invalidMapFile := filepath.Join(tempDir, "invalid-tenancy-map.yaml")
 	err = os.WriteFile(invalidMapFile, []byte("invalid yaml: ]["), 0644)
 	require.NoError(t, err)
-	err = os.Setenv(EnvTenancyMapPath, invalidMapFile)
+	err = os.Setenv(flags.EnvKeyTenancyMapPath, invalidMapFile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -185,7 +186,7 @@ func TestLoadTenancyMap(t *testing.T) {
 
 	// Test with a non-existent file
 	nonExistentFile := filepath.Join(tempDir, "non-existent.yaml")
-	err = os.Setenv(EnvTenancyMapPath, nonExistentFile)
+	err = os.Setenv(flags.EnvKeyTenancyMapPath, nonExistentFile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -223,7 +224,7 @@ func TestLookupTenancyID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set the environment variable to point to the test file
-	err = os.Setenv(EnvTenancyMapPath, validMapFile)
+	err = os.Setenv(flags.EnvKeyTenancyMapPath, validMapFile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -245,7 +246,7 @@ func TestLoadOCIConfig(t *testing.T) {
 	defer cleanup()
 
 	// Test with the default profile
-	err := os.Unsetenv(envProfileKey)
+	err := os.Unsetenv(flags.EnvKeyProfile)
 	if err != nil {
 		t.Error(err)
 		return
@@ -256,7 +257,7 @@ func TestLoadOCIConfig(t *testing.T) {
 	// Test with custom profile
 	// Note: This test is limited because we can't easily verify the provider's behavior
 	// without actually reading the OCI config file
-	err = os.Setenv(envProfileKey, "CUSTOM_PROFILE")
+	err = os.Setenv(flags.EnvKeyProfile, "CUSTOM_PROFILE")
 	if err != nil {
 		t.Error(err)
 		return
