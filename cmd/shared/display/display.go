@@ -15,7 +15,6 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
-// Color functions for better Windows terminal support
 var (
 	boldStyle    = color.New(color.Bold)
 	redStyle     = color.New(color.FgRed)
@@ -49,6 +48,21 @@ func CheckOCISessionValidity() string {
 	}
 }
 
+// CheckOCIAuthRefresherStatus checks if the OCI auth refresher script is running
+func CheckOCIAuthRefresherStatus() string {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "pgrep", "-af", "oci_auth_refresher.sh")
+	out, err := cmd.CombinedOutput()
+
+	if err == nil && len(strings.TrimSpace(string(out))) > 0 {
+		return greenStyle.Sprint("ON")
+	} else {
+		return redStyle.Sprint("OFF")
+	}
+}
+
 // PrintOCIConfiguration displays the current configuration details
 // and checks if required environment variables are set
 func PrintOCIConfiguration() {
@@ -77,6 +91,9 @@ func PrintOCIConfiguration() {
 	} else {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), compartment)
 	}
+
+	refresherStatus := CheckOCIAuthRefresherStatus()
+	fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyAutoRefresher), refresherStatus)
 
 	path := config.TenancyMapPath()
 	_, err := os.Stat(path)
