@@ -78,6 +78,21 @@ OCloud can be configured in multiple ways, with the following precedence (highes
 
 OCloud uses the standard OCI configuration file located at `~/.oci/config`. You can specify a different profile using the `OCI_CLI_PROFILE` environment variable.
 
+### Authentication
+
+OCloud provides interactive authentication with OCI through the `config session` command:
+
+```bash
+# Authenticate with OCI
+ocloud config session authenticate
+
+# Filter regions by prefix (e.g., us, eu, ap)
+ocloud config session authenticate --filter us
+
+# Filter by realm (e.g., OC1, OC2)
+ocloud config session authenticate --realm OC1
+```
+
 ### Tenancy Mapping
 
 OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/tenancy-map.yaml`. The format is:
@@ -93,6 +108,19 @@ OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.
 
 You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environment variable.
 
+To view the tenancy mapping information:
+
+```bash
+# View tenancy mapping information
+ocloud config info map-file
+
+# View in JSON format
+ocloud config info map-file --json
+
+# Filter by realm
+ocloud config info map-file --realm OC1
+```
+
 ### Environment Variables
 
 | Variable | Description |
@@ -101,7 +129,7 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `OCI_CLI_TENANCY` | Tenancy OCID |
 | `OCI_TENANCY_NAME` | Tenancy name (looked up in tenancy map) |
 | `OCI_COMPARTMENT` | Compartment name |
-| `OCI_CLI_REGION` | OCI region |
+| `OCI_REGION` | OCI region |
 | `OCI_TENANCY_MAP_PATH` | Path to tenancy mapping file |
 
 ### Command-Line Flags
@@ -120,7 +148,7 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `--version` | `-v` | Print the version number |
 | `--help` | `-h` | Display help information |
 
-#### Instance Command Flags
+#### Command Flags
 
 | Flag      | Short | Description |
 |-----------|-------|-------------|
@@ -128,7 +156,8 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 | `--all`   | `-A`  | Show all information |
 | `--limit` | `-m`  | Maximum number of records per page (default: 20) |
 | `--page`  | `-p`  | Page number to display (default: 1) |
-
+| `--filter` | `-f` | Filter regions by prefix (e.g., us, eu, ap) |
+| `--realm` | `-r` | Filter by realm (e.g., OC1, OC2) |
 
 ### Development Commands
 
@@ -154,7 +183,7 @@ You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environme
 The project includes a comprehensive test script `test_ocloud.sh` that tests all major command categories and their subcommands:
 
 - Root commands and global flags
-- Configuration commands (info, map-file)
+- Configuration commands (info, map-file, session)
 - Compute commands (instance, image, oke)
 - Identity commands (compartment, policy)
 - Network commands (subnet)
@@ -177,7 +206,7 @@ OCloud provides detailed error messages and supports different verbosity levels:
 - `--log-level warn`: Shows only warnings and errors
 - `--log-level error`: Shows only errors
 
-You can also use the shorthand `-d` flag to enable debug logging:
+You can also use the shorthand `-d` flag to enable debug logging.
 
 ## License
 

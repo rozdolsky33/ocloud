@@ -19,14 +19,10 @@ Searchable Fields:
 - Name: Instance name
 - ImageName: Name of the image used by the instance
 - ImageOperatingSystem: Operating system of the image
-- Tags: All instance tags in "key:value" format (e.g., "os_version:8.10")
 - TagValues: Just the values of tags without keys (e.g., "8.10")
 
 The search pattern is automatically wrapped with wildcards, so partial matches are supported.
-For example, searching for "web" will match "webserver", "web-app", etc.
-
-You can also search for specific tag values by using the tag key and value in your search pattern.
-For example, "os_version:8.10" will find instances with that specific tag.
+For example, searching for "web" will match "webserver" etc.
 `
 
 // Examples for the find command
@@ -34,14 +30,11 @@ var findExamples = `
   # Find instances with "web" in their name
   ocloud compute instance find web
 
-  # Find instances with a specific tag value
-  ocloud compute instance find os_version:8.10
-
   # Find instances with a specific tag value (searching just the value)
   ocloud compute instance find 8.10
 
   # Find instances with "api" in their name and include image details
-  ocloud compute instance find api --image-details
+  ocloud compute instance find api --all
 
   # Find instances with "server" in their name and output in JSON format
   ocloud compute instance find server --json

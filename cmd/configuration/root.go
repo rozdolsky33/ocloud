@@ -12,8 +12,8 @@ func NewConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "config",
 		Aliases:       []string{"conf"},
-		Short:         "Manage ocloud CLI configurations and authentication",
-		Long:          "Manage ocloud CLI configurations and authentication with Oracle Cloud Infrastructure (OCI).\n\nThis command group provides functionality for:\n- Authenticating with OCI and refreshing session tokens\n- Viewing configuration information such as tenancy mappings",
+		Short:         "Manage ocloud CLI configurations file and authentication",
+		Long:          "Manage ocloud CLI configurations file and authentication with Oracle Cloud Infrastructure (OCI).\n\nThis command group provides functionality for:\n- Authenticating with OCI and refreshing session tokens\n- Viewing configuration information such as tenancy mappings",
 		Example:       "  ocloud config session\n  ocloud config info\n ",
 		SilenceUsage:  true,
 		SilenceErrors: true,

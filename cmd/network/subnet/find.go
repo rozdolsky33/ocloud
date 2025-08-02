@@ -60,7 +60,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running subnet find command", "pattern", namePattern, "json", useJSON)
 	return subnet.FindSubnets(appCtx, namePattern, useJSON)
 }

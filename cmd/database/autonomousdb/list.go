@@ -27,16 +27,16 @@ Additional Information:
 // Examples for the list command
 var listExamples = `
   # List all Autonomous Databases with default pagination (20 per page)
-  ocloud database autonomousdb list
+  ocloud database autonomous list
 
   # List Autonomous Databases with custom pagination (10 per page, page 2)
-  ocloud database autonomousdb list --limit 10 --page 2
+  ocloud database autonomous list --limit 10 --page 2
 
   # List Autonomous Databases and output in JSON format
-  ocloud database autonomousdb list --json
+  ocloud database autonomous list --json
 
   # List Autonomous Databases with custom pagination and JSON output
-  ocloud database autonomousdb list --limit 5 --page 3 --json
+  ocloud database autonomous list --limit 5 --page 3 --json
 `
 
 // NewListCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.

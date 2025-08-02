@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/go-logr/logr"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
 	"os"
@@ -107,13 +108,13 @@ func performInteractiveAuthentication(s *Service, filter, realm string) (*Authen
 	if s.promptYesNo("Do you want to set OCI_TENANCY_NAME and OCI_COMPARTMENT?") {
 		reader := bufio.NewReader(os.Stdin)
 
-		fmt.Print("Enter OCI_TENANCY_NAME: ")
+		fmt.Printf("Enter %s: ", flags.EnvKeyTenancyName)
 		tenancy, err := reader.ReadString('\n')
 		if err != nil {
 			logger.LogWithLevel(s.logger, 3, "Error reading tenancy name input", "error", err)
 		}
 
-		fmt.Print("Enter OCI_COMPARTMENT: ")
+		fmt.Printf("Enter %s: ", flags.EnvKeyCompartment)
 		compartment, err := reader.ReadString('\n')
 		if err != nil {
 			logger.LogWithLevel(s.logger, 3, "Error reading compartment input", "error", err)

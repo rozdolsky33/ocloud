@@ -3,6 +3,7 @@ package auth
 import (
 	"bufio"
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"os"
 	"os/exec"
@@ -72,9 +73,9 @@ func (s *Service) GetOCIRegions() []RegionInfo {
 	logger.LogWithLevel(s.logger, 3, "Getting list of OCI regions")
 
 	regions := []string{
-		"af-johannesburg-1", "ap-batam-1", "ap-chiyoda-1", "ap-chuncheon-1",
-		"ap-chuncheon-2", "ap-dcc-canberra-1", "ap-dcc-gazipur-1", "ap-hyderabad-1",
-		"ap-ibaraki-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1",
+		"af-johannesburg-1", "ap-batam-1", "ap-chiyoda-1", "ap-chuncheon-1", "ap-chuncheon-2",
+		"ap-dcc-canberra-1", "ap-dcc-gazipur-1", "ap-delhi-1", "ap-hyderabad-1", "ap-ibaraki-1",
+		"ap-kulai-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1",
 		"ap-seoul-2", "ap-singapore-1", "ap-singapore-2", "ap-suwon-1", "ap-sydney-1",
 		"ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-crissier-1",
 		"eu-dcc-dublin-1", "eu-dcc-dublin-2", "eu-dcc-milan-1", "eu-dcc-milan-2",
@@ -86,11 +87,10 @@ func (s *Service) GetOCIRegions() []RegionInfo {
 		"me-dcc-muscat-1", "me-dubai-1", "me-jeddah-1", "me-riyadh-1",
 		"mx-monterrey-1", "mx-queretaro-1", "sa-bogota-1", "sa-santiago-1",
 		"sa-saopaulo-1", "sa-valparaiso-1", "sa-vinhedo-1", "uk-cardiff-1",
-		"uk-gov-cardiff-1", "uk-gov-london-1", "uk-london-1", "us-abilene-1",
-		"us-ashburn-1", "us-chicago-1", "us-dallas-1", "us-gov-ashburn-1",
-		"us-gov-chicago-1", "us-gov-phoenix-1", "us-langley-1", "us-luke-1",
-		"us-phoenix-1", "us-saltlake-2", "us-sanjose-1", "us-somerset-1",
-		"us-thames-1",
+		"uk-gov-cardiff-1", "uk-gov-london-1", "uk-london-1", "us-ashburn-1",
+		"us-ashburn-2", "us-chicago-1", "us-gov-ashburn-1", "us-gov-chicago-1",
+		"us-gov-phoenix-1", "us-langley-1", "us-luke-1", "us-phoenix-1",
+		"us-saltlake-2", "us-sanjose-1", "us-somerset-1", "us-thames-1",
 	}
 
 	var regionInfos []RegionInfo
@@ -150,9 +150,10 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 
 	logger.LogWithLevel(s.logger, 3, "OCI CLI command completed successfully")
 
-	// Set environment variables
-	os.Setenv("OCI_PROFILE", profile)
-	os.Setenv("OCI_REGION", region)
+	// Set environment variables TODO:
+	//os.Setenv("OCI_PROFILE", profile)
+	os.Setenv(flags.EnvKeyProfile, profile)
+	os.Setenv(flags.EnvKeyRegion, region)
 
 	logger.LogWithLevel(s.logger, 3, "Set environment variables", "OCI_PROFILE", profile, "OCI_REGION", region)
 

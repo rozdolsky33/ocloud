@@ -57,36 +57,36 @@ func PrintOCIConfiguration() {
 	sessionStatus := CheckOCISessionValidity()
 	fmt.Printf("%s %s\n", boldStyle.Sprint("Configuration Details:"), sessionStatus)
 
-	profile := os.Getenv("OCI_CLI_PROFILE")
+	profile := os.Getenv(flags.EnvKeyProfile)
 	if profile == "" {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_CLI_PROFILE"), redStyle.Sprint("Not set - Please set profile"))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), redStyle.Sprint("Not set - Please set profile"))
 	} else {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_CLI_PROFILE"), profile)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), profile)
 	}
 
-	tenancyName := os.Getenv(flags.EnvOCITenancyName)
+	tenancyName := os.Getenv(flags.EnvKeyTenancyName)
 	if tenancyName == "" {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_NAME"), redStyle.Sprint("Not set - Please set tenancy"))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyName), redStyle.Sprint("Not set - Please set tenancy"))
 	} else {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_NAME"), tenancyName)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyName), tenancyName)
 	}
 
-	compartment := os.Getenv(flags.EnvOCICompartment)
+	compartment := os.Getenv(flags.EnvKeyCompartment)
 	if compartment == "" {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_COMPARTMENT"), redStyle.Sprint("Not set - Please set compartmen name"))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), redStyle.Sprint("Not set - Please set compartmen name"))
 	} else {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_COMPARTMENT"), compartment)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), compartment)
 	}
 
 	path := config.TenancyMapPath()
 	_, err := os.Stat(path)
 
 	if os.IsNotExist(err) {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_MAP_PATH"), redStyle.Sprint("Not set (file not found)"))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), redStyle.Sprint("Not set (file not found)"))
 	} else if err != nil {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_MAP_PATH"), redStyle.Sprintf("Error checking file: %v", err))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), redStyle.Sprintf("Error checking file: %v", err))
 	} else {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_MAP_PATH"), path)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), path)
 	}
 
 	fmt.Println()

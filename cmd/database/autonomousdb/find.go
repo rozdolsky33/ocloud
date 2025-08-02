@@ -20,19 +20,16 @@ Searchable Fields:
 - DbName: Database name
 
 The search pattern is automatically wrapped with wildcards, so partial matches are supported.
-For example, searching for "prod" will match "production", "product-db", etc.
-
-You can also search for specific tag values by using the tag key and value in your search pattern.
-For example, "environment:production" will find databases with that specific tag.
+For example, searching for "prod" will match "production", etc.
 `
 
 // Examples for the find command
 var findExamples = `
   # Find Autonomous Databases with "prod" in their name
-  ocloud database autonomousdb find prod
+  ocloud database autonomous find prod
 
   # Find Autonomous Databases with "test" in their name and output in JSON format
-  ocloud database autonomousdb find test --json
+  ocloud database autonomous find test --json
 `
 
 // NewFindCmd creates a new command for finding compartments by name pattern

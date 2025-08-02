@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 
 	"gopkg.in/yaml.v3"
@@ -28,23 +29,14 @@ var DefaultTenancyMapPath = func() string {
 		logger.LogWithLevel(logger.Logger, 1, "failed to get user home directory for tenancy map path", "error", err)
 		return ""
 	}
-	return filepath.Join(dir, ".oci", "tenancy-map.yaml")
+	return filepath.Join(dir, flags.OCIConfigDirName, flags.TenancyMapFileName)
 }()
-
-const (
-	defaultProfile = "DEFAULT"
-	envProfileKey  = "OCI_CLI_PROFILE"
-	configDir      = ".oci"
-	configFile     = "config"
-	// EnvTenancyMapPath is the environment variable key used to specify the file path for the OCI tenancy map configuration.
-	EnvTenancyMapPath = "OCI_TENANCY_MAP_PATH"
-)
 
 // LoadOCIConfig picks the profile from env or default, and logs at debug level.
 // If there's an error getting the home directory, it falls back to the default provider.
 func LoadOCIConfig() common.ConfigurationProvider {
 	profile := GetOCIProfile()
-	if profile == defaultProfile {
+	if profile == flags.DefaultProfileName {
 		logger.LogWithLevel(logger.Logger, 3, "using default profile")
 		return common.DefaultConfigProvider()
 	}
@@ -57,16 +49,16 @@ func LoadOCIConfig() common.ConfigurationProvider {
 		return common.DefaultConfigProvider()
 	}
 
-	path := filepath.Join(homeDir, configDir, configFile)
+	path := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCIConfigFileName)
 	return common.CustomProfileConfigProvider(path, profile)
 }
 
 // GetOCIProfile returns OCI_CLI_PROFILE or "DEFAULT".
 func GetOCIProfile() string {
-	if p := os.Getenv(envProfileKey); p != "" {
+	if p := os.Getenv(flags.EnvKeyProfile); p != "" {
 		return p
 	}
-	return defaultProfile
+	return flags.DefaultProfileName
 }
 
 // GetTenancyOCID fetches the tenancy OCID (error on failure).
@@ -121,7 +113,7 @@ func LoadTenancyMap() ([]MappingsFile, error) {
 
 	if err := ensureFile(path); err != nil {
 		logger.Logger.Info("tenancy mapping file not found", "error", err)
-		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup. To set up the mapping file, create a YAML file at %s or set the %s environment variable to point to your mapping file. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1", path, DefaultTenancyMapPath, EnvTenancyMapPath)
+		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup. To set up the mapping file, create a YAML file at %s or set the %s environment variable to point to your mapping file. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1", path, DefaultTenancyMapPath, flags.EnvKeyTenancyMapPath)
 	}
 
 	data, err := os.ReadFile(path)
@@ -164,7 +156,7 @@ func getUserHomeDir() (string, error) {
 
 // TenancyMapPath returns either the overridden path or the default.
 func TenancyMapPath() string {
-	if p := os.Getenv(EnvTenancyMapPath); p != "" {
+	if p := os.Getenv(flags.EnvKeyTenancyMapPath); p != "" {
 		logger.LogWithLevel(logger.Logger, 3, "using tenancy map from env", "path", p)
 		return p
 	}

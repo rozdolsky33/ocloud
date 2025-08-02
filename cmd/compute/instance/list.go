@@ -36,10 +36,10 @@ var listExamples = `
   ocloud compute instance list --limit 10 --page 2
 
   # List instances and include image details
-  ocloud compute instance list --image-details
+  ocloud compute instance list --all
 
   # List instances with image details (using shorthand flag)
-  ocloud compute instance list -i
+  ocloud compute instance list -A
 
   # List instances and output in JSON format
   ocloud compute instance list --json

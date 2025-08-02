@@ -14,7 +14,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
 
-// NewService creates a new Service instance with OCI container engine client using the provided ApplicationContext.
+// NewService creates a new Service instance with an OCI container engine client using the provided ApplicationContext.
 // Returns a Service pointer and an error if the initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider

@@ -67,7 +67,7 @@ func (f IntFlag) Apply(flags *pflag.FlagSet) {
 }
 
 // Flag defines the interface that all flag types must implement to be used within the CLI.
-// It provides methods for adding flags to both cobra.Command and pflag.FlagSet, allowing
+// It provides methods for adding flags to both cobras.Command and pflag.FlagSet, allowing
 // flexible flag registration across different command contexts.
 type Flag interface {
 	// Add registers the flag with the provided cobra.Command
