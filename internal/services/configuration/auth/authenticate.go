@@ -35,7 +35,7 @@ func AuthenticateWithOCI(filter, realm string) error {
 
 	logger.LogWithLevel(s.logger, 1, "Authenticating with OCI", "filter", filter, "realm", realm)
 
-	result, err = performInteractiveAuthentication(s, filter, realm)
+	result, err := performInteractiveAuthentication(s, filter, realm)
 	if err != nil {
 		return fmt.Errorf("performing interactive authentication: %w", err)
 	}
@@ -44,13 +44,18 @@ func AuthenticateWithOCI(filter, realm string) error {
 
 	// Display environment variables
 	logger.LogWithLevel(s.logger, 3, "Displaying environment variables")
-	err = PrintExportVariable(result.Profile, result.TenancyName, result.CompartmentName)
-
-	if err != nil {
+	if err = PrintExportVariable(result.Profile, result.TenancyName, result.CompartmentName); err != nil {
 		return fmt.Errorf("printing export variables: %w", err)
 	}
 
 	logger.LogWithLevel(s.logger, 1, "Authentication process completed successfully")
+
+	// Start the OCI auth refresher script to keep the session alive
+	logger.LogWithLevel(s.logger, 1, "Starting OCI auth refresher for profile", "profile", result.Profile)
+	if err := RunOCIAuthRefresher(result.Profile); err != nil {
+		logger.LogWithLevel(s.logger, 1, "Failed to start OCI auth refresher", "error", err)
+	}
+
 	return nil
 }
 

@@ -2,7 +2,7 @@
 # shellcheck shell=bash disable=SC1071
 
 # ───────────────────────────────────────────────────────────
-# oci_auth_refresher.sh  •  v0.0.21
+# oci_auth_refresher.sh  •  v0.1.1
 #
 # Keeps an OCI CLI session alive by refreshing it shortly
 # before it expires. Intended to be launched (nohup) from the
@@ -29,14 +29,44 @@ if [[ -z "$NOHUP" && -t 1 ]]; then
   echo "Process started with PID $pid"
   exit 0
 fi
-  # Configuration
-  PREEMPT_REFRESH_TIME=60  # Attempt to refresh 60 sec before session expiration
-  SESSION_STATUS_FILE="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}/session_status"
 
+# Configuration
+PREEMPT_REFRESH_TIME=60  # Attempt to refresh 60 sec before session expiration
+SESSION_STATUS_FILE="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}/session_status"
+
+# Create session directory if it doesn't exist
+mkdir -p "${HOME}/.oci/sessions/${OCI_CLI_PROFILE}"
+
+# Helper function to convert date string to epoch time
+function to_epoch() {
+  local ts="$1"
+
+  # Check if timestamp is empty
+  if [[ -z "$ts" ]]; then
+    return 1
+  fi
+
+  if date --version >/dev/null 2>&1; then
+    # GNU date (Linux) - more forgiving with formats
+    if ! date -d "${ts}" +%s 2>/dev/null; then
+      return 1
+    fi
+  else
+    # BSD date (macOS) - needs explicit format
+    # Try different format patterns that might match the timestamp
+    for fmt in "%Y-%m-%d %H:%M:%S" "%Y-%m-%d %T" "%Y-%m-%dT%H:%M:%S" "%Y-%m-%d"; do
+      if date -j -f "$fmt" "${ts}" +%s 2>/dev/null; then
+        return 0
+      fi
+    done
+
+    # If we get here, all format attempts failed
+    return 1
+  fi
+}
 
 # Function to get the remaining duration of the current session
 function get_remaining_session_duration() {
-
   if oci session validate --profile "$OCI_CLI_PROFILE" --local 2>&1; then
     oci_session_status="valid"
     echo "$oci_session_status" > "$SESSION_STATUS_FILE"
@@ -65,6 +95,7 @@ function get_remaining_session_duration() {
 
       if [[ -n "$date_part" && -n "$time_part" ]]; then
         exp_ts="$date_part $time_part"
+      fi
     fi
 
     # Verify that we have a valid-looking timestamp before proceeding
@@ -95,7 +126,6 @@ function get_remaining_session_duration() {
 
 # Function to refresh the session
 function refresh_session() {
-
   if oci session refresh --profile "$OCI_CLI_PROFILE" 2>&1; then
     return 0
   else
@@ -136,4 +166,5 @@ while [[ "$oci_session_status" == "valid" ]]; do
   fi
 done
 
+echo "Session expired – refresher exiting"
 exit 0
