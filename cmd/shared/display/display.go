@@ -15,7 +15,6 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
-// Color functions for better Windows terminal support
 var (
 	boldStyle    = color.New(color.Bold)
 	redStyle     = color.New(color.FgRed)
