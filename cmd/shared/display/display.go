@@ -3,6 +3,7 @@ package display
 import (
 	"context"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/rozdolsky33/ocloud/buildinfo"
 	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
@@ -14,16 +15,14 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
-const (
-	reset = "\033[0m"
-	bold  = "\033[1m"
-
-	red   = "\033[31m"
-	green = "\033[32m"
-	yel   = "\033[33m"
+// Color functions for better Windows terminal support
+var (
+	boldStyle    = color.New(color.Bold)
+	redStyle     = color.New(color.FgRed)
+	greenStyle   = color.New(color.FgGreen)
+	yellowStyle  = color.New(color.FgYellow)
+	regularStyle = color.New(color.FgWhite)
 )
-
-func colorize(s, color string) string { return color + s + reset }
 
 var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$`)
 var expiredRe = regexp.MustCompile(`(?i)^Session has expired\s*$`)
@@ -38,14 +37,14 @@ func CheckOCISessionValidity() string {
 	raw := strings.TrimSpace(string(out))
 
 	if matches := validRe.FindStringSubmatch(raw); len(matches) > 1 {
-		return colorize(fmt.Sprintf("Valid until %s", matches[1]), green)
+		return greenStyle.Sprintf("Valid until %s", matches[1])
 	} else if expiredRe.MatchString(raw) {
-		return colorize("Session Expired", red)
+		return redStyle.Sprint("Session Expired")
 	} else {
 		if err != nil {
-			return colorize(fmt.Sprintf("Error checking session: %v", err), red)
+			return redStyle.Sprintf("Error checking session: %v", err)
 		} else {
-			return colorize(fmt.Sprintf("Unknown status: %s", raw), yel)
+			return yellowStyle.Sprintf("Unknown status: %s", raw)
 		}
 	}
 }
@@ -56,38 +55,38 @@ func PrintOCIConfiguration() {
 	displayBanner()
 
 	sessionStatus := CheckOCISessionValidity()
-	fmt.Printf("%s %s\n", colorize("Configuration Details:", bold), sessionStatus)
+	fmt.Printf("%s %s\n", boldStyle.Sprint("Configuration Details:"), sessionStatus)
 
 	profile := os.Getenv("OCI_CLI_PROFILE")
 	if profile == "" {
-		fmt.Printf("  %s: %s\n", colorize("OCI_CLI_PROFILE", yel), colorize("Not set - Please set profile", red))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_CLI_PROFILE"), redStyle.Sprint("Not set - Please set profile"))
 	} else {
-		fmt.Printf("  %s: %s\n", colorize("OCI_CLI_PROFILE", yel), profile)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_CLI_PROFILE"), profile)
 	}
 
 	tenancyName := os.Getenv(flags.EnvOCITenancyName)
 	if tenancyName == "" {
-		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_NAME", yel), colorize("Not set - Please set tenancy", red))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_NAME"), redStyle.Sprint("Not set - Please set tenancy"))
 	} else {
-		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_NAME", yel), tenancyName)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_NAME"), tenancyName)
 	}
 
 	compartment := os.Getenv(flags.EnvOCICompartment)
 	if compartment == "" {
-		fmt.Printf("  %s: %s\n", colorize("OCI_COMPARTMENT", yel), colorize("Not set - Please set compartmen name", red))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_COMPARTMENT"), redStyle.Sprint("Not set - Please set compartmen name"))
 	} else {
-		fmt.Printf("  %s: %s\n", colorize("OCI_COMPARTMENT", yel), compartment)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_COMPARTMENT"), compartment)
 	}
 
 	path := config.TenancyMapPath()
 	_, err := os.Stat(path)
 
 	if os.IsNotExist(err) {
-		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_MAP_PATH", yel), colorize("Not set (file not found)", red))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_MAP_PATH"), redStyle.Sprint("Not set (file not found)"))
 	} else if err != nil {
-		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_MAP_PATH", yel), colorize(fmt.Sprintf("Error checking file: %v", err), red))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_MAP_PATH"), redStyle.Sprintf("Error checking file: %v", err))
 	} else {
-		fmt.Printf("  %s: %s\n", colorize("OCI_TENANCY_MAP_PATH", yel), path)
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint("OCI_TENANCY_MAP_PATH"), path)
 	}
 
 	fmt.Println()
@@ -103,6 +102,6 @@ func displayBanner() {
 	fmt.Println("╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝")
 	fmt.Println(" ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝")
 	fmt.Println()
-	fmt.Printf("\t      %s: %s\n", colorize("Version", bold), colorize(buildinfo.Version, green))
+	fmt.Printf("\t      %s: %s\n", regularStyle.Sprint("Version"), regularStyle.Sprint(buildinfo.Version))
 	fmt.Println()
 }
