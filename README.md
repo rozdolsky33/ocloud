@@ -148,7 +148,7 @@ ocloud config info map-file --realm OC1
 | `--version` | `-v` | Print the version number |
 | `--help` | `-h` | Display help information |
 
-#### Instance Command Flags
+#### Command Flags
 
 | Flag      | Short | Description |
 |-----------|-------|-------------|
@@ -158,44 +158,6 @@ ocloud config info map-file --realm OC1
 | `--page`  | `-p`  | Page number to display (default: 1) |
 | `--filter` | `-f` | Filter regions by prefix (e.g., us, eu, ap) |
 | `--realm` | `-r` | Filter by realm (e.g., OC1, OC2) |
-
-## Command Structure
-
-OCloud provides the following command structure:
-
-```
-ocloud
-├── compute
-│   ├── image
-│   │   ├── find
-│   │   └── list
-│   ├── instance
-│   │   ├── find
-│   │   └── list
-│   └── oke
-│       ├── find
-│       └── list
-├── config (alias: conf)
-│   ├── info (alias: i)
-│   │   └── map-file (aliases: mf, tf)
-│   └── session (alias: s)
-│       └── authenticate (aliases: auth, a)
-├── database
-│   └── autonomousdb
-│       ├── find
-│       └── list
-├── identity
-│   ├── compartment
-│   │   ├── find
-│   │   └── list
-│   └── policy
-│       ├── find
-│       └── list
-└── network
-    └── subnet
-        ├── find
-        └── list
-```
 
 ### Development Commands
 
