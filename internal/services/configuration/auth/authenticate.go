@@ -50,7 +50,6 @@ func AuthenticateWithOCI(filter, realm string) error {
 
 	logger.LogWithLevel(s.logger, 1, "Authentication process completed successfully")
 
-	// Start the OCI auth refresher script to keep the session alive
 	logger.LogWithLevel(s.logger, 1, "Starting OCI auth refresher for profile", "profile", result.Profile)
 	if err := RunOCIAuthRefresher(result.Profile); err != nil {
 		logger.LogWithLevel(s.logger, 1, "Failed to start OCI auth refresher", "error", err)
@@ -63,7 +62,6 @@ func AuthenticateWithOCI(filter, realm string) error {
 // It prompts the user for profile and region selection, authenticates with OCI,
 // and returns the result of the authentication process.
 func performInteractiveAuthentication(s *Service, filter, realm string) (*AuthenticationResult, error) {
-	// Prompt for profile selection
 	profile, err := s.PromptForProfile()
 	if err != nil {
 		return nil, fmt.Errorf("selecting profile: %w", err)
