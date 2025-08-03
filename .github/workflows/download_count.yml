@@ -1,0 +1,44 @@
+name: Update Downloads Badge
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get download count from GitHub API
+        id: get_downloads
+        run: |
+          OWNER="rozdolsky33"
+          REPO="ocloud"
+
+          total=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases" \
+            | jq '[.[].assets[].download_count] | add')
+
+          echo "total=$total" >> $GITHUB_OUTPUT
+
+      - name: Update badge JSON
+        run: |
+          mkdir -p .github/badges
+          cat > .github/badges/downloads.json <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "downloads",
+            "message": "${{ steps.get_downloads.outputs.total }}",
+            "color": "blue"
+          }
+          EOF
+
+      - name: Commit badge
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .github/badges/downloads.json
+          git commit -m "Update downloads badge" || echo "No changes to commit"
+          git push
