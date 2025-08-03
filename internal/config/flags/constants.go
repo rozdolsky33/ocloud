@@ -83,7 +83,7 @@ const (
 	EnvKeyProfile        = "OCI_CLI_PROFILE"
 	EnvKeyCLITenancy     = "OCI_CLI_TENANCY"
 	EnvKeyTenancyName    = "OCI_TENANCY_NAME"
-	EnvKeyCompartment    = "OCI_COMPARTMENT"
+	EnvKeyCompartment    = "OCI_COMPARTMENT_NAME"
 	EnvKeyAutoRefresher  = "OCI_AUTH_AUTO_REFRESHER"
 	EnvKeyRegion         = "OCI_REGION"
 	EnvKeyTenancyMapPath = "OCI_TENANCY_MAP_PATH"
@@ -93,7 +93,8 @@ const (
 const (
 	DefaultProfileName = "DEFAULT"
 
-	OCIConfigDirName   = ".oci"
-	OCIConfigFileName  = "config"
-	TenancyMapFileName = "tenancy-map.yaml"
+	OCIConfigDirName     = ".oci"
+	OCIConfigFileName    = "config"
+	OCloudDefaultDirName = ".ocloud"
+	TenancyMapFileName   = "tenancy-map.yaml"
 )

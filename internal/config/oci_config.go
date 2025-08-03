@@ -29,7 +29,7 @@ var DefaultTenancyMapPath = func() string {
 		logger.LogWithLevel(logger.Logger, 1, "failed to get user home directory for tenancy map path", "error", err)
 		return ""
 	}
-	return filepath.Join(dir, flags.OCIConfigDirName, flags.TenancyMapFileName)
+	return filepath.Join(dir, flags.OCIConfigDirName, flags.OCloudDefaultDirName, flags.TenancyMapFileName)
 }()
 
 // LoadOCIConfig picks the profile from env or default, and logs at debug level.

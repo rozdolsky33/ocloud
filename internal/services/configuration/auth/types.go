@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
+	"io"
 )
 
 // result holds the result of the authentication process, including tenancy, compartment, profile, and region details.
@@ -24,8 +25,10 @@ type AuthenticationResult struct {
 	Region          string
 }
 
-// Service represents an authentication service using OCI configuration and logging utilities.
+// Service represents a service for handling OCI configuration and authentication processes.
 type Service struct {
 	Provider common.ConfigurationProvider
 	logger   logr.Logger
+	Stdout   io.Writer
+	Stderr   io.Writer
 }
