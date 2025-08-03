@@ -160,12 +160,16 @@ The refresher script is embedded in the ocloud binary and is automatically extra
 OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/.ocloud/tenancy-map.yaml`. The format is:
 
 ```yaml
-- environment: "prod"
-  tenancy: "my-production-tenancy"
-  tenancy_id: "ocid1.tenancy.oc1..aaaaaaaa..."
-  realm: "oc1"
-  compartments: "compartment1,compartment2"
-  regions: "us-ashburn-1,us-phoenix-1"
+- environment: Prod
+  tenancy: cncloudps
+  tenancy_id: ocid1.tenancy.oc1..aaaaaaaawdfste4i8fdsdsdkfasfds
+  realm: OC1
+  compartments:
+    - sandbox
+    - production 
+  regions:
+    - us-chicago-1
+    - us-ashburn-1
 ```
 
 You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environment variable.
