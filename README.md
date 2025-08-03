@@ -46,7 +46,7 @@ chmod +x ~/.local/bin/ocloud
 
 #### Windows
 
-1. Download the Windows binary from the releases page
+1. Download the Windows binary from the release page
 2. Add the location to your PATH environment variable
 3. Launch a new console session to apply the updated environment variable
 
@@ -93,9 +93,23 @@ ocloud config session authenticate --filter us
 ocloud config session authenticate --realm OC1
 ```
 
+During authentication, you'll be prompted to set up the OCI Auth Refresher, which keeps your OCI session alive by automatically refreshing it before it expires. This is especially useful for long-running operations.
+
+### OCI Auth Refresher
+
+The OCI Auth Refresher is a background service that keeps your OCI session active by refreshing it shortly before it expires. When enabled, it runs as a background process and continuously monitors your session status.
+
+Key features:
+- Automatically refreshes your OCI session before it expires
+- Runs in the background with minimal resource usage
+- Supports multiple OCI profiles
+- Status is displayed in the configuration output (`OCI_AUTH_AUTO_REFRESHER: ON [PID]`)
+
+The refresher script is embedded in the ocloud binary and is automatically extracted to `~/.oci/.ocloud/scripts/` when needed.
+
 ### Tenancy Mapping
 
-OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/tenancy-map.yaml`. The format is:
+OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/.ocloud/tenancy-map.yaml`. The format is:
 
 ```yaml
 - environment: "prod"
@@ -131,6 +145,7 @@ ocloud config info map-file --realm OC1
 | `OCI_COMPARTMENT` | Compartment name |
 | `OCI_REGION` | OCI region |
 | `OCI_TENANCY_MAP_PATH` | Path to tenancy mapping file |
+| `OCI_AUTH_AUTO_REFRESHER` | Status of the OCI auth refresher |
 
 ### Command-Line Flags
 
@@ -158,6 +173,56 @@ ocloud config info map-file --realm OC1
 | `--page`  | `-p`  | Page number to display (default: 1) |
 | `--filter` | `-f` | Filter regions by prefix (e.g., us, eu, ap) |
 | `--realm` | `-r` | Filter by realm (e.g., OC1, OC2) |
+
+## Available Commands
+
+Running `ocloud` without any arguments displays the configuration details and available commands:
+
+```
+ ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗
+██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
+ ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
+
+	      Version: v0.0.20-8-g71a01d2-dirty
+
+Configuration Details: Valid until 2025-08-02 23:26:28
+  OCI_CLI_PROFILE: DEFAULT
+  OCI_TENANCY_NAME: cloudops
+  OCI_COMPARTMENT_NAME: cnopslabsdev1
+  OCI_AUTH_AUTO_REFRESHER: ON [44123]
+  OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
+
+Interact with Oracle Cloud Infrastructure
+
+Usage:
+  ocloud [flags]
+  ocloud [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  compute     Manage OCI compute services
+  config      Manage ocloud CLI configurations file and authentication
+  database    Manage OCI Database services
+  help        Help about any command
+  identity    Manage OCI identity services
+  network     Manage OCI networking services
+  version     Print the version information
+
+Flags:
+      --color                 Enable colored log messages.
+  -c, --compartment string    OCI compartment name
+  -d, --debug                 Enable debug logging
+  -x, --disable-concurrency   Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)
+  -h, --help                  help for ocloud (shorthand: -h)
+  -j, --json                  Output information in JSON format
+      --log-level string      Set the log verbosity debug, (default "info")
+  -t, --tenancy-id string     OCI tenancy OCID
+      --tenancy-name string   Tenancy name
+  -v, --version               Print the version number of ocloud CLI
+```
 
 ### Development Commands
 
