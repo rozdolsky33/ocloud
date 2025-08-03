@@ -24,8 +24,8 @@ func TestPrintMappingsFile(t *testing.T) {
 			Realm:        "OC1",
 			Environment:  "Test",
 			Tenancy:      "TestTenancy",
-			Compartments: "TestCompartment",
-			Regions:      "us-ashburn-1",
+			Compartments: []string{"TestCompartment"},
+			Regions:      []string{"us-ashburn-1"},
 		},
 	}
 
@@ -64,22 +64,22 @@ func TestGroupMappingsByRealm(t *testing.T) {
 			Realm:        "OC1",
 			Environment:  "Test1",
 			Tenancy:      "TestTenancy1",
-			Compartments: "TestCompartment1",
-			Regions:      "us-ashburn-1",
+			Compartments: []string{"TestCompartment1"},
+			Regions:      []string{"us-ashburn-1"},
 		},
 		{
 			Realm:        "OC1",
 			Environment:  "Test2",
 			Tenancy:      "TestTenancy2",
-			Compartments: "TestCompartment2",
-			Regions:      "us-phoenix-1",
+			Compartments: []string{"TestCompartment2"},
+			Regions:      []string{"us-phoenix-1"},
 		},
 		{
 			Realm:        "OC2",
 			Environment:  "Test3",
 			Tenancy:      "TestTenancy3",
-			Compartments: "TestCompartment3",
-			Regions:      "eu-frankfurt-1",
+			Compartments: []string{"TestCompartment3"},
+			Regions:      []string{"eu-frankfurt-1"},
 		},
 	}
 

@@ -7,6 +7,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"os"
+	"strings"
 )
 
 // PrintMappingsFile displays tenancy mapping information in a formatted table or JSON format.
@@ -38,8 +39,10 @@ func PrintMappingsFile(mappings []appConfig.MappingsFile, useJSON bool) error {
 		// Convert mappings to rows for the table, handling long compartment names and regions
 		rows := make([][]string, 0, len(realmMappings))
 		for _, mapping := range realmMappings {
-			compartments := util.SplitTextByMaxWidth(mapping.Compartments)
-			regions := util.SplitTextByMaxWidth(mapping.Regions)
+			compart := strings.Join(mapping.Compartments, " ")
+			reg := strings.Join(mapping.Regions, " ")
+			compartments := util.SplitTextByMaxWidth(compart)
+			regions := util.SplitTextByMaxWidth(reg)
 
 			// Create the first row with all columns
 			firstRow := []string{
