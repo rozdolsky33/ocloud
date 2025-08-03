@@ -48,18 +48,37 @@ func CheckOCISessionValidity() string {
 	}
 }
 
+// RefresherStatus represents the status of the OCI auth refresher
+type RefresherStatus struct {
+	IsRunning bool
+	PID       string
+	Display   string
+}
+
 // CheckOCIAuthRefresherStatus checks if the OCI auth refresher script is running
-func CheckOCIAuthRefresherStatus() string {
+func CheckOCIAuthRefresherStatus() RefresherStatus {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "pgrep", "-af", "oci_auth_refresher.sh")
 	out, err := cmd.CombinedOutput()
 
-	if err == nil && len(strings.TrimSpace(string(out))) > 0 {
-		return greenStyle.Sprint("ON")
+	outStr := strings.TrimSpace(string(out))
+
+	if err == nil && len(outStr) > 0 {
+		// Extract the PID from the first line of output
+		pid := strings.Fields(outStr)[0]
+		return RefresherStatus{
+			IsRunning: true,
+			PID:       pid,
+			Display:   greenStyle.Sprintf("ON [%s]", pid),
+		}
 	} else {
-		return redStyle.Sprint("OFF")
+		return RefresherStatus{
+			IsRunning: false,
+			PID:       "",
+			Display:   redStyle.Sprint("OFF"),
+		}
 	}
 }
 
@@ -93,7 +112,7 @@ func PrintOCIConfiguration() {
 	}
 
 	refresherStatus := CheckOCIAuthRefresherStatus()
-	fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyAutoRefresher), refresherStatus)
+	fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyAutoRefresher), refresherStatus.Display)
 
 	path := config.TenancyMapPath()
 	_, err := os.Stat(path)
