@@ -68,6 +68,54 @@ For detailed installation instructions, see the [Installation Guide](docs/instal
 
 ## Configuration
 
+Running `ocloud` without any arguments displays the configuration details and available commands:
+
+```
+ ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗
+██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
+ ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
+
+	      Version: 0.0.21
+
+Configuration Details: Valid until 2025-08-02 23:26:28
+  OCI_CLI_PROFILE: DEFAULT
+  OCI_TENANCY_NAME: cloudops
+  OCI_COMPARTMENT_NAME: cnopslabsdev1
+  OCI_AUTH_AUTO_REFRESHER: ON [44123]
+  OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
+
+Interact with Oracle Cloud Infrastructure
+
+Usage:
+  ocloud [flags]
+  ocloud [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  compute     Manage OCI compute services
+  config      Manage ocloud CLI configurations file and authentication
+  database    Manage OCI Database services
+  help        Help about any command
+  identity    Manage OCI identity services
+  network     Manage OCI networking services
+  version     Print the version information
+
+Flags:
+      --color                 Enable colored log messages.
+  -c, --compartment string    OCI compartment name
+  -d, --debug                 Enable debug logging
+  -x, --disable-concurrency   Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)
+  -h, --help                  help for ocloud (shorthand: -h)
+  -j, --json                  Output information in JSON format
+      --log-level string      Set the log verbosity debug, (default "info")
+  -t, --tenancy-id string     OCI tenancy OCID
+      --tenancy-name string   Tenancy name
+  -v, --version               Print the version number of ocloud CLI
+```
+
 OCloud can be configured in multiple ways, with the following precedence (highest to lowest):
 
 1. Command-line flags
@@ -80,7 +128,7 @@ OCloud uses the standard OCI configuration file located at `~/.oci/config`. You 
 
 ### Authentication
 
-OCloud provides interactive authentication with OCI through the `config session` command:
+ocloud provides interactive authentication with OCI through the `config session` command:
 
 ```bash
 # Authenticate with OCI
@@ -173,56 +221,6 @@ ocloud config info map-file --realm OC1
 | `--page`  | `-p`  | Page number to display (default: 1) |
 | `--filter` | `-f` | Filter regions by prefix (e.g., us, eu, ap) |
 | `--realm` | `-r` | Filter by realm (e.g., OC1, OC2) |
-
-## Available Commands
-
-Running `ocloud` without any arguments displays the configuration details and available commands:
-
-```
- ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗
-██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗
-██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
-██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
-╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
- ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
-
-	      Version: v0.0.20-8-g71a01d2-dirty
-
-Configuration Details: Valid until 2025-08-02 23:26:28
-  OCI_CLI_PROFILE: DEFAULT
-  OCI_TENANCY_NAME: cloudops
-  OCI_COMPARTMENT_NAME: cnopslabsdev1
-  OCI_AUTH_AUTO_REFRESHER: ON [44123]
-  OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
-
-Interact with Oracle Cloud Infrastructure
-
-Usage:
-  ocloud [flags]
-  ocloud [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  compute     Manage OCI compute services
-  config      Manage ocloud CLI configurations file and authentication
-  database    Manage OCI Database services
-  help        Help about any command
-  identity    Manage OCI identity services
-  network     Manage OCI networking services
-  version     Print the version information
-
-Flags:
-      --color                 Enable colored log messages.
-  -c, --compartment string    OCI compartment name
-  -d, --debug                 Enable debug logging
-  -x, --disable-concurrency   Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)
-  -h, --help                  help for ocloud (shorthand: -h)
-  -j, --json                  Output information in JSON format
-      --log-level string      Set the log verbosity debug, (default "info")
-  -t, --tenancy-id string     OCI tenancy OCID
-      --tenancy-name string   Tenancy name
-  -v, --version               Print the version number of ocloud CLI
-```
 
 ### Development Commands
 
