@@ -22,12 +22,17 @@ import (
 func NewService() *Service {
 	appCtx := &app.ApplicationContext{
 		Logger: logger.Logger,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
 	}
 
 	service := &Service{
 		logger:   appCtx.Logger,
 		Provider: config.LoadOCIConfig(),
+		Stderr:   appCtx.Stderr,
+		Stdout:   appCtx.Stdout,
 	}
+
 	logger.LogWithLevel(service.logger, 3, "Created new authentication service")
 	return service
 }
@@ -38,8 +43,8 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 
 	// Authenticate via OCI CLI
 	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
-	ociCmd.Stdout = os.Stdout
-	ociCmd.Stderr = os.Stderr
+	ociCmd.Stdout = s.Stdout
+	ociCmd.Stderr = s.Stderr
 
 	logger.LogWithLevel(s.logger, 3, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
 
@@ -192,6 +197,20 @@ func (s *Service) promptForRegion() (string, error) {
 	return chosen, nil
 }
 
+// viewConfigurationWithErrorHandling is a helper function to handle viewing configuration
+// and handling common errors like a missing tenancy mapping file.
+func (s *Service) viewConfigurationWithErrorHandling(realm string) error {
+	err := info.ViewConfiguration(false, realm)
+	if err != nil {
+		if strings.Contains(err.Error(), "tenancy mapping file not found") {
+			logger.LogWithLevel(s.logger, 2, "Tenancy mapping file not found, continuing without it", "error", err)
+			return nil
+		}
+		return fmt.Errorf("viewing configuration: %w", err)
+	}
+	return nil
+}
+
 // performInteractiveAuthentication handles the interactive authentication process.
 // It prompts the user for profile and region selection, authenticates with OCI,
 // and returns the result of the authentication process.
@@ -203,7 +222,7 @@ func (s *Service) performInteractiveAuthentication(filter, realm string) (*Authe
 
 	logger.LogWithLevel(s.logger, 1, "Profile selected", "profile", profile)
 
-	err = info.ViewConfiguration(false, realm)
+	err = s.viewConfigurationWithErrorHandling(realm)
 	if err != nil {
 		return nil, fmt.Errorf("viewing configuration: %w", err)
 	}
@@ -236,7 +255,7 @@ func (s *Service) performInteractiveAuthentication(filter, realm string) (*Authe
 
 	logger.LogWithLevel(s.logger, 3, "Authentication successful", "profile", profile, "region", region)
 
-	err = info.ViewConfiguration(false, realm)
+	err = s.viewConfigurationWithErrorHandling(realm)
 	if err != nil {
 		return nil, fmt.Errorf("viewing configuration: %w", err)
 	}
@@ -290,7 +309,7 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	scriptDir := fmt.Sprintf("%s/.oci/scripts", homeDir)
+	scriptDir := fmt.Sprintf("%s/.oci/.ocloud/scripts", homeDir)
 	if err := os.MkdirAll(scriptDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create script directory: %w", err)
 	}
@@ -317,7 +336,11 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 	logger.LogWithLevel(logger.Logger, 1, "OCI auth refresher script started", "profile", profile, "pid", pid)
 
 	fmt.Printf("\nOCI auth refresher started for profile %s with PID %d\n", profile, pid)
-	fmt.Printf("You can verify it's running with: pgrep -af oci_auth_refresher.sh\n\n")
+	fmt.Println("You can verify it's running with: pgrep -af oci_auth_refresher.sh")
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("\nPress Enter to continue... ")
+	_, _ = reader.ReadString('\n')
 	return nil
 }
 

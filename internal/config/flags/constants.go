@@ -93,7 +93,8 @@ const (
 const (
 	DefaultProfileName = "DEFAULT"
 
-	OCIConfigDirName   = ".oci"
-	OCIConfigFileName  = "config"
-	TenancyMapFileName = "tenancy-map.yaml"
+	OCIConfigDirName     = ".oci"
+	OCIConfigFileName    = "config"
+	OCloudDefaultDirName = ".ocloud"
+	TenancyMapFileName   = "tenancy-map.yaml"
 )
