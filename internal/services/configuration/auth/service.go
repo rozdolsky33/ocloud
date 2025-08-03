@@ -25,14 +25,12 @@ func NewService() *Service {
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
-
 	service := &Service{
 		logger:   appCtx.Logger,
 		Provider: config.LoadOCIConfig(),
 		Stderr:   appCtx.Stderr,
 		Stdout:   appCtx.Stdout,
 	}
-
 	logger.LogWithLevel(service.logger, 3, "Created new authentication service")
 	return service
 }
