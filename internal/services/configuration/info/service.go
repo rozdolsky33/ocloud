@@ -9,7 +9,6 @@ import (
 )
 
 // NewService initializes a new Service instance with the provided application context.
-// Returns a Service pointer.
 func NewService() *Service {
 	appCtx := &app.ApplicationContext{
 		Logger: logger.Logger,

@@ -96,5 +96,6 @@ const (
 	OCIConfigDirName     = ".oci"
 	OCIConfigFileName    = "config"
 	OCloudDefaultDirName = ".ocloud"
+	OCloudScriptsDirName = "scripts"
 	TenancyMapFileName   = "tenancy-map.yaml"
 )

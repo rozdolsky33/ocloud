@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
@@ -26,15 +28,14 @@ func NewService() *Service {
 
 // ConfigureTenancyFile creates or updates a tenancy mapping configuration file with user-provided inputs.
 func (s *Service) ConfigureTenancyFile() (err error) {
-
 	logger.LogWithLevel(s.logger, 1, "Configuring tenancy map")
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("getting user home directory: %w", err)
 	}
 
-	configDir := filepath.Join(home, ".oci", ".ocloud")
-	configFile := filepath.Join(configDir, "tenancy-map.yaml")
+	configDir := filepath.Join(home, flags.OCIConfigDirName, flags.OCloudDefaultDirName)
+	configFile := filepath.Join(configDir, flags.TenancyMapFileName)
 
 	var mappingFile []appConfig.MappingsFile
 
@@ -48,29 +49,23 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 			return fmt.Errorf("loading existing tenancy map: %w", err)
 		}
 	} else {
-		// File doesn't exist, prompt user if they want to create it
-		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("\nTenancy mapping file not found at:", configFile)
-		fmt.Print("Do you want to create the file and set up tenancy mapping? (y/n): ")
-		response, _ := reader.ReadString('\n')
-		response = strings.ToLower(strings.TrimSpace(response))
-
-		if response != "y" && response != "yes" {
+		if !util.PromptYesNo("Do you want to create the file and set up tenancy mapping?") {
 			fmt.Println("Setup cancelled. Exiting.")
 			return nil
 		}
-
-		//Create a directory if it doesn't exist
-		if err := os.MkdirAll(configDir, 0755); err != nil {
+		// Create the directory if it doesn't exist
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
 			return fmt.Errorf("creating directory: %w", err)
 		}
+
 		logger.LogWithLevel(s.logger, 3, "Creating new tenancy map")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Println("\n--- Add a new tenancy record ---")
+		fmt.Println("\t--- Add a new tenancy record ---")
 
 		type PromptField struct {
 			name       string
@@ -134,32 +129,28 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 	return nil
 }
 
+// prompt reads user input from the provided reader with a label and returns the trimmed input as a string.
 func prompt(reader *bufio.Reader, label string) string {
 	fmt.Printf("%s: ", label)
 	text, _ := reader.ReadString('\n')
 	return strings.TrimSpace(text)
 }
 
+// promptMulti reads a line of input for a given label and returns the input split into a slice of strings.
 func promptMulti(reader *bufio.Reader, label string) []string {
 	fmt.Printf("%s: ", label)
 	text, _ := reader.ReadString('\n')
 	return strings.Fields(strings.TrimSpace(text))
 }
 
-// validateRealm ensures the realm is properly formatted:
-// - No more than 4 characters
-// - Starts with "OC" (will be converted to uppercase)
-// Returns the validated realm (uppercase) or an error if invalid
+// validateRealm ensures the realm is properly formatted
 func validateRealm(realm string) (string, error) {
-	// Convert to uppercase
 	realm = strings.ToUpper(realm)
 
-	// Check length
 	if len(realm) > 4 {
 		return "", fmt.Errorf("realm must be no more than 4 characters")
 	}
 
-	// Check if it starts with OC
 	if len(realm) < 2 || realm[:2] != "OC" {
 		return "", fmt.Errorf("realm must start with OC")
 	}
@@ -168,7 +159,6 @@ func validateRealm(realm string) (string, error) {
 }
 
 // validateTenancyID ensures the tenancy ID contains the word "tenancy"
-// Returns the tenancy ID or an error if invalid
 func validateTenancyID(tenancyID string) (string, error) {
 	if !strings.Contains(tenancyID, "tenancy") {
 		return "", fmt.Errorf("tenancy ID must contain the word 'tenancy'")

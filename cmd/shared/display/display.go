@@ -83,7 +83,6 @@ func CheckOCIAuthRefresherStatus() RefresherStatus {
 }
 
 // PrintOCIConfiguration displays the current configuration details
-// and checks if required environment variables are set
 func PrintOCIConfiguration() {
 	displayBanner()
 

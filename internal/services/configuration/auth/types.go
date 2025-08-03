@@ -3,7 +3,6 @@ package auth
 import (
 	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/common"
-	"io"
 )
 
 // result holds the result of the authentication process, including tenancy, compartment, profile, and region details.
@@ -29,6 +28,4 @@ type AuthenticationResult struct {
 type Service struct {
 	Provider common.ConfigurationProvider
 	logger   logr.Logger
-	Stdout   io.Writer
-	Stderr   io.Writer
 }

@@ -7,9 +7,11 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/rozdolsky33/ocloud/scripts"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -22,14 +24,10 @@ import (
 func NewService() *Service {
 	appCtx := &app.ApplicationContext{
 		Logger: logger.Logger,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
 	}
 	service := &Service{
 		logger:   appCtx.Logger,
 		Provider: config.LoadOCIConfig(),
-		Stderr:   appCtx.Stderr,
-		Stdout:   appCtx.Stdout,
 	}
 	logger.LogWithLevel(service.logger, 3, "Created new authentication service")
 	return service
@@ -41,8 +39,8 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 
 	// Authenticate via OCI CLI
 	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
-	ociCmd.Stdout = s.Stdout
-	ociCmd.Stderr = s.Stderr
+	ociCmd.Stdout = os.Stdout
+	ociCmd.Stderr = os.Stderr
 
 	logger.LogWithLevel(s.logger, 3, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
 
@@ -55,7 +53,7 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	os.Setenv(flags.EnvKeyProfile, profile)
 	os.Setenv(flags.EnvKeyRegion, region)
 
-	logger.LogWithLevel(s.logger, 3, "Set environment variables", "OCI_PROFILE", profile, "OCI_REGION", region)
+	logger.LogWithLevel(s.logger, 3, "Set environment variables", flags.EnvKeyProfile, profile, flags.EnvKeyRegion, region)
 
 	tenancyOCID, err := s.Provider.TenancyOCID()
 	if err != nil {
@@ -91,33 +89,19 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	return result, nil
 }
 
-// PromptForProfile prompts the user to select an OCI profile.
 func (s *Service) promptForProfile() (string, error) {
 	logger.LogWithLevel(s.logger, 3, "Prompting user for OCI profile selection")
 
-	fmt.Println("Do you want to use the DEFAULT profile or enter a custom profile name?")
-	fmt.Println("1: Use DEFAULT profile")
-	fmt.Println("2: Enter custom profile name")
-	fmt.Print("Enter your choice (1 or 2): ")
-	reader := bufio.NewReader(os.Stdin)
-	choice, err := reader.ReadString('\n')
-	if err != nil {
-		return "", errors.Wrap(err, "reading profile choice input")
-	}
-
-	choice = strings.TrimSpace(choice)
-
-	logger.LogWithLevel(s.logger, 3, "User selected profile choice", "choice", choice)
+	useCustom := util.PromptYesNo("Do you want to enter a custom OCI profile name? (Default is 'DEFAULT')")
 
 	profile := "DEFAULT"
-	if choice == "2" {
+	if useCustom {
+		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Enter profile name: ")
 		customProfile, err := reader.ReadString('\n')
-
 		if err != nil {
 			return "", errors.Wrap(err, "reading custom profile input")
 		}
-
 		profile = strings.TrimSpace(customProfile)
 
 		logger.LogWithLevel(s.logger, 1, "Using custom profile", "profile", profile)
@@ -225,7 +209,6 @@ func (s *Service) performInteractiveAuthentication(filter, realm string) (*Authe
 		return nil, fmt.Errorf("viewing configuration: %w", err)
 	}
 
-	// Display regions in a table
 	logger.LogWithLevel(s.logger, 3, "Getting OCI regions")
 	regions := s.getOCIRegions()
 	logger.LogWithLevel(s.logger, 3, "Displaying regions table", "regionCount", len(regions), "filter", filter)
@@ -234,7 +217,6 @@ func (s *Service) performInteractiveAuthentication(filter, realm string) (*Authe
 		return nil, fmt.Errorf("displaying regions: %w", err)
 	}
 
-	// Prompt for region selection
 	region, err := s.promptForRegion()
 	if err != nil {
 		return nil, fmt.Errorf("selecting region: %w", err)
@@ -243,7 +225,6 @@ func (s *Service) performInteractiveAuthentication(filter, realm string) (*Authe
 	fmt.Printf("Using region: %s\n", region)
 	logger.LogWithLevel(s.logger, 3, "Region selected", "region", region)
 
-	// Authenticate with OCI
 	logger.LogWithLevel(s.logger, 3, "Authenticating with OCI", "profile", profile, "region", region)
 	result, err := s.Authenticate(profile, region)
 
@@ -259,7 +240,7 @@ func (s *Service) performInteractiveAuthentication(filter, realm string) (*Authe
 	}
 
 	// Prompt for custom environment variables
-	if s.promptYesNo("Do you want to set OCI_TENANCY_NAME and OCI_COMPARTMENT?") {
+	if util.PromptYesNo("Do you want to set OCI_TENANCY_NAME and OCI_COMPARTMENT?") {
 		reader := bufio.NewReader(os.Stdin)
 
 		fmt.Printf("Enter %s: ", flags.EnvKeyTenancyName)
@@ -306,8 +287,7 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
-
-	scriptDir := fmt.Sprintf("%s/.oci/.ocloud/scripts", homeDir)
+	scriptDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCloudDefaultDirName, flags.OCloudScriptsDirName)
 	if err := os.MkdirAll(scriptDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create script directory: %w", err)
 	}
@@ -340,33 +320,4 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 	fmt.Print("\nPress Enter to continue... ")
 	_, _ = reader.ReadString('\n')
 	return nil
-}
-
-// promptYesNo prompts the user with a yes/no question and returns true for yes and false for no.
-func (s *Service) promptYesNo(question string) bool {
-	logger.LogWithLevel(s.logger, 3, "Prompting user with yes/no question", "question", question)
-
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Printf("%s [y/n]: ", question)
-		input, err := reader.ReadString('\n')
-		if err != nil {
-			logger.LogWithLevel(s.logger, 3, "Error reading input", "error", err)
-			return false
-		}
-
-		input = strings.ToLower(strings.TrimSpace(input))
-		logger.LogWithLevel(s.logger, 3, "User entered response", "input", input)
-
-		if input == "y" || input == "yes" {
-			logger.LogWithLevel(s.logger, 3, "User selected 'yes'", "input", input)
-			return true
-		} else if input == "n" || input == "no" {
-			logger.LogWithLevel(s.logger, 3, "User selected 'no'", "input", input)
-			return false
-		} else {
-			logger.LogWithLevel(s.logger, 3, "Invalid input", "input", input)
-			fmt.Println("Please enter y or n.")
-		}
-	}
 }
