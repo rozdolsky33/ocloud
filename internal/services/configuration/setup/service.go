@@ -72,7 +72,6 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 	for {
 		fmt.Println("\n--- Add a new tenancy record ---")
 
-		// Define the order of prompts
 		type PromptField struct {
 			name       string
 			promptText string
@@ -95,8 +94,10 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 		for _, field := range promptFields {
 			if field.isMulti {
 				values[field.name] = promptMulti(reader, field.promptText)
-			} else if field.name == "Realm" {
-				values[field.name] = strings.ToUpper(prompt(reader, field.promptText))
+			} else if field.name == "realm" {
+				values[field.name] = promptWithValidation(reader, field.promptText, validateRealm)
+			} else if field.name == "tenancy_id" {
+				values[field.name] = promptWithValidation(reader, field.promptText, validateTenancyID)
 			} else {
 				values[field.name] = prompt(reader, field.promptText)
 			}
@@ -143,4 +144,51 @@ func promptMulti(reader *bufio.Reader, label string) []string {
 	fmt.Printf("%s: ", label)
 	text, _ := reader.ReadString('\n')
 	return strings.Fields(strings.TrimSpace(text))
+}
+
+// validateRealm ensures the realm is properly formatted:
+// - No more than 4 characters
+// - Starts with "OC" (will be converted to uppercase)
+// Returns the validated realm (uppercase) or an error if invalid
+func validateRealm(realm string) (string, error) {
+	// Convert to uppercase
+	realm = strings.ToUpper(realm)
+
+	// Check length
+	if len(realm) > 4 {
+		return "", fmt.Errorf("realm must be no more than 4 characters")
+	}
+
+	// Check if it starts with OC
+	if len(realm) < 2 || realm[:2] != "OC" {
+		return "", fmt.Errorf("realm must start with OC")
+	}
+
+	return realm, nil
+}
+
+// validateTenancyID ensures the tenancy ID contains the word "tenancy"
+// Returns the tenancy ID or an error if invalid
+func validateTenancyID(tenancyID string) (string, error) {
+	if !strings.Contains(tenancyID, "tenancy") {
+		return "", fmt.Errorf("tenancy ID must contain the word 'tenancy'")
+	}
+	return tenancyID, nil
+}
+
+// promptWithValidation prompts for input and validates it using the provided validation function
+func promptWithValidation(reader *bufio.Reader, label string, validate func(string) (string, error)) string {
+	for {
+		fmt.Printf("%s: ", label)
+		text, _ := reader.ReadString('\n')
+		input := strings.TrimSpace(text)
+
+		validated, err := validate(input)
+		if err != nil {
+			fmt.Printf("Error: %s. Please try again.\n", err)
+			continue
+		}
+
+		return validated
+	}
 }
