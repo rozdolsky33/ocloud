@@ -1,8 +1,8 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
 [![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
+[![Downloads](https://img.shields.io/github/downloads/rozdolsky33/ocloud/total?style=flat&logo=cloudsmith&logoColor=white&label=downloads&labelColor=2f363d&color=brightgreen)](https://github.com/rozdolsky33/ocloud/releases)
 [![Version](https://img.shields.io/badge/goversion-1.21.x-blue.svg)](https://golang.org)
-<a href="https://golang.org"><img src="https://img.shields.io/badge/powered_by-Go-3362c2.svg?style=flat-square" alt="Built with GoLang"></a>
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
 [![Go Coverage](https://github.com/rozdolsky33/ocloud/wiki/coverage.svg)](https://raw.githack.com/wiki/rozdolsky33/ocloud/coverage.html)
@@ -46,7 +46,7 @@ chmod +x ~/.local/bin/ocloud
 
 #### Windows
 
-1. Download the Windows binary from the releases page
+1. Download the Windows binary from the release page
 2. Add the location to your PATH environment variable
 3. Launch a new console session to apply the updated environment variable
 
@@ -68,6 +68,54 @@ For detailed installation instructions, see the [Installation Guide](docs/instal
 
 ## Configuration
 
+Running `ocloud` without any arguments displays the configuration details and available commands:
+
+```
+ ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗
+██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
+ ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
+
+	      Version: 0.0.21
+
+Configuration Details: Valid until 2025-08-02 23:26:28
+  OCI_CLI_PROFILE: DEFAULT
+  OCI_TENANCY_NAME: cloudops
+  OCI_COMPARTMENT_NAME: cnopslabsdev1
+  OCI_AUTH_AUTO_REFRESHER: ON [44123]
+  OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
+
+Interact with Oracle Cloud Infrastructure
+
+Usage:
+  ocloud [flags]
+  ocloud [command]
+
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  compute     Manage OCI compute services
+  config      Manage ocloud CLI configurations file and authentication
+  database    Manage OCI Database services
+  help        Help about any command
+  identity    Manage OCI identity services
+  network     Manage OCI networking services
+  version     Print the version information
+
+Flags:
+      --color                 Enable colored log messages.
+  -c, --compartment string    OCI compartment name
+  -d, --debug                 Enable debug logging
+  -x, --disable-concurrency   Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)
+  -h, --help                  help for ocloud (shorthand: -h)
+  -j, --json                  Output information in JSON format
+      --log-level string      Set the log verbosity debug, (default "info")
+  -t, --tenancy-id string     OCI tenancy OCID
+      --tenancy-name string   Tenancy name
+  -v, --version               Print the version number of ocloud CLI
+```
+
 OCloud can be configured in multiple ways, with the following precedence (highest to lowest):
 
 1. Command-line flags
@@ -80,7 +128,7 @@ OCloud uses the standard OCI configuration file located at `~/.oci/config`. You 
 
 ### Authentication
 
-OCloud provides interactive authentication with OCI through the `config session` command:
+ocloud provides interactive authentication with OCI through the `config session` command:
 
 ```bash
 # Authenticate with OCI
@@ -93,17 +141,35 @@ ocloud config session authenticate --filter us
 ocloud config session authenticate --realm OC1
 ```
 
+During authentication, you'll be prompted to set up the OCI Auth Refresher, which keeps your OCI session alive by automatically refreshing it before it expires. This is especially useful for long-running operations.
+
+### OCI Auth Refresher
+
+The OCI Auth Refresher is a background service that keeps your OCI session active by refreshing it shortly before it expires. When enabled, it runs as a background process and continuously monitors your session status.
+
+Key features:
+- Automatically refreshes your OCI session before it expires
+- Runs in the background with minimal resource usage
+- Supports multiple OCI profiles
+- Status is displayed in the configuration output (`OCI_AUTH_AUTO_REFRESHER: ON [PID]`)
+
+The refresher script is embedded in the ocloud binary and is automatically extracted to `~/.oci/.ocloud/scripts/` when needed.
+
 ### Tenancy Mapping
 
-OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/tenancy-map.yaml`. The format is:
+OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/.ocloud/tenancy-map.yaml`. The format is:
 
 ```yaml
-- environment: "prod"
-  tenancy: "my-production-tenancy"
-  tenancy_id: "ocid1.tenancy.oc1..aaaaaaaa..."
-  realm: "oc1"
-  compartments: "compartment1,compartment2"
-  regions: "us-ashburn-1,us-phoenix-1"
+- environment: Prod
+  tenancy: cncloudps
+  tenancy_id: ocid1.tenancy.oc1..aaaaaaaawdfste4i8fdsdsdkfasfds
+  realm: OC1
+  compartments:
+    - sandbox
+    - production 
+  regions:
+    - us-chicago-1
+    - us-ashburn-1
 ```
 
 You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environment variable.
@@ -131,6 +197,7 @@ ocloud config info map-file --realm OC1
 | `OCI_COMPARTMENT` | Compartment name |
 | `OCI_REGION` | OCI region |
 | `OCI_TENANCY_MAP_PATH` | Path to tenancy mapping file |
+| `OCI_AUTH_AUTO_REFRESHER` | Status of the OCI auth refresher |
 
 ### Command-Line Flags
 

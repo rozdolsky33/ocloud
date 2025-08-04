@@ -11,7 +11,6 @@ import (
 )
 
 // DisplayRegionsTable displays the available OCI regions in a table format.
-// If the filter is not empty, it filters the regions by prefix.
 func DisplayRegionsTable(regions []RegionInfo, filter string) error {
 
 	p := printer.New(os.Stdout)
@@ -22,7 +21,6 @@ func DisplayRegionsTable(regions []RegionInfo, filter string) error {
 	// Filter regions by prefix if filter is provided
 	if filter != "" {
 		filter = strings.ToLower(filter)
-		// Create a new map with only the filtered regions
 		filteredGroups := make(map[string][]RegionInfo)
 		for prefix, prefixRegions := range regionGroups {
 			if strings.HasPrefix(strings.ToLower(prefix), filter) {
@@ -30,7 +28,6 @@ func DisplayRegionsTable(regions []RegionInfo, filter string) error {
 			}
 		}
 
-		// Replace the original map with the filtered one
 		regionGroups = filteredGroups
 	}
 
@@ -110,7 +107,6 @@ func getRegionGroupTitle(prefix string) string {
 }
 
 // PrintExportVariable prints the environment variables in a centered table with color.
-// If profile, tenancyName and compartment are provided, they are included in the output.
 func PrintExportVariable(profile, tenancyName, compartment string) error {
 	logger.LogWithLevel(logger.Logger, 3, "Printing export variables", "profile", profile, "tenancyName", tenancyName, "compartment", compartment)
 
@@ -140,7 +136,7 @@ func PrintExportVariable(profile, tenancyName, compartment string) error {
 
 	logger.LogWithLevel(logger.Logger, 3, "Printed export variables in table")
 
-	fmt.Println("\nTo persist your selection, export the following environment variables in your shell:")
+	fmt.Println("\nTo persist your selection, export the following environment variables in your shell")
 
 	return nil
 }

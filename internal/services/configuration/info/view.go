@@ -9,7 +9,6 @@ import (
 // It reads the tenancy-map.yaml file and displays its contents.
 // If the realm is not empty, it filters the mappings by the specified realm.
 func ViewConfiguration(useJSON bool, realm string) error {
-
 	s := NewService()
 	logger.LogWithLevel(s.logger, 1, "ViewConfiguration", "realm", realm)
 

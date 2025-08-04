@@ -83,7 +83,7 @@ const (
 	EnvKeyProfile        = "OCI_CLI_PROFILE"
 	EnvKeyCLITenancy     = "OCI_CLI_TENANCY"
 	EnvKeyTenancyName    = "OCI_TENANCY_NAME"
-	EnvKeyCompartment    = "OCI_COMPARTMENT_NAME"
+	EnvKeyCompartment    = "OCI_COMPARTMENT"
 	EnvKeyAutoRefresher  = "OCI_AUTH_AUTO_REFRESHER"
 	EnvKeyRegion         = "OCI_REGION"
 	EnvKeyTenancyMapPath = "OCI_TENANCY_MAP_PATH"
@@ -96,5 +96,6 @@ const (
 	OCIConfigDirName     = ".oci"
 	OCIConfigFileName    = "config"
 	OCloudDefaultDirName = ".ocloud"
+	OCloudScriptsDirName = "scripts"
 	TenancyMapFileName   = "tenancy-map.yaml"
 )

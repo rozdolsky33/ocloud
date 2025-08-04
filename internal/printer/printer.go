@@ -181,7 +181,6 @@ func (p *Printer) PrintTable(title string, headers []string, rows [][]string) {
 // -----------------------------------------------------------------------------
 
 // ResultTable renders a table with export variables centered in the terminal.
-// The table is displayed as a single box with a title, message, and information on a single line.
 func (p *Printer) ResultTable(title string, message string, exportVars map[string]string) {
 
 	t := table.NewWriter()
@@ -219,6 +218,5 @@ func (p *Printer) ResultTable(title string, message string, exportVars map[strin
 		}
 	}
 
-	// Print the indented table
 	fmt.Fprintln(p.out, strings.Join(lines, "\n"))
 }

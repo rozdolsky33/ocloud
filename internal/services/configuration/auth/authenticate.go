@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // AuthenticateWithOCI handles the authentication process with Oracle Cloud Infrastructure (OCI) using interactive inputs.
@@ -30,7 +31,7 @@ func AuthenticateWithOCI(filter, realm string) error {
 
 	logger.LogWithLevel(s.logger, 1, "Starting OCI auth refresher for profile", "profile", result.Profile)
 
-	if s.promptYesNo("Do you want to set OCI_AUTH_AUTO_REFRESHER") {
+	if util.PromptYesNo("Do you want to set OCI_AUTH_AUTO_REFRESHER") {
 		if err := s.runOCIAuthRefresher(result.Profile); err != nil {
 			logger.LogWithLevel(s.logger, 1, "Failed to start OCI auth refresher", "error", err)
 		}

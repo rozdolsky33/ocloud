@@ -15,7 +15,9 @@ It allows you to interactively select your desired profile and region for authen
 
 // Examples for the session command
 var sessionExamples = `  ocloud config session authenticate
-  ocloud config session authenticate --filter us`
+  ocloud config s authenticate --filter us
+  ocloud config s auth --realm OC1
+  ocloud config s a -f us -r OC2`
 
 // NewSessionCmd creates a new cobra.Command for the session command group.
 func NewSessionCmd() *cobra.Command {
