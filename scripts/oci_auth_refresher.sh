@@ -2,19 +2,21 @@
 # shellcheck shell=bash disable=SC1071
 
 # ───────────────────────────────────────────────────────────
-# oci_auth_refresher.sh  •  v0.1.1
+# oci_auth_refresher.sh  •  v0.1.2
 #
 # Keeps an OCI CLI session alive by refreshing it shortly
 # before it expires. Intended to be launched (nohup) from the
 # wrapper script oshell.sh.
 # ───────────────────────────────────────────────────────────
 
-# Check if profile argument is provided, use DEFAULT if not
-if [[ -z "$1" ]]; then
+# Check if profile argument is provided, then check environment variable, use DEFAULT if neither exists
+if [[ -n "$1" ]]; then
+  OCI_CLI_PROFILE=$1
+elif [[ -n "${OCI_CLI_PROFILE}" ]]; then
+  echo "Using profile from environment variable: ${OCI_CLI_PROFILE}"
+else
   echo "No profile name provided, using DEFAULT"
   OCI_CLI_PROFILE="DEFAULT"
-else
-  OCI_CLI_PROFILE=$1
 fi
 
 # Check if script is being run directly (not through nohup)
