@@ -28,11 +28,11 @@ func TestRunSetupFileMappingCommand(t *testing.T) {
 	// For example:
 	// originalSetupTenancyMapping := setup.SetupTenancyMapping
 	// defer func() { setup.SetupTenancyMapping = originalSetupTenancyMapping }()
-	// 
+	//
 	// setup.SetupTenancyMapping = func() error {
 	//     return nil
 	// }
-	// 
+	//
 	// cmd := &cobra.Command{}
 	// err := RunSetupFileMappingCommand(cmd)
 	// assert.NoError(t, err, "RunSetupFileMappingCommand should not return an error")
