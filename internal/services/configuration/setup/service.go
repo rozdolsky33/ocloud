@@ -107,10 +107,19 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 			Compartments: values["compartments"].([]string),
 			Regions:      values["regions"].([]string),
 		}
-		mappingFile = append(mappingFile, record)
-
-		more := strings.ToLower(prompt(reader, "Add another record? (y/n)"))
-		if more == "n" || more == "no" {
+		// Display a record before saving it to the file
+		fmt.Println("\t--- Record ---")
+		out, err := yaml.Marshal(record)
+		if err != nil {
+			return fmt.Errorf("marshalling tenancy map: %w", err)
+		}
+		fmt.Println(string(out))
+		if util.PromptYesNo("Do you want to add this record to the tenancy map?") {
+			mappingFile = append(mappingFile, record)
+		} else {
+			fmt.Println("Record discarded")
+		}
+		if !util.PromptYesNo("Do you want to add another record?") {
 			break
 		}
 	}
