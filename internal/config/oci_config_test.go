@@ -151,8 +151,12 @@ func TestLoadTenancyMap(t *testing.T) {
   tenancy: test-tenancy
   tenancy_id: ocid1.tenancy.oc1..test
   realm: test-realm
-  compartments: test-compartments
-  regions: test-regions
+  compartments: 
+    - test-compartment-1
+    - test-compartment-2
+  regions: 
+    - test-region-1
+    - test-region-2
 `
 	var validMapFile = filepath.Join(tempDir, "valid-tenancy-map.yaml")
 	err = os.WriteFile(validMapFile, []byte(validMapContent), 0644)
@@ -216,8 +220,12 @@ func TestLookupTenancyID(t *testing.T) {
   tenancy: test-tenancy
   tenancy_id: ocid1.tenancy.oc1..test
   realm: test-realm
-  compartments: test-compartments
-  regions: test-regions
+  compartments: 
+    - test-compartments 
+    - test-compartment-2
+  regions: 
+    - test-regions 
+    - test-region-2
 `
 	validMapFile := filepath.Join(tempDir, "valid-tenancy-map.yaml")
 	err = os.WriteFile(validMapFile, []byte(validMapContent), 0644)

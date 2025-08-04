@@ -113,7 +113,7 @@ func LoadTenancyMap() ([]MappingsFile, error) {
 
 	if err := ensureFile(path); err != nil {
 		logger.Logger.Info("tenancy mapping file not found", "error", err)
-		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup. To set up the mapping file, create a YAML file at %s or set the %s environment variable to point to your mapping file. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1", path, DefaultTenancyMapPath, flags.EnvKeyTenancyMapPath)
+		return nil, errors.Wrapf(err, "tenancy mapping file not found (%s) - this is normal if you're not using tenancy name lookup. To set up the mapping file, create a YAML file at %s or set the %s environment variable to point to your mapping file. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: OcluodOps\n  tenancy: cncloudops\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaasrwe3nsfsidfxzxyzct\n  realm: OC1\n  compartments:\n    - sandbox\n    - uat\n    - prod\n  regions:\n    - us-chicago-1\n    - us-ashburn-1\n", path, DefaultTenancyMapPath, flags.EnvKeyTenancyMapPath)
 	}
 
 	data, err := os.ReadFile(path)

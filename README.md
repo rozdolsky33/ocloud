@@ -1,7 +1,7 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
 [![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
-[![Downloads](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/rozdolsky33/ocloud/main/.github/badges/downloads.json&style=flat&logo=github&logoColor=white&label=downloads&labelColor=2f363d&color=brightgreen&cacheSeconds=3600)](https://github.com/rozdolsky33/ocloud/releases)
+[![Downloads](https://img.shields.io/github/downloads/rozdolsky33/ocloud/total?style=flat&logo=cloudsmith&logoColor=white&label=downloads&labelColor=2f363d&color=brightgreen)](https://github.com/rozdolsky33/ocloud/releases)
 [![Version](https://img.shields.io/badge/goversion-1.21.x-blue.svg)](https://golang.org)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
@@ -160,12 +160,16 @@ The refresher script is embedded in the ocloud binary and is automatically extra
 OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/.ocloud/tenancy-map.yaml`. The format is:
 
 ```yaml
-- environment: "prod"
-  tenancy: "my-production-tenancy"
-  tenancy_id: "ocid1.tenancy.oc1..aaaaaaaa..."
-  realm: "oc1"
-  compartments: "compartment1,compartment2"
-  regions: "us-ashburn-1,us-phoenix-1"
+- environment: Prod
+  tenancy: cncloudps
+  tenancy_id: ocid1.tenancy.oc1..aaaaaaaawdfste4i8fdsdsdkfasfds
+  realm: OC1
+  compartments:
+    - sandbox
+    - production 
+  regions:
+    - us-chicago-1
+    - us-ashburn-1
 ```
 
 You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environment variable.
