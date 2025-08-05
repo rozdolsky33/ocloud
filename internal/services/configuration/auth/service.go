@@ -312,6 +312,11 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 
 	pid := cmd.Process.Pid
 	logger.LogWithLevel(logger.Logger, 1, "OCI auth refresher script started", "profile", profile, "pid", pid)
+	// Write refresher PID to a profile session
+	profileDir := filepath.Join(homeDir, flags.OCIConfigDirName, "sessions", profile)
+	if err := os.WriteFile(fmt.Sprintf("%s/refresher.pid", profileDir), []byte(strconv.Itoa(pid)), 0o644); err != nil {
+		return fmt.Errorf("failed to write OCI auth refresher script pid to file: %w", err)
+	}
 
 	fmt.Printf("\nOCI auth refresher started for profile %s with PID %d\n", profile, pid)
 	fmt.Println("You can verify it's running with: pgrep -af oci_auth_refresher.sh")

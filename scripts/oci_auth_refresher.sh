@@ -2,7 +2,7 @@
 # shellcheck shell=bash disable=SC1071
 
 # ───────────────────────────────────────────────────────────
-# oci_auth_refresher.sh  •  v0.1.2
+# oci_auth_refresher.sh  •  v0.1.3
 #
 # Keeps an OCI CLI session alive by refreshing it shortly
 # before it expires. Intended to be launched (nohup) from the
@@ -13,31 +13,47 @@
 if [[ -n "$1" ]]; then
   OCI_CLI_PROFILE=$1
 elif [[ -n "${OCI_CLI_PROFILE}" ]]; then
-  echo "Using profile from environment variable: ${OCI_CLI_PROFILE}"
+  # Using profile from environment variable
+  :
 else
-  echo "No profile name provided, using DEFAULT"
+  # No profile name provided, using DEFAULT
   OCI_CLI_PROFILE="DEFAULT"
 fi
 
 # Check if script is being run directly (not through nohup)
 # If so, relaunch itself using nohup and exit
 if [[ -z "$NOHUP" && -t 1 ]]; then
-  echo "Launching OCI auth refresher in background for profile ${OCI_CLI_PROFILE}"
   export NOHUP=1
   # Use full path to script to ensure it's detectable by pgrep
   script_path=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/$(basename "$0")
   nohup "$script_path" "$OCI_CLI_PROFILE" > /dev/null 2>&1 < /dev/null &
-  pid=$!
-  echo "Process started with PID $pid"
   exit 0
 fi
 
 # Configuration
 PREEMPT_REFRESH_TIME=60  # Attempt to refresh 60 sec before session expiration
 SESSION_STATUS_FILE="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}/session_status"
+REFRESHER_PID_FILE="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}/refresher.pid"
 
 # Create session directory if it doesn't exist
 mkdir -p "${HOME}/.oci/sessions/${OCI_CLI_PROFILE}"
+
+# Function to log session expiration with reason
+function log_session_expired() {
+  local reason="$1"
+  oci_session_status="expired"
+  echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+}
+
+# Function to clean up PID file on exit
+function cleanup_pid_file() {
+  if [[ -f "$REFRESHER_PID_FILE" ]]; then
+    rm -f "$REFRESHER_PID_FILE"
+  fi
+}
+
+# Register cleanup function to run on script exit
+trap cleanup_pid_file EXIT
 
 # Helper function to convert date string to epoch time
 function to_epoch() {
@@ -102,8 +118,7 @@ function get_remaining_session_duration() {
 
     # Verify that we have a valid-looking timestamp before proceeding
     if [[ -z "$exp_ts" || ! "$exp_ts" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
-      oci_session_status="expired"
-      echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+      log_session_expired "invalid timestamp"
       remaining_time=0
       return
     fi
@@ -111,8 +126,7 @@ function get_remaining_session_duration() {
     # Calculate remaining time
     local exp_epoch
     if ! exp_epoch=$(to_epoch "${exp_ts}"); then
-      oci_session_status="expired"
-      echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+      log_session_expired "invalid epoch conversion"
       remaining_time=0
       return
     fi
@@ -120,8 +134,7 @@ function get_remaining_session_duration() {
     now_epoch=$(date +%s)
     remaining_time=$((exp_epoch - now_epoch))
   else
-    oci_session_status="expired"
-    echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+    log_session_expired ""
     remaining_time=0
   fi
 }
@@ -131,8 +144,7 @@ function refresh_session() {
   if oci session refresh --profile "$OCI_CLI_PROFILE" 2>&1; then
     return 0
   else
-    oci_session_status="expired"
-    echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+    log_session_expired "refresh failed"
     return 1
   fi
 }
@@ -143,8 +155,6 @@ remaining_time=0
 
 # Check if session directory exists
 if [[ ! -d "${HOME}/.oci/sessions/${OCI_CLI_PROFILE}" ]]; then
-  echo "Missing session directory; user probably hasn't authenticated"
-  echo "Exiting."
   exit 1
 fi
 
@@ -157,16 +167,13 @@ while [[ "$oci_session_status" == "valid" ]]; do
     sleep "$sleep_for"
 
     if ! refresh_session; then
-      echo "Exiting due to refresh failure"
       exit 1
     fi
 
     get_remaining_session_duration
   else
-    oci_session_status="expired"
-    echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+    log_session_expired "main loop"
   fi
 done
 
-echo "Session expired – refresher exiting"
 exit 0
