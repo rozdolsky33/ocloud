@@ -28,11 +28,16 @@ var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{
 var expiredRe = regexp.MustCompile(`(?i)^Session has expired\s*$`)
 
 // CheckOCISessionValidity checks the validity of the OCI session
-func CheckOCISessionValidity() string {
+func CheckOCISessionValidity(profile string) string {
+	// If the profile is not set, don't attempt to validate the session
+	if profile == "" {
+		return redStyle.Sprint("Not set - Please set profile")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "oci", "session", "validate", "--local")
+	cmd := exec.CommandContext(ctx, "oci", "session", "validate", "--profile", profile)
 	out, err := cmd.CombinedOutput()
 	raw := strings.TrimSpace(string(out))
 
@@ -131,10 +136,11 @@ func CheckOCIAuthRefresherStatus() RefresherStatus {
 func PrintOCIConfiguration() {
 	displayBanner()
 
-	sessionStatus := CheckOCISessionValidity()
+	profile := os.Getenv(flags.EnvKeyProfile)
+
+	sessionStatus := CheckOCISessionValidity(profile)
 	fmt.Printf("%s %s\n", boldStyle.Sprint("Configuration Details:"), sessionStatus)
 
-	profile := os.Getenv(flags.EnvKeyProfile)
 	if profile == "" {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), redStyle.Sprint("Not set - Please set profile"))
 	} else {
