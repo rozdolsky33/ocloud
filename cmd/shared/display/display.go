@@ -28,7 +28,6 @@ var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{
 var expiredRe = regexp.MustCompile(`(?i)^Session has expired\s*$`)
 
 // CheckOCISessionValidity checks the validity of the OCI session
-// It assumes profile is not empty and should be called only with a valid profile
 func CheckOCISessionValidity(profile string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
