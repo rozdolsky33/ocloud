@@ -154,7 +154,7 @@ func PrintOCIConfiguration() {
 
 	compartment := os.Getenv(flags.EnvKeyCompartment)
 	if compartment == "" {
-		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), redStyle.Sprint("Not set - Please set compartmen name"))
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), redStyle.Sprint("Not set - Please set compartment name"))
 	} else {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyCompartment), compartment)
 	}
