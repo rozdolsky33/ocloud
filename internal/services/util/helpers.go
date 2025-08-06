@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"io"
 )
 
 // LogPaginationInfo logs pagination information if available and prints it to the output.

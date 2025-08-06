@@ -2,15 +2,18 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 
-	"gopkg.in/yaml.v3"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
+
+	"os"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/pkg/errors"
-	"os"
 )
 
 // For testing purposes

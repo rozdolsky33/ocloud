@@ -1,11 +1,12 @@
 package subnet
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
-	"sort"
-	"strings"
 )
 
 // PrintSubnetTable displays a table of subnets with details such as name, CIDR, and DNS info.

@@ -3,12 +3,13 @@ package subnet
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
-	"strings"
 )
 
 // NewService creates and initializes a new Service instance using the provided application context.

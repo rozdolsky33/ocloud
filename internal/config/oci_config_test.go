@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/stretchr/testify/assert"

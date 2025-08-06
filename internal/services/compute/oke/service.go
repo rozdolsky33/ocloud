@@ -3,8 +3,9 @@ package oke
 import (
 	"context"
 	"fmt"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"strings"
+
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/containerengine"

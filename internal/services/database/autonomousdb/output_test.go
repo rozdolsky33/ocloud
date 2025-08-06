@@ -2,11 +2,12 @@ package autonomousdb
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // TestPrintAutonomousDbInfo tests the PrintAutonomousDbInfo function

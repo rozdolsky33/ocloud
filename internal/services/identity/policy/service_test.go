@@ -2,10 +2,11 @@ package policy
 
 import (
 	"context"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // TestServiceStruct tests the basic structure of the Service struct

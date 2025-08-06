@@ -24,7 +24,7 @@ type Service struct {
 // ProhibitInternetIngress specifies if the subnet disallows incoming internet traffic.
 // ProhibitInternetEgress specifies if the subnet disallows outgoing internet traffic.
 // DNSLabel is the label assigned for DNS configuration within the VCN.
-// SubnetDomainName is the fully-qualified domain name of the subnet.
+// SubnetDomainName is the fully qualified domain name of the subnet.
 type Subnet struct {
 	Name                    string
 	ID                      string

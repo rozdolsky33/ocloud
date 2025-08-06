@@ -3,15 +3,16 @@ package display
 import (
 	"context"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/rozdolsky33/ocloud/buildinfo"
-	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
+	"github.com/rozdolsky33/ocloud/buildinfo"
+	"github.com/rozdolsky33/ocloud/internal/config"
 
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
@@ -76,7 +77,7 @@ func CheckOCIAuthRefresherStatus() RefresherStatus {
 		}
 	}
 
-	pidFilePath := filepath.Join(homeDir, flags.OCIConfigDirName, "sessions", profile, "refresher.pid")
+	pidFilePath := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, flags.OCIRefresherPIDFileName)
 
 	pidBytes, err := os.ReadFile(pidFilePath)
 	if err != nil {
