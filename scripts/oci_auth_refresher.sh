@@ -1,12 +1,10 @@
-#!/bin/zsh
-# shellcheck shell=bash disable=SC1071
+#!/bin/bash
 
 # ───────────────────────────────────────────────────────────
-# oci_auth_refresher.sh  •  v0.1.3
+# oci_auth_refresher.sh  •  v0.2.0
 #
 # Keeps an OCI CLI session alive by refreshing it shortly
-# before it expires. Intended to be launched (nohup) from the
-# wrapper script oshell.sh.
+# before it expires. Intended to be launched nohup
 # ───────────────────────────────────────────────────────────
 
 # Check if profile argument is provided, then check environment variable, use DEFAULT if neither exists
@@ -25,7 +23,7 @@ fi
 if [[ -z "$NOHUP" && -t 1 ]]; then
   export NOHUP=1
   # Use full path to script to ensure it's detectable by pgrep
-  script_path=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/$(basename "$0")
+  script_path="$(cd "$(dirname "${0}")" && pwd)/$(basename "${0}")"
   nohup "$script_path" "$OCI_CLI_PROFILE" > /dev/null 2>&1 < /dev/null &
   exit 0
 fi
