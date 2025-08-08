@@ -23,15 +23,15 @@ func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSO
 
 	for _, b := range bastions {
 		bastionInfo := map[string]string{
+			"Name":           b.Name,
 			"BastionType":    string(b.BastionType),
 			"LifecycleState": string(b.LifecycleState),
-			"ID":             b.ID,
-			"TargetVcnId":    b.TargetVcnId,
-			"TargetSubnetId": b.TargetSubnetId,
+			"TargetVcn":      b.TargetVcnName,
+			"TargetSubnet":   b.TargetSubnetName,
 		}
 		// Define ordered Keys
 		orderedKeys := []string{
-			"BastionType", "LifecycleState", "ID", "TargetVcnId", "TargetSubnetId",
+			"Name", "BastionType", "LifecycleState", "TargetVcn", "TargetSubnet",
 		}
 
 		title := util.FormatColoredTitle(appCtx, b.Name)
