@@ -17,7 +17,7 @@ const (
 	// TypeManagedSSH represents a managed SSH session
 	TypeManagedSSH SessionType = "Managed SSH"
 
-	// TypePortForwarding represents a port forwarding session
+	// TypePortForwarding represents a port-forwarding session
 	TypePortForwarding SessionType = "Port-Forwarding"
 )
 
@@ -30,6 +30,9 @@ const (
 
 	// TargetDatabase represents a database target for port forwarding
 	TargetDatabase TargetType = "Database"
+
+	// TargetInstance represents an instance target for port forwarding.
+	TargetInstance TargetType = "Instance"
 )
 
 // BastionType represents the type of bastion operation
@@ -48,17 +51,15 @@ const (
 
 // TypeSelectionModel represents the TUI model for selecting between Bastion and Session types
 // It implements the tea.Model interface required by Bubble Tea
-// This is the first step in the two-step bastion creation process
 type TypeSelectionModel struct {
-	Cursor int           // Current cursor position in the list
-	Choice BastionType   // Selected bastion type (Bastion or Session)
-	Types  []BastionType // List of available bastion types
+	Cursor int
+	Choice BastionType
+	Types  []BastionType
 }
 
 // Init initializes the model
 // This is part of the tea.Model interface
 func (m TypeSelectionModel) Init() tea.Cmd {
-	// No initialization needed
 	return nil
 }
 
@@ -69,11 +70,9 @@ func (m TypeSelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
-			// Exit without selection
 			return m, tea.Quit
 
 		case "enter":
-			// Set the choice and exit
 			if m.Cursor >= 0 && m.Cursor < len(m.Types) {
 				m.Choice = m.Types[m.Cursor]
 			}
@@ -103,12 +102,11 @@ func (m TypeSelectionModel) View() string {
 	s := strings.Builder{}
 	s.WriteString("Select a type:\n\n")
 
-	// Render each type option with a cursor indicator
 	for i, t := range m.Types {
 		if m.Cursor == i {
-			s.WriteString("(•) ") // Selected item
+			s.WriteString("(•) ")
 		} else {
-			s.WriteString("( ) ") // Unselected item
+			s.WriteString("( ) ")
 		}
 		s.WriteString(string(t))
 		s.WriteString("\n")
@@ -129,9 +127,9 @@ func NewTypeSelectionModel() TypeSelectionModel {
 // BastionModel represents the TUI model for bastion selection
 // It implements the tea.Model interface required by Bubble Tea
 type BastionModel struct {
-	Cursor   int                  // Current cursor position
-	Choice   string               // Selected bastion ID
-	Bastions []bastionSvc.Bastion // List of available bastions
+	Cursor   int
+	Choice   string
+	Bastions []bastionSvc.Bastion
 }
 
 // Init initializes the model
@@ -148,11 +146,9 @@ func (m BastionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
-			// Exit without selection
 			return m, tea.Quit
 
 		case "enter":
-			// Set the choice and exit
 			if m.Cursor >= 0 && m.Cursor < len(m.Bastions) {
 				m.Choice = m.Bastions[m.Cursor].ID
 			}
@@ -183,12 +179,11 @@ func (m BastionModel) View() string {
 	s := strings.Builder{}
 	s.WriteString("Select a bastion host to create a session:\n\n")
 
-	// Render each bastion option with a cursor indicator
 	for i, bastion := range m.Bastions {
 		if m.Cursor == i {
-			s.WriteString("(•) ") // Selected item
+			s.WriteString("(•) ")
 		} else {
-			s.WriteString("( ) ") // Unselected item
+			s.WriteString("( ) ")
 		}
 		s.WriteString(bastion.Name)
 		s.WriteString("\n")
@@ -209,10 +204,10 @@ func NewBastionModel(bastions []bastionSvc.Bastion) BastionModel {
 // SessionTypeModel represents the TUI model for session type selection
 // It implements the tea.Model interface required by Bubble Tea
 type SessionTypeModel struct {
-	Cursor    int           // Current cursor position
-	Choice    SessionType   // Selected session type
-	Types     []SessionType // List of available session types
-	BastionID string        // ID of the selected bastion
+	Cursor    int
+	Choice    SessionType
+	Types     []SessionType
+	BastionID string
 }
 
 // Init initializes the model
@@ -229,11 +224,9 @@ func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
-			// Exit without selection
 			return m, tea.Quit
 
 		case "enter":
-			// Set the choice and exit
 			if m.Cursor >= 0 && m.Cursor < len(m.Types) {
 				m.Choice = m.Types[m.Cursor]
 			}
@@ -264,12 +257,11 @@ func (m SessionTypeModel) View() string {
 	s := strings.Builder{}
 	s.WriteString("Select a session type:\n\n")
 
-	// Render each session type option with a cursor indicator
 	for i, t := range m.Types {
 		if m.Cursor == i {
-			s.WriteString("(•) ") // Selected item
+			s.WriteString("(•) ")
 		} else {
-			s.WriteString("( ) ") // Unselected item
+			s.WriteString("( ) ")
 		}
 		s.WriteString(string(t))
 		s.WriteString("\n")
@@ -291,10 +283,10 @@ func NewSessionTypeModel(bastionID string) SessionTypeModel {
 // TargetTypeModel represents the TUI model for target type selection
 // It implements the tea.Model interface required by Bubble Tea
 type TargetTypeModel struct {
-	Cursor    int          // Current cursor position
-	Choice    TargetType   // Selected target type
-	Types     []TargetType // List of available target types
-	BastionID string       // ID of the selected bastion
+	Cursor    int
+	Choice    TargetType
+	Types     []TargetType
+	BastionID string
 }
 
 // Init initializes the model
@@ -311,7 +303,6 @@ func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
-			// Exit without selection
 			return m, tea.Quit
 
 		case "enter":
@@ -349,9 +340,9 @@ func (m TargetTypeModel) View() string {
 	// Render each target type option with a cursor indicator
 	for i, t := range m.Types {
 		if m.Cursor == i {
-			s.WriteString("(•) ") // Selected item
+			s.WriteString("(•) ")
 		} else {
-			s.WriteString("( ) ") // Unselected item
+			s.WriteString("( ) ")
 		}
 		s.WriteString(string(t))
 		s.WriteString("\n")
@@ -364,7 +355,7 @@ func (m TargetTypeModel) View() string {
 // NewTargetTypeModel creates a new TargetTypeModel with the provided bastion ID
 func NewTargetTypeModel(bastionID string) TargetTypeModel {
 	return TargetTypeModel{
-		Types:     []TargetType{TargetOKE, TargetDatabase},
+		Types:     []TargetType{TargetOKE, TargetDatabase, TargetInstance},
 		Cursor:    0,
 		BastionID: bastionID,
 	}

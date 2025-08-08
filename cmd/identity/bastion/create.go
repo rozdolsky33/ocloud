@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/spf13/cobra"
 )
 
@@ -32,11 +33,16 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // 1. First, the user selects a type (Bastion or Session)
 // 2. Then, the user selects a specific bastion from a list based on the chosen type
 func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+
+	//TODO: Temporarily hardcoding the bastion ID to 1
 	// Create a new bastion service to interact with bastion resources
-	service := bastionSvc.NewService()
+	service, err2 := bastionSvc.NewService(appCtx)
+	if err2 != nil {
+		fmt.Println("Error creating bastion service:", err2)
+		os.Exit(1)
+	}
 
 	// STEP 1: Type Selection
-	// Show the type selection UI first (Bastion or Session)
 	typeModel := NewTypeSelectionModel()
 	typeProgram := tea.NewProgram(typeModel)
 
@@ -51,15 +57,13 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	// If the user didn't make a selection or cancelled, exit early
 	typeModel, ok := typeResult.(TypeSelectionModel)
 	if !ok || typeModel.Choice == "" {
-		// User cancelled the operation
 		fmt.Println("Operation cancelled.")
 		return nil
 	}
 
 	// Check if the user selected the Bastion type
 	if typeModel.Choice == TypeBastion {
-		// Show the "Under Construction" animation
-		ShowConstructionAnimation()
+		util.ShowConstructionAnimation()
 		return nil
 	}
 
@@ -113,19 +117,17 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		// Process the session type selection result
 		sessionTypeModel, ok := sessionTypeResult.(SessionTypeModel)
 		if !ok || sessionTypeModel.Choice == "" {
-			// User cancelled the operation
 			fmt.Println("Operation cancelled.")
 			return nil
 		}
 
 		// Check if the user selected Managed SSH
 		if sessionTypeModel.Choice == TypeManagedSSH {
-			// Show the "Under Construction" animation for Managed SSH
-			ShowConstructionAnimation()
+			util.ShowConstructionAnimation()
 			return nil
 		}
 
-		// STEP 4: Target Type Selection (only for Port-Forwarding)
+		// STEP 4: Target Type Selection
 		if sessionTypeModel.Choice == TypePortForwarding {
 			// Initialize and show the target type selection UI
 			targetTypeModel := NewTargetTypeModel(selected.ID)
@@ -141,15 +143,18 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			// Process the target type selection result
 			targetTypeModel, ok := targetTypeResult.(TargetTypeModel)
 			if !ok || targetTypeModel.Choice == "" {
-				// User cancelled the operation
 				fmt.Println("Operation cancelled.")
 				return nil
 			}
 
 			// Check if the user selected Database
 			if targetTypeModel.Choice == TargetDatabase {
-				// Show the "Under Construction" animation for Database
-				ShowConstructionAnimation()
+				util.ShowConstructionAnimation()
+				return nil
+			}
+
+			if targetTypeModel.Choice == TargetInstance {
+				util.ShowConstructionAnimation()
 				return nil
 			}
 
@@ -158,7 +163,6 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				sessionTypeModel.Choice, selected.Name, selected.ID, targetTypeModel.Choice)
 		}
 	} else {
-		// User cancelled the operation during bastion selection
 		fmt.Println("Operation cancelled.")
 	}
 

@@ -75,3 +75,8 @@ func ValidateAndReportEmpty[T any](items []T, pagination *PaginationInfo, out io
 	}
 	return true
 }
+
+// ShowConstructionAnimation displays a placeholder animation indicating that a feature is under construction.
+func ShowConstructionAnimation() {
+	fmt.Println("🚧 This feature is not implemented yet. Coming soon!")
+}
