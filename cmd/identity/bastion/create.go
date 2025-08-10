@@ -9,7 +9,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/services/compute/oke"
+	instancessvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
+	okesvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
+	autonomousdbsvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/spf13/cobra"
@@ -134,7 +136,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			util.ShowConstructionAnimation()
 			return nil
 		}
-		var clusters []oke.Cluster
+		var clusters []okesvc.Cluster
 		// STEP 4: Target Type Selection
 		if sessionTypeModel.Choice == TypePortForwarding {
 			// Initialize and show the target type selection UI
@@ -156,41 +158,142 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			}
 
 			if targetTypeModel.Choice == TargetOKE {
-				okeSvc, err := oke.NewService(appCtx)
+				okeService, err := okesvc.NewService(appCtx)
 				if err != nil {
 					fmt.Println("Error creating OKE service:", err)
 					os.Exit(1)
 				}
-				list, _, _, err := okeSvc.List(ctx, 20, 0)
+				list, _, _, err := okeService.List(ctx, 50, 0)
 				if err != nil {
 					fmt.Println("Error listing OKE clusters:", err)
 					os.Exit(1)
 				}
-				fmt.Println("OKE Clusters:")
-				for _, cluster := range list {
-					fmt.Println(cluster.Name)
-					clusters = append(clusters, cluster)
-				}
+				clusters = list
 				if len(clusters) == 0 {
 					fmt.Println("No OKE clusters found.")
 					return nil
 				}
+				// Select a specific cluster with a fancy searchable list
+				clusterModel := NewOKEListModelFancy(clusters)
+				clusterProgram := tea.NewProgram(clusterModel)
+				clusterResult, err := clusterProgram.Run()
+				if err != nil {
+					fmt.Println("Error running OKE selection TUI:", err)
+					os.Exit(1)
+				}
+				chosen, ok := clusterResult.(ResourceListModel)
+				if !ok || chosen.Choice() == "" {
+					fmt.Println("Operation cancelled.")
+					return nil
+				}
+				// Find the selected cluster
+				var selectedCluster okesvc.Cluster
+				for _, c := range clusters {
+					if c.ID == chosen.Choice() {
+						selectedCluster = c
+						break
+					}
+				}
+				// Reachability check
+				reachable, reason := service.CanReach(ctx, selected, selectedCluster.VcnID, "")
+				if !reachable {
+					fmt.Println("Bastion cannot reach selected OKE cluster:", reason)
+					return nil
+				}
+				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to OKE cluster %s.\n",
+					sessionTypeModel.Choice, selected.Name, selected.ID, selectedCluster.Name)
+				return nil
 			}
 
 			// Check if the user selected Database
 			if targetTypeModel.Choice == TargetDatabase {
-				util.ShowConstructionAnimation()
+				dbService, err := autonomousdbsvc.NewService(appCtx)
+				if err != nil {
+					fmt.Println("Error creating Database service:", err)
+					os.Exit(1)
+				}
+				dbs, _, _, err := dbService.List(ctx, 50, 0)
+				if err != nil {
+					fmt.Println("Error listing databases:", err)
+					os.Exit(1)
+				}
+				if len(dbs) == 0 {
+					fmt.Println("No Autonomous Databases found.")
+					return nil
+				}
+				dbModel := NewDBListModelFancy(dbs)
+				dbProgram := tea.NewProgram(dbModel)
+				dbResult, err := dbProgram.Run()
+				if err != nil {
+					fmt.Println("Error running DB selection TUI:", err)
+					os.Exit(1)
+				}
+				chosen, ok := dbResult.(ResourceListModel)
+				if !ok || chosen.Choice() == "" {
+					fmt.Println("Operation cancelled.")
+					return nil
+				}
+				var selectedDB autonomousdbsvc.AutonomousDatabase
+				for _, d := range dbs {
+					if d.ID == chosen.Choice() {
+						selectedDB = d
+						break
+					}
+				}
+				// We don't have VCN/Subnet info for DBs here; inform the user
+				_, reason := service.CanReach(ctx, selected, "", "")
+				fmt.Println("Reachability to DB cannot be automatically verified:", reason)
+				fmt.Printf("Selected DB: %s (ID: %s)\n", selectedDB.Name, selectedDB.ID)
 				return nil
 			}
 
 			if targetTypeModel.Choice == TargetInstance {
-				util.ShowConstructionAnimation()
+				instService, err := instancessvc.NewService(appCtx)
+				if err != nil {
+					fmt.Println("Error creating Instance service:", err)
+					os.Exit(1)
+				}
+				instances, _, _, err := instService.List(ctx, 50, 0, true)
+				if err != nil {
+					fmt.Println("Error listing instances:", err)
+					os.Exit(1)
+				}
+				if len(instances) == 0 {
+					fmt.Println("No instances found.")
+					return nil
+				}
+				instModel := NewInstanceListModelFancy(instances)
+				instProgram := tea.NewProgram(instModel)
+				instResult, err := instProgram.Run()
+				if err != nil {
+					fmt.Println("Error running Instance selection TUI:", err)
+					os.Exit(1)
+				}
+				chosen, ok := instResult.(ResourceListModel)
+				if !ok || chosen.Choice() == "" {
+					fmt.Println("Operation cancelled.")
+					return nil
+				}
+				var selectedInst instancessvc.Instance
+				for _, i := range instances {
+					if i.ID == chosen.Choice() {
+						selectedInst = i
+						break
+					}
+				}
+				reachable, reason := service.CanReach(ctx, selected, selectedInst.VcnID, selectedInst.SubnetID)
+				if !reachable {
+					fmt.Println("Bastion cannot reach selected instance:", reason)
+					return nil
+				}
+				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
+					sessionTypeModel.Choice, selected.Name, selected.ID, selectedInst.Name)
 				return nil
 			}
 
-			// For OKE, display the final result
+			// Fallback
 			fmt.Printf("\n---\nCreated %s Session on Bastion: %s\nID: %s\nTarget: %s\n",
-				sessionTypeModel.Choice, selected.Name, selected.ID, targetTypeModel.Choice, clusters)
+				sessionTypeModel.Choice, selected.Name, selected.ID, targetTypeModel.Choice)
 		}
 	} else {
 		fmt.Println("Operation cancelled.")
