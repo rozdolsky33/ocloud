@@ -133,7 +133,154 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 
 		// Check if the user selected Managed SSH
 		if sessionTypeModel.Choice == TypeManagedSSH {
-			util.ShowConstructionAnimation()
+			// For Managed SSH, allow choosing target type and resource similar to Port-Forwarding
+			targetTypeModel := NewTargetTypeModel(selected.ID)
+			targetTypeProgram := tea.NewProgram(targetTypeModel)
+			// Run target selection
+			targetTypeResult, err := targetTypeProgram.Run()
+			if err != nil {
+				fmt.Println("Error running target type selection TUI:", err)
+				os.Exit(1)
+			}
+			// Process result
+			targetTypeModel, ok := targetTypeResult.(TargetTypeModel)
+			if !ok || targetTypeModel.Choice == "" {
+				fmt.Println("Operation cancelled.")
+				return nil
+			}
+			// Handle targets
+			if targetTypeModel.Choice == TargetInstance {
+				instService, err := instancessvc.NewService(appCtx)
+				if err != nil {
+					fmt.Println("Error creating Instance service:", err)
+					os.Exit(1)
+				}
+				instances, _, _, err := instService.List(ctx, 50, 0, true)
+				if err != nil {
+					fmt.Println("Error listing instances:", err)
+					os.Exit(1)
+				}
+				if len(instances) == 0 {
+					fmt.Println("No instances found.")
+					return nil
+				}
+				instModel := NewInstanceListModelFancy(instances)
+				instProgram := tea.NewProgram(instModel)
+				instResult, err := instProgram.Run()
+				if err != nil {
+					fmt.Println("Error running Instance selection TUI:", err)
+					os.Exit(1)
+				}
+				chosen, ok := instResult.(ResourceListModel)
+				if !ok || chosen.Choice() == "" {
+					fmt.Println("Operation cancelled.")
+					return nil
+				}
+				var selectedInst instancessvc.Instance
+				for _, i := range instances {
+					if i.ID == chosen.Choice() {
+						selectedInst = i
+						break
+					}
+				}
+				reachable, reason := service.CanReach(ctx, selected, selectedInst.VcnID, selectedInst.SubnetID)
+				if !reachable {
+					fmt.Println("Bastion cannot reach selected instance:", reason)
+					return nil
+				}
+				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
+					sessionTypeModel.Choice, selected.Name, selected.ID, selectedInst.Name)
+				return nil
+			}
+			if targetTypeModel.Choice == TargetDatabase {
+				dbService, err := autonomousdbsvc.NewService(appCtx)
+				if err != nil {
+					fmt.Println("Error creating Database service:", err)
+					os.Exit(1)
+				}
+				dbs, _, _, err := dbService.List(ctx, 50, 0)
+				if err != nil {
+					fmt.Println("Error listing databases:", err)
+					os.Exit(1)
+				}
+				if len(dbs) == 0 {
+					fmt.Println("No Autonomous Databases found.")
+					return nil
+				}
+				dbModel := NewDBListModelFancy(dbs)
+				dbProgram := tea.NewProgram(dbModel)
+				dbResult, err := dbProgram.Run()
+				if err != nil {
+					fmt.Println("Error running DB selection TUI:", err)
+					os.Exit(1)
+				}
+				chosen, ok := dbResult.(ResourceListModel)
+				if !ok || chosen.Choice() == "" {
+					fmt.Println("Operation cancelled.")
+					return nil
+				}
+				var selectedDB autonomousdbsvc.AutonomousDatabase
+				for _, d := range dbs {
+					if d.ID == chosen.Choice() {
+						selectedDB = d
+						break
+					}
+				}
+				// Inform type explicitly as a database instance; reachability cannot be auto-verified
+				_, reason := service.CanReach(ctx, selected, "", "")
+				fmt.Println("Reachability to DB cannot be automatically verified:", reason)
+				fmt.Printf("Selected database instance: %s (ID: %s)\n", selectedDB.Name, selectedDB.ID)
+				fmt.Printf("\n---\nPrepared %s session on Bastion %s (ID: %s) to database instance %s.\n",
+					sessionTypeModel.Choice, selected.Name, selected.ID, selectedDB.Name)
+				return nil
+			}
+			if targetTypeModel.Choice == TargetOKE {
+				okeService, err := okesvc.NewService(appCtx)
+				if err != nil {
+					fmt.Println("Error creating OKE service:", err)
+					os.Exit(1)
+				}
+				list, _, _, err := okeService.List(ctx, 50, 0)
+				if err != nil {
+					fmt.Println("Error listing OKE clusters:", err)
+					os.Exit(1)
+				}
+				if len(list) == 0 {
+					fmt.Println("No OKE clusters found.")
+					return nil
+				}
+				clusterModel := NewOKEListModelFancy(list)
+				clusterProgram := tea.NewProgram(clusterModel)
+				clusterResult, err := clusterProgram.Run()
+				if err != nil {
+					fmt.Println("Error running OKE selection TUI:", err)
+					os.Exit(1)
+				}
+				chosen, ok := clusterResult.(ResourceListModel)
+				if !ok || chosen.Choice() == "" {
+					fmt.Println("Operation cancelled.")
+					return nil
+				}
+				var selectedCluster okesvc.Cluster
+				for _, c := range list {
+					if c.ID == chosen.Choice() {
+						selectedCluster = c
+						break
+					}
+				}
+				reachable, reason := service.CanReach(ctx, selected, selectedCluster.VcnID, "")
+				if !reachable {
+					fmt.Println("Bastion cannot reach selected OKE node (cluster VCN mismatch):", reason)
+					return nil
+				}
+				// Identify output explicitly as OKE node (node selection not implemented; using cluster scope for reachability)
+				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to OKE node in cluster %s.\n",
+					sessionTypeModel.Choice, selected.Name, selected.ID, selectedCluster.Name)
+				return nil
+			}
+			// Fallback
+			fmt.Printf("\n---\nPrepared %s Session on Bastion: %s (ID: %s)\nTarget: %s\n",
+				sessionTypeModel.Choice, selected.Name, selected.ID, targetTypeModel.Choice)
 			return nil
 		}
 		var clusters []okesvc.Cluster

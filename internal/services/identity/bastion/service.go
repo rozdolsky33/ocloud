@@ -72,15 +72,6 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 	return allBastions, nil
 }
 
-// GetDummyBastions returns a list of dummy bastion options
-func (s *Service) GetDummyBastions() []Bastion {
-	return []Bastion{
-		{ID: "ocid1.bastion.oc1.dummy.bastion1", Name: "bastion_1"},
-		{ID: "ocid1.bastion.oc1.dummy.bastion2", Name: "basstion_1"},
-		{ID: "ocid1.bastion.oc1.dummy.bastion3", Name: "bestion three"},
-	}
-}
-
 // fetchVcnDetails retrieves the VCN details for the given VCN ID.
 func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn, error) {
 	// Check cache first
