@@ -1,11 +1,15 @@
 package bastion
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/spf13/cobra"
@@ -70,14 +74,18 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	// STEP 2: Bastion Selection
 	// Gets the appropriate list of bastions based on the selected type
 	var bastions []bastionSvc.Bastion
+
+	ctx := context.Background()
+
 	if typeModel.Choice == TypeSession {
-		// For Session type, use the dummy bastions
-		// In a real implementation; this might fetch session-specific bastions
-		bastions = service.GetDummyBastions()
+		bastions, err = service.List(ctx)
+		bastions = slices.DeleteFunc(bastions, func(b bastionSvc.Bastion) bool {
+			return b.LifecycleState != bastion.BastionLifecycleStateActive
+		})
 	} else {
 		// For Bastion type, also use dummy bastions for now
 		// In a real implementation; this might fetch a different set of bastions
-		bastions = service.GetDummyBastions()
+		util.ShowConstructionAnimation()
 	}
 
 	// Initialize and show the bastion selection UI with the appropriate list
@@ -126,7 +134,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			util.ShowConstructionAnimation()
 			return nil
 		}
-
+		var clusters []oke.Cluster
 		// STEP 4: Target Type Selection
 		if sessionTypeModel.Choice == TypePortForwarding {
 			// Initialize and show the target type selection UI
@@ -147,6 +155,28 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				return nil
 			}
 
+			if targetTypeModel.Choice == TargetOKE {
+				okeSvc, err := oke.NewService(appCtx)
+				if err != nil {
+					fmt.Println("Error creating OKE service:", err)
+					os.Exit(1)
+				}
+				list, _, _, err := okeSvc.List(ctx, 20, 0)
+				if err != nil {
+					fmt.Println("Error listing OKE clusters:", err)
+					os.Exit(1)
+				}
+				fmt.Println("OKE Clusters:")
+				for _, cluster := range list {
+					fmt.Println(cluster.Name)
+					clusters = append(clusters, cluster)
+				}
+				if len(clusters) == 0 {
+					fmt.Println("No OKE clusters found.")
+					return nil
+				}
+			}
+
 			// Check if the user selected Database
 			if targetTypeModel.Choice == TargetDatabase {
 				util.ShowConstructionAnimation()
@@ -160,7 +190,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 
 			// For OKE, display the final result
 			fmt.Printf("\n---\nCreated %s Session on Bastion: %s\nID: %s\nTarget: %s\n",
-				sessionTypeModel.Choice, selected.Name, selected.ID, targetTypeModel.Choice)
+				sessionTypeModel.Choice, selected.Name, selected.ID, targetTypeModel.Choice, clusters)
 		}
 	} else {
 		fmt.Println("Operation cancelled.")

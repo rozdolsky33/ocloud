@@ -14,10 +14,7 @@ import (
 type SessionType string
 
 const (
-	// TypeManagedSSH represents a managed SSH session
-	TypeManagedSSH SessionType = "Managed SSH"
-
-	// TypePortForwarding represents a port-forwarding session
+	TypeManagedSSH     SessionType = "Managed SSH"
 	TypePortForwarding SessionType = "Port-Forwarding"
 )
 
@@ -25,27 +22,16 @@ const (
 type TargetType string
 
 const (
-	// TargetOKE represents an OKE target for port forwarding
-	TargetOKE TargetType = "OKE"
-
-	// TargetDatabase represents a database target for port forwarding
+	TargetOKE      TargetType = "OKE"
 	TargetDatabase TargetType = "Database"
-
-	// TargetInstance represents an instance target for port forwarding.
 	TargetInstance TargetType = "Instance"
 )
 
 // BastionType represents the type of bastion operation
-// This is used to differentiate between direct bastion creation and session-based creation
 type BastionType string
 
 const (
-	// TypeBastion represents a direct bastion creation
-	// This is the standard mode for creating bastions
 	TypeBastion BastionType = "Bastion"
-
-	// TypeSession represents a session-based bastion creation
-	// This mode uses the dummy bastion list for selection
 	TypeSession BastionType = "Session"
 )
 
@@ -213,7 +199,6 @@ type SessionTypeModel struct {
 // Init initializes the model
 // This is part of the tea.Model interface
 func (m SessionTypeModel) Init() tea.Cmd {
-	// No initialization needed
 	return nil
 }
 
