@@ -1,10 +1,6 @@
 package bastion
 
 import (
-	"fmt"
-	"os"
-	"text/tabwriter"
-
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -41,17 +37,4 @@ func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSO
 	}
 
 	return nil
-}
-
-// PrintBastions prints a list of bastions in a tabular format
-func PrintBastions(bastions []Bastion) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "ID\tNAME\t")
-	fmt.Fprintln(w, "----\t----\t")
-
-	for _, b := range bastions {
-		fmt.Fprintf(w, "%s\t%s\t\n", b.ID, b.Name)
-	}
-
-	w.Flush()
 }

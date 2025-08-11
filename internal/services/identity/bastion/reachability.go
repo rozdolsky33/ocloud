@@ -41,6 +41,7 @@ func (s *Service) CanReach(ctx context.Context, b Bastion, targetVcnID string, t
 	return false, "Target network details are unavailable; cannot verify reachability."
 }
 
+// vcnMatches checks if the provided subnet's VCN ID matches the specified bastion VCN ID. Returns true if they match.
 func vcnMatches(bastionVcnID string, subnet *core.Subnet) bool {
 	if subnet == nil || subnet.VcnId == nil {
 		return false
@@ -48,6 +49,7 @@ func vcnMatches(bastionVcnID string, subnet *core.Subnet) bool {
 	return bastionVcnID == *subnet.VcnId
 }
 
+// safeVcnID returns the VCN ID of the provided subnet, or an empty string if the subnet is nil or has no VCN ID.
 func safeVcnID(subnet *core.Subnet) string {
 	if subnet == nil || subnet.VcnId == nil {
 		return ""

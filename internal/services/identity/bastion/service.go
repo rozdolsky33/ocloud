@@ -32,6 +32,7 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	}, nil
 }
 
+// List retrieves and returns all bastion hosts from the given compartment in the OCI account.
 func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 	logger.LogWithLevel(s.logger, 1, "Listing Bastions in compartment", "compartmentID", s.compartmentID)
 	request := bastion.ListBastionsRequest{
@@ -46,7 +47,6 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 
 	for _, b := range response.Items {
 		toBastion := mapToBastion(b)
-		// Fetch VCN details
 		if b.TargetVcnId != nil && *b.TargetVcnId != "" {
 			vcn, err := s.fetchVcnDetails(ctx, *b.TargetVcnId)
 			if err != nil {
@@ -74,13 +74,12 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 
 // fetchVcnDetails retrieves the VCN details for the given VCN ID.
 func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn, error) {
-	// Check cache first
+
 	if vcn, ok := s.vcnCache[vcnID]; ok {
 		logger.LogWithLevel(s.logger, 3, "VCN cache hit", "vcnID", vcnID)
 		return vcn, nil
 	}
 
-	// Cache miss, fetch from API
 	logger.LogWithLevel(s.logger, 3, "VCN cache miss", "vcnID", vcnID)
 	resp, err := s.networkClient.GetVcn(ctx, core.GetVcnRequest{
 		VcnId: &vcnID,
@@ -89,7 +88,6 @@ func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn,
 		return nil, fmt.Errorf("getting VCN details: %w", err)
 	}
 
-	// Store in cache
 	s.vcnCache[vcnID] = &resp.Vcn
 	return &resp.Vcn, nil
 }
@@ -97,7 +95,6 @@ func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn,
 // fetchSubnetDetails retrieves the subnet details for the given subnet ID.
 // It uses a cache to avoid making repeated API calls for the same subnet.
 func (s *Service) fetchSubnetDetails(ctx context.Context, subnetID string) (*core.Subnet, error) {
-	// Check cache first
 	if subnet, ok := s.subnetCache[subnetID]; ok {
 		logger.LogWithLevel(s.logger, 3, "subnet cache hit", "subnetID", subnetID)
 		return subnet, nil
@@ -112,11 +109,11 @@ func (s *Service) fetchSubnetDetails(ctx context.Context, subnetID string) (*cor
 		return nil, fmt.Errorf("getting subnet details: %w", err)
 	}
 
-	// Store in cache
 	s.subnetCache[subnetID] = &resp.Subnet
 	return &resp.Subnet, nil
 }
 
+// mapToBastion converts a BastionSummary object to a Bastion object with relevant fields populated.
 func mapToBastion(bastion bastion.BastionSummary) Bastion {
 	return Bastion{
 		ID:             *bastion.Id,

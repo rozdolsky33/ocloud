@@ -18,6 +18,7 @@ type Bastion struct {
 	LifecycleState   bastion.BastionLifecycleStateEnum
 }
 
+// Service represents a service that interacts with OCI Bastion and Virtual Network APIs to manage resources.
 type Service struct {
 	bastionClient bastion.BastionClient
 	networkClient core.VirtualNetworkClient

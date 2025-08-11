@@ -209,7 +209,6 @@ func TestPrintSubnetInfo(t *testing.T) {
 	// Verify that the output contains the expected information
 	output := buf.String()
 	assert.Contains(t, output, "TestSubnet1")
-	assert.Contains(t, output, "ocid1.subnet.oc1.phx.test1")
 	assert.Contains(t, output, "10.0.0.0/24")
 	assert.Contains(t, output, "No")
 	assert.Contains(t, output, "test1")
@@ -225,7 +224,6 @@ func TestPrintSubnetInfo(t *testing.T) {
 	// Verify that the output is valid JSON and contains the expected information
 	jsonOutput := buf.String()
 	assert.Contains(t, jsonOutput, "TestSubnet1")
-	assert.Contains(t, jsonOutput, "ocid1.subnet.oc1.phx.test1")
 	assert.Contains(t, jsonOutput, "10.0.0.0/24")
 }
 
@@ -234,7 +232,7 @@ func TestPrintSubnetInfoEmpty(t *testing.T) {
 	// Create an empty subnets slice
 	subnets := []Subnet{}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout

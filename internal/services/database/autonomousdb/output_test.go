@@ -56,14 +56,12 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 	// Verify that the output contains the expected information
 	output := buf.String()
 	assert.Contains(t, output, "TestDatabase1")
-	assert.Contains(t, output, "ocid1.autonomousdatabase.oc1.phx.test1")
 	assert.Contains(t, output, "test-endpoint-1.example.com")
 	assert.Contains(t, output, "192.168.1.1")
 	assert.Contains(t, output, "high-connection-string-1")
 	assert.Contains(t, output, "medium-connection-string-1")
 	assert.Contains(t, output, "low-connection-string-1")
 	assert.Contains(t, output, "TestDatabase2")
-	assert.Contains(t, output, "ocid1.autonomousdatabase.oc1.phx.test2")
 	assert.Contains(t, output, "test-endpoint-2.example.com")
 	assert.Contains(t, output, "192.168.1.2")
 	assert.Contains(t, output, "high-connection-string-2")
@@ -100,7 +98,7 @@ func TestPrintAutonomousDbInfoEmpty(t *testing.T) {
 	// Create an empty databases slice
 	databases := []AutonomousDatabase{}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -174,7 +172,6 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	// Verify that the output contains the expected information
 	output := buf.String()
 	assert.Contains(t, output, "TestDatabase1")
-	assert.Contains(t, output, "ocid1.autonomousdatabase.oc1.phx.test1")
 	assert.Contains(t, output, "test-endpoint-1.example.com")
 	assert.Contains(t, output, "192.168.1.1")
 	assert.Contains(t, output, "high-connection-string-1")

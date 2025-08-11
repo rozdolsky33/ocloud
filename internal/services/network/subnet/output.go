@@ -106,7 +106,6 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 			publicIPAllowed = "Yes"
 		}
 		subnetData := map[string]string{
-			"ID":            subnet.ID,
 			"Name":          subnet.Name,
 			"Public IP":     publicIPAllowed,
 			"CIDR":          subnet.CIDR,
@@ -116,7 +115,7 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "Name", "Public IP", "CIDR", "DNS Label", "Subnet Domain",
+			"Name", "Public IP", "CIDR", "DNS Label", "Subnet Domain",
 		}
 
 		// Create the colored title using components from the app context
