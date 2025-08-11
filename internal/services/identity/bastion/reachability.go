@@ -18,7 +18,7 @@ func (s *Service) CanReach(ctx context.Context, b Bastion, targetVcnID string, t
 		return false, "Selected Bastion is not configured with a target VCN."
 	}
 
-	// Prefer subnet if provided, to derive VCN and be precise.
+	// Prefer subnet if provided to derive VCN and be precise.
 	if targetSubnetID != "" {
 		subnet, err := s.fetchSubnetDetails(ctx, targetSubnetID)
 		if err != nil {

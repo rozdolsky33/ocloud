@@ -3,7 +3,6 @@ package bastion
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -39,13 +38,10 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // 1. First, the user selects a type (Bastion or Session)
 // 2. Then, the user selects a specific bastion from a list based on the chosen type
 func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-
-	//TODO: Temporarily hardcoding the bastion ID to 1
 	// Create a new bastion service to interact with bastion resources
-	service, err2 := bastionSvc.NewService(appCtx)
-	if err2 != nil {
-		fmt.Println("Error creating bastion service:", err2)
-		os.Exit(1)
+	service, err := bastionSvc.NewService(appCtx)
+	if err != nil {
+		return fmt.Errorf("error creating Bastion service: %w", err)
 	}
 
 	// STEP 1: Type Selection
@@ -55,8 +51,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	// Run the type selection TUI and wait for user selection
 	typeResult, err := typeProgram.Run()
 	if err != nil {
-		fmt.Println("Error running type selection TUI:", err)
-		os.Exit(1)
+		return fmt.Errorf("error running type selection TUI: %w", err)
 	}
 
 	// Process the type selection result
@@ -97,8 +92,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	// Run the bastion selection TUI and wait for user selection
 	bastionResult, err := bastionProgram.Run()
 	if err != nil {
-		fmt.Println("Error running bastion selection TUI:", err)
-		os.Exit(1)
+		return fmt.Errorf("error running bastion selection TUI: %w", err)
 	}
 
 	// Process the bastion selection result
@@ -120,8 +114,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		// Run the session type selection TUI and wait for user selection
 		sessionTypeResult, err := sessionTypeProgram.Run()
 		if err != nil {
-			fmt.Println("Error running session type selection TUI:", err)
-			os.Exit(1)
+			return fmt.Errorf("error running session type selection TUI: %w", err)
 		}
 
 		// Process the session type selection result
@@ -133,14 +126,13 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 
 		// Check if the user selected Managed SSH
 		if sessionTypeModel.Choice == TypeManagedSSH {
-			// For Managed SSH, allow choosing target type and resource similar to Port-Forwarding
+			// For Managed SSH, allow choosing a target type and resource similar to Port-Forwarding
 			targetTypeModel := NewTargetTypeModel(selected.ID)
 			targetTypeProgram := tea.NewProgram(targetTypeModel)
 			// Run target selection
 			targetTypeResult, err := targetTypeProgram.Run()
 			if err != nil {
-				fmt.Println("Error running target type selection TUI:", err)
-				os.Exit(1)
+				return fmt.Errorf("error running target type selection TUI: %w", err)
 			}
 			// Process result
 			targetTypeModel, ok := targetTypeResult.(TargetTypeModel)
@@ -152,14 +144,13 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			if targetTypeModel.Choice == TargetInstance {
 				instService, err := instancessvc.NewService(appCtx)
 				if err != nil {
-					fmt.Println("Error creating Instance service:", err)
-					os.Exit(1)
+					return fmt.Errorf("error creating Instance service: %w", err)
 				}
 				instances, _, _, err := instService.List(ctx, 50, 0, true)
 				if err != nil {
-					fmt.Println("Error listing instances:", err)
-					os.Exit(1)
+					return fmt.Errorf("error listing instances: %w", err)
 				}
+
 				if len(instances) == 0 {
 					fmt.Println("No instances found.")
 					return nil
@@ -168,8 +159,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				instProgram := tea.NewProgram(instModel)
 				instResult, err := instProgram.Run()
 				if err != nil {
-					fmt.Println("Error running Instance selection TUI:", err)
-					os.Exit(1)
+					return fmt.Errorf("error running instance selection TUI: %w", err)
 				}
 				chosen, ok := instResult.(ResourceListModel)
 				if !ok || chosen.Choice() == "" {
@@ -195,13 +185,11 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			if targetTypeModel.Choice == TargetDatabase {
 				dbService, err := autonomousdbsvc.NewService(appCtx)
 				if err != nil {
-					fmt.Println("Error creating Database service:", err)
-					os.Exit(1)
+					return fmt.Errorf("error creating Database service: %w", err)
 				}
 				dbs, _, _, err := dbService.List(ctx, 50, 0)
 				if err != nil {
-					fmt.Println("Error listing databases:", err)
-					os.Exit(1)
+					return fmt.Errorf("error listing databases: %w", err)
 				}
 				if len(dbs) == 0 {
 					fmt.Println("No Autonomous Databases found.")
@@ -211,8 +199,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				dbProgram := tea.NewProgram(dbModel)
 				dbResult, err := dbProgram.Run()
 				if err != nil {
-					fmt.Println("Error running DB selection TUI:", err)
-					os.Exit(1)
+					return fmt.Errorf("error running DB selection TUI: %w", err)
 				}
 				chosen, ok := dbResult.(ResourceListModel)
 				if !ok || chosen.Choice() == "" {
@@ -234,16 +221,15 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 					sessionTypeModel.Choice, selected.Name, selected.ID, selectedDB.Name)
 				return nil
 			}
+
 			if targetTypeModel.Choice == TargetOKE {
 				okeService, err := okesvc.NewService(appCtx)
 				if err != nil {
-					fmt.Println("Error creating OKE service:", err)
-					os.Exit(1)
+					return fmt.Errorf("error creating OKE service: %w", err)
 				}
 				list, _, _, err := okeService.List(ctx, 50, 0)
 				if err != nil {
-					fmt.Println("Error listing OKE clusters:", err)
-					os.Exit(1)
+					return fmt.Errorf("error listing OKE clusters: %w", err)
 				}
 				if len(list) == 0 {
 					fmt.Println("No OKE clusters found.")
@@ -253,8 +239,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				clusterProgram := tea.NewProgram(clusterModel)
 				clusterResult, err := clusterProgram.Run()
 				if err != nil {
-					fmt.Println("Error running OKE selection TUI:", err)
-					os.Exit(1)
+					return fmt.Errorf("error running OKE selection TUI: %w", err)
 				}
 				chosen, ok := clusterResult.(ResourceListModel)
 				if !ok || chosen.Choice() == "" {
@@ -293,8 +278,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			// Run the target type selection TUI and wait for user selection
 			targetTypeResult, err := targetTypeProgram.Run()
 			if err != nil {
-				fmt.Println("Error running target type selection TUI:", err)
-				os.Exit(1)
+				return fmt.Errorf("error running target type selection TUI: %w", err)
 			}
 
 			// Process the target type selection result
@@ -307,13 +291,11 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			if targetTypeModel.Choice == TargetOKE {
 				okeService, err := okesvc.NewService(appCtx)
 				if err != nil {
-					fmt.Println("Error creating OKE service:", err)
-					os.Exit(1)
+					return fmt.Errorf("error creating OKE service: %w", err)
 				}
 				list, _, _, err := okeService.List(ctx, 50, 0)
 				if err != nil {
-					fmt.Println("Error listing OKE clusters:", err)
-					os.Exit(1)
+					return fmt.Errorf("error listing OKE clusters: %w", err)
 				}
 				clusters = list
 				if len(clusters) == 0 {
@@ -325,8 +307,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				clusterProgram := tea.NewProgram(clusterModel)
 				clusterResult, err := clusterProgram.Run()
 				if err != nil {
-					fmt.Println("Error running OKE selection TUI:", err)
-					os.Exit(1)
+					return fmt.Errorf("error running OKE selection TUI: %w", err)
 				}
 				chosen, ok := clusterResult.(ResourceListModel)
 				if !ok || chosen.Choice() == "" {
@@ -356,13 +337,11 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			if targetTypeModel.Choice == TargetDatabase {
 				dbService, err := autonomousdbsvc.NewService(appCtx)
 				if err != nil {
-					fmt.Println("Error creating Database service:", err)
-					os.Exit(1)
+					return fmt.Errorf("error creating Database service: %w", err)
 				}
 				dbs, _, _, err := dbService.List(ctx, 50, 0)
 				if err != nil {
-					fmt.Println("Error listing databases:", err)
-					os.Exit(1)
+					return fmt.Errorf("error listing databases: %w", err)
 				}
 				if len(dbs) == 0 {
 					fmt.Println("No Autonomous Databases found.")
@@ -372,8 +351,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				dbProgram := tea.NewProgram(dbModel)
 				dbResult, err := dbProgram.Run()
 				if err != nil {
-					fmt.Println("Error running DB selection TUI:", err)
-					os.Exit(1)
+					return fmt.Errorf("error running DB selection TUI: %w", err)
 				}
 				chosen, ok := dbResult.(ResourceListModel)
 				if !ok || chosen.Choice() == "" {
@@ -397,13 +375,11 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 			if targetTypeModel.Choice == TargetInstance {
 				instService, err := instancessvc.NewService(appCtx)
 				if err != nil {
-					fmt.Println("Error creating Instance service:", err)
-					os.Exit(1)
+					return fmt.Errorf("error creating Instance service: %w", err)
 				}
 				instances, _, _, err := instService.List(ctx, 50, 0, true)
 				if err != nil {
-					fmt.Println("Error listing instances:", err)
-					os.Exit(1)
+					return fmt.Errorf("error listing instances: %w", err)
 				}
 				if len(instances) == 0 {
 					fmt.Println("No instances found.")
@@ -413,8 +389,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				instProgram := tea.NewProgram(instModel)
 				instResult, err := instProgram.Run()
 				if err != nil {
-					fmt.Println("Error running Instance selection TUI:", err)
-					os.Exit(1)
+					return fmt.Errorf("error running instance selection TUI: %w", err)
 				}
 				chosen, ok := instResult.(ResourceListModel)
 				if !ok || chosen.Choice() == "" {

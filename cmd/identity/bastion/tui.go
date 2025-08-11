@@ -144,14 +144,12 @@ func (m BastionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "down", "j":
-			// Move the cursor down (with wrap-around)
 			m.Cursor++
 			if m.Cursor >= len(m.Bastions) {
 				m.Cursor = 0
 			}
 
 		case "up", "k":
-			// Move the cursor up (with wrap-around)
 			m.Cursor--
 			if m.Cursor < 0 {
 				m.Cursor = len(m.Bastions) - 1
@@ -221,14 +219,12 @@ func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "down", "j":
-			// Move the cursor down (with wrap-around)
 			m.Cursor++
 			if m.Cursor >= len(m.Types) {
 				m.Cursor = 0
 			}
 
 		case "up", "k":
-			// Move the cursor up (with wrap-around)
 			m.Cursor--
 			if m.Cursor < 0 {
 				m.Cursor = len(m.Types) - 1
@@ -294,21 +290,18 @@ func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			// Set the choice and exit
 			if m.Cursor >= 0 && m.Cursor < len(m.Types) {
 				m.Choice = m.Types[m.Cursor]
 			}
 			return m, tea.Quit
 
 		case "down", "j":
-			// Move the cursor down (with wrap-around)
 			m.Cursor++
 			if m.Cursor >= len(m.Types) {
 				m.Cursor = 0
 			}
 
 		case "up", "k":
-			// Move the cursor up (with wrap-around)
 			m.Cursor--
 			if m.Cursor < 0 {
 				m.Cursor = len(m.Types) - 1
@@ -388,7 +381,7 @@ func NewResourceListModel(title string, items []list.Item) ResourceListModel {
 	return rm
 }
 
-// Helpers to build list models for each resource type
+// NewInstanceListModelFancy creates a ResourceListModel using a list of instances with formatted names and descriptions.
 func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListModel {
 	items := make([]list.Item, 0, len(instances))
 	for _, inst := range instances {
