@@ -148,7 +148,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				if err != nil {
 					return fmt.Errorf("error creating Instance service: %w", err)
 				}
-				instances, _, _, err := instService.List(ctx, 50, 0, true)
+				instances, _, _, err := instService.List(ctx, 300, 0, true)
 				if err != nil {
 					return fmt.Errorf("error listing instances: %w", err)
 				}
@@ -192,7 +192,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 					return fmt.Errorf("failed to ensure managed SSH session: %w", err)
 				}
 				region, _ := appCtx.Provider.Region()
-				sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessionID, region)
+				sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessionID, region, selectedInst.IP, sshUser)
 				fmt.Printf("\nExecuting: %s\n\n", sshCmd)
 				cmd := exec.Command("bash", "-lc", sshCmd)
 				cmd.Stdout = appCtx.Stdout

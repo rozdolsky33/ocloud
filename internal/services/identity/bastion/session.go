@@ -17,7 +17,7 @@ import (
 // Defaults used for session wait and ttl
 var (
 	waitPollInterval = 3 * time.Second
-	defaultTTL       = 3600 // seconds
+	defaultTTL       = 10800 // seconds (3 hours)
 )
 
 // DefaultSSHKeyPaths returns the default public and private key paths based on the active OCI CLI profile.
@@ -205,7 +205,6 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 // The realm is inferred from the session OCID: if it contains "2" in the realm segment, use oraclegovcloud; else oraclecloud.
 func BuildProxySSHCommand(privateKeyPath, sessionID, region, targetIP string) string {
 	realm := "oraclecloud"
-	// OCID format: ocid1.bastionsession.oc[1|2].... Split by '.' and inspect the 3rd token (index 2)
 	parts := strings.Split(sessionID, ".")
 	if len(parts) > 2 && strings.Contains(parts[2], "2") {
 		realm = "oraclegovcloud"
@@ -214,13 +213,15 @@ func BuildProxySSHCommand(privateKeyPath, sessionID, region, targetIP string) st
 	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 opc@%s", privateKeyPath, proxy, targetIP)
 }
 
-// BuildManagedSSHCommand constructs the SSH command to connect to the bastion using the session OCID as username.
-// Bastion will connect to the target instance using the Managed SSH session parameters.
-func BuildManagedSSHCommand(privateKeyPath, sessionID, region string) string {
+// BuildManagedSSHCommand constructs the SSH command that uses ProxyCommand with the bastion Managed SSH session.
+// It opens only a direct-tcpip channel on the bastion (accepted), while authenticating to bastion with the session OCID.
+// The outer SSH connects to the target instance as targetUser@targetIP.
+func BuildManagedSSHCommand(privateKeyPath, sessionID, region, targetIP, targetUser string) string {
 	realm := "oraclecloud"
 	parts := strings.Split(sessionID, ".")
 	if len(parts) > 2 && strings.Contains(parts[2], "2") {
 		realm = "oraclegovcloud"
 	}
-	return fmt.Sprintf("ssh -i %s -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
+	proxy := fmt.Sprintf("ssh -i %s -W %%h:%%p -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
+	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 %s@%s", privateKeyPath, proxy, targetUser, targetIP)
 }
