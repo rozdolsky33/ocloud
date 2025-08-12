@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,6 +29,20 @@ func DefaultSSHKeyPaths() (publicKeyPath, privateKeyPath string) {
 	profile := conf.GetOCIProfile()
 	sessionDir := filepath.Join(homeDir, cflags.OCIConfigDirName, cflags.OCISessionsDirName, profile)
 	return filepath.Join(sessionDir, "oci_api_key_public.pem"), filepath.Join(sessionDir, "oci_api_key.pem")
+}
+
+// sanitizeDisplayName ensures only allowed characters [A-Za-z0-9._+@-] and max length 255.
+// Any disallowed rune is replaced with '-'. If a result is empty, returns a safe fallback.
+func sanitizeDisplayName(s string) string {
+	allowed := regexp.MustCompile(`[^A-Za-z0-9._+@-]`)
+	clean := allowed.ReplaceAllString(s, "-")
+	if len(clean) > 255 {
+		clean = clean[:255]
+	}
+	if strings.Trim(clean, "-") == "" {
+		clean = fmt.Sprintf("ocloud-%d", time.Now().Unix())
+	}
+	return clean
 }
 
 // EnsurePortForwardSession finds an ACTIVE bastion session targeting the given IP:port and matching the provided public key.
@@ -69,6 +84,8 @@ func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targe
 	}
 
 	// 2) Create a new session
+	baseName := fmt.Sprintf("ocloud-%s-%d-%d", strings.ReplaceAll(targetIP, ".", "-"), port, time.Now().Unix())
+	displayName := sanitizeDisplayName(baseName)
 	createReq := bastion.CreateSessionRequest{
 		CreateSessionDetails: bastion.CreateSessionDetails{
 			BastionId: common.String(bastionID),
@@ -77,7 +94,7 @@ func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targe
 				TargetResourcePort:             common.Int(port),
 			},
 			KeyDetails:          &bastion.PublicKeyDetails{PublicKeyContent: &pubKey},
-			DisplayName:         common.String(fmt.Sprintf("ocloud-%s-%d", targetIP, time.Now().Unix())),
+			DisplayName:         common.String(displayName),
 			SessionTtlInSeconds: common.Int(ttlSeconds),
 		},
 	}
