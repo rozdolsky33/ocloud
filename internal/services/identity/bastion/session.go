@@ -201,18 +201,6 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 	return sessionID, nil
 }
 
-// BuildProxySSHCommand constructs the SSH command (as string) using ProxyCommand with the bastion session ID as username.
-// The realm is inferred from the session OCID: if it contains "2" in the realm segment, use oraclegovcloud; else oraclecloud.
-func BuildProxySSHCommand(privateKeyPath, sessionID, region, targetIP string) string {
-	realm := "oraclecloud"
-	parts := strings.Split(sessionID, ".")
-	if len(parts) > 2 && strings.Contains(parts[2], "2") {
-		realm = "oraclegovcloud"
-	}
-	proxy := fmt.Sprintf("ssh -i %s -W %%h:%%p -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
-	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 opc@%s", privateKeyPath, proxy, targetIP)
-}
-
 // BuildManagedSSHCommand constructs the SSH command that uses ProxyCommand with the bastion Managed SSH session.
 // It opens only a direct-tcpip channel on the bastion (accepted), while authenticating to bastion with the session OCID.
 // The outer SSH connects to the target instance as targetUser@targetIP.
@@ -224,4 +212,22 @@ func BuildManagedSSHCommand(privateKeyPath, sessionID, region, targetIP, targetU
 	}
 	proxy := fmt.Sprintf("ssh -i %s -W %%h:%%p -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
 	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 %s@%s", privateKeyPath, proxy, targetUser, targetIP)
+}
+
+// BuildPortForwardNohupCommand builds a nohup SSH command to run a local port forward via the bastion session in background.
+// It matches the example flags and routes localPort to targetIP:remotePort.
+func BuildPortForwardNohupCommand(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int, logPath string) string {
+	realm := "oraclecloud"
+	parts := strings.Split(sessionID, ".")
+	if len(parts) > 2 && strings.Contains(parts[2], "2") {
+		realm = "oraclegovcloud"
+	}
+	bastionHost := fmt.Sprintf("%s@host.bastion.%s.oci.%s.com", sessionID, region, realm)
+	if logPath == "" {
+		logPath = "ssh-tunnel.log"
+	}
+	return fmt.Sprintf(
+		"nohup ssh -i %s -o StrictHostKeyChecking=accept-new -o HostkeyAlgorithms=+ssh-rsa -o PubkeyAcceptedKeyTypes=+ssh-rsa -N -L %d:%s:%d -p 22 %s > %s 2>&1 &",
+		privateKeyPath, localPort, targetIP, remotePort, bastionHost, logPath,
+	)
 }

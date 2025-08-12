@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -24,5 +25,32 @@ func PromptYesNo(question string) bool {
 		} else {
 			fmt.Println("Please enter y or n.")
 		}
+	}
+}
+
+// PromptPort prompts the user to enter a TCP port. If the user enters empty input, defaultPort is returned.
+// It validates the port is in range [1, 65535].
+func PromptPort(question string, defaultPort int) (int, error) {
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		if defaultPort > 0 {
+			fmt.Printf("%s [%d]: ", question, defaultPort)
+		} else {
+			fmt.Printf("%s: ", question)
+		}
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return 0, err
+		}
+		input = strings.TrimSpace(input)
+		if input == "" && defaultPort > 0 {
+			return defaultPort, nil
+		}
+		p, err := strconv.Atoi(input)
+		if err != nil || p < 1 || p > 65535 {
+			fmt.Println("Please enter a valid port number between 1 and 65535.")
+			continue
+		}
+		return p, nil
 	}
 }

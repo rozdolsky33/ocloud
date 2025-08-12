@@ -432,6 +432,30 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				}
 				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
 					sessionTypeModel.Choice, selected.Name, selected.ID, selectedInst.Name)
+
+				// Prompt for local port to forward
+				port, err := util.PromptPort("Enter port to forward (local:target)", 6443)
+				if err != nil {
+					return fmt.Errorf("failed to read port: %w", err)
+				}
+				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
+				// Ensure or create the port forwarding bastion session
+				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, selectedInst.IP, port, pubKey, 0)
+				if err != nil {
+					return fmt.Errorf("failed to ensure port forwarding session: %w", err)
+				}
+				region, _ := appCtx.Provider.Region()
+				logFile := fmt.Sprintf("ssh-tunnel-%d.log", port)
+				sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessionID, region, selectedInst.IP, port, port, logFile)
+				fmt.Printf("\nStarting background tunnel: %s\n\n", sshCmd)
+				cmd := exec.Command("bash", "-lc", sshCmd)
+				cmd.Stdout = appCtx.Stdout
+				cmd.Stderr = appCtx.Stderr
+				// no stdin required for nohup background
+				if err := cmd.Run(); err != nil {
+					return fmt.Errorf("failed to start SSH tunnel: %w", err)
+				}
+				fmt.Printf("SSH tunnel started in background. Logs: %s\n", logFile)
 				return nil
 			}
 
