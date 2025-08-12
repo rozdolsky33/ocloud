@@ -22,9 +22,14 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create network client: %w", err)
 	}
+	cc, err := oci.NewComputeClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compute client: %w", err)
+	}
 	return &Service{
 		bastionClient: bc,
 		networkClient: nc,
+		computeClient: cc,
 		logger:        appCtx.Logger,
 		compartmentID: appCtx.CompartmentID,
 		vcnCache:      make(map[string]*core.Vcn),

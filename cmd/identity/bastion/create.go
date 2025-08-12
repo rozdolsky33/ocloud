@@ -178,8 +178,12 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 					fmt.Println("Bastion cannot reach selected instance:", reason)
 					return nil
 				}
+
 				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
 					sessionTypeModel.Choice, selected.Name, selected.ID, selectedInst.Name)
+
+				// Connect to the instance
+
 				return nil
 			}
 			if targetTypeModel.Choice == TargetDatabase {

@@ -27,7 +27,7 @@ var (
 // DefaultTenancyMapPath defines the default file path for the OCI tenancy map configuration in the user's home directory.
 // If the home directory cannot be determined, it falls back to an empty string.
 var DefaultTenancyMapPath = func() string {
-	dir, err := getUserHomeDir()
+	dir, err := GetUserHomeDir()
 	if err != nil {
 		logger.LogWithLevel(logger.Logger, 1, "failed to get user home directory for tenancy map path", "error", err)
 		return ""
@@ -46,7 +46,7 @@ func LoadOCIConfig() common.ConfigurationProvider {
 
 	logger.LogWithLevel(logger.Logger, 3, "using profile", "profile", profile)
 
-	homeDir, err := getUserHomeDir()
+	homeDir, err := GetUserHomeDir()
 	if err != nil {
 		logger.Logger.Error(err, "failed to get user home directory for config path, falling back to default provider")
 		return common.DefaultConfigProvider()
@@ -147,8 +147,8 @@ func ensureFile(path string) error {
 	return nil
 }
 
-// getUserHomeDir returns the path to the current user's home directory or an error if unable to determine it.
-func getUserHomeDir() (string, error) {
+// GetUserHomeDir returns the path to the current user's home directory or an error if unable to determine it.
+func GetUserHomeDir() (string, error) {
 	dir, err := os.UserHomeDir()
 	if err != nil {
 		logger.Logger.Error(err, "failed to get user home directory")
