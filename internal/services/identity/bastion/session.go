@@ -12,7 +12,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	conf "github.com/rozdolsky33/ocloud/internal/config"
-	cflags "github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
 // Defaults used for session wait and ttl
@@ -24,11 +23,9 @@ var (
 // DefaultSSHKeyPaths returns the default public and private key paths based on the active OCI CLI profile.
 // It mirrors the sshConfig() defaults so callers can use keys without hardcoding paths.
 func DefaultSSHKeyPaths() (publicKeyPath, privateKeyPath string) {
-	// Build ~/.oci/sessions/<PROFILE>
 	homeDir, _ := conf.GetUserHomeDir()
-	profile := conf.GetOCIProfile()
-	sessionDir := filepath.Join(homeDir, cflags.OCIConfigDirName, cflags.OCISessionsDirName, profile)
-	return filepath.Join(sessionDir, "oci_api_key_public.pem"), filepath.Join(sessionDir, "oci_api_key.pem")
+	sessionDir := filepath.Join(homeDir, ".ssh")
+	return filepath.Join(sessionDir, "id_rsa.pub"), filepath.Join(sessionDir, "id_rsa")
 }
 
 // sanitizeDisplayName ensures only allowed characters [A-Za-z0-9._+@-] and max length 255.
