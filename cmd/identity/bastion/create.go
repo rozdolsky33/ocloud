@@ -3,6 +3,8 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"slices"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -182,7 +184,22 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
 					sessionTypeModel.Choice, selected.Name, selected.ID, selectedInst.Name)
 
-				// Connect to the instance
+				// Connect to the instance via Bastion using ProxyCommand
+				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
+				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, selectedInst.IP, 22, pubKey, 0)
+				if err != nil {
+					return fmt.Errorf("failed to ensure bastion session: %w", err)
+				}
+				region, _ := appCtx.Provider.Region()
+				sshCmd := bastionSvc.BuildProxySSHCommand(privKey, sessionID, region, selectedInst.IP)
+				fmt.Printf("\nExecuting: %s\n\n", sshCmd)
+				cmd := exec.Command("bash", "-lc", sshCmd)
+				cmd.Stdout = appCtx.Stdout
+				cmd.Stderr = appCtx.Stderr
+				cmd.Stdin = os.Stdin
+				if err := cmd.Run(); err != nil {
+					return fmt.Errorf("ssh command failed: %w", err)
+				}
 
 				return nil
 			}
