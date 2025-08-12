@@ -124,6 +124,86 @@ func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targe
 	return sessionID, nil
 }
 
+// EnsureManagedSSHSession finds or creates a Managed SSH bastion session for the given target instance and returns the session ID.
+func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, targetInstanceID, targetIP, osUser string, port int, publicKeyPath string, ttlSeconds int) (string, error) {
+	if ttlSeconds <= 0 {
+		ttlSeconds = defaultTTL
+	}
+	pubKeyData, err := os.ReadFile(publicKeyPath)
+	if err != nil {
+		return "", fmt.Errorf("reading public key: %w", err)
+	}
+	pubKey := string(pubKeyData)
+
+	// Try to reuse an ACTIVE matching Managed SSH session
+	lsReq := bastion.ListSessionsRequest{
+		BastionId:             common.String(bastionID),
+		SessionLifecycleState: bastion.ListSessionsSessionLifecycleStateActive,
+		SortBy:                bastion.ListSessionsSortByTimecreated,
+		SortOrder:             bastion.ListSessionsSortOrderDesc,
+	}
+	lsResp, err := s.bastionClient.ListSessions(ctx, lsReq)
+	if err != nil {
+		return "", fmt.Errorf("listing bastion sessions: %w", err)
+	}
+	for _, item := range lsResp.Items {
+		if trd, ok := item.TargetResourceDetails.(bastion.ManagedSshSessionTargetResourceDetails); ok {
+			if trd.TargetResourceId != nil && trd.TargetResourcePrivateIpAddress != nil && trd.TargetResourcePort != nil && trd.TargetResourceOperatingSystemUserName != nil &&
+				*trd.TargetResourceId == targetInstanceID && *trd.TargetResourcePrivateIpAddress == targetIP && *trd.TargetResourcePort == port && *trd.TargetResourceOperatingSystemUserName == osUser {
+				getResp, err := s.bastionClient.GetSession(ctx, bastion.GetSessionRequest{SessionId: item.Id})
+				if err != nil {
+					return "", fmt.Errorf("getting bastion session: %w", err)
+				}
+				if getResp.KeyDetails != nil && getResp.KeyDetails.PublicKeyContent != nil && *getResp.KeyDetails.PublicKeyContent == pubKey {
+					return *item.Id, nil // Reuse
+				}
+			}
+		}
+	}
+
+	// Create a new Managed SSH session
+	baseName := fmt.Sprintf("ocloud-%s-%d-%d", strings.ReplaceAll(targetIP, ".", "-"), port, time.Now().Unix())
+	displayName := sanitizeDisplayName(baseName)
+	createReq := bastion.CreateSessionRequest{
+		CreateSessionDetails: bastion.CreateSessionDetails{
+			BastionId: common.String(bastionID),
+			TargetResourceDetails: bastion.CreateManagedSshSessionTargetResourceDetails{
+				TargetResourceId:                      common.String(targetInstanceID),
+				TargetResourceOperatingSystemUserName: common.String(osUser),
+				TargetResourcePort:                    common.Int(port),
+				TargetResourcePrivateIpAddress:        common.String(targetIP),
+			},
+			KeyDetails:          &bastion.PublicKeyDetails{PublicKeyContent: &pubKey},
+			DisplayName:         common.String(displayName),
+			SessionTtlInSeconds: common.Int(ttlSeconds),
+		},
+	}
+	crResp, err := s.bastionClient.CreateSession(ctx, createReq)
+	if err != nil {
+		return "", fmt.Errorf("creating bastion session: %w", err)
+	}
+	sessionID := *crResp.Id
+
+	// Wait for ACTIVE
+	for {
+		getResp, err := s.bastionClient.GetSession(ctx, bastion.GetSessionRequest{SessionId: &sessionID})
+		if err != nil {
+			return "", fmt.Errorf("waiting for session ACTIVE: %w", err)
+		}
+		if getResp.Session.LifecycleState == bastion.SessionLifecycleStateActive {
+			// brief wait to avoid race immediately after ACTIVE
+			time.Sleep(waitPollInterval)
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(waitPollInterval):
+		}
+	}
+	return sessionID, nil
+}
+
 // BuildProxySSHCommand constructs the SSH command (as string) using ProxyCommand with the bastion session ID as username.
 // The realm is inferred from the session OCID: if it contains "2" in the realm segment, use oraclegovcloud; else oraclecloud.
 func BuildProxySSHCommand(privateKeyPath, sessionID, region, targetIP string) string {
@@ -135,4 +215,15 @@ func BuildProxySSHCommand(privateKeyPath, sessionID, region, targetIP string) st
 	}
 	proxy := fmt.Sprintf("ssh -i %s -W %%h:%%p -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
 	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 opc@%s", privateKeyPath, proxy, targetIP)
+}
+
+// BuildManagedSSHCommand constructs the SSH command to connect to the bastion using the session OCID as username.
+// Bastion will connect to the target instance using the Managed SSH session parameters.
+func BuildManagedSSHCommand(privateKeyPath, sessionID, region string) string {
+	realm := "oraclecloud"
+	parts := strings.Split(sessionID, ".")
+	if len(parts) > 2 && strings.Contains(parts[2], "2") {
+		realm = "oraclegovcloud"
+	}
+	return fmt.Sprintf("ssh -i %s -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
 }

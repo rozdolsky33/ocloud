@@ -184,14 +184,15 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
 					sessionTypeModel.Choice, selected.Name, selected.ID, selectedInst.Name)
 
-				// Connect to the instance via Bastion using ProxyCommand
+				// Connect to the instance via Bastion using Managed SSH (no password prompt expected)
 				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
-				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, selectedInst.IP, 22, pubKey, 0)
+				sshUser := "opc"
+				sessionID, err := service.EnsureManagedSSHSession(ctx, selected.ID, selectedInst.ID, selectedInst.IP, sshUser, 22, pubKey, 0)
 				if err != nil {
-					return fmt.Errorf("failed to ensure bastion session: %w", err)
+					return fmt.Errorf("failed to ensure managed SSH session: %w", err)
 				}
 				region, _ := appCtx.Provider.Region()
-				sshCmd := bastionSvc.BuildProxySSHCommand(privKey, sessionID, region, selectedInst.IP)
+				sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessionID, region)
 				fmt.Printf("\nExecuting: %s\n\n", sshCmd)
 				cmd := exec.Command("bash", "-lc", sshCmd)
 				cmd.Stdout = appCtx.Stdout
