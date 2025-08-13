@@ -13,15 +13,16 @@ type Service struct {
 }
 
 type Cluster struct {
-	Name            string
-	ID              string
-	CreatedAt       string
-	Version         string
-	State           containerengine.ClusterLifecycleStateEnum
-	PrivateEndpoint string
-	VcnID           string
-	NodePools       []NodePool
-	OKETags         util.ResourceTags
+	Name               string
+	ID                 string
+	CreatedAt          string
+	Version            string
+	State              containerengine.ClusterLifecycleStateEnum
+	PrivateEndpoint    string
+	KubernetesEndpoint string
+	VcnID              string
+	NodePools          []NodePool
+	OKETags            util.ResourceTags
 }
 
 type NodePool struct {

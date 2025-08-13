@@ -273,14 +273,15 @@ func (s *Service) getClusterNodePools(ctx context.Context, clusterID string) ([]
 // It initializes the NodePools field as an empty slice, which will be populated later.
 func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
 	return Cluster{
-		ID:              *cluster.Id,
-		Name:            *cluster.Name,
-		CreatedAt:       cluster.Metadata.TimeCreated.String(),
-		Version:         *cluster.KubernetesVersion,
-		State:           cluster.LifecycleState,
-		PrivateEndpoint: *cluster.Endpoints.PrivateEndpoint,
-		VcnID:           *cluster.VcnId,
-		NodePools:       []NodePool{},
+		ID:                 *cluster.Id,
+		Name:               *cluster.Name,
+		CreatedAt:          cluster.Metadata.TimeCreated.String(),
+		Version:            *cluster.KubernetesVersion,
+		State:              cluster.LifecycleState,
+		PrivateEndpoint:    *cluster.Endpoints.PrivateEndpoint,
+		KubernetesEndpoint: *cluster.Endpoints.Kubernetes,
+		VcnID:              *cluster.VcnId,
+		NodePools:          []NodePool{},
 		OKETags: util.ResourceTags{
 			FreeformTags: cluster.FreeformTags,
 			DefinedTags:  cluster.DefinedTags,

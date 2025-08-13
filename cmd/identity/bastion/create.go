@@ -3,9 +3,12 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"slices"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/oracle/oci-go-sdk/v65/bastion"
@@ -39,6 +42,76 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // It implements a two-step selection process:
 // 1. First, the user selects a type (Bastion or Session)
 // 2. Then, the user selects a specific bastion from a list based on the chosen type
+// isPrivateRFC1918 checks if an IP is in RFC1918 ranges.
+func isPrivateRFC1918(ip net.IP) bool {
+	if ip == nil {
+		return false
+	}
+	// Normalize to 4-byte if IPv4-mapped
+	if v4 := ip.To4(); v4 != nil {
+		// 10.0.0.0/8
+		if v4[0] == 10 {
+			return true
+		}
+		// 172.16.0.0/12
+		if v4[0] == 172 && v4[1] >= 16 && v4[1] <= 31 {
+			return true
+		}
+		// 192.168.0.0/16
+		if v4[0] == 192 && v4[1] == 168 {
+			return true
+		}
+	}
+	return false
+}
+
+// extractHostname attempts to parse a URL or raw host:port and returns hostname.
+func extractHostname(endpoint string) string {
+	if endpoint == "" {
+		return ""
+	}
+	// If it looks like a URL, parse it
+	if strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://") {
+		if u, err := url.Parse(endpoint); err == nil {
+			return u.Hostname()
+		}
+	}
+	// Otherwise, strip optional :port
+	host := endpoint
+	if i := strings.Index(host, ":"); i > -1 {
+		host = host[:i]
+	}
+	return host
+}
+
+// resolveHostToIP resolves a hostname to an IP; prefer RFC1918 private IPv4 if available.
+func resolveHostToIP(host string) (string, error) {
+	if host == "" {
+		return "", fmt.Errorf("empty host")
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.String(), nil
+	}
+	ips, err := net.LookupIP(host)
+	if err != nil || len(ips) == 0 {
+		return "", fmt.Errorf("failed to resolve host %s: %w", host, err)
+	}
+	// Prefer private IPv4
+	for _, ip := range ips {
+		if v4 := ip.To4(); v4 != nil && isPrivateRFC1918(v4) {
+			return v4.String(), nil
+		}
+	}
+	// Fallback: first IPv4
+	for _, ip := range ips {
+		if v4 := ip.To4(); v4 != nil {
+			return v4.String(), nil
+		}
+	}
+	// Last resort: first IP string
+	return ips[0].String(), nil
+}
+
 func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	// Create a new bastion service to interact with bastion resources
 	service, err := bastionSvc.NewService(appCtx)
@@ -359,14 +432,23 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 					return fmt.Errorf("failed to read port: %w", err)
 				}
 				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
+				// Resolve the OKE API endpoint host to a private IP suitable for Bastion
+				host := extractHostname(selectedCluster.KubernetesEndpoint)
+				if host == "" {
+					return fmt.Errorf("could not determine OKE API host from endpoint: %q", selectedCluster.KubernetesEndpoint)
+				}
+				targetIP, err := resolveHostToIP(host)
+				if err != nil {
+					return fmt.Errorf("failed to resolve OKE API host %s to IP: %w", host, err)
+				}
 				// Ensure or create the port forwarding bastion session for the cluster API endpoint IP
-				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, selectedCluster.PrivateEndpoint, 6443, pubKey, 0)
+				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, targetIP, 6443, pubKey, 0)
 				if err != nil {
 					return fmt.Errorf("failed to ensure port forwarding session: %w", err)
 				}
 				region, _ := appCtx.Provider.Region()
 				logFile := fmt.Sprintf("ssh-tunnel-%d.log", localPort)
-				sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessionID, region, selectedCluster.PrivateEndpoint, localPort, 6443, logFile)
+				sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessionID, region, targetIP, localPort, 6443, logFile)
 				fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshCmd)
 				cmd := exec.Command("bash", "-lc", sshCmd)
 				cmd.Stdout = appCtx.Stdout
