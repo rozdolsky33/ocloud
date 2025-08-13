@@ -84,29 +84,32 @@ func extractHostname(endpoint string) string {
 	return host
 }
 
-// resolveHostToIP resolves a hostname to a private RFC1918 IPv4 address suitable for Bastion targets.
-// Returns an error if no private IPv4 can be found.
+// resolveHostToIP resolves a hostname to an IP; prefer RFC1918 private IPv4 if available.
 func resolveHostToIP(host string) (string, error) {
 	if host == "" {
 		return "", fmt.Errorf("empty host")
 	}
 	if ip := net.ParseIP(host); ip != nil {
-		if v4 := ip.To4(); v4 != nil && isPrivateRFC1918(v4) {
-			return v4.String(), nil
-		}
-		return "", fmt.Errorf("host %s resolved to non-private IP %s", host, ip.String())
+		return ip.String(), nil
 	}
 	ips, err := net.LookupIP(host)
 	if err != nil || len(ips) == 0 {
 		return "", fmt.Errorf("failed to resolve host %s: %w", host, err)
 	}
-	// Only accept private IPv4
+	// Prefer private IPv4
 	for _, ip := range ips {
 		if v4 := ip.To4(); v4 != nil && isPrivateRFC1918(v4) {
 			return v4.String(), nil
 		}
 	}
-	return "", fmt.Errorf("no private IPv4 found for host %s (got: %v)", host, ips)
+	// Fallback: first IPv4
+	for _, ip := range ips {
+		if v4 := ip.To4(); v4 != nil {
+			return v4.String(), nil
+		}
+	}
+	// Last resort: first IP string
+	return ips[0].String(), nil
 }
 
 func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
