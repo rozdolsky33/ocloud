@@ -434,8 +434,12 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
 				// Resolve the OKE API endpoint host to a private IP suitable for Bastion
 				host := extractHostname(selectedCluster.KubernetesEndpoint)
+				// Fallback to PrivateEndpoint host:port if KubernetesEndpoint is empty or unparsable
 				if host == "" {
-					return fmt.Errorf("could not determine OKE API host from endpoint: %q", selectedCluster.KubernetesEndpoint)
+					host = extractHostname(selectedCluster.PrivateEndpoint)
+				}
+				if host == "" {
+					return fmt.Errorf("could not determine OKE API host from endpoint: kube=%q private=%q", selectedCluster.KubernetesEndpoint, selectedCluster.PrivateEndpoint)
 				}
 				targetIP, err := resolveHostToIP(host)
 				if err != nil {
