@@ -61,19 +61,17 @@ func handleBastionSelection(ctx context.Context, service *bastionSvc.Service, ty
 	var bastions []bastionSvc.Bastion
 	var err error
 
-	// Get the appropriate list of bastions based on the selected type
+	// Get a list of bastions
 	if typeChoice == TypeSession {
 		bastions, err = service.List(ctx)
 		if err != nil {
 			return bastionSvc.Bastion{}, fmt.Errorf("error listing bastions: %w", err)
 		}
-
 		// Filter out non-active bastions
 		bastions = slices.DeleteFunc(bastions, func(b bastionSvc.Bastion) bool {
 			return b.LifecycleState != bastion.BastionLifecycleStateActive
 		})
 	} else {
-		// For other types, show construction animation
 		util.ShowConstructionAnimation()
 		return bastionSvc.Bastion{}, nil
 	}
@@ -128,9 +126,9 @@ func handleSessionTypeSelection(bastionID string) (SessionType, error) {
 }
 
 // handleTargetTypeSelection handles the selection of the target type
-func handleTargetTypeSelection(bastionID string) (TargetType, error) {
+func handleTargetTypeSelection(bastionID string, sessionType SessionType) (TargetType, error) {
 	// Initialize and show the target type selection UI
-	targetTypeModel := NewTargetTypeModel(bastionID)
+	targetTypeModel := NewTargetTypeModel(bastionID, sessionType)
 	targetTypeProgram := tea.NewProgram(targetTypeModel)
 
 	// Run the target type selection TUI and wait for user selection
@@ -342,7 +340,7 @@ func handleOKETarget(ctx context.Context, appCtx *app.ApplicationContext, servic
 		return nil
 	}
 
-	// Find selected cluster
+	// Find the selected cluster
 	var selectedCluster okesvc.Cluster
 	for _, c := range clusters {
 		if c.ID == chosen.Choice() {
@@ -436,7 +434,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 
 	ctx := context.Background()
 
-	// STEP 1: Type Selection
+	// 1: Type Selection
 	typeChoice, err := handleTypeSelection()
 	if err != nil {
 		return err
@@ -452,7 +450,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		return nil
 	}
 
-	// STEP 2: Bastion Selection
+	// 2: Bastion Selection
 	selected, err := handleBastionSelection(ctx, service, typeChoice)
 	if err != nil {
 		return err
@@ -462,7 +460,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		return nil
 	}
 
-	// STEP 3: Session Type Selection
+	// 3: Session Type Selection
 	sessionType, err := handleSessionTypeSelection(selected.ID)
 	if err != nil {
 		return err
@@ -472,8 +470,8 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		return nil
 	}
 
-	// STEP 4: Target Type Selection
-	targetType, err := handleTargetTypeSelection(selected.ID)
+	// 4: Target Type Selection
+	targetType, err := handleTargetTypeSelection(selected.ID, sessionType)
 	if err != nil {
 		return err
 	}
@@ -482,7 +480,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		return nil
 	}
 
-	// STEP 5: Handle a specific target type based on a session type
+	// 5: Handle a specific target type based on a session type
 	switch targetType {
 	case TargetInstance:
 		return handleInstanceTarget(ctx, appCtx, service, selected, sessionType)
@@ -491,7 +489,6 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	case TargetOKE:
 		return handleOKETarget(ctx, appCtx, service, selected, sessionType)
 	default:
-		// Fallback for unknown target types
 		fmt.Printf("\n---\nPrepared %s Session on Bastion: %s (ID: %s)\nTarget: %s\n",
 			sessionType, selected.Name, selected.ID, targetType)
 		return nil

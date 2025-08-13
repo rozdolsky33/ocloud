@@ -203,7 +203,7 @@ func (m SessionTypeModel) Init() tea.Cmd {
 	return nil
 }
 
-// Update handles messages and updates the model accordingly
+// Update handles messages and updates the model
 // This is part of the tea.Model interface
 func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -333,10 +333,20 @@ func (m TargetTypeModel) View() string {
 	return s.String()
 }
 
-// NewTargetTypeModel creates a new TargetTypeModel with the provided bastion ID
-func NewTargetTypeModel(bastionID string) TargetTypeModel {
+// NewTargetTypeModel creates a new TargetTypeModel with the provided bastion ID and session type
+func NewTargetTypeModel(bastionID string, sessionType SessionType) TargetTypeModel {
+	var types []TargetType
+
+	// For Managed SSH, only allow Instance targets
+	if sessionType == TypeManagedSSH {
+		types = []TargetType{TargetInstance}
+	} else {
+		// For Port-Forwarding, allow all target types
+		types = []TargetType{TargetOKE, TargetDatabase, TargetInstance}
+	}
+
 	return TargetTypeModel{
-		Types:     []TargetType{TargetOKE, TargetDatabase, TargetInstance},
+		Types:     types,
 		Cursor:    0,
 		BastionID: bastionID,
 	}
