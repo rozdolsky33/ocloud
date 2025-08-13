@@ -272,15 +272,47 @@ func (s *Service) getClusterNodePools(ctx context.Context, clusterID string) ([]
 // mapToCluster maps an OCI ClusterSummary to our shared Cluster model.
 // It initializes the NodePools field as an empty slice, which will be populated later.
 func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
+	// Safely extract pointer fields that may be nil in some responses
+	id := ""
+	if cluster.Id != nil {
+		id = *cluster.Id
+	}
+	name := ""
+	if cluster.Name != nil {
+		name = *cluster.Name
+	}
+	createdAt := ""
+	if cluster.Metadata != nil && cluster.Metadata.TimeCreated != nil {
+		createdAt = cluster.Metadata.TimeCreated.String()
+	}
+	version := ""
+	if cluster.KubernetesVersion != nil {
+		version = *cluster.KubernetesVersion
+	}
+	privateEndpoint := ""
+	kubeEndpoint := ""
+	if cluster.Endpoints != nil {
+		if cluster.Endpoints.PrivateEndpoint != nil {
+			privateEndpoint = *cluster.Endpoints.PrivateEndpoint
+		}
+		if cluster.Endpoints.Kubernetes != nil {
+			kubeEndpoint = *cluster.Endpoints.Kubernetes
+		}
+	}
+	vcnID := ""
+	if cluster.VcnId != nil {
+		vcnID = *cluster.VcnId
+	}
+
 	return Cluster{
-		ID:                 *cluster.Id,
-		Name:               *cluster.Name,
-		CreatedAt:          cluster.Metadata.TimeCreated.String(),
-		Version:            *cluster.KubernetesVersion,
+		ID:                 id,
+		Name:               name,
+		CreatedAt:          createdAt,
+		Version:            version,
 		State:              cluster.LifecycleState,
-		PrivateEndpoint:    *cluster.Endpoints.PrivateEndpoint,
-		KubernetesEndpoint: *cluster.Endpoints.Kubernetes,
-		VcnID:              *cluster.VcnId,
+		PrivateEndpoint:    privateEndpoint,
+		KubernetesEndpoint: kubeEndpoint,
+		VcnID:              vcnID,
 		NodePools:          []NodePool{},
 		OKETags: util.ResourceTags{
 			FreeformTags: cluster.FreeformTags,
