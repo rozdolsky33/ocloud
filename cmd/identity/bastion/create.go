@@ -352,6 +352,30 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				}
 				fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to OKE cluster %s.\n",
 					sessionTypeModel.Choice, selected.Name, selected.ID, selectedCluster.Name)
+
+				// Prompt for local port to forward to OKE API server (remote 6443)
+				localPort, err := util.PromptPort("Enter local port to forward to OKE API (remote 6443)", 6443)
+				if err != nil {
+					return fmt.Errorf("failed to read port: %w", err)
+				}
+				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
+				// Ensure or create the port forwarding bastion session for the cluster API endpoint IP
+				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, selectedCluster.PrivateEndpoint, 6443, pubKey, 0)
+				if err != nil {
+					return fmt.Errorf("failed to ensure port forwarding session: %w", err)
+				}
+				region, _ := appCtx.Provider.Region()
+				logFile := fmt.Sprintf("ssh-tunnel-%d.log", localPort)
+				sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessionID, region, selectedCluster.PrivateEndpoint, localPort, 6443, logFile)
+				fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshCmd)
+				cmd := exec.Command("bash", "-lc", sshCmd)
+				cmd.Stdout = appCtx.Stdout
+				cmd.Stderr = appCtx.Stderr
+				// no stdin required for nohup background
+				if err := cmd.Run(); err != nil {
+					return fmt.Errorf("failed to start SSH tunnel: %w", err)
+				}
+				fmt.Printf("SSH tunnel to OKE API started in background. Access: https://127.0.0.1:%d (kube-apiserver)\nLogs: %s\n", localPort, logFile)
 				return nil
 			}
 
@@ -399,7 +423,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 				if err != nil {
 					return fmt.Errorf("error creating Instance service: %w", err)
 				}
-				instances, _, _, err := instService.List(ctx, 50, 0, true)
+				instances, _, _, err := instService.List(ctx, 300, 0, true)
 				if err != nil {
 					return fmt.Errorf("error listing instances: %w", err)
 				}
@@ -439,7 +463,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 					return fmt.Errorf("failed to read port: %w", err)
 				}
 				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
-				// Ensure or create the port forwarding bastion session
+				// Ensure or create the port-forwarding bastion session
 				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, selectedInst.IP, port, pubKey, 0)
 				if err != nil {
 					return fmt.Errorf("failed to ensure port forwarding session: %w", err)
