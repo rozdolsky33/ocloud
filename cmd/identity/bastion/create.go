@@ -84,32 +84,29 @@ func extractHostname(endpoint string) string {
 	return host
 }
 
-// resolveHostToIP resolves a hostname to an IP; prefer RFC1918 private IPv4 if available.
+// resolveHostToIP resolves a hostname to a private RFC1918 IPv4 address suitable for Bastion targets.
+// Returns an error if no private IPv4 can be found.
 func resolveHostToIP(host string) (string, error) {
 	if host == "" {
 		return "", fmt.Errorf("empty host")
 	}
 	if ip := net.ParseIP(host); ip != nil {
-		return ip.String(), nil
+		if v4 := ip.To4(); v4 != nil && isPrivateRFC1918(v4) {
+			return v4.String(), nil
+		}
+		return "", fmt.Errorf("host %s resolved to non-private IP %s", host, ip.String())
 	}
 	ips, err := net.LookupIP(host)
 	if err != nil || len(ips) == 0 {
 		return "", fmt.Errorf("failed to resolve host %s: %w", host, err)
 	}
-	// Prefer private IPv4
+	// Only accept private IPv4
 	for _, ip := range ips {
 		if v4 := ip.To4(); v4 != nil && isPrivateRFC1918(v4) {
 			return v4.String(), nil
 		}
 	}
-	// Fallback: first IPv4
-	for _, ip := range ips {
-		if v4 := ip.To4(); v4 != nil {
-			return v4.String(), nil
-		}
-	}
-	// Last resort: first IP string
-	return ips[0].String(), nil
+	return "", fmt.Errorf("no private IPv4 found for host %s (got: %v)", host, ips)
 }
 
 func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
@@ -432,18 +429,30 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 					return fmt.Errorf("failed to read port: %w", err)
 				}
 				pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
-				// Resolve the OKE API endpoint host to a private IP suitable for Bastion
-				host := extractHostname(selectedCluster.KubernetesEndpoint)
-				// Fallback to PrivateEndpoint host:port if KubernetesEndpoint is empty or unparsable
-				if host == "" {
-					host = extractHostname(selectedCluster.PrivateEndpoint)
+				// Resolve the OKE API endpoint host to a private IP suitable for Bastion.
+				// Prefer PrivateEndpoint first; fall back to KubernetesEndpoint only if necessary.
+				candidates := []string{}
+				if h := extractHostname(selectedCluster.PrivateEndpoint); h != "" {
+					candidates = append(candidates, h)
 				}
-				if host == "" {
+				if h := extractHostname(selectedCluster.KubernetesEndpoint); h != "" {
+					candidates = append(candidates, h)
+				}
+				if len(candidates) == 0 {
 					return fmt.Errorf("could not determine OKE API host from endpoint: kube=%q private=%q", selectedCluster.KubernetesEndpoint, selectedCluster.PrivateEndpoint)
 				}
-				targetIP, err := resolveHostToIP(host)
-				if err != nil {
-					return fmt.Errorf("failed to resolve OKE API host %s to IP: %w", host, err)
+				var targetIP string
+				var lastErr error
+				for _, host := range candidates {
+					ip, err := resolveHostToIP(host)
+					if err == nil {
+						targetIP = ip
+						break
+					}
+					lastErr = err
+				}
+				if targetIP == "" {
+					return fmt.Errorf("failed to resolve OKE API endpoint to a private IP: %v", lastErr)
 				}
 				// Ensure or create the port forwarding bastion session for the cluster API endpoint IP
 				sessionID, err := service.EnsurePortForwardSession(ctx, selected.ID, targetIP, 6443, pubKey, 0)
