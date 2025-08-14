@@ -42,6 +42,26 @@ func sanitizeDisplayName(s string) string {
 	return clean
 }
 
+// waitForSessionActive polls the bastion session until it reaches ACTIVE or the context is cancelled.
+// It mirrors the previous inline loops and keeps the small sleep after ACTIVE to ensure readiness.
+func (s *Service) waitForSessionActive(ctx context.Context, sessionID string) error {
+	for {
+		getResp, err := s.bastionClient.GetSession(ctx, bastion.GetSessionRequest{SessionId: &sessionID})
+		if err != nil {
+			return fmt.Errorf("waiting for session ACTIVE: %w", err)
+		}
+		if getResp.Session.LifecycleState == bastion.SessionLifecycleStateActive {
+			time.Sleep(waitPollInterval)
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(waitPollInterval):
+		}
+	}
+}
+
 // EnsurePortForwardSession finds an ACTIVE bastion session targeting the given IP:port and matching the provided public key.
 // If not found, it creates a new session and waits until it becomes ACTIVE, returning the session ID.
 func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targetIP string, port int, publicKeyPath string, ttlSeconds int) (string, error) {
@@ -102,21 +122,8 @@ func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targe
 	sessionID := *crResp.Id
 
 	// 3) Wait for ACTIVE
-	for {
-		getResp, err := s.bastionClient.GetSession(ctx, bastion.GetSessionRequest{SessionId: &sessionID})
-		if err != nil {
-			return "", fmt.Errorf("waiting for session ACTIVE: %w", err)
-		}
-		if getResp.Session.LifecycleState == bastion.SessionLifecycleStateActive {
-			// Extra little delay as immediate connections can sometimes fail even after ACTIVE
-			time.Sleep(waitPollInterval)
-			break
-		}
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-time.After(waitPollInterval):
-		}
+	if err := s.waitForSessionActive(ctx, sessionID); err != nil {
+		return "", err
 	}
 	return sessionID, nil
 }
@@ -182,21 +189,8 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 	sessionID := *crResp.Id
 
 	// Wait for ACTIVE
-	for {
-		getResp, err := s.bastionClient.GetSession(ctx, bastion.GetSessionRequest{SessionId: &sessionID})
-		if err != nil {
-			return "", fmt.Errorf("waiting for session ACTIVE: %w", err)
-		}
-		if getResp.Session.LifecycleState == bastion.SessionLifecycleStateActive {
-			// brief wait to avoid race immediately after ACTIVE
-			time.Sleep(waitPollInterval)
-			break
-		}
-		select {
-		case <-ctx.Done():
-			return "", ctx.Err()
-		case <-time.After(waitPollInterval):
-		}
+	if err := s.waitForSessionActive(ctx, sessionID); err != nil {
+		return "", err
 	}
 	return sessionID, nil
 }
@@ -214,7 +208,7 @@ func BuildManagedSSHCommand(privateKeyPath, sessionID, region, targetIP, targetU
 	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 %s@%s", privateKeyPath, proxy, targetUser, targetIP)
 }
 
-// BuildPortForwardNohupCommand builds a nohup SSH command to run a local port forward via the bastion session in background.
+// BuildPortForwardNohupCommand builds a nohup SSH command to run a local port forward via the bastion session in the background.
 // It matches the example flags and routes localPort to targetIP:remotePort.
 func BuildPortForwardNohupCommand(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int, logPath string) string {
 	realm := "oraclecloud"

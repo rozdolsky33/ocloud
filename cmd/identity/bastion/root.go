@@ -5,20 +5,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewBastionCmd returns the "bastion" command group.
 func NewBastionCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "bastion",
 		Aliases:       []string{"b"},
 		Short:         "Manage OCI Bastion",
-		Long:          "Manage Oracle Cloud Infrastructure Bastions - list created bastions or create new one.",
-		Example:       "  ocloud identity bastion list \n  ocloud identity bastion create",
+		Long:          "Manage Oracle Cloud Infrastructure Bastions: list existing bastions or create sessions.",
+		Example:       "  ocloud identity bastion list\n  ocloud identity bastion create",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-
-	// Add subcommands
 	cmd.AddCommand(NewListCmd(appCtx))
 	cmd.AddCommand(NewCreateCmd(appCtx))
-
 	return cmd
 }

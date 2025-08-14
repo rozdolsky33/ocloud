@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
-func ListBastions(appCtx *app.ApplicationContext, useJSON bool) error {
+func ListBastions(ctx context.Context, appCtx *app.ApplicationContext, useJSON bool) error {
 
 	logger.LogWithLevel(appCtx.Logger, 1, "Listing bastions")
 
@@ -17,7 +17,6 @@ func ListBastions(appCtx *app.ApplicationContext, useJSON bool) error {
 		return fmt.Errorf("creating bastion service: %w", err)
 	}
 
-	ctx := context.Background()
 	bastions, err := service.List(ctx)
 	if err != nil {
 		return fmt.Errorf("listing bastions: %w", err)
