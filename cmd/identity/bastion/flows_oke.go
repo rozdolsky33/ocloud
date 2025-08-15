@@ -8,6 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	okesvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // connectOKE runs the OKE target flow. For Port-Forwarding, it resolves the API
@@ -90,7 +91,8 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	}
 
 	pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
-	sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, targetIP, 6443, pubKey, 0)
+	okeTargetPort := 6443
+	sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, targetIP, okeTargetPort, pubKey)
 	if err != nil {
 		return fmt.Errorf("ensure port forward: %w", err)
 	}
@@ -100,9 +102,13 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		return fmt.Errorf("get region: %w", regErr)
 	}
 
-	localPort := 6443 // you can prompt for this if you prefer
+	port, err := util.PromptPort("Enter port to forward (local:target)", okeTargetPort)
+	if err != nil {
+		return fmt.Errorf("read port: %w", err)
+	}
+	localPort := port
 	logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", localPort)
-	sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessID, region, targetIP, localPort, 6443, logFile)
+	sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessID, region, targetIP, localPort, okeTargetPort, logFile)
 
 	fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshCmd)
 	if err := RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {

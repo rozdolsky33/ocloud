@@ -64,10 +64,7 @@ func (s *Service) waitForSessionActive(ctx context.Context, sessionID string) er
 
 // EnsurePortForwardSession finds an ACTIVE bastion session targeting the given IP:port and matching the provided public key.
 // If not found, it creates a new session and waits until it becomes ACTIVE, returning the session ID.
-func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targetIP string, port int, publicKeyPath string, ttlSeconds int) (string, error) {
-	if ttlSeconds <= 0 {
-		ttlSeconds = defaultTTL
-	}
+func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targetIP string, port int, publicKeyPath string) (string, error) {
 	pubKeyData, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return "", fmt.Errorf("reading public key: %w", err)
@@ -112,7 +109,7 @@ func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targe
 			},
 			KeyDetails:          &bastion.PublicKeyDetails{PublicKeyContent: &pubKey},
 			DisplayName:         common.String(displayName),
-			SessionTtlInSeconds: common.Int(ttlSeconds),
+			SessionTtlInSeconds: common.Int(defaultTTL),
 		},
 	}
 	crResp, err := s.bastionClient.CreateSession(ctx, createReq)
