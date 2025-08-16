@@ -143,12 +143,9 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		kc.CurrentContext = ctxName
 	}
 
-	data, err := yaml.Marshal(&kc)
-	if err != nil {
-		return fmt.Errorf("marshal kubeconfig: %w", err)
-	}
-
-	// backup if exists
+	// Prepare YAML with explicit 2-space indentation for consistency
+	// and write atomically to the target file.
+	// Backup if exists first.
 	if _, err := os.Stat(cfgPath); err == nil {
 		if old, err := os.ReadFile(cfgPath); err == nil {
 			bak := cfgPath + ".bak"
@@ -156,8 +153,20 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		}
 	}
 
-	if err := os.WriteFile(cfgPath, data, 0o600); err != nil {
-		return fmt.Errorf("write kubeconfig: %w", err)
+	f, err := os.OpenFile(cfgPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("open kubeconfig for write: %w", err)
+	}
+	defer f.Close()
+
+	enc := yaml.NewEncoder(f)
+	enc.SetIndent(2)
+	if err := enc.Encode(&kc); err != nil {
+		_ = enc.Close()
+		return fmt.Errorf("marshal kubeconfig: %w", err)
+	}
+	if err := enc.Close(); err != nil {
+		return fmt.Errorf("finalize kubeconfig write: %w", err)
 	}
 	return nil
 }
