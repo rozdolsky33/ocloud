@@ -3,6 +3,8 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -88,11 +90,26 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 			return fmt.Errorf("ensure port forward: %w", err)
 		}
 		logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", port)
-		sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessID, region, inst.IP, port, port, logFile)
-		fmt.Printf("\nStarting background tunnel: %s\n\n", sshCmd)
-		if err := bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {
-			return fmt.Errorf("start SSH tunnel: %w", err)
+		sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, inst.IP, port, port)
+		if err != nil {
+			return fmt.Errorf("build args: %w", err)
 		}
+
+		fmt.Printf("\nStarting background tunnel: %s\n\n", sshTunnelArgs)
+		pid, err := bastionSvc.SpawnDetached(sshTunnelArgs, "/tmp/ssh-tunnel.log")
+
+		if err != nil {
+			return fmt.Errorf("spawn detached: %w", err)
+		}
+		log.Printf("spawned tunnel pid=%d", pid)
+
+		// (optional)
+		if err := bastionSvc.WaitForListen(defaultPort, 5*time.Second); err != nil {
+			log.Printf("warning: %v", err)
+		}
+
+		fmt.Printf("\nStarting background tunnel: %s\n\n", sshTunnelArgs)
+
 		fmt.Printf("SSH tunnel started in background. Logs: %s\n", logFile)
 		return nil
 	default:

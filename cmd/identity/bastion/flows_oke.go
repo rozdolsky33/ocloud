@@ -123,15 +123,12 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	log.Printf("spawned tunnel pid=%d", pid)
 
 	// (optional)
-	if err := bastionSvc.WaitForListen(6443, 5*time.Second); err != nil {
+	if err := bastionSvc.WaitForListen(okeTargetPort, 5*time.Second); err != nil {
 		log.Printf("warning: %v", err)
 	}
 
 	fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshTunnelArgs)
 
-	//if err := bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {
-	//	return fmt.Errorf("start SSH tunnel: %w", err)
-	//}
 	fmt.Printf("SSH tunnel to OKE API started. Access: https://127.0.0.1:%d (kube-apiserver)\nLogs: %s\n",
 		localPort, logFile)
 	return nil

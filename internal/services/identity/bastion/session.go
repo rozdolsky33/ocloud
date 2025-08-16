@@ -31,8 +31,7 @@ func DefaultSSHKeyPaths() (publicKeyPath, privateKeyPath string) {
 	return filepath.Join(sessionDir, "id_rsa.pub"), filepath.Join(sessionDir, "id_rsa")
 }
 
-// sanitizeDisplayName ensures only allowed characters [A-Za-z0-9._+@-] and max length 255.
-// Any disallowed rune is replaced with '-'. If a result is empty, returns a safe fallback.
+// sanitizeDisplayName ensures the given string is a valid and safe display name by removing invalid characters and truncating the length.
 func sanitizeDisplayName(s string) string {
 	allowed := regexp.MustCompile(`[^A-Za-z0-9._+@-]`)
 	clean := allowed.ReplaceAllString(s, "-")
@@ -208,37 +207,8 @@ func BuildManagedSSHCommand(privateKeyPath, sessionID, region, targetIP, targetU
 	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 %s@%s", privateKeyPath, proxy, targetUser, targetIP)
 }
 
-// BuildPortForwardNohupCommand builds a nohup SSH command to run a local port forward via the bastion session in the background.
-// It matches the example flags and routes localPort to targetIP:remotePort.
-func BuildPortForwardNohupCommand(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int, logPath string) string {
-	realm := "oraclecloud"
-	parts := strings.Split(sessionID, ".")
-	if len(parts) > 2 && strings.Contains(parts[2], "2") {
-		realm = "oraclegovcloud"
-	}
-	bastionHost := fmt.Sprintf("%s@host.bastion.%s.oci.%s.com", sessionID, region, realm)
-	if logPath == "" {
-		logPath = "ssh-tunnel.log"
-	}
-	return fmt.Sprintf(
-		"nohup ssh -i %s -o StrictHostKeyChecking=accept-new -o HostkeyAlgorithms=+ssh-rsa -o PubkeyAcceptedKeyTypes=+ssh-rsa -N -L %d:%s:%d -p 22 %s > %s 2>&1 &",
-		privateKeyPath, localPort, targetIP, remotePort, bastionHost, logPath,
-	)
-}
-
-func BuildPortForwardCommand(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int) string {
-	realm := "oraclecloud"
-	parts := strings.Split(sessionID, ".")
-	if len(parts) > 2 && strings.Contains(parts[2], "2") {
-		realm = "oraclegovcloud"
-	}
-	bastionHost := fmt.Sprintf("%s@host.bastion.%s.oci.%s.com", sessionID, region, realm)
-	return fmt.Sprintf(
-		"-i %s -o StrictHostKeyChecking=accept-new -o HostkeyAlgorithms=+ssh-rsa -o PubkeyAcceptedKeyTypes=+ssh-rsa -N -L %d:%s:%d -p 22 %s",
-		privateKeyPath, localPort, targetIP, remotePort, bastionHost,
-	)
-}
-
+// BuildPortForwardArgs constructs SSH command arguments for establishing a secure port-forwarding tunnel.
+// It handles path expansion for the private key, determines the correct realm domain, and formats connection options.
 func BuildPortForwardArgs(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int) ([]string, error) {
 	// Expand "~" if present
 	key, err := expandTilde(privateKeyPath)
@@ -311,7 +281,8 @@ func SpawnDetached(args []string, logfile string) (int, error) {
 	return pid, nil
 }
 
-// Optional: wait until the localPort is listening (nice UX).
+// WaitForListen wait until the localPort is listening (nice UX).
+// This is not strictly necessary, but it helps to avoid "connection refused" errors.
 func WaitForListen(localPort int, timeout time.Duration) error {
 	addr := fmt.Sprintf("127.0.0.1:%d", localPort)
 	deadline := time.Now().Add(timeout)
