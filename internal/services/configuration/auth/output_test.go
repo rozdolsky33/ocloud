@@ -1,9 +1,10 @@
 package auth
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestDisplayRegionsTable tests the DisplayRegionsTable function

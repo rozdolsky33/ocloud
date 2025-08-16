@@ -2,10 +2,11 @@ package util
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
-	"strings"
 )
 
 // MarshalDataToJSONResponse now accepts a printer and returns an error.

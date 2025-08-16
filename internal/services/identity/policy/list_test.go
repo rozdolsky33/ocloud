@@ -1,11 +1,12 @@
 package policy
 
 import (
+	"io"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 // TestListPoliciesSimple is a simplified test for the ListPolicies function

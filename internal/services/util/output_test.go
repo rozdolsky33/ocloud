@@ -3,10 +3,11 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // TestMarshalDataToJSON tests the MarshalDataToJSONResponse function
