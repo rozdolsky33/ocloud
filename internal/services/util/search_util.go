@@ -2,10 +2,11 @@ package util
 
 import (
 	"fmt"
-	"github.com/blevesearch/bleve/v2"
-	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
 	"strconv"
 	"strings"
+
+	"github.com/blevesearch/bleve/v2"
+	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
 )
 
 // BuildIndex creates an in-memory Bleve index from a slice of items using a provided mapping function.

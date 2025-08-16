@@ -11,7 +11,7 @@ func TestAuthenticateWithOCI_MockedService(t *testing.T) {
 	t.Skip("Skipping test that requires extensive mocking")
 
 	// In a real test environment, we would need to:
-	// 1. Create a mock for NewService function
+	// 1. Create a mock for the NewService function
 	// 2. Create a mock for performInteractiveAuthentication method
 	// 3. Create a mock for PrintExportVariable function
 	// 4. Create a mock for the util.PromptYesNo function

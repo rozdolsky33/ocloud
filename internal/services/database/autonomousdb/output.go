@@ -9,7 +9,6 @@ import (
 // PrintAutonomousDbInfo displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
 func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
 	// Adjust the pagination information if available
@@ -19,7 +18,7 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		// Special case for empty databases list - return empty object
+		// Special case for empty databases list - return an empty object
 		if len(databases) == 0 && pagination == nil {
 			return p.MarshalToJSON(struct{}{})
 		}
@@ -33,7 +32,6 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 	for _, database := range databases {
 		databaseData := map[string]string{
 			"Private IP":       database.PrivateEndpointIp,
-			"ID":               database.ID,
 			"Private Endpoint": database.PrivateEndpoint,
 			"High":             database.ConnectionStrings["HIGH"],
 			"Medium":           database.ConnectionStrings["MEDIUM"],
@@ -41,7 +39,7 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 		}
 		// Define ordered Keys
 		orderedKeys := []string{
-			"Private IP", "ID", "Private Endpoint", "High", "Medium", "Low",
+			"Private IP", "Private Endpoint", "High", "Medium", "Low",
 		}
 
 		title := util.FormatColoredTitle(appCtx, database.Name)

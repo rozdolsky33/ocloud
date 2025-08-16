@@ -2,10 +2,11 @@ package subnet
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // TestListSubnets tests the ListSubnets function
@@ -15,11 +16,11 @@ func TestListSubnets(t *testing.T) {
 
 	// This is a placeholder test that would normally test the ListSubnets function
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Call ListSubnets with different parameters
 	// 3. Verify that the output contains the expected information
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout

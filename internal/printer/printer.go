@@ -3,13 +3,14 @@ package printer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
-	"golang.org/x/term"
 	"io"
 	"os"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
+	"golang.org/x/term"
 )
 
 // Printer handles formatting and writing output to a designated writer.

@@ -8,10 +8,10 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Check that the printer was created correctly
@@ -26,10 +26,10 @@ func TestNew(t *testing.T) {
 }
 
 func TestMarshalToJSON(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Test data
@@ -60,10 +60,10 @@ func TestMarshalToJSON(t *testing.T) {
 }
 
 func TestPrintKeyValues(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Test data
@@ -94,10 +94,10 @@ func TestPrintKeyValues(t *testing.T) {
 }
 
 func TestPrintKeyValues_EmptyData(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Test with empty data
@@ -115,10 +115,10 @@ func TestPrintKeyValues_EmptyData(t *testing.T) {
 }
 
 func TestPrintKeyValues_MissingKey(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Test with a key that doesn't exist in the data
@@ -146,10 +146,10 @@ func TestPrintKeyValues_MissingKey(t *testing.T) {
 }
 
 func TestPrintTable(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Test data
@@ -186,10 +186,10 @@ func TestPrintTable(t *testing.T) {
 }
 
 func TestPrintTable_EmptyData(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a new printer with the buffer as output
+	// Create a new printer with the buffer as an output
 	p := New(&buf)
 
 	// Test with empty data

@@ -1,11 +1,12 @@
 package subnet
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
-	"sort"
-	"strings"
 )
 
 // PrintSubnetTable displays a table of subnets with details such as name, CIDR, and DNS info.
@@ -105,7 +106,6 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 			publicIPAllowed = "Yes"
 		}
 		subnetData := map[string]string{
-			"ID":            subnet.ID,
 			"Name":          subnet.Name,
 			"Public IP":     publicIPAllowed,
 			"CIDR":          subnet.CIDR,
@@ -115,7 +115,7 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "Name", "Public IP", "CIDR", "DNS Label", "Subnet Domain",
+			"Name", "Public IP", "CIDR", "DNS Label", "Subnet Domain",
 		}
 
 		// Create the colored title using components from the app context

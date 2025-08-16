@@ -1,11 +1,12 @@
 package compartment
 
 import (
+	"io"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 // TestListCompartmentsSimple is a simplified test for the ListCompartments function

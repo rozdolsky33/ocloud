@@ -3,12 +3,13 @@ package image
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
-	"strings"
 )
 
 // NewService initializes a new Service instance with the provided application context.

@@ -2,12 +2,13 @@ package logger
 
 import (
 	"fmt"
-	"github.com/go-logr/logr"
-	"k8s.io/klog/v2"
 	"log/slog"
 	"os"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
+
+	"github.com/go-logr/logr"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (

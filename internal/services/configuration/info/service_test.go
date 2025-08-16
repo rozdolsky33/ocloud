@@ -21,7 +21,7 @@ func TestLoadTenancyMappings(t *testing.T) {
 	// Create a new service
 	service := NewService()
 
-	// Test with real implementation (skip if file not available)
+	// Test with a real implementation (skip if a file not available)
 	t.Run("Real implementation", func(t *testing.T) {
 		// Test with empty realm
 		result, err := service.LoadTenancyMappings("")

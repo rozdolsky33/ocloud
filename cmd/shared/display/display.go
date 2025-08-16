@@ -3,15 +3,16 @@ package display
 import (
 	"context"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/rozdolsky33/ocloud/buildinfo"
-	"github.com/rozdolsky33/ocloud/internal/config"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/fatih/color"
+	"github.com/rozdolsky33/ocloud/buildinfo"
+	"github.com/rozdolsky33/ocloud/internal/config"
 
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
@@ -76,7 +77,7 @@ func CheckOCIAuthRefresherStatus() RefresherStatus {
 		}
 	}
 
-	pidFilePath := filepath.Join(homeDir, flags.OCIConfigDirName, "sessions", profile, "refresher.pid")
+	pidFilePath := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, flags.OCIRefresherPIDFileName)
 
 	pidBytes, err := os.ReadFile(pidFilePath)
 	if err != nil {
@@ -145,6 +146,16 @@ func PrintOCIConfiguration() {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), profile)
 	}
 
+	region, err := config.LoadOCIConfig().Region()
+
+	if profile == "" {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyRegion), redStyle.Sprint("Not set - Please set profile first"))
+	} else if err != nil {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyRegion), redStyle.Sprintf("Error loading region: %v", err))
+	} else {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyRegion), region)
+	}
+
 	tenancyName := os.Getenv(flags.EnvKeyTenancyName)
 	if tenancyName == "" {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyName), redStyle.Sprint("Not set - Please set tenancy"))
@@ -163,7 +174,7 @@ func PrintOCIConfiguration() {
 	fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyAutoRefresher), refresherStatus.Display)
 
 	path := config.TenancyMapPath()
-	_, err := os.Stat(path)
+	_, err = os.Stat(path)
 
 	if os.IsNotExist(err) {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), redStyle.Sprint("Not set (file not found)"))

@@ -4,16 +4,17 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/rozdolsky33/ocloud/internal/config/flags"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
-	"github.com/rozdolsky33/ocloud/scripts"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/configuration/info"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
+	"github.com/rozdolsky33/ocloud/scripts"
 
 	"github.com/pkg/errors"
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -313,8 +314,9 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 	pid := cmd.Process.Pid
 	logger.LogWithLevel(logger.Logger, 1, "OCI auth refresher script started", "profile", profile, "pid", pid)
 	// Write refresher PID to a profile session
-	profileDir := filepath.Join(homeDir, flags.OCIConfigDirName, "sessions", profile)
-	if err := os.WriteFile(fmt.Sprintf("%s/refresher.pid", profileDir), []byte(strconv.Itoa(pid)), 0o644); err != nil {
+	profileDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile)
+	pidFile := filepath.Join(profileDir, flags.OCIRefresherPIDFileName)
+	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(pid)), 0o644); err != nil {
 		return fmt.Errorf("failed to write OCI auth refresher script pid to file: %w", err)
 	}
 

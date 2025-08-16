@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"io"
 )
 
 // LogPaginationInfo logs pagination information if available and prints it to the output.
@@ -73,4 +74,9 @@ func ValidateAndReportEmpty[T any](items []T, pagination *PaginationInfo, out io
 		}
 	}
 	return true
+}
+
+// ShowConstructionAnimation displays a placeholder animation indicating that a feature is under construction.
+func ShowConstructionAnimation() {
+	fmt.Println("🚧 This feature is not implemented yet. Coming soon!")
 }

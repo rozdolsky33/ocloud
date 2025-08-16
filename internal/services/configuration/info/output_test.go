@@ -1,10 +1,11 @@
 package info
 
 import (
-	appConfig "github.com/rozdolsky33/ocloud/internal/config"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	appConfig "github.com/rozdolsky33/ocloud/internal/config"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestPrintMappingsFile tests the PrintMappingsFile function
