@@ -21,29 +21,3 @@ func RunShell(ctx context.Context, stdout, stderr io.Writer, cmdLine string) err
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
 }
-
-//func SpawnDetached(cmdLine string) error {
-//
-//	cmd := exec.Command("ssh", cmdLine)
-//	// Detach from this terminal/session so it survives after we exit.
-//	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
-//	// Don't inherit our stdio; log to a file instead.
-//	f, err := os.OpenFile("/tmp/ssh-tunnel.log",
-//		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	defer f.Close()
-//	cmd.Stdout = f
-//	cmd.Stderr = f
-//	cmd.Stdin = nil
-//
-//	// Start and release so we don't wait on it.
-//	if err := cmd.Start(); err != nil {
-//		log.Fatal(err)
-//	}
-//	log.Printf("spawned tunnel pid=%d", cmd.Process.Pid)
-//	_ = cmd.Process.Release()
-//
-//	return nil
-//}

@@ -238,6 +238,7 @@ func BuildPortForwardArgs(privateKeyPath, sessionID, region, targetIP string, lo
 	return args, nil
 }
 
+// expandTilde resolves paths beginning with "~" to the current user's home directory, returning the expanded path or an error.
 func expandTilde(p string) (string, error) {
 	if strings.HasPrefix(p, "~") {
 		home, err := os.UserHomeDir()

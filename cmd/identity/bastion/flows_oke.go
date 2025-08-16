@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/config"
 	okesvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -34,11 +35,11 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 
 	cm := NewOKEListModelFancy(clusters)
 	cp := tea.NewProgram(cm, tea.WithContext(ctx))
-	cres, err := cp.Run()
+	userSelection, err := cp.Run()
 	if err != nil {
 		return fmt.Errorf("OKE selection TUI: %w", err)
 	}
-	chosen, ok := cres.(ResourceListModel)
+	chosen, ok := userSelection.(ResourceListModel)
 	if !ok || chosen.Choice() == "" {
 		return ErrAborted
 	}
@@ -59,11 +60,6 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 
 	fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to OKE cluster %s.\n",
 		sType, b.Name, b.ID, cluster.Name)
-
-	if sType != TypePortForwarding {
-		// Managed SSH doesn't apply to OKE; just acknowledge prep.
-		return nil
-	}
 
 	// For PF: resolve endpoint -> private IP, then tunnel to 6443
 	candidates := []string{}
@@ -108,6 +104,27 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	if err != nil {
 		return fmt.Errorf("read port: %w", err)
 	}
+
+	if IsLocalTCPPortInUse(port) {
+		return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", port)
+	}
+
+	// Ensure kubeconfig only if missing; prompt the user before creating/merging
+	exists, err := okesvc.KubeconfigExistsForOKE(cluster, region, config.GetOCIProfile())
+	if err != nil {
+		return fmt.Errorf("check kubeconfig: %w", err)
+	}
+	if !exists {
+		question := "Kubeconfig for this OKE cluster was not found in ~/.kube/config. Create and merge it now?"
+		if util.PromptYesNo(question) {
+			if err := okesvc.EnsureKubeconfigForOKE(cluster, region, config.GetOCIProfile(), port); err != nil {
+				return fmt.Errorf("ensure kubeconfig: %w", err)
+			}
+		} else {
+			fmt.Println("Skipping kubeconfig creation for this OKE cluster.")
+		}
+	}
+
 	localPort := port
 	logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", localPort)
 	sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, targetIP, localPort, okeTargetPort)

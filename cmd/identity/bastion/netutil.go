@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 // extractHostname removes schema/port/path and returns just the host portion.
@@ -39,4 +40,16 @@ func resolveHostToIP(ctx context.Context, hostname string) (string, error) {
 		return "", fmt.Errorf("no IPs found for hostname %s", hostname)
 	}
 	return ips[0].String(), nil
+}
+
+// IsLocalTCPPortInUse checks if something is already listening on 127.0.0.1:port.
+// It uses a short dial attempt; if successful, the port is in use.
+func IsLocalTCPPortInUse(port int) bool {
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	c, err := net.DialTimeout("tcp", addr, 300*time.Millisecond)
+	if err == nil {
+		_ = c.Close()
+		return true
+	}
+	return false
 }
