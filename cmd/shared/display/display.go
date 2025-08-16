@@ -146,6 +146,16 @@ func PrintOCIConfiguration() {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyProfile), profile)
 	}
 
+	region, err := config.LoadOCIConfig().Region()
+
+	if profile == "" {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyRegion), redStyle.Sprint("Not set - Please set profile first"))
+	} else if err != nil {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyRegion), redStyle.Sprintf("Error loading region: %v", err))
+	} else {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyRegion), region)
+	}
+
 	tenancyName := os.Getenv(flags.EnvKeyTenancyName)
 	if tenancyName == "" {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyName), redStyle.Sprint("Not set - Please set tenancy"))
@@ -164,7 +174,7 @@ func PrintOCIConfiguration() {
 	fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyAutoRefresher), refresherStatus.Display)
 
 	path := config.TenancyMapPath()
-	_, err := os.Stat(path)
+	_, err = os.Stat(path)
 
 	if os.IsNotExist(err) {
 		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyTenancyMapPath), redStyle.Sprint("Not set (file not found)"))
