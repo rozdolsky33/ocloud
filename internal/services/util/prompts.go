@@ -28,7 +28,7 @@ func PromptYesNo(question string) bool {
 	}
 }
 
-// PromptPort prompts the user to enter a TCP port. If the user enters empty input, defaultPort is returned.
+// PromptPort prompts the user to enter a TCP port. If the user enters empty input, the defaultPort is returned.
 // It validates the port is in range [1, 65535].
 func PromptPort(question string, defaultPort int) (int, error) {
 	reader := bufio.NewReader(os.Stdin)
@@ -53,4 +53,23 @@ func PromptPort(question string, defaultPort int) (int, error) {
 		}
 		return p, nil
 	}
+}
+
+// PromptString prompts the user to enter a string. If the user enters empty input and defaultVal is provided, defaultVal is returned.
+func PromptString(question string, defaultVal string) (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+	if strings.TrimSpace(defaultVal) != "" {
+		fmt.Printf("%s [%s]: ", question, defaultVal)
+	} else {
+		fmt.Printf("%s: ", question)
+	}
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return defaultVal, nil
+	}
+	return input, nil
 }

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	util "github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // kubeconfig model (unexported)
@@ -106,6 +108,16 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		hasNamed(kc.Clusters, func(n namedCluster) bool { return n.Name == cName }) &&
 		hasNamed(kc.Contexts, func(n namedContext) bool { return n.Name == ctxName }) {
 		return nil
+	}
+
+	// Ask a user if they want a custom context name
+	if util.PromptYesNo(fmt.Sprintf("Do you want to enter a custom kube context name for this cluster? (Default is '%s')", ctxName)) {
+		if name, err := util.PromptString("Enter kube context name", ctxName); err == nil {
+			name = strings.TrimSpace(name)
+			if name != "" {
+				ctxName = name
+			}
+		}
 	}
 
 	server := fmt.Sprintf("https://127.0.0.1:%d", localPort)
