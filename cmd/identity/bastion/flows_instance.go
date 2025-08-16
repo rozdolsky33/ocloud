@@ -75,7 +75,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		}
 		sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessID, region, inst.IP, sshUser)
 		fmt.Printf("\nExecuting: %s\n\n", sshCmd)
-		return RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
+		return bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
 		//TODO: verify approach
 	case TypePortForwarding:
 		defaultPort := 5901
@@ -90,7 +90,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", port)
 		sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessID, region, inst.IP, port, port, logFile)
 		fmt.Printf("\nStarting background tunnel: %s\n\n", sshCmd)
-		if err := RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {
+		if err := bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {
 			return fmt.Errorf("start SSH tunnel: %w", err)
 		}
 		fmt.Printf("SSH tunnel started in background. Logs: %s\n", logFile)

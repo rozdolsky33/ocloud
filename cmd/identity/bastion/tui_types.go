@@ -39,21 +39,25 @@ const (
 	TypeSession BastionType = "Session"
 )
 
-// ─── Type Selection ─────────────────────────────────────────────────────────────
-
+// TypeSelectionModel defines a TUI model for selecting a BastionType from a list of available types.
 type TypeSelectionModel struct {
 	Cursor int
 	Choice BastionType
 	Types  []BastionType
 }
 
+// NewTypeSelectionModel creates a new TypeSelectionModel.
 func NewTypeSelectionModel() TypeSelectionModel {
 	return TypeSelectionModel{
 		Types:  []BastionType{TypeBastion, TypeSession},
 		Cursor: 0,
 	}
 }
+
+// Init initializes the TypeSelectionModel and returns a command.
 func (m TypeSelectionModel) Init() tea.Cmd { return nil }
+
+// Update processes input messages to update the model's state and returns the updated model and an optional command.
 func (m TypeSelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -76,6 +80,8 @@ func (m TypeSelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// View returns a string representation of the model's state.'
 func (m TypeSelectionModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a type:\n\n")
@@ -90,18 +96,23 @@ func (m TypeSelectionModel) View() string {
 	return b.String()
 }
 
-// ─── Bastion Selection ──────────────────────────────────────────────────────────
-
+// BastionModel --------------------------------------Bastion Selection------------------------------------------------
+// BastionModel Bastion Selection
 type BastionModel struct {
 	Cursor   int
 	Choice   string
 	Bastions []bastionSvc.Bastion
 }
 
+// NewBastionModel creates a BastionModel instance with the provided list of bastions and initializes the cursor to 0.
 func NewBastionModel(bastions []bastionSvc.Bastion) BastionModel {
 	return BastionModel{Bastions: bastions, Cursor: 0}
 }
+
+// Init initializes the BastionModel and returns an optional command to execute.
 func (m BastionModel) Init() tea.Cmd { return nil }
+
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.
 func (m BastionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -138,8 +149,7 @@ func (m BastionModel) View() string {
 	return b.String()
 }
 
-// ─── Session Type Selection ─────────────────────────────────────────────────────
-
+// SessionTypeModel Session Type Selection
 type SessionTypeModel struct {
 	Cursor    int
 	Choice    SessionType
@@ -154,7 +164,11 @@ func NewSessionTypeModel(bastionID string) SessionTypeModel {
 		BastionID: bastionID,
 	}
 }
+
+// Init initializes the SessionTypeModel and returns an optional command to execute.
 func (m SessionTypeModel) Init() tea.Cmd { return nil }
+
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.'
 func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -177,6 +191,8 @@ func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// View returns a string representation of the model's state.'
 func (m SessionTypeModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a session type:\n\n")
@@ -191,8 +207,7 @@ func (m SessionTypeModel) View() string {
 	return b.String()
 }
 
-// ─── Target Type Selection ──────────────────────────────────────────────────────
-
+// TargetTypeModel Target Type Selection
 type TargetTypeModel struct {
 	Cursor    int
 	Choice    TargetType
@@ -200,6 +215,7 @@ type TargetTypeModel struct {
 	BastionID string
 }
 
+// NewTargetTypeModel creates a new TargetTypeModel instance with the provided list of target types and bastion ID.
 func NewTargetTypeModel(bastionID string, sessionType SessionType) TargetTypeModel {
 	var types []TargetType
 	if sessionType == TypeManagedSSH {
@@ -209,7 +225,11 @@ func NewTargetTypeModel(bastionID string, sessionType SessionType) TargetTypeMod
 	}
 	return TargetTypeModel{Types: types, Cursor: 0, BastionID: bastionID}
 }
+
+// Init initializes the TargetTypeModel and returns an optional command to execute.
 func (m TargetTypeModel) Init() tea.Cmd { return nil }
+
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.'
 func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -232,6 +252,8 @@ func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// View returns a string representation of the model's state.'
 func (m TargetTypeModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a target type:\n\n")
@@ -246,8 +268,8 @@ func (m TargetTypeModel) View() string {
 	return b.String()
 }
 
-// ─── Fancy searchable lists (Instances / OKE / DB) ─────────────────────────────
-
+// ----------------------------------Fancy searchable lists (Instances / OKE / DB)--------------------------------------
+// resourceItem defines a resource item for a list.
 type resourceItem struct {
 	id, title, description string
 }
@@ -256,6 +278,7 @@ func (i resourceItem) Title() string       { return i.title }
 func (i resourceItem) Description() string { return i.description }
 func (i resourceItem) FilterValue() string { return i.title + " " + i.description }
 
+// ResourceListModel defines a TUI model for displaying a list of resources.
 type ResourceListModel struct {
 	list   list.Model
 	choice string
@@ -303,6 +326,8 @@ func newResourceList(title string, items []list.Item) ResourceListModel {
 	return rm
 }
 
+// NewInstanceListModelFancy creates a ResourceListModel to display instances in a searchable and interactive list.
+// It transforms each instance into a resourceItem with its name, ID, and VCN name as attributes.
 func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListModel {
 	items := make([]list.Item, 0, len(instances))
 	for _, inst := range instances {
@@ -326,6 +351,7 @@ func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListMod
 	return newResourceList("Instances", items)
 }
 
+// NewOKEListModelFancy creates a ResourceListModel to display OKE clusters in a searchable and interactive list.
 func NewOKEListModelFancy(clusters []okeSvc.Cluster) ResourceListModel {
 	items := make([]list.Item, 0, len(clusters))
 	for _, c := range clusters {
@@ -338,6 +364,8 @@ func NewOKEListModelFancy(clusters []okeSvc.Cluster) ResourceListModel {
 	return newResourceList("OKE Clusters", items)
 }
 
+// NewDBListModelFancy creates a ResourceListModel populated with a list of autonomous databases for TUI display.
+// It transforms each database into a resourceItem with its name, ID, and private endpoint as attributes.
 func NewDBListModelFancy(dbs []autonomousdbSvc.AutonomousDatabase) ResourceListModel {
 	items := make([]list.Item, 0, len(dbs))
 	for _, d := range dbs {

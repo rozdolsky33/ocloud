@@ -3,6 +3,8 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -108,12 +110,28 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	}
 	localPort := port
 	logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", localPort)
-	sshCmd := bastionSvc.BuildPortForwardNohupCommand(privKey, sessID, region, targetIP, localPort, okeTargetPort, logFile)
+	sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, targetIP, localPort, okeTargetPort)
 
-	fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshCmd)
-	if err := RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {
-		return fmt.Errorf("start SSH tunnel: %w", err)
+	if err != nil {
+		return fmt.Errorf("build args: %w", err)
 	}
+
+	pid, err := bastionSvc.SpawnDetached(sshTunnelArgs, "/tmp/ssh-tunnel.log")
+	if err != nil {
+		return fmt.Errorf("spawn detached: %w", err)
+	}
+	log.Printf("spawned tunnel pid=%d", pid)
+
+	// (optional)
+	if err := bastionSvc.WaitForListen(6443, 5*time.Second); err != nil {
+		log.Printf("warning: %v", err)
+	}
+
+	fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshTunnelArgs)
+
+	//if err := bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd); err != nil {
+	//	return fmt.Errorf("start SSH tunnel: %w", err)
+	//}
 	fmt.Printf("SSH tunnel to OKE API started. Access: https://127.0.0.1:%d (kube-apiserver)\nLogs: %s\n",
 		localPort, logFile)
 	return nil

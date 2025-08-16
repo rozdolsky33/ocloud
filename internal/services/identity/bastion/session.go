@@ -3,10 +3,13 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/bastion"
@@ -221,4 +224,104 @@ func BuildPortForwardNohupCommand(privateKeyPath, sessionID, region, targetIP st
 		"nohup ssh -i %s -o StrictHostKeyChecking=accept-new -o HostkeyAlgorithms=+ssh-rsa -o PubkeyAcceptedKeyTypes=+ssh-rsa -N -L %d:%s:%d -p 22 %s > %s 2>&1 &",
 		privateKeyPath, localPort, targetIP, remotePort, bastionHost, logPath,
 	)
+}
+
+func BuildPortForwardCommand(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int) string {
+	realm := "oraclecloud"
+	parts := strings.Split(sessionID, ".")
+	if len(parts) > 2 && strings.Contains(parts[2], "2") {
+		realm = "oraclegovcloud"
+	}
+	bastionHost := fmt.Sprintf("%s@host.bastion.%s.oci.%s.com", sessionID, region, realm)
+	return fmt.Sprintf(
+		"-i %s -o StrictHostKeyChecking=accept-new -o HostkeyAlgorithms=+ssh-rsa -o PubkeyAcceptedKeyTypes=+ssh-rsa -N -L %d:%s:%d -p 22 %s",
+		privateKeyPath, localPort, targetIP, remotePort, bastionHost,
+	)
+}
+
+func BuildPortForwardArgs(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int) ([]string, error) {
+	// Expand "~" if present
+	key, err := expandTilde(privateKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("expand key path: %w", err)
+	}
+
+	// Decide realm domain based on OCID (oc2/oc3 => gov)
+	realmDomain := "oraclecloud.com"
+	if strings.Contains(sessionID, ".oc2.") || strings.Contains(sessionID, ".oc3.") {
+		realmDomain = "oraclegovcloud.com"
+	}
+
+	bastionUser := fmt.Sprintf("%s@host.bastion.%s.oci.%s", sessionID, region, realmDomain)
+
+	args := []string{
+		"-i", key,
+		"-o", "StrictHostKeyChecking=accept-new",
+		// keepalives help the tunnel auto-detect dead links
+		"-o", "ServerAliveInterval=30",
+		"-o", "ServerAliveCountMax=3",
+		"-N",
+		"-L", fmt.Sprintf("%d:%s:%d", localPort, targetIP, remotePort),
+		"-p", "22",
+		bastionUser,
+	}
+	return args, nil
+}
+
+func expandTilde(p string) (string, error) {
+	if strings.HasPrefix(p, "~") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(home, strings.TrimPrefix(p, "~")), nil
+	}
+	return p, nil
+}
+
+// SpawnDetached starts ssh in the background, detaches from your process, and returns its PID.
+func SpawnDetached(args []string, logfile string) (int, error) {
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return 0, fmt.Errorf("ssh not found in PATH: %w", err)
+	}
+
+	// Ensure log dir exists
+	if err := os.MkdirAll(filepath.Dir(logfile), 0o755); err != nil {
+		return 0, fmt.Errorf("create log dir: %w", err)
+	}
+	f, err := os.OpenFile(logfile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return 0, fmt.Errorf("open log file: %w", err)
+	}
+	defer f.Close()
+
+	cmd := exec.Command(sshPath, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} // detach from our session/TTY
+	cmd.Stdout = f
+	cmd.Stderr = f
+	cmd.Stdin = nil
+
+	if err := cmd.Start(); err != nil {
+		return 0, fmt.Errorf("start ssh: %w", err)
+	}
+	pid := cmd.Process.Pid
+	_ = cmd.Process.Release() // we won't Wait()
+
+	return pid, nil
+}
+
+// Optional: wait until the localPort is listening (nice UX).
+func WaitForListen(localPort int, timeout time.Duration) error {
+	addr := fmt.Sprintf("127.0.0.1:%d", localPort)
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		c, err := net.DialTimeout("tcp", addr, 400*time.Millisecond)
+		if err == nil {
+			_ = c.Close()
+			return nil
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	return fmt.Errorf("tunnel not up on %s after %s", addr, timeout)
 }
