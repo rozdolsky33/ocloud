@@ -2,10 +2,11 @@ package info
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"strings"
 )
 
 // NewService initializes a new Service instance with the provided application context.

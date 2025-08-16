@@ -1,135 +1,108 @@
-#!/bin/zsh
-# shellcheck shell=bash disable=SC1071
+#!/bin/bash
 
 # ───────────────────────────────────────────────────────────
-# oci_auth_refresher.sh  •  v0.1.3
+# oci_auth_refresher.sh  •  v0.2.1
 #
 # Keeps an OCI CLI session alive by refreshing it shortly
-# before it expires. Intended to be launched (nohup) from the
-# wrapper script oshell.sh.
+# before it expires. Intended to be launched nohup
 # ───────────────────────────────────────────────────────────
 
-# Check if profile argument is provided, then check environment variable, use DEFAULT if neither exists
+# Check if OCI CLI is installed
+if ! command -v oci >/dev/null 2>&1; then
+  echo "[ERROR] OCI CLI not found. Please install it and ensure it's in your PATH."
+  exit 1
+fi
+
+# Resolve profile
 if [[ -n "$1" ]]; then
   OCI_CLI_PROFILE=$1
 elif [[ -n "${OCI_CLI_PROFILE}" ]]; then
-  # Using profile from environment variable
   :
 else
-  # No profile name provided, using DEFAULT
   OCI_CLI_PROFILE="DEFAULT"
 fi
 
-# Check if script is being run directly (not through nohup)
-# If so, relaunch itself using nohup and exit
+# Session directory
+SESSION_DIR="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}"
+SESSION_STATUS_FILE="${SESSION_DIR}/session_status"
+REFRESHER_PID_FILE="${SESSION_DIR}/refresher.pid"
+LOG_FILE="${SESSION_DIR}/refresher.log"
+
+mkdir -p "$SESSION_DIR"
+
+# Relaunch with nohup if needed
 if [[ -z "$NOHUP" && -t 1 ]]; then
   export NOHUP=1
-  # Use full path to script to ensure it's detectable by pgrep
-  script_path=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/$(basename "$0")
-  nohup "$script_path" "$OCI_CLI_PROFILE" > /dev/null 2>&1 < /dev/null &
+  script_path="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  nohup "$script_path" "$OCI_CLI_PROFILE" > "$LOG_FILE" 2>&1 < /dev/null &
   exit 0
 fi
 
-# Configuration
-PREEMPT_REFRESH_TIME=60  # Attempt to refresh 60 sec before session expiration
-SESSION_STATUS_FILE="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}/session_status"
-REFRESHER_PID_FILE="${HOME}/.oci/sessions/${OCI_CLI_PROFILE}/refresher.pid"
+PREEMPT_REFRESH_TIME=60 # Attempt to refresh 60 sec before session expiration
 
-# Create session directory if it doesn't exist
-mkdir -p "${HOME}/.oci/sessions/${OCI_CLI_PROFILE}"
-
-# Function to log session expiration with reason
+# Log session expired
 function log_session_expired() {
   local reason="$1"
   oci_session_status="expired"
   echo "$oci_session_status" > "$SESSION_STATUS_FILE"
+  echo "[INFO] Session expired. Reason: ${reason}" >> "$LOG_FILE"
 }
 
-# Function to clean up PID file on exit
 function cleanup_pid_file() {
-  if [[ -f "$REFRESHER_PID_FILE" ]]; then
-    rm -f "$REFRESHER_PID_FILE"
-  fi
+  rm -f "$REFRESHER_PID_FILE"
 }
-
-# Register cleanup function to run on script exit
 trap cleanup_pid_file EXIT
 
-# Helper function to convert date string to epoch time
+# Convert timestamp to epoch
 function to_epoch() {
   local ts="$1"
-
-  # Check if timestamp is empty
-  if [[ -z "$ts" ]]; then
-    return 1
-  fi
+  [[ -z "$ts" ]] && return 1
 
   if date --version >/dev/null 2>&1; then
-    # GNU date (Linux) - more forgiving with formats
-    if ! date -d "${ts}" +%s 2>/dev/null; then
-      return 1
-    fi
+    date -d "${ts}" +%s 2>/dev/null || return 1
   else
-    # BSD date (macOS) - needs explicit format
-    # Try different format patterns that might match the timestamp
     for fmt in "%Y-%m-%d %H:%M:%S" "%Y-%m-%d %T" "%Y-%m-%dT%H:%M:%S" "%Y-%m-%d"; do
       if date -j -f "$fmt" "${ts}" +%s 2>/dev/null; then
         return 0
       fi
     done
-
-    # If we get here, all format attempts failed
     return 1
   fi
 }
 
-# Function to get the remaining duration of the current session
+# Check remaining session duration
 function get_remaining_session_duration() {
   if oci session validate --profile "$OCI_CLI_PROFILE" --local 2>&1; then
     oci_session_status="valid"
     echo "$oci_session_status" > "$SESSION_STATUS_FILE"
 
-    # Get expiration timestamp
-    local exp_ts
     local validate_output
-
-    # Capture both stdout and stderr
     validate_output=$(oci session validate --profile "$OCI_CLI_PROFILE" --local 2>&1)
 
-    # Use a simple approach to extract the date and time
+    local exp_ts
     exp_ts=$(echo "$validate_output" | sed -E 's/.*until ([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}).*/\1/')
+    [[ "$exp_ts" == "$validate_output" ]] && exp_ts=""
 
-    # If the output is unchanged, it means the pattern didn't match
-    if [[ "$exp_ts" == "$validate_output" ]]; then
-      exp_ts=""
-    fi
-
-    # If still empty, try to extract just the date and time parts
     if [[ -z "$exp_ts" ]]; then
-      local date_part
+      local date_part time_part
       date_part=$(echo "$validate_output" | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}")
-      local time_part
       time_part=$(echo "$validate_output" | grep -o "[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}")
-
-      if [[ -n "$date_part" && -n "$time_part" ]]; then
-        exp_ts="$date_part $time_part"
-      fi
+      [[ -n "$date_part" && -n "$time_part" ]] && exp_ts="$date_part $time_part"
     fi
 
-    # Verify that we have a valid-looking timestamp before proceeding
     if [[ -z "$exp_ts" || ! "$exp_ts" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
       log_session_expired "invalid timestamp"
       remaining_time=0
       return
     fi
 
-    # Calculate remaining time
     local exp_epoch
     if ! exp_epoch=$(to_epoch "${exp_ts}"); then
       log_session_expired "invalid epoch conversion"
       remaining_time=0
       return
     fi
+
     local now_epoch
     now_epoch=$(date +%s)
     remaining_time=$((exp_epoch - now_epoch))
@@ -139,9 +112,9 @@ function get_remaining_session_duration() {
   fi
 }
 
-# Function to refresh the session
 function refresh_session() {
-  if oci session refresh --profile "$OCI_CLI_PROFILE" 2>&1; then
+  if oci session refresh --profile "$OCI_CLI_PROFILE" 2>&1 >> "$LOG_FILE"; then
+    echo "[INFO] Session refreshed successfully." >> "$LOG_FILE"
     return 0
   else
     log_session_expired "refresh failed"
@@ -149,14 +122,9 @@ function refresh_session() {
   fi
 }
 
-# Initialize variables
+# Init
 oci_session_status="unknown"
 remaining_time=0
-
-# Check if session directory exists
-if [[ ! -d "${HOME}/.oci/sessions/${OCI_CLI_PROFILE}" ]]; then
-  exit 1
-fi
 
 # Main loop
 get_remaining_session_duration
@@ -164,6 +132,7 @@ get_remaining_session_duration
 while [[ "$oci_session_status" == "valid" ]]; do
   if (( remaining_time > PREEMPT_REFRESH_TIME )); then
     sleep_for=$((remaining_time - PREEMPT_REFRESH_TIME))
+    echo "[INFO] Sleeping for $sleep_for seconds before next refresh..." >> "$LOG_FILE"
     sleep "$sleep_for"
 
     if ! refresh_session; then

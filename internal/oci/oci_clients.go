@@ -2,6 +2,8 @@ package oci
 
 import (
 	"fmt"
+
+	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -51,6 +53,15 @@ func NewDatabaseClient(provider common.ConfigurationProvider) (database.Database
 	client, err := database.NewDatabaseClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating database client: %w", err)
+	}
+	return client, nil
+}
+
+// NewBastionClient creates and returns a new BastionClient using the specified ConfigurationProvider.
+func NewBastionClient(provider common.ConfigurationProvider) (bastion.BastionClient, error) {
+	client, err := bastion.NewBastionClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating bastion client: %w", err)
 	}
 	return client, nil
 }

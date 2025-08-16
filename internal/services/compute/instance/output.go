@@ -2,6 +2,7 @@ package instance
 
 import (
 	"fmt"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -32,11 +33,9 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 	for _, instance := range instances {
 		// Create instance data map
 		instanceData := map[string]string{
-			"ID":         instance.ID,
 			"Shape":      instance.Shape,
 			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
 			"Created":    instance.CreatedAt.String(),
-			"Subnet ID":  instance.SubnetID,
 			"Name":       instance.Name,
 			"Private IP": instance.IP,
 			"Memory":     fmt.Sprintf("%d GB", int(instance.Resources.MemoryGB)),
@@ -45,15 +44,13 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 
 		// Define ordered keys
 		orderedKeys := []string{
-			"ID", "Name", "Shape", "vCPUs", "Memory",
-			"Created", "Subnet ID", "Private IP", "State",
-			"Boot Volume ID", "Boot Volume State",
+			"Name", "Shape", "vCPUs", "Memory",
+			"Created", "Private IP", "State",
+			"Boot Volume State",
 		}
 
 		// Add image details if available
-		if showImageDetails && instance.ImageID != "" {
-			// Add image ID
-			instanceData["Image ID"] = instance.ImageID
+		if showImageDetails {
 
 			// Add an operating system if available
 			if instance.ImageOS != "" {
@@ -80,9 +77,7 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			if instance.SubnetName != "" {
 				instanceData["Subnet Name"] = instance.SubnetName
 			}
-			if instance.VcnID != "" {
-				instanceData["VCN ID"] = instance.VcnID
-			}
+
 			if instance.VcnName != "" {
 				instanceData["VCN Name"] = instance.VcnName
 			}
@@ -95,28 +90,21 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			// Add private DNS enabled flag
 			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
 
-			// Add route table details
-			if instance.RouteTableID != "" {
-				instanceData["Route Table ID"] = instance.RouteTableID
-			}
 			if instance.RouteTableName != "" {
 				instanceData["Route Table Name"] = instance.RouteTableName
 			}
 
 			// Add image details to ordered keys
 			imageKeys := []string{
-				"Image ID",
 				"Image Name",
 				"Operating System",
 				"AD",
 				"FD",
 				"Region",
 				"Subnet Name",
-				"VCN ID",
 				"VCN Name",
 				"Hostname",
 				"Private DNS Enabled",
-				"Route Table ID",
 				"Route Table Name",
 			}
 

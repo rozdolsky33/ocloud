@@ -93,9 +93,11 @@ const (
 const (
 	DefaultProfileName = "DEFAULT"
 
-	OCIConfigDirName     = ".oci"
-	OCIConfigFileName    = "config"
-	OCloudDefaultDirName = ".ocloud"
-	OCloudScriptsDirName = "scripts"
-	TenancyMapFileName   = "tenancy-map.yaml"
+	OCIConfigDirName        = ".oci"
+	OCIConfigFileName       = "config"
+	OCloudDefaultDirName    = ".ocloud"
+	OCloudScriptsDirName    = "scripts"
+	OCISessionsDirName      = "sessions"
+	TenancyMapFileName      = "tenancy-map.yaml"
+	OCIRefresherPIDFileName = "refresher.pid"
 )

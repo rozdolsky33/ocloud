@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )

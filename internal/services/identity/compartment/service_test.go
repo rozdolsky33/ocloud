@@ -2,11 +2,12 @@ package compartment
 
 import (
 	"context"
+	"strings"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 )
 
 // TestServiceStruct tests the basic structure of the Service struct

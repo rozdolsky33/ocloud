@@ -5,10 +5,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/common"
 )
 
-// result holds the result of the authentication process, including tenancy, compartment, profile, and region details.
-var result *AuthenticationResult
-var err error
-
 // RegionInfo represents an OCI region with its ID and name.
 type RegionInfo struct {
 	ID   string

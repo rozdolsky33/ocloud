@@ -2,6 +2,7 @@ package setup
 
 import (
 	"fmt"
+
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
