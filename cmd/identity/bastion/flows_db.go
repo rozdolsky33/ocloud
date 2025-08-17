@@ -29,6 +29,8 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return nil
 	}
 
+	// Port 1521 or 1522 is the default ports for Oracle Database
+
 	dm := NewDBListModelFancy(dbs)
 	dp := tea.NewProgram(dm, tea.WithContext(ctx))
 	dres, err := dp.Run()

@@ -14,12 +14,12 @@ import (
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
-// SessionType identifies how the bastion session behaves.
-type SessionType string
+// BastionType identifies the top-level action.
+type BastionType string
 
 const (
-	TypeManagedSSH     SessionType = "Managed SSH"
-	TypePortForwarding SessionType = "Port-Forwarding"
+	TypeBastion BastionType = "Bastion"
+	TypeSession BastionType = "Session"
 )
 
 // TargetType identifies what the session connects to.
@@ -31,13 +31,15 @@ const (
 	TargetInstance TargetType = "Instance"
 )
 
-// BastionType identifies the top-level action.
-type BastionType string
+// SessionType identifies how the bastion session behaves.
+type SessionType string
 
 const (
-	TypeBastion BastionType = "Bastion"
-	TypeSession BastionType = "Session"
+	TypeManagedSSH     SessionType = "Managed SSH"
+	TypePortForwarding SessionType = "Port-Forwarding"
 )
+
+//-----------------------------------Bastion/Session Creation Selection-------------------------------------------------
 
 // TypeSelectionModel defines a TUI model for selecting a BastionType from a list of available types.
 type TypeSelectionModel struct {
@@ -96,7 +98,8 @@ func (m TypeSelectionModel) View() string {
 	return b.String()
 }
 
-// BastionModel --------------------------------------Bastion Selection------------------------------------------------
+//--------------------------------------------------Bastion Selection---------------------------------------------------
+
 // BastionModel Bastion Selection
 type BastionModel struct {
 	Cursor   int
@@ -135,6 +138,8 @@ func (m BastionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// View renders the string representation of the BastionModel, displaying the list of bastion hosts and current selection.
 func (m BastionModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a bastion host:\n\n")
@@ -149,6 +154,8 @@ func (m BastionModel) View() string {
 	return b.String()
 }
 
+//------------------------------------------Session Type Selection------------------------------------------------------
+
 // SessionTypeModel Session Type Selection
 type SessionTypeModel struct {
 	Cursor    int
@@ -157,6 +164,7 @@ type SessionTypeModel struct {
 	BastionID string
 }
 
+// NewSessionTypeModel creates a SessionTypeModel instance with the provided list of bastions and initializes the cursor to 0.
 func NewSessionTypeModel(bastionID string) SessionTypeModel {
 	return SessionTypeModel{
 		Types:     []SessionType{TypeManagedSSH, TypePortForwarding},
@@ -207,6 +215,8 @@ func (m SessionTypeModel) View() string {
 	return b.String()
 }
 
+//------------------------------------------Target Type Selection-------------------------------------------------------
+
 // TargetTypeModel Target Type Selection
 type TargetTypeModel struct {
 	Cursor    int
@@ -215,14 +225,10 @@ type TargetTypeModel struct {
 	BastionID string
 }
 
-// NewTargetTypeModel creates a new TargetTypeModel instance with the provided list of target types and bastion ID.
-func NewTargetTypeModel(bastionID string, sessionType SessionType) TargetTypeModel {
+// NewTargetTypeModel creates a TargetTypeModel instance with the provided list of bastions and initializes the cursor to 0.
+func NewTargetTypeModel(bastionID string) TargetTypeModel {
 	var types []TargetType
-	if sessionType == TypeManagedSSH {
-		types = []TargetType{TargetInstance}
-	} else {
-		types = []TargetType{TargetOKE, TargetDatabase, TargetInstance}
-	}
+	types = []TargetType{TargetOKE, TargetDatabase, TargetInstance}
 	return TargetTypeModel{Types: types, Cursor: 0, BastionID: bastionID}
 }
 
@@ -268,7 +274,7 @@ func (m TargetTypeModel) View() string {
 	return b.String()
 }
 
-// ----------------------------------Fancy searchable lists (Instances / OKE / DB)--------------------------------------
+// ----------------------------------Fancy searchable list (Instances / OKE / DB)--------------------------------------
 // resourceItem defines a resource item for a list.
 type resourceItem struct {
 	id, title, description string

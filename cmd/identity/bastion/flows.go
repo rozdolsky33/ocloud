@@ -59,6 +59,21 @@ func SelectBastion(ctx context.Context, svc *bastionSvc.Service, t BastionType) 
 	return bastionSvc.Bastion{}, fmt.Errorf("selected bastion not found")
 }
 
+// SelectTargetType provides a TUI to select a target type associated with the given bastion ID and returns the selection.
+func SelectTargetType(ctx context.Context, bastionID string) (TargetType, error) {
+	m := NewTargetTypeModel(bastionID)
+	p := tea.NewProgram(m, tea.WithContext(ctx))
+	res, err := p.Run()
+	if err != nil {
+		return "", fmt.Errorf("target type TUI: %w", err)
+	}
+	out, ok := res.(TargetTypeModel)
+	if !ok || out.Choice == "" {
+		return "", ErrAborted
+	}
+	return out.Choice, nil
+}
+
 // SelectSessionType chooses a session type for the selected bastion.
 func SelectSessionType(ctx context.Context, bastionID string) (SessionType, error) {
 	m := NewSessionTypeModel(bastionID)
@@ -68,21 +83,6 @@ func SelectSessionType(ctx context.Context, bastionID string) (SessionType, erro
 		return "", fmt.Errorf("session type TUI: %w", err)
 	}
 	out, ok := res.(SessionTypeModel)
-	if !ok || out.Choice == "" {
-		return "", ErrAborted
-	}
-	return out.Choice, nil
-}
-
-// SelectTargetType chooses the target type (Instance/OKE/DB) based on a session type.
-func SelectTargetType(ctx context.Context, bastionID string, sessionType SessionType) (TargetType, error) {
-	m := NewTargetTypeModel(bastionID, sessionType)
-	p := tea.NewProgram(m, tea.WithContext(ctx))
-	res, err := p.Run()
-	if err != nil {
-		return "", fmt.Errorf("target type TUI: %w", err)
-	}
-	out, ok := res.(TargetTypeModel)
 	if !ok || out.Choice == "" {
 		return "", ErrAborted
 	}
