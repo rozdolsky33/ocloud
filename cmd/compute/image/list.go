@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the list command
 var listLong = `
 List all images in the specified compartment with pagination support.
 
@@ -25,7 +24,6 @@ Additional Information:
 - The command shows all available images in the compartment
 `
 
-// Examples for the list command
 var listExamples = `
   # List all images with default pagination (20 per page)
   ocloud compute image list
@@ -55,7 +53,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	// Add flags specific to the list command
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 
@@ -65,7 +62,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 
-	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)

@@ -1,11 +1,12 @@
 package image
 
 import (
+	"io"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 // TestFindImagesSimple is a simplified test for the FindImages function

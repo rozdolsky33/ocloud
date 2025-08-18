@@ -84,6 +84,7 @@ func ShowConstructionAnimation() {
 	fmt.Println("🚧 This feature is not implemented yet. Coming soon!")
 }
 
+// DefaultPublicSSHKey returns full paths to public SSH keys under ~/.ssh (only .pub files).
 func DefaultPublicSSHKey() []string {
 	// Return full paths to public SSH keys under ~/.ssh so the picker can be used directly.
 	sshKeys := make([]string, 0)

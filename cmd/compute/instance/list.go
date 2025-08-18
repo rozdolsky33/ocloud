@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the list command
 var listLong = `
 List all instances in the specified compartment with pagination support.
 
@@ -27,7 +26,6 @@ Additional Information:
 - The command only shows running instances by default
 `
 
-// Examples for the list command
 var listExamples = `
   # List all instances with default pagination (20 per page)
   ocloud compute instance list
@@ -63,7 +61,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	// Add flags specific to the list command
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 	instaceFlags.ImageDetailsFlag.Add(cmd)
@@ -73,13 +70,11 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)
 	return instance.ListInstances(appCtx, limit, page, useJSON, imageDetails)
 }

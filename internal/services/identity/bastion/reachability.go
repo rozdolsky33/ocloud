@@ -12,13 +12,11 @@ import (
 // - If targetSubnetID is provided, we fetch it and compare its VCN ID with bastion.TargetVcnId.
 // - Else if targetVcnID is provided, we compare it directly with bastion.TargetVcnId.
 // - If neither targetVcnID nor targetSubnetID is provided, we cannot determine reachability.
-// Returns ok boolean and a user-friendly reason string.
 func (s *Service) CanReach(ctx context.Context, b Bastion, targetVcnID string, targetSubnetID string) (bool, string) {
 	if b.TargetVcnId == "" {
 		return false, "Selected Bastion is not configured with a target VCN."
 	}
 
-	// Prefer subnet if provided to derive VCN and be precise.
 	if targetSubnetID != "" {
 		subnet, err := s.fetchSubnetDetails(ctx, targetSubnetID)
 		if err != nil {

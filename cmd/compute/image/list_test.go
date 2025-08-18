@@ -35,7 +35,4 @@ func TestListCommand(t *testing.T) {
 	assert.NotNil(t, pageFlag, "list command should have page flag")
 	assert.Equal(t, "page", pageFlag.Name)
 	assert.Equal(t, "p", pageFlag.Shorthand)
-
-	// Note: The JSON flag is a global flag and is not directly added to the command in the list.go file.
-	// It's added at a higher level in the command hierarchy.
 }

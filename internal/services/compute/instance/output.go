@@ -11,27 +11,22 @@ import (
 // PrintInstancesInfo displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
 func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showImageDetails bool) error {
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// Adjust the pagination information if available
 	if pagination != nil {
 		util.AdjustPaginationInfo(pagination)
 	}
 
-	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
 		return util.MarshalDataToJSONResponse[Instance](p, instances, pagination)
 	}
 
-	// Handle the case where no instances are found.
 	if util.ValidateAndReportEmpty(instances, pagination, appCtx.Stdout) {
 		return nil
 	}
 
-	// Print each instance as a separate key-value table with a colored title.
+	// Print each instance as a separate key-value.
 	for _, instance := range instances {
-		// Create instance data map
 		instanceData := map[string]string{
 			"Shape":      instance.Shape,
 			"vCPUs":      fmt.Sprintf("%d", instance.Resources.VCPUs),
@@ -42,7 +37,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			"State":      string(instance.State),
 		}
 
-		// Define ordered keys
 		orderedKeys := []string{
 			"Name", "Shape", "vCPUs", "Memory",
 			"Created", "Private IP", "State",
@@ -52,7 +46,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 		// Add image details if available
 		if showImageDetails {
 
-			// Add an operating system if available
 			if instance.ImageOS != "" {
 				instanceData["Operating System"] = instance.ImageOS
 			}
@@ -60,12 +53,10 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				instanceData["Image Name"] = instance.ImageName
 			}
 
-			//Add AD
 			if instance.Placement.AvailabilityDomain != "" {
 				instanceData["AD"] = instance.Placement.AvailabilityDomain
 			}
 
-			// AD FD
 			if instance.Placement.FaultDomain != "" {
 				instanceData["FD"] = instance.Placement.FaultDomain
 			}
@@ -73,7 +64,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				instanceData["Region"] = instance.Placement.Region
 			}
 
-			// Add subnet details
 			if instance.SubnetName != "" {
 				instanceData["Subnet Name"] = instance.SubnetName
 			}
@@ -82,12 +72,10 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 				instanceData["VCN Name"] = instance.VcnName
 			}
 
-			// Add hostname
 			if instance.Hostname != "" {
 				instanceData["Hostname"] = instance.Hostname
 			}
 
-			// Add private DNS enabled flag
 			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
 
 			if instance.RouteTableName != "" {
@@ -121,7 +109,6 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 
 		title := util.FormatColoredTitle(appCtx, instance.Name)
 
-		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, instanceData, orderedKeys)
 	}
 

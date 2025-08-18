@@ -16,7 +16,6 @@ import (
 )
 
 // NewService creates a new Service instance with an OCI container engine client using the provided ApplicationContext.
-// Returns a Service pointer and an error if the initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	cec, err := oci.NewContainerEngineClient(cfg)
@@ -32,7 +31,6 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 
 // List retrieves OKE clusters within the specified compartment with pagination support.
 // It enriches each cluster with its associated node pools.
-// Returns a slice of Cluster objects, total count, next page token, and an error, if any.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
 	logger.LogWithLevel(s.logger, 3, "Listing clusters with pagination",
 		"limit", limit,
@@ -42,12 +40,10 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int,
 	var nextPageToken string
 	var totalCount int
 
-	// Create a request
 	request := containerengine.ListClustersRequest{
 		CompartmentId: &s.compartmentID,
 	}
 
-	// Add limit parameter if specified
 	if limit > 0 {
 		limitInt := limit
 		request.Limit = &limitInt
@@ -59,7 +55,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int,
 		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
 
 		// We need to fetch page tokens until we reach the desired page
-		var page *string // Initialize as nil
+		var page *string
 		currentPage := 1
 
 		for currentPage < pageNum {
@@ -150,12 +146,11 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int,
 }
 
 // fetchAllClusters retrieves all clusters within the specified compartment using pagination.
-// It returns a slice of Cluster objects and an error, if any.
 func (s *Service) fetchAllClusters(ctx context.Context) ([]Cluster, error) {
 	logger.LogWithLevel(s.logger, 3, "Fetching all clusters")
 
 	var allClusters []Cluster
-	var page *string // Initialize as nil
+	var page *string
 
 	for {
 		// Create a request with pagination
@@ -176,7 +171,6 @@ func (s *Service) fetchAllClusters(ctx context.Context) ([]Cluster, error) {
 
 		// Process clusters from this page
 		for _, cluster := range response.Items {
-			// Create a cluster without node pools first
 			clusterObj := mapToCluster(cluster)
 
 			// Get node pools for this cluster
@@ -185,19 +179,15 @@ func (s *Service) fetchAllClusters(ctx context.Context) ([]Cluster, error) {
 				return nil, fmt.Errorf("listing node pools: %w", err)
 			}
 
-			// Assign node pools to the cluster
 			clusterObj.NodePools = nodePools
 
-			// Add the cluster to the result
 			allClusters = append(allClusters, clusterObj)
 		}
 
-		// If there's no next page, we're done
 		if response.OpcNextPage == nil {
 			break
 		}
 
-		// Move to the next page
 		page = response.OpcNextPage
 	}
 
@@ -208,7 +198,6 @@ func (s *Service) fetchAllClusters(ctx context.Context) ([]Cluster, error) {
 // Find searches for OKE clusters matching the given pattern within the compartment.
 // It performs a case-insensitive search on cluster names and node pool names.
 // If searchPattern is empty, it returns all clusters.
-// Returns a slice of matching Cluster objects and an error, if any.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, error) {
 	logger.LogWithLevel(s.logger, 1, "Finding clusters", "pattern", searchPattern)
 
@@ -228,13 +217,11 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, er
 	searchPattern = strings.ToLower(searchPattern)
 
 	for _, cluster := range clusters {
-		// Check if the cluster name contains the search pattern
 		if strings.Contains(strings.ToLower(cluster.Name), searchPattern) {
 			matchedClusters = append(matchedClusters, cluster)
 			continue
 		}
 
-		// Check if any node pool name contains the search pattern
 		for _, nodePool := range cluster.NodePools {
 			if strings.Contains(strings.ToLower(nodePool.Name), searchPattern) {
 				matchedClusters = append(matchedClusters, cluster)
@@ -248,7 +235,6 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, er
 }
 
 // getClusterNodePools retrieves all node pools associated with the specified cluster.
-// It returns a slice of NodePool objects and an error, if any.
 func (s *Service) getClusterNodePools(ctx context.Context, clusterID string) ([]NodePool, error) {
 	logger.LogWithLevel(s.logger, 3, "Getting node pools for cluster", "clusterID", clusterID)
 
@@ -270,9 +256,7 @@ func (s *Service) getClusterNodePools(ctx context.Context, clusterID string) ([]
 }
 
 // mapToCluster maps an OCI ClusterSummary to our shared Cluster model.
-// It initializes the NodePools field as an empty slice, which will be populated later.
 func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
-	// Safely extract pointer fields that may be nil in some responses
 	id := ""
 	if cluster.Id != nil {
 		id = *cluster.Id

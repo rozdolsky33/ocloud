@@ -29,6 +29,7 @@ type Service struct {
 	subnetCache   map[string]*core.Subnet
 }
 
+// Config represents the configuration for the bastion service.
 type Config struct {
 	SshPublicKeyFile  string `yaml:"ssh_pub_key_file"`
 	SshPrivateKeyFile string `yaml:"ssh_private_key_file"`

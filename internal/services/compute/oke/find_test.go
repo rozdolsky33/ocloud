@@ -2,10 +2,11 @@ package oke
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // TestFindClusters tests the FindClusters function
@@ -15,11 +16,11 @@ func TestFindClusters(t *testing.T) {
 
 	// This is a placeholder test that would normally test the FindClusters function
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Call FindClusters with different search patterns
 	// 3. Verify that the output contains the expected information
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -47,11 +48,11 @@ func TestFindClustersWithJSON(t *testing.T) {
 
 	// This is a placeholder test that would normally test the FindClusters function with JSON output
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Call FindClusters with different search patterns and useJSON=true
 	// 3. Verify that the output is valid JSON and contains the expected information
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -79,11 +80,11 @@ func TestFindClustersError(t *testing.T) {
 
 	// This is a placeholder test that would normally test the FindClusters function with an error
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Set up the mock to return an error
 	// 3. Call FindClusters and verify that it returns the expected error
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout

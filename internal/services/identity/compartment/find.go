@@ -10,7 +10,6 @@ import (
 
 // FindCompartments searches and displays compartments matching a given name pattern with optional JSON formatting.
 // It initializes necessary services, performs a fuzzy search, and outputs results using the defined application context.
-// Returns an error if service initialization, search, or result rendering fails.
 func FindCompartments(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Finding Compartments", "pattern", namePattern)
 

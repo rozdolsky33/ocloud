@@ -73,12 +73,7 @@ func PrintOKETable(clusters []Cluster, appCtx *app.ApplicationContext, paginatio
 }
 
 // PrintOKEInfo prints a detailed, troubleshooting‑oriented view of OKE clusters
-// and their node pools.  Each cluster is rendered as:
-//  1. A summary key/value block containing operationally‑relevant metadata.
-//  2. A responsive table listing all node pools with the most useful columns
-//     for SRE triage.
-//
-// When --JSON is requested, the function defers to util.MarshalDataToJSONResponse.
+// and their node pools.
 func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 

@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the find command
 var findLong = `
 Find Oracle Kubernetes Engine (OKE) clusters in the specified compartment that match the given pattern.
 
@@ -24,7 +23,6 @@ Additional Information:
 - The command searches across all available clusters in the compartment
 `
 
-// Examples for the find command
 var findExamples = `
   # Find clusters with names containing "prod"
   ocloud compute oke find prod
@@ -59,8 +57,6 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
 	return oke.FindClusters(appCtx, namePattern, useJSON)
 }

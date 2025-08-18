@@ -36,7 +36,7 @@ func TestListCommand(t *testing.T) {
 	assert.Equal(t, "page", pageFlag.Name)
 	assert.Equal(t, "p", pageFlag.Shorthand)
 
-	// Test that the all flag is added (used for image details)
+	// Test that the all flags are added (used for image details)
 	imageDetailsFlag := cmd.Flag("all")
 	assert.NotNil(t, imageDetailsFlag, "list command should have all flag (used for image details)")
 	assert.Equal(t, "all", imageDetailsFlag.Name)

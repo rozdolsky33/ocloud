@@ -9,11 +9,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	util "github.com/rozdolsky33/ocloud/internal/services/util"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // kubeconfig model (unexported)
-
 type kubeConfig struct {
 	APIVersion     string         `yaml:"apiVersion"`
 	Kind           string         `yaml:"kind"`
@@ -23,26 +22,31 @@ type kubeConfig struct {
 	CurrentContext string         `yaml:"current-context"`
 }
 
+// namedCluster represents a named Kubernetes cluster configuration consisting of a name and its corresponding details.
 type namedCluster struct {
 	Name    string    `yaml:"name"`
 	Cluster kcCluster `yaml:"cluster"`
 }
 
+// kcCluster represents a Kubernetes cluster configuration consisting of a server address and certificate details.
 type kcCluster struct {
 	Server                   string `yaml:"server"`
 	CertificateAuthorityData string `yaml:"certificate-authority-data,omitempty"`
 	InsecureSkipTLSVerify    bool   `yaml:"insecure-skip-tls-verify,omitempty"`
 }
 
+// namedUser represents a named Kubernetes user configuration consisting of a name and its corresponding details.
 type namedUser struct {
 	Name string `yaml:"name"`
 	User kcUser `yaml:"user"`
 }
 
+// kcUser represents a Kubernetes user configuration.
 type kcUser struct {
 	Exec *kcExec `yaml:"exec,omitempty"`
 }
 
+// kcExec represents a Kubernetes exec configuration.
 type kcExec struct {
 	APIVersion         string   `yaml:"apiVersion"`
 	Command            string   `yaml:"command"`
@@ -52,11 +56,13 @@ type kcExec struct {
 	ProvideClusterInfo bool     `yaml:"provideClusterInfo"`
 }
 
+// namedContext represents a named Kubernetes context configuration consisting of a name and its corresponding details.
 type namedContext struct {
 	Name    string    `yaml:"name"`
 	Context kcContext `yaml:"context"`
 }
 
+// kcContext represents Kubernetes context details including cluster, namespace, and user mappings.
 type kcContext struct {
 	Cluster   string `yaml:"cluster"`
 	Namespace string `yaml:"namespace"`
@@ -110,7 +116,6 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		return nil
 	}
 
-	// Ask a user if they want a custom context name
 	if util.PromptYesNo(fmt.Sprintf("Do you want to enter a custom kube context name for this cluster? (Default is '%s')", ctxName)) {
 		if name, err := util.PromptString("Enter kube context name", ctxName); err == nil {
 			name = strings.TrimSpace(name)
@@ -155,8 +160,7 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		kc.CurrentContext = ctxName
 	}
 
-	// Prepare YAML with explicit 2-space indentation for consistency
-	// and write atomically to the target file.
+	// write atomically to the target file.
 	// Backup if exists first.
 	if _, err := os.Stat(cfgPath); err == nil {
 		if old, err := os.ReadFile(cfgPath); err == nil {
@@ -183,6 +187,7 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 	return nil
 }
 
+// shortID returns a shortened version of the given cluster id.
 func shortID(id string) string {
 	// Try to take suffix after the last '.' or '/'
 	s := id
@@ -198,6 +203,7 @@ func shortID(id string) string {
 	return s
 }
 
+// hasNamed returns true if the given array contains an element satisfying the given predicate.
 func hasNamed[T any](arr []T, pred func(T) bool) bool {
 	for _, v := range arr {
 		if pred(v) {
@@ -207,6 +213,7 @@ func hasNamed[T any](arr []T, pred func(T) bool) bool {
 	return false
 }
 
+// upsert* functions are used to upsert an element into an array of named elements.
 func upsertCluster(arr []namedCluster, item namedCluster) []namedCluster {
 	for i, v := range arr {
 		if v.Name == item.Name {
@@ -217,6 +224,7 @@ func upsertCluster(arr []namedCluster, item namedCluster) []namedCluster {
 	return append(arr, item)
 }
 
+// upsert* functions are used to upsert an element into an array of named elements.
 func upsertUser(arr []namedUser, item namedUser) []namedUser {
 	for i, v := range arr {
 		if v.Name == item.Name {
@@ -227,6 +235,7 @@ func upsertUser(arr []namedUser, item namedUser) []namedUser {
 	return append(arr, item)
 }
 
+// upsert* functions are used to upsert an element into an array of named elements.
 func upsertContext(arr []namedContext, item namedContext) []namedContext {
 	for i, v := range arr {
 		if v.Name == item.Name {
@@ -243,7 +252,6 @@ func matchOKEExec(exec *kcExec, clusterID, region, profile string) bool {
 	if exec == nil {
 		return false
 	}
-	// We expect the command to be `oci` and args to contain ce cluster generate-token
 	if exec.Command != "oci" {
 		return false
 	}

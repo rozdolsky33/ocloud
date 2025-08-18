@@ -12,7 +12,6 @@ import (
 // appCtx represents the application context with the necessary clients and configurations.
 // namePattern specifies the pattern to filter policy names.
 // useJSON determines whether the output should be formatted as JSON.
-// Returns an error if policy retrieval or processing fails.
 func FindPolicies(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Finding Policies", "pattern", namePattern)
 
