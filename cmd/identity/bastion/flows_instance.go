@@ -44,6 +44,11 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return ErrAborted
 	}
 
+	pubKey, privKey, err := SelectSSHKeyPair(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Find selection
 	var inst instancessvc.Instance
 	for _, it := range instances {
@@ -62,7 +67,6 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
 		sType, b.Name, b.ID, inst.Name)
 
-	pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
 		return fmt.Errorf("get region: %w", regErr)
@@ -70,7 +74,10 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 
 	switch sType {
 	case TypeManagedSSH:
-		sshUser := "opc"
+		sshUser, err := util.PromptString("Enter SSH username", "opc")
+		if err != nil {
+			return fmt.Errorf("read ssh username: %w", err)
+		}
 		sessID, err := svc.EnsureManagedSSHSession(ctx, b.ID, inst.ID, inst.IP, sshUser, 22, pubKey, 0)
 		if err != nil {
 			return fmt.Errorf("ensure managed SSH: %w", err)

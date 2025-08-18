@@ -11,7 +11,7 @@ func NewBastionCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "bastion",
 		Aliases:       []string{"b"},
 		Short:         "Manage OCI Bastion",
-		Long:          "Manage Oracle Cloud Infrastructure Bastions: list existing bastions or create sessions.",
+		Long:          "Manage Oracle Cloud Infrastructure Bastions: list existing bastions or create bastion and sessions connection.",
 		Example:       "  ocloud identity bastion list\n  ocloud identity bastion create",
 		SilenceUsage:  true,
 		SilenceErrors: true,

@@ -23,6 +23,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
+// RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running list command")

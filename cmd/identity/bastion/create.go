@@ -15,8 +15,8 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "create",
 		Aliases:       []string{"c"},
-		Short:         "Create a Bastion session",
-		Long:          "Interactively create a session on a selected bastion and target (instance, OKE, database).",
+		Short:         "Create a Bastion or a Session",
+		Long:          "Interactively create a session on a selected bastion and target (Instance, OKE, Database).",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -36,7 +36,7 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		return fmt.Errorf("create bastion service: %w", err)
 	}
 
-	choice, err := SelectBastionType(ctx) // tui (ctx-aware)
+	choice, err := SelectBastionType(ctx)
 	if err != nil {
 		return err
 	}
@@ -47,26 +47,23 @@ func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 		util.ShowConstructionAnimation()
 		return nil
 	}
-
-	b, err := SelectBastion(ctx, svc, choice) // flow: lists active, TUI picker
+	b, err := SelectBastion(ctx, svc, choice)
 	if err != nil {
 		return err
 	}
 	if b.ID == "" {
 		return ErrAborted
 	}
-
-	sType, err := SelectSessionType(ctx, b.ID) // tui
+	tType, err := SelectTargetType(ctx, b.ID)
+	if err != nil {
+		return err
+	}
+	sType, err := SelectSessionType(ctx, b.ID)
 	if err != nil {
 		return err
 	}
 	if sType == "" {
 		return ErrAborted
-	}
-
-	tType, err := SelectTargetType(ctx, b.ID, sType) // tui
-	if err != nil {
-		return err
 	}
 	if tType == "" {
 		return ErrAborted

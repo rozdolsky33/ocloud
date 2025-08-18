@@ -20,7 +20,7 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return fmt.Errorf("erro crating service for database: %w", err)
 	}
 
-	dbs, _, _, err := dbService.List(ctx, 50, 0)
+	dbs, _, _, err := dbService.List(ctx, 1000, 0)
 	if err != nil {
 		return fmt.Errorf("list databases: %w", err)
 	}
@@ -28,6 +28,8 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		fmt.Println("No Autonomous Databases found.")
 		return nil
 	}
+
+	// Port 1521 or 1522 is the default ports for Oracle Database
 
 	dm := NewDBListModelFancy(dbs)
 	dp := tea.NewProgram(dm, tea.WithContext(ctx))

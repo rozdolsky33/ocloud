@@ -14,7 +14,6 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/common"
-	conf "github.com/rozdolsky33/ocloud/internal/config"
 )
 
 // Defaults used for session wait and ttl
@@ -22,14 +21,6 @@ var (
 	waitPollInterval = 3 * time.Second
 	defaultTTL       = 10800 // seconds (3 hours)
 )
-
-// DefaultSSHKeyPaths returns the default public and private key paths based on the active OCI CLI profile.
-// It mirrors the sshConfig() defaults so callers can use keys without hardcoding paths.
-func DefaultSSHKeyPaths() (publicKeyPath, privateKeyPath string) {
-	homeDir, _ := conf.GetUserHomeDir()
-	sessionDir := filepath.Join(homeDir, ".ssh")
-	return filepath.Join(sessionDir, "id_rsa.pub"), filepath.Join(sessionDir, "id_rsa")
-}
 
 // sanitizeDisplayName ensures the given string is a valid and safe display name by removing invalid characters and truncating the length.
 func sanitizeDisplayName(s string) string {
@@ -64,16 +55,17 @@ func (s *Service) waitForSessionActive(ctx context.Context, sessionID string) er
 	}
 }
 
-// EnsurePortForwardSession finds an ACTIVE bastion session targeting the given IP:port and matching the provided public key.
-// If not found, it creates a new session and waits until it becomes ACTIVE, returning the session ID.
-func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targetIP string, port int, publicKeyPath string) (string, error) {
-	pubKeyData, err := os.ReadFile(publicKeyPath)
+// readPublicKey reads and returns the public key content from the given path.
+func readPublicKey(publicKeyPath string) (string, error) {
+	data, err := os.ReadFile(publicKeyPath)
 	if err != nil {
 		return "", fmt.Errorf("reading public key: %w", err)
 	}
-	pubKey := string(pubKeyData)
+	return string(data), nil
+}
 
-	// 1) Try to reuse an ACTIVE matching session
+// listActiveSessions returns ACTIVE session summaries for a bastion, sorted by time created desc.
+func (s *Service) listActiveSessions(ctx context.Context, bastionID string) ([]bastion.SessionSummary, error) {
 	lsReq := bastion.ListSessionsRequest{
 		BastionId:             common.String(bastionID),
 		SessionLifecycleState: bastion.ListSessionsSessionLifecycleStateActive,
@@ -82,9 +74,25 @@ func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targe
 	}
 	lsResp, err := s.bastionClient.ListSessions(ctx, lsReq)
 	if err != nil {
-		return "", fmt.Errorf("listing bastion sessions: %w", err)
+		return nil, fmt.Errorf("listing bastion sessions: %w", err)
 	}
-	for _, item := range lsResp.Items {
+	return lsResp.Items, nil
+}
+
+// EnsurePortForwardSession finds an ACTIVE bastion session targeting the given IP:port and matching the provided public key.
+// If not found, it creates a new session and waits until it becomes ACTIVE, returning the session ID.
+func (s *Service) EnsurePortForwardSession(ctx context.Context, bastionID, targetIP string, port int, publicKeyPath string) (string, error) {
+	pubKey, err := readPublicKey(publicKeyPath)
+	if err != nil {
+		return "", err
+	}
+
+	// 1) Try to reuse an ACTIVE matching session
+	items, err := s.listActiveSessions(ctx, bastionID)
+	if err != nil {
+		return "", err
+	}
+	for _, item := range items {
 		if trd, ok := item.TargetResourceDetails.(bastion.PortForwardingSessionTargetResourceDetails); ok {
 			if trd.TargetResourcePrivateIpAddress != nil && trd.TargetResourcePort != nil &&
 				*trd.TargetResourcePrivateIpAddress == targetIP && *trd.TargetResourcePort == port {
@@ -132,24 +140,17 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 	if ttlSeconds <= 0 {
 		ttlSeconds = defaultTTL
 	}
-	pubKeyData, err := os.ReadFile(publicKeyPath)
+	pubKey, err := readPublicKey(publicKeyPath)
 	if err != nil {
-		return "", fmt.Errorf("reading public key: %w", err)
+		return "", err
 	}
-	pubKey := string(pubKeyData)
 
-	// Try to reuse an ACTIVE matching Managed SSH session
-	lsReq := bastion.ListSessionsRequest{
-		BastionId:             common.String(bastionID),
-		SessionLifecycleState: bastion.ListSessionsSessionLifecycleStateActive,
-		SortBy:                bastion.ListSessionsSortByTimecreated,
-		SortOrder:             bastion.ListSessionsSortOrderDesc,
-	}
-	lsResp, err := s.bastionClient.ListSessions(ctx, lsReq)
+	//-------------------------Try to reuse an ACTIVE matching Managed SSH session--------------------------------------
+	items, err := s.listActiveSessions(ctx, bastionID)
 	if err != nil {
-		return "", fmt.Errorf("listing bastion sessions: %w", err)
+		return "", err
 	}
-	for _, item := range lsResp.Items {
+	for _, item := range items {
 		if trd, ok := item.TargetResourceDetails.(bastion.ManagedSshSessionTargetResourceDetails); ok {
 			if trd.TargetResourceId != nil && trd.TargetResourcePrivateIpAddress != nil && trd.TargetResourcePort != nil && trd.TargetResourceOperatingSystemUserName != nil &&
 				*trd.TargetResourceId == targetInstanceID && *trd.TargetResourcePrivateIpAddress == targetIP && *trd.TargetResourcePort == port && *trd.TargetResourceOperatingSystemUserName == osUser {
@@ -158,13 +159,13 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 					return "", fmt.Errorf("getting bastion session: %w", err)
 				}
 				if getResp.KeyDetails != nil && getResp.KeyDetails.PublicKeyContent != nil && *getResp.KeyDetails.PublicKeyContent == pubKey {
-					return *item.Id, nil // Reuse
+					return *item.Id, nil
 				}
 			}
 		}
 	}
 
-	// Create a new Managed SSH session
+	//-----------------------------------------Create a new Managed SSH session-----------------------------------------
 	baseName := fmt.Sprintf("ocloud-%s-%d-%d", strings.ReplaceAll(targetIP, ".", "-"), port, time.Now().Unix())
 	displayName := sanitizeDisplayName(baseName)
 	createReq := bastion.CreateSessionRequest{
@@ -187,7 +188,7 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 	}
 	sessionID := *crResp.Id
 
-	// Wait for ACTIVE
+	//------------------------------------------------Wait for ACTIVE---------------------------------------------------
 	if err := s.waitForSessionActive(ctx, sessionID); err != nil {
 		return "", err
 	}
@@ -277,7 +278,7 @@ func SpawnDetached(args []string, logfile string) (int, error) {
 		return 0, fmt.Errorf("start ssh: %w", err)
 	}
 	pid := cmd.Process.Pid
-	_ = cmd.Process.Release() // we won't Wait()
+	_ = cmd.Process.Release()
 
 	return pid, nil
 }
