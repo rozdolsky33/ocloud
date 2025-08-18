@@ -14,7 +14,6 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/common"
-	conf "github.com/rozdolsky33/ocloud/internal/config"
 )
 
 // Defaults used for session wait and ttl
@@ -22,14 +21,6 @@ var (
 	waitPollInterval = 3 * time.Second
 	defaultTTL       = 10800 // seconds (3 hours)
 )
-
-// DefaultSSHKeyPaths returns the default public and private key paths based on the active OCI CLI profile.
-// It mirrors the sshConfig() defaults so callers can use keys without hardcoding paths.
-func DefaultSSHKeyPaths() (publicKeyPath, privateKeyPath string) {
-	homeDir, _ := conf.GetUserHomeDir()
-	sessionDir := filepath.Join(homeDir, ".ssh")
-	return filepath.Join(sessionDir, "id_rsa.pub"), filepath.Join(sessionDir, "id_rsa")
-}
 
 // sanitizeDisplayName ensures the given string is a valid and safe display name by removing invalid characters and truncating the length.
 func sanitizeDisplayName(s string) string {
