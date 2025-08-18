@@ -33,16 +33,6 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return nil
 	}
 
-	enabledInstances, err := svc.FilterInstancesWithBastionEnabled(ctx, instances)
-	if err != nil {
-		return fmt.Errorf("filtering instances: %w", err)
-	}
-
-	if len(enabledInstances) == 0 {
-		fmt.Println("No instances with Bastion enabled.")
-		return nil
-	}
-
 	// TUI selection
 	im := NewInstanceListModelFancy(instances)
 	ip := tea.NewProgram(im, tea.WithContext(ctx))
