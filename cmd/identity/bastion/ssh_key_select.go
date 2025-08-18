@@ -25,7 +25,22 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 	}
 	pubKey = pPick.Choice()
 
-	sk := NewSSHKeysModelFancyList("Choose Private Key", util.DefaultPrivateSSHKeys())
+	// Filter private keys to match the selected public key basename (without .pub)
+	privList := util.DefaultPrivateSSHKeys()
+	expectedBase := filepath.Base(strings.TrimSuffix(pubKey, ".pub"))
+	filteredPriv := make([]string, 0, len(privList))
+	for _, p := range privList {
+		if filepath.Base(p) == expectedBase {
+			filteredPriv = append(filteredPriv, p)
+		}
+	}
+	var privOptions []string
+	if len(filteredPriv) > 0 {
+		privOptions = filteredPriv
+	} else {
+		privOptions = privList
+	}
+	sk := NewSSHKeysModelFancyList("Choose Private Key", privOptions)
 	sProg := tea.NewProgram(sk, tea.WithContext(ctx))
 	sRes, err := sProg.Run()
 	if err != nil {
