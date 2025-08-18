@@ -3,6 +3,9 @@ package util
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -79,4 +82,58 @@ func ValidateAndReportEmpty[T any](items []T, pagination *PaginationInfo, out io
 // ShowConstructionAnimation displays a placeholder animation indicating that a feature is under construction.
 func ShowConstructionAnimation() {
 	fmt.Println("🚧 This feature is not implemented yet. Coming soon!")
+}
+
+func DefaultPublicSSHKey() []string {
+	// Return full paths to public SSH keys under ~/.ssh so the picker can be used directly.
+	sshKeys := make([]string, 0)
+	home := os.Getenv("HOME")
+	if home == "" {
+		if h, err := os.UserHomeDir(); err == nil {
+			home = h
+		}
+	}
+	sshDir := filepath.Join(home, ".ssh")
+	dir, err := os.ReadDir(sshDir)
+	if err != nil {
+		return sshKeys
+	}
+	for _, f := range dir {
+		if f.IsDir() {
+			continue
+		}
+		name := f.Name()
+		// Only show public keys by default
+		if strings.HasSuffix(name, ".pub") {
+			sshKeys = append(sshKeys, filepath.Join(sshDir, name))
+		}
+	}
+	return sshKeys
+}
+
+// DefaultPrivateSSHKeys returns full paths to private SSH keys under ~/.ssh (non-.pub files).
+func DefaultPrivateSSHKeys() []string {
+	privKeys := make([]string, 0)
+	home := os.Getenv("HOME")
+	if home == "" {
+		if h, err := os.UserHomeDir(); err == nil {
+			home = h
+		}
+	}
+	sshDir := filepath.Join(home, ".ssh")
+	dir, err := os.ReadDir(sshDir)
+	if err != nil {
+		return privKeys
+	}
+	for _, f := range dir {
+		if f.IsDir() {
+			continue
+		}
+		name := f.Name()
+		if strings.HasSuffix(name, ".pub") {
+			continue
+		}
+		privKeys = append(privKeys, filepath.Join(sshDir, name))
+	}
+	return privKeys
 }

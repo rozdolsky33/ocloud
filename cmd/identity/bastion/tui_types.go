@@ -3,6 +3,8 @@
 package bastion
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -14,12 +16,12 @@ import (
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
-// SessionType identifies how the bastion session behaves.
-type SessionType string
+// BastionType identifies the top-level action.
+type BastionType string
 
 const (
-	TypeManagedSSH     SessionType = "Managed SSH"
-	TypePortForwarding SessionType = "Port-Forwarding"
+	TypeBastion BastionType = "Bastion"
+	TypeSession BastionType = "Session"
 )
 
 // TargetType identifies what the session connects to.
@@ -31,13 +33,15 @@ const (
 	TargetInstance TargetType = "Instance"
 )
 
-// BastionType identifies the top-level action.
-type BastionType string
+// SessionType identifies how the bastion session behaves.
+type SessionType string
 
 const (
-	TypeBastion BastionType = "Bastion"
-	TypeSession BastionType = "Session"
+	TypeManagedSSH     SessionType = "Managed SSH"
+	TypePortForwarding SessionType = "Port-Forwarding"
 )
+
+//-----------------------------------Bastion/Session Creation Selection-------------------------------------------------
 
 // TypeSelectionModel defines a TUI model for selecting a BastionType from a list of available types.
 type TypeSelectionModel struct {
@@ -96,7 +100,8 @@ func (m TypeSelectionModel) View() string {
 	return b.String()
 }
 
-// BastionModel --------------------------------------Bastion Selection------------------------------------------------
+//--------------------------------------------------Bastion Selection---------------------------------------------------
+
 // BastionModel Bastion Selection
 type BastionModel struct {
 	Cursor   int
@@ -135,6 +140,8 @@ func (m BastionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	return m, nil
 }
+
+// View renders the string representation of the BastionModel, displaying the list of bastion hosts and current selection.
 func (m BastionModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a bastion host:\n\n")
@@ -149,6 +156,8 @@ func (m BastionModel) View() string {
 	return b.String()
 }
 
+//------------------------------------------Session Type Selection------------------------------------------------------
+
 // SessionTypeModel Session Type Selection
 type SessionTypeModel struct {
 	Cursor    int
@@ -157,6 +166,7 @@ type SessionTypeModel struct {
 	BastionID string
 }
 
+// NewSessionTypeModel creates a SessionTypeModel instance with the provided list of bastions and initializes the cursor to 0.
 func NewSessionTypeModel(bastionID string) SessionTypeModel {
 	return SessionTypeModel{
 		Types:     []SessionType{TypeManagedSSH, TypePortForwarding},
@@ -207,6 +217,8 @@ func (m SessionTypeModel) View() string {
 	return b.String()
 }
 
+//------------------------------------------Target Type Selection-------------------------------------------------------
+
 // TargetTypeModel Target Type Selection
 type TargetTypeModel struct {
 	Cursor    int
@@ -215,14 +227,10 @@ type TargetTypeModel struct {
 	BastionID string
 }
 
-// NewTargetTypeModel creates a new TargetTypeModel instance with the provided list of target types and bastion ID.
-func NewTargetTypeModel(bastionID string, sessionType SessionType) TargetTypeModel {
+// NewTargetTypeModel creates a TargetTypeModel instance with the provided list of bastions and initializes the cursor to 0.
+func NewTargetTypeModel(bastionID string) TargetTypeModel {
 	var types []TargetType
-	if sessionType == TypeManagedSSH {
-		types = []TargetType{TargetInstance}
-	} else {
-		types = []TargetType{TargetOKE, TargetDatabase, TargetInstance}
-	}
+	types = []TargetType{TargetOKE, TargetDatabase, TargetInstance}
 	return TargetTypeModel{Types: types, Cursor: 0, BastionID: bastionID}
 }
 
@@ -268,7 +276,7 @@ func (m TargetTypeModel) View() string {
 	return b.String()
 }
 
-// ----------------------------------Fancy searchable lists (Instances / OKE / DB)--------------------------------------
+// ----------------------------------Fancy searchable list (Instances / OKE / DB)--------------------------------------
 // resourceItem defines a resource item for a list.
 type resourceItem struct {
 	id, title, description string
@@ -308,6 +316,7 @@ func (m ResourceListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.list, cmd = m.list.Update(msg)
 	return m, cmd
 }
+
 func (m ResourceListModel) View() string   { return m.list.View() }
 func (m ResourceListModel) Choice() string { return m.choice }
 
@@ -373,4 +382,96 @@ func NewDBListModelFancy(dbs []autonomousdbSvc.AutonomousDatabase) ResourceListM
 		items = append(items, resourceItem{id: d.ID, title: d.Name, description: desc})
 	}
 	return newResourceList("Autonomous Databases", items)
+}
+
+//---------------------------------------SSH Keys----------------------------------------------------------------------
+
+// SSHFileItem is a list item representing an SSH key file.
+type SSHFileItem struct {
+	fileName, permission string
+}
+
+// Title returns the file name (implements list.Item).
+func (i SSHFileItem) Title() string { return i.fileName }
+
+// Description returns permissions or metadata (implements list.Item).
+func (i SSHFileItem) Description() string { return i.permission }
+func (i SSHFileItem) FilterValue() string { return i.fileName + " " + i.permission }
+
+// SSHFilesModel is the canonical model name for SSH file selection.
+type SSHFilesModel struct {
+	list   list.Model
+	choice string
+	keys   struct {
+		confirm key.Binding
+		quit    key.Binding
+	}
+}
+
+// SHHFilesModel is an alias for SSHFilesModel used in contexts requiring SSH file selection and interaction.
+type SHHFilesModel = SSHFilesModel
+
+func (m SSHFilesModel) Init() tea.Cmd { return nil }
+func (m SSHFilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.list.SetSize(msg.Width, msg.Height-2)
+	case tea.KeyMsg:
+		if key.Matches(msg, m.keys.quit) {
+			return m, tea.Quit
+		}
+		if key.Matches(msg, m.keys.confirm) {
+			if it, ok := m.list.SelectedItem().(SSHFileItem); ok {
+				m.choice = it.fileName
+			}
+			return m, tea.Quit
+		}
+	}
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m SSHFilesModel) View() string   { return m.list.View() }
+func (m SSHFilesModel) Choice() string { return m.choice }
+
+func newSSHList(title string, items []list.Item) SSHFilesModel {
+	delegate := list.NewDefaultDelegate()
+	l := list.New(items, delegate, 0, 0)
+	l.Title = title
+	l.SetShowTitle(true)
+	l.SetShowHelp(true)
+	l.SetFilteringEnabled(true)
+	l.SetShowFilter(true)
+
+	rm := SSHFilesModel{list: l}
+	rm.keys.confirm = key.NewBinding(key.WithKeys("enter"))
+	rm.keys.quit = key.NewBinding(key.WithKeys("q", "esc", "ctrl+c"))
+	return rm
+}
+
+// filePermString returns the file's unix permission bits as a short octal string (e.g., "600").
+// If the file can't be stat'ed, returns "n/a".
+func filePermString(path string) string {
+	info, err := os.Stat(path)
+	if err != nil {
+		return "n/a"
+	}
+	perm := info.Mode().Perm()
+	// Format without leading 0 (e.g., 0600 -> 600)
+	return fmt.Sprintf("%o", perm)
+}
+
+// NewSSHFilesModelFancyList creates an SSHFilesModel from a list of key paths with actual permissions.
+func NewSSHFilesModelFancyList(title string, keys []string) SSHFilesModel {
+	items := make([]list.Item, 0, len(keys))
+	for _, k := range keys {
+		items = append(items, SSHFileItem{fileName: k, permission: filePermString(k)})
+	}
+	return newSSHList(title, items)
+}
+
+// NewSSHKeysModelFancyList creates a new SHHFilesModel instance populated with SSH key items for the given title and keys list.
+func NewSSHKeysModelFancyList(title string, keys []string) SHHFilesModel {
+	return NewSSHFilesModelFancyList(title, keys)
 }
