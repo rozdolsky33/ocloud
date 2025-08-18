@@ -136,10 +136,10 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	case TypePortForwarding:
 		// For PF: resolve endpoint -> private IP, then tunnel to 6443
 		candidates := []string{}
-		if h := extractHostname(cluster.PrivateEndpoint); h != "" {
+		if h := util.ExtractHostname(cluster.PrivateEndpoint); h != "" {
 			candidates = append(candidates, h)
 		}
-		if h := extractHostname(cluster.KubernetesEndpoint); h != "" {
+		if h := util.ExtractHostname(cluster.KubernetesEndpoint); h != "" {
 			candidates = append(candidates, h)
 		}
 		if len(candidates) == 0 {
@@ -150,7 +150,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		var targetIP string
 		var lastErr error
 		for _, host := range candidates {
-			ip, err := resolveHostToIP(ctx, host) // ctx-aware DNS
+			ip, err := util.ResolveHostToIP(ctx, host) // ctx-aware DNS
 			if err == nil {
 				targetIP = ip
 				break
@@ -182,7 +182,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 			return fmt.Errorf("read port: %w", err)
 		}
 
-		if IsLocalTCPPortInUse(port) {
+		if util.IsLocalTCPPortInUse(port) {
 			return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", port)
 		}
 

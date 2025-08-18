@@ -284,7 +284,7 @@ func SpawnDetached(args []string, logfile string) (int, error) {
 }
 
 // WaitForListen wait until the localPort is listening (nice UX).
-// This is not strictly necessary, but it helps to avoid "connection refused" errors.
+// Helps to avoid "connection refused" errors.
 func WaitForListen(localPort int, timeout time.Duration) error {
 	addr := fmt.Sprintf("127.0.0.1:%d", localPort)
 	deadline := time.Now().Add(timeout)

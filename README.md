@@ -40,7 +40,7 @@ brew install ocloud
 
 ### Manual Installation
 
-Download the latest binary from the [releases page](https://github.com/rozdolsky33/ocloud/releases) and place it in your PATH.
+Download the latest binary from the [release page](https://github.com/rozdolsky33/ocloud/releases) and place it in your PATH.
 
 #### macOS/Linux
 
