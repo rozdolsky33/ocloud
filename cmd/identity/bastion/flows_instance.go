@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -44,6 +46,38 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return ErrAborted
 	}
 
+	pk := NewSSHKeysModelFancyList("Choose Public Key", util.DefaultPublicSSHKey())
+	model := tea.NewProgram(pk, tea.WithContext(ctx))
+	res, err := model.Run()
+	if err != nil {
+		return fmt.Errorf("public key selection TUI: %w", err)
+	}
+	pick, ok := res.(SHHFilesModel)
+	if !ok || pick.Choice() == "" {
+		return ErrAborted
+	}
+	pubKey := pick.Choice()
+
+	// Ask for a private key
+	sk := NewSSHKeysModelFancyList("Choose Private Key", util.DefaultPrivateSSHKeys())
+	sp := tea.NewProgram(sk, tea.WithContext(ctx))
+	sres, err := sp.Run()
+	if err != nil {
+		return fmt.Errorf("private key selection TUI: %w", err)
+	}
+
+	skPick, ok := sres.(SHHFilesModel)
+	if !ok || skPick.Choice() == "" {
+		return ErrAborted
+	}
+	privKey := skPick.Choice()
+
+	// Ensure selected keys match: private key basename must equal public key basename without .pub
+	expected := strings.TrimSuffix(pubKey, ".pub")
+	if filepath.Base(privKey) != filepath.Base(expected) {
+		return fmt.Errorf("selected private key %s does not match public key %s (expected private: %s)", privKey, pubKey, expected)
+	}
+
 	// Find selection
 	var inst instancessvc.Instance
 	for _, it := range instances {
@@ -62,7 +96,6 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
 		sType, b.Name, b.ID, inst.Name)
 
-	pubKey, privKey := bastionSvc.DefaultSSHKeyPaths()
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
 		return fmt.Errorf("get region: %w", regErr)
