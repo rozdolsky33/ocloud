@@ -13,6 +13,17 @@ OCloud is a powerful command-line interface (CLI) tool designed to simplify inte
 
 Whether you're managing instances, working with images, or need to quickly find resources across your OCI environment, OCloud offers an intuitive and efficient interface that works seamlessly with your existing OCI configuration.
 
+## Features
+
+- Manage compute instances, images, and OKE resources
+- Interactive configuration and OCI Auth Refresher to keep sessions alive
+- Tenancy mapping for friendly tenancy and compartment names
+- Bastion session management: start/attach/terminate OCI Bastion sessions with reachability checks and an interactive SSH key picker (TUI)
+
+### What's New
+
+- Added bastion session management capabilities and interactive SSH key selection to the Identity > Bastion commands
+
 ## Installation
 
 OCloud can be installed in several ways:
@@ -78,7 +89,7 @@ Running `ocloud` without any arguments displays the configuration details and av
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: 0.0.27
+	      Version: 0.0.28
 
 Configuration Details: Valid until 2025-08-02 23:26:28
   OCI_CLI_PROFILE: DEFAULT
@@ -252,7 +263,7 @@ The project includes a comprehensive test script `test_ocloud.sh` that tests all
 - Root commands and global flags
 - Configuration commands (info, map-file, session)
 - Compute commands (instance, image, oke)
-- Identity commands (compartment, policy)
+- Identity commands (bastion, compartment, policy)
 - Network commands (subnet)
 - Database commands (autonomousdb)
 
