@@ -39,7 +39,6 @@ func SplitTextByMaxWidth(text string) []string {
 
 	parts := strings.Fields(text)
 
-	// If there's only one part, or it's short enough, return it as is
 	if len(parts) <= 1 {
 		return []string{text}
 	}
@@ -49,7 +48,7 @@ func SplitTextByMaxWidth(text string) []string {
 
 	for i := 1; i < len(parts); i++ {
 		// If adding the next part makes the line too long, start a new line
-		if len(currentLine)+len(parts[i])+1 > 30 { // 30 is a reasonable width for the column
+		if len(currentLine)+len(parts[i])+1 > 30 {
 			result = append(result, currentLine)
 			currentLine = parts[i]
 		} else {

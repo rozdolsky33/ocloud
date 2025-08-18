@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 )
 
 // CanReach checks if the provided bastion can reach a target identified by target VCN and/or Subnet.
@@ -43,29 +44,52 @@ func (s *Service) CanReach(ctx context.Context, b Bastion, targetVcnID string, t
 
 // IsBastionAgentPluginEnabled checks if the "Bastion" agent plugin is enabled for the given instance ID. Returns a boolean and error.
 func (s *Service) IsBastionAgentPluginEnabled(ctx context.Context, instanceID string) (bool, error) {
+
 	if instanceID == "" {
 		return false, fmt.Errorf("instance ID is empty")
 	}
+
 	resp, err := s.computeClient.GetInstance(ctx, core.GetInstanceRequest{InstanceId: &instanceID})
 	if err != nil {
 		return false, fmt.Errorf("failed to get instance: %w", err)
 	}
+
 	if resp.Instance.AgentConfig == nil {
 		return false, fmt.Errorf("instance agent configuration is not available")
 	}
-	plugins := resp.Instance.AgentConfig.PluginsConfig
-	if len(plugins) == 0 {
-		return false, fmt.Errorf("instance agent plugin configuration is not available")
-	}
-	for _, p := range plugins {
+
+	for _, p := range resp.Instance.AgentConfig.PluginsConfig {
 		if p.Name != nil && *p.Name == "Bastion" {
 			if p.DesiredState == core.InstanceAgentPluginConfigDetailsDesiredStateEnabled {
-				return true, fmt.Errorf("instance agent plugin 'Bastion' is enabled")
+				return true, nil
 			}
-			return false, fmt.Errorf("instance agent plugin 'Bastion' is disabled")
+			return false, fmt.Errorf("bastion agent plugin is disabled")
 		}
 	}
-	return false, fmt.Errorf("instance agent plugin 'Bastion' is not configured")
+
+	return false, fmt.Errorf("bastion agent plugin is not configured")
+}
+
+// FilterInstancesWithBastionEnabled filters []Instance slice
+// and returns only those with the Bastion agent plugin enabled.
+func (s *Service) FilterInstancesWithBastionEnabled(ctx context.Context, instances []instance.Instance) ([]instance.Instance, error) {
+	var result []instance.Instance
+
+	for _, inst := range instances {
+		if inst.ID == "" {
+			continue
+		}
+		ok, err := s.IsBastionAgentPluginEnabled(ctx, inst.ID)
+		if err != nil {
+			continue
+		}
+
+		if ok {
+			result = append(result, inst)
+		}
+	}
+
+	return result, nil
 }
 
 // vcnMatches checks if the provided subnet's VCN ID matches the specified bastion VCN ID. Returns true if they match.

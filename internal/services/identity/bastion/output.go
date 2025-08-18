@@ -8,7 +8,6 @@ import (
 
 func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSON bool) error {
 
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 	if useJSON {
 		if len(bastions) == 0 {
@@ -25,14 +24,13 @@ func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSO
 			"TargetVcn":      b.TargetVcnName,
 			"TargetSubnet":   b.TargetSubnetName,
 		}
-		// Define ordered Keys
+
 		orderedKeys := []string{
 			"Name", "BastionType", "LifecycleState", "TargetVcn", "TargetSubnet",
 		}
 
 		title := util.FormatColoredTitle(appCtx, b.Name)
 
-		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, bastionInfo, orderedKeys)
 	}
 
