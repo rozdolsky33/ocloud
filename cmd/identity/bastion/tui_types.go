@@ -408,7 +408,7 @@ type SSHFilesModel struct {
 	}
 }
 
-// Backward-compatible alias: SHHFilesModel (typo) now maps to SSHFilesModel.
+// SHHFilesModel is an alias for SSHFilesModel used in contexts requiring SSH file selection and interaction.
 type SHHFilesModel = SSHFilesModel
 
 func (m SSHFilesModel) Init() tea.Cmd { return nil }
@@ -471,7 +471,7 @@ func NewSSHFilesModelFancyList(title string, keys []string) SSHFilesModel {
 	return newSSHList(title, items)
 }
 
-// Backward-compatible wrapper retaining old name.
+// NewSSHKeysModelFancyList creates a new SHHFilesModel instance populated with SSH key items for the given title and keys list.
 func NewSSHKeysModelFancyList(title string, keys []string) SHHFilesModel {
 	return NewSSHFilesModelFancyList(title, keys)
 }

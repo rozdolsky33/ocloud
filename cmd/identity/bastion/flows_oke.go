@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path/filepath"
-	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -90,36 +88,9 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		return fmt.Errorf("resolve OKE API endpoint to private IP: %v", lastErr)
 	}
 
-	// Choose an SSH public key
-	pk := NewSSHKeysModelFancyList("Choose Public Key", util.DefaultPublicSSHKey())
-	pProg := tea.NewProgram(pk, tea.WithContext(ctx))
-	pRes, err := pProg.Run()
+	pubKey, privKey, err := SelectSSHKeyPair(ctx)
 	if err != nil {
-		return fmt.Errorf("public key selection TUI: %w", err)
-	}
-	pPick, ok := pRes.(SHHFilesModel)
-	if !ok || pPick.Choice() == "" {
-		return ErrAborted
-	}
-	pubKey := pPick.Choice()
-
-	// Choose an SSH private key
-	sk := NewSSHKeysModelFancyList("Choose Private Key", util.DefaultPrivateSSHKeys())
-	sProg := tea.NewProgram(sk, tea.WithContext(ctx))
-	sRes, err := sProg.Run()
-	if err != nil {
-		return fmt.Errorf("private key selection TUI: %w", err)
-	}
-	sPick, ok := sRes.(SHHFilesModel)
-	if !ok || sPick.Choice() == "" {
-		return ErrAborted
-	}
-	privKey := sPick.Choice()
-
-	// Validate that selected keys match by basename
-	expected := strings.TrimSuffix(pubKey, ".pub")
-	if filepath.Base(privKey) != filepath.Base(expected) {
-		return fmt.Errorf("selected private key %s does not match public key %s (expected private: %s)", privKey, pubKey, expected)
+		return err
 	}
 
 	okeTargetPort := 6443
