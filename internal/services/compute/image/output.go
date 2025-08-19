@@ -45,3 +45,26 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }
+
+func PrintImageInfo(image Image, appCtx *app.ApplicationContext) error {
+	p := printer.New(appCtx.Stdout)
+
+	imageData := map[string]string{
+		"ID":              image.ID,
+		"Name":            image.Name,
+		"Created":         image.CreatedAt.String(),
+		"ImageOSVersion":  image.ImageOSVersion,
+		"OperatingSystem": image.OperatingSystem,
+		"LunchMode":       image.LunchMode,
+	}
+
+	orderedKeys := []string{
+		"ID", "Name", "Created", "ImageName", "ImageOSVersion", "OperatingSystem", "LunchMode",
+	}
+
+	title := util.FormatColoredTitle(appCtx, image.Name)
+
+	p.PrintKeyValues(title, imageData, orderedKeys)
+
+	return nil
+}

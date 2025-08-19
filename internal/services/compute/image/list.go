@@ -36,7 +36,10 @@ func ListImages(ctx context.Context, appCtx *app.ApplicationContext) error {
 		}
 	}
 
-	fmt.Println(img)
+	err = PrintImageInfo(img, appCtx)
+	if err != nil {
+		return fmt.Errorf("printing image info: %w", err)
+	}
 
 	return nil
 }

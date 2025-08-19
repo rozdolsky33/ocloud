@@ -22,7 +22,6 @@ type VersionInfo struct {
 // This function was refactored to return *cobra.Command directly instead of *VersionInfo
 // to fix an issue with adding the command to the root command
 func NewVersionCommand() *cobra.Command {
-	// If appCtx is nil, use os.Stdout as the default writer
 	var writer io.Writer = os.Stdout
 
 	vc := &VersionInfo{

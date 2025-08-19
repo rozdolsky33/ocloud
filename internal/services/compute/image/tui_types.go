@@ -1,6 +1,8 @@
 package image
 
 import (
+	"fmt"
+
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -70,7 +72,7 @@ func NewImageListModelFancy(images []Image) ResourceListModel {
 	items := make([]list.Item, 0, len(images))
 	for _, img := range images {
 		name := img.Name
-		desc := img.OperatingSystem
+		desc := fmt.Sprintf("ImageOSVersion: %s", img.ImageOSVersion)
 		id := img.ID
 		items = append(items, resourceItem{id: id, title: name, description: desc})
 	}
