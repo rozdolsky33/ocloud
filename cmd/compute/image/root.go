@@ -17,8 +17,9 @@ func NewImageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	cmd.AddCommand(NewListCmd(appCtx))
+	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewFindCmd(appCtx))
+	cmd.AddCommand(NewListCmd(appCtx))
 
 	return cmd
 }

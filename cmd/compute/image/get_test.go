@@ -14,7 +14,7 @@ func TestListCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new list command
-	cmd := NewListCmd(appCtx)
+	cmd := NewGetCmd(appCtx)
 
 	// Test that the list command is properly configured
 	assert.Equal(t, "list", cmd.Use)

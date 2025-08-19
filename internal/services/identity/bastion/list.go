@@ -8,6 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
+// ListBastions retrieves a list of bastion hosts and displays their information, optionally in JSON format.
 func ListBastions(ctx context.Context, appCtx *app.ApplicationContext, useJSON bool) error {
 
 	logger.LogWithLevel(appCtx.Logger, 1, "Listing bastions")

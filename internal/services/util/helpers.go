@@ -104,7 +104,6 @@ func DefaultPublicSSHKey() []string {
 			continue
 		}
 		name := f.Name()
-		// Only show public keys by default
 		if strings.HasSuffix(name, ".pub") {
 			sshKeys = append(sshKeys, filepath.Join(sshDir, name))
 		}

@@ -4,39 +4,39 @@ import (
 	"context"
 	"fmt"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListImages lists image from the compute service with a provided limit, page, and JSON output option.
-// It uses the application context for configuration and logging.
-// Returns an error if the operation fails.
-func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "ListImages", "limit", limit, "page", page, "json", useJSON)
+func ListImages(ctx context.Context, appCtx *app.ApplicationContext) error {
 
 	service, err := NewService(appCtx)
 	if err != nil {
-		return fmt.Errorf("creating compute service: %w", err)
+		return fmt.Errorf("creating image service: %w", err)
 	}
+	images, err := service.fetchAllImages(ctx)
 
-	ctx := context.Background()
-	images, totalCount, nextPageToken, err := service.List(ctx, limit, page)
+	// TUI selection
+	im := NewImageListModelFancy(images)
+	ip := tea.NewProgram(im, tea.WithContext(ctx))
+	ires, err := ip.Run()
 	if err != nil {
-		return fmt.Errorf("listing images: %w", err)
+		return fmt.Errorf("image selection TUI: %w", err)
+	}
+	chosen, ok := ires.(ResourceListModel)
+	if !ok || chosen.Choice() == "" {
+		return err
 	}
 
-	// Display image information with pagination details
-	err = PrintImagesInfo(images, appCtx, &util.PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON)
-
-	if err != nil {
-		return fmt.Errorf("printing image table: %w", err)
+	var img Image
+	for _, it := range images {
+		if it.ID == chosen.Choice() {
+			img = it
+			break
+		}
 	}
+
+	fmt.Println(img)
 
 	return nil
 }

@@ -137,8 +137,6 @@ func TestExtractTagValues(t *testing.T) {
 	}
 	result, err = ExtractTagValues(freeform, defined)
 	assert.NoError(t, err, "ExtractTagValues should not return an error with empty values")
-	// We can't use NotContains with an empty string because it would match the spaces between values
-	// Instead, we'll check that the result doesn't contain empty values by ensuring it doesn't have consecutive spaces
 	assert.NotContains(t, result, "  ", "ExtractTagValues should not have consecutive spaces (empty values)")
 	assert.Contains(t, result, "value2", "ExtractTagValues should include valid values")
 	assert.Contains(t, result, "value3", "ExtractTagValues should include valid values")

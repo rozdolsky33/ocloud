@@ -6,6 +6,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
+// PrintBastionInfo displays bastion instances in a formatted table or JSON format.
 func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSON bool) error {
 
 	p := printer.New(appCtx.Stdout)
