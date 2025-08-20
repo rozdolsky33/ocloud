@@ -90,7 +90,7 @@ func determineConcurrencyStatus(cmd *cobra.Command) bool {
 		}
 	}
 
-	return true // default to enabled
+	return true
 }
 
 // resolveTenancyAndCompartment resolves the tenancy ID, tenancy name, and compartment ID for the application context.
@@ -141,9 +141,7 @@ func resolveTenancyID(cmd *cobra.Command) (string, error) {
 	if envTenancyName := os.Getenv(flags.EnvKeyTenancyName); envTenancyName != "" {
 		lookupID, err := config.LookupTenancyID(envTenancyName)
 		if err != nil {
-			// Log the error but continue with the next method of resolving the tenancy ID
 			logger.LogWithLevel(logger.CmdLogger, 3, "could not look up tenancy ID for tenancy name, continuing with other methods", "tenancyName", envTenancyName, "error", err)
-			// Add a more detailed message about how to set up the mapping file
 			logger.LogWithLevel(logger.CmdLogger, 3, "To set up tenancy mapping, create a YAML file at ~/.oci/tenancy-map.yaml or set the OCI_TENANCY_MAP_PATH environment variable. The file should contain entries mapping tenancy names to OCIDs. Example:\n- environment: prod\n  tenancy: mytenancy\n  tenancy_id: ocid1.tenancy.oc1..aaaaaaaabcdefghijklmnopqrstuvwxyz\n  realm: oc1\n  compartments: mycompartment\n  regions: us-ashburn-1")
 		} else {
 			logger.LogWithLevel(logger.CmdLogger, 3, "using tenancy OCID for name", "tenancyName", envTenancyName, "tenancyID", lookupID)
@@ -221,7 +219,6 @@ func resolveCompartmentID(ctx context.Context, appCtx *ApplicationContext) (stri
 		CompartmentIdInSubtree: common.Bool(true),
 	}
 
-	// paginate through results; stop when OpcNextPage is nil
 	pageToken := ""
 	for {
 		if pageToken != "" {

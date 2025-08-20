@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ───────────────────────────────────────────────────────────
-# oci_auth_refresher.sh  •  v0.2.1
+# oci_auth_refresher.sh  •  v0.2.2
 #
 # Keeps an OCI CLI session alive by refreshing it shortly
 # before it expires. Intended to be launched nohup
@@ -30,7 +30,7 @@ LOG_FILE="${SESSION_DIR}/refresher.log"
 
 mkdir -p "$SESSION_DIR"
 
-# Relaunch with nohup if needed
+# Relaunch with nohup
 if [[ -z "$NOHUP" && -t 1 ]]; then
   export NOHUP=1
   script_path="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
@@ -72,7 +72,7 @@ function to_epoch() {
 
 # Check remaining session duration
 function get_remaining_session_duration() {
-  if oci session validate --profile "$OCI_CLI_PROFILE" --local 2>&1; then
+  if oci session validate --profile "$OCI_CLI_PROFILE" --local >> "$LOG_FILE" 2>&1; then
     oci_session_status="valid"
     echo "$oci_session_status" > "$SESSION_STATUS_FILE"
 
@@ -126,7 +126,6 @@ function refresh_session() {
 oci_session_status="unknown"
 remaining_time=0
 
-# Main loop
 get_remaining_session_duration
 
 while [[ "$oci_session_status" == "valid" ]]; do

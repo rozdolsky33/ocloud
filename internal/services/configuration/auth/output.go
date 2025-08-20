@@ -111,7 +111,6 @@ func getRegionGroupTitle(prefix string) string {
 func PrintExportVariable(profile, tenancyName, compartment string) error {
 	logger.LogWithLevel(logger.Logger, 3, "Printing export variables", "profile", profile, "tenancyName", tenancyName, "compartment", compartment)
 
-	// Create a map of environment variables to export
 	exportVars := make(map[string]string)
 
 	if profile != "" {

@@ -11,7 +11,6 @@ import (
 
 // ListCompartments retrieves and displays a paginated list of compartments for the given application context.
 // It uses the provided limit, page number, and output format (JSON or table) to render the results.
-// Returns an error if fetching or displaying compartments fails.
 func ListCompartments(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Listing Compartments", "limit", limit, "page", page)
 

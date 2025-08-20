@@ -21,7 +21,6 @@ func NewService() *Service {
 }
 
 // LoadTenancyMappings loads the tenancy mappings from the file and filters them by realm if specified.
-// It returns a TenancyMappingResult containing the filtered mappings and an error if encountered.
 func (s *Service) LoadTenancyMappings(realm string) (*TenancyMappingResult, error) {
 	// Load the tenancy mapping from the file
 	logger.LogWithLevel(s.logger, 3, "Loading tenancy mappings", "realm", realm)

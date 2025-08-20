@@ -16,11 +16,11 @@ func TestFindSubnets(t *testing.T) {
 
 	// This is a placeholder test that would normally test the FindSubnets function
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Call FindSubnets with different search patterns
 	// 3. Verify that the output contains the expected information
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -48,11 +48,11 @@ func TestFindSubnetsWithJSON(t *testing.T) {
 
 	// This is a placeholder test that would normally test the FindSubnets function with JSON output
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Call FindSubnets with different search patterns and useJSON=true
 	// 3. Verify that the output is valid JSON and contains the expected information
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -80,11 +80,11 @@ func TestFindSubnetsError(t *testing.T) {
 
 	// This is a placeholder test that would normally test the FindSubnets function with an error
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Set up the mock to return an error
 	// 3. Call FindSubnets and verify that it returns the expected error
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout

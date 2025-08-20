@@ -1,11 +1,12 @@
 package instance
 
 import (
+	"io"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 // TestFindInstancesSimple is a simplified test for the FindInstances function

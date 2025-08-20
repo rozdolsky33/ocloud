@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the find command
 var findLong = `
 Find instances in the specified compartment that match the given pattern.
 
@@ -25,7 +24,6 @@ The search pattern is automatically wrapped with wildcards, so partial matches a
 For example, searching for "web" will match "webserver" etc.
 `
 
-// Examples for the find command
 var findExamples = `
   # Find instances with "web" in their name
   ocloud compute instance find web
@@ -70,8 +68,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running instance find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
 	return instance.FindInstances(appCtx, namePattern, imageDetails, useJSON)
 }

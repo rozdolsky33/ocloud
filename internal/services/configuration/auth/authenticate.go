@@ -9,7 +9,6 @@ import (
 
 // AuthenticateWithOCI handles the authentication process with Oracle Cloud Infrastructure (OCI) using interactive inputs.
 // It performs authentication with the provided filter and realm, displays environment variables, and optionally starts the auth refresher.
-// Returns an error if any step in the process fails.
 func AuthenticateWithOCI(filter, realm string) error {
 
 	s := NewService()
@@ -23,11 +22,6 @@ func AuthenticateWithOCI(filter, realm string) error {
 
 	logger.LogWithLevel(s.logger, 3, "Interactive authentication completed", "tenancyID", result.TenancyID, "tenancyName", result.TenancyName)
 
-	logger.LogWithLevel(s.logger, 3, "Displaying environment variables")
-	if err = PrintExportVariable(result.Profile, result.TenancyName, result.CompartmentName); err != nil {
-		return fmt.Errorf("printing export variables: %w", err)
-	}
-
 	logger.LogWithLevel(s.logger, 1, "Authentication process completed successfully")
 
 	logger.LogWithLevel(s.logger, 1, "Starting OCI auth refresher for profile", "profile", result.Profile)
@@ -39,6 +33,11 @@ func AuthenticateWithOCI(filter, realm string) error {
 		logger.LogWithLevel(s.logger, 1, "OCI auth refresher enabled")
 	} else {
 		logger.LogWithLevel(s.logger, 1, "OCI auth refresher disabled")
+	}
+
+	logger.LogWithLevel(s.logger, 3, "Displaying environment variables")
+	if err = PrintExportVariable(result.Profile, result.TenancyName, result.CompartmentName); err != nil {
+		return fmt.Errorf("printing export variables: %w", err)
 	}
 
 	return nil

@@ -4,38 +4,43 @@ import (
 	"context"
 	"fmt"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListImages lists image from the compute service with a provided limit, page, and JSON output option.
-// It uses the application context for configuration and logging.
-// Returns an error if the operation fails.
-func ListImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "ListImages", "limit", limit, "page", page, "json", useJSON)
+// ListImages lists all images in the given compartment, allowing the user to select one via a TUI and display its details.
+// It initializes required services, fetches images, processes user selection, and prints the chosen image information.
+func ListImages(ctx context.Context, appCtx *app.ApplicationContext) error {
 
 	service, err := NewService(appCtx)
 	if err != nil {
-		return fmt.Errorf("creating compute service: %w", err)
+		return fmt.Errorf("creating image service: %w", err)
+	}
+	images, err := service.fetchAllImages(ctx)
+
+	// TUI selection
+	im := NewImageListModelFancy(images)
+	ip := tea.NewProgram(im, tea.WithContext(ctx))
+	ires, err := ip.Run()
+	if err != nil {
+		return fmt.Errorf("image selection TUI: %w", err)
+	}
+	chosen, ok := ires.(ResourceListModel)
+	if !ok || chosen.Choice() == "" {
+		return err
 	}
 
-	ctx := context.Background()
-	images, totalCount, nextPageToken, err := service.List(ctx, limit, page)
-	if err != nil {
-		return fmt.Errorf("listing images: %w", err)
+	var img Image
+	for _, it := range images {
+		if it.ID == chosen.Choice() {
+			img = it
+			break
+		}
 	}
 
-	// Display image information with pagination details
-	err = PrintImagesInfo(images, appCtx, &util.PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON)
-
+	err = PrintImageInfo(img, appCtx)
 	if err != nil {
-		return fmt.Errorf("printing image table: %w", err)
+		return fmt.Errorf("printing image info: %w", err)
 	}
 
 	return nil

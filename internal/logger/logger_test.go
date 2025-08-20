@@ -99,7 +99,7 @@ func TestSetLogger(t *testing.T) {
 		CmdLogger = originalCmdLogger
 	}()
 
-	// Test with valid log level
+	// Test with a valid log level
 	LogLevel = "info"
 	ColoredOutput = false
 	err := SetLogger()

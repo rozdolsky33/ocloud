@@ -13,7 +13,6 @@ import (
 
 // PrintMappingsFile displays tenancy mapping information in a formatted table or JSON format.
 // It takes a slice of MappingsFile, the application context, and a boolean indicating whether to use JSON format.
-// Returns an error if the display operation fails.
 func PrintMappingsFile(mappings []appConfig.MappingsFile, useJSON bool) error {
 
 	p := printer.New(os.Stdout)
@@ -89,13 +88,10 @@ func PrintMappingsFile(mappings []appConfig.MappingsFile, useJSON bool) error {
 }
 
 // groupMappingsByRealm groups mappings by their realm.
-// It returns a map where the key is the realm and the value is a slice of mappings for that realm.
 func groupMappingsByRealm(mappings []appConfig.MappingsFile) map[string][]appConfig.MappingsFile {
 	realmGroups := make(map[string][]appConfig.MappingsFile)
-
 	for _, mapping := range mappings {
 		realmGroups[mapping.Realm] = append(realmGroups[mapping.Realm], mapping)
 	}
-
 	return realmGroups
 }

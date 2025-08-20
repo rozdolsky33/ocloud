@@ -22,10 +22,8 @@ func FindClusters(appCtx *app.ApplicationContext, namePattern string, useJSON bo
 		return fmt.Errorf("finding oke clusters: %w", err)
 	}
 
-	// Display matched clusters
 	if len(clusters) == 0 {
 		if useJSON {
-			// Return an empty JSON array if no clusters found
 			fmt.Fprintln(appCtx.Stdout, `{"clusters": []}`)
 		} else {
 			fmt.Fprintf(appCtx.Stdout, "No clusters found matching pattern: %s\n", namePattern)

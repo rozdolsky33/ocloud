@@ -22,7 +22,6 @@ type VersionInfo struct {
 // This function was refactored to return *cobra.Command directly instead of *VersionInfo
 // to fix an issue with adding the command to the root command
 func NewVersionCommand() *cobra.Command {
-	// If appCtx is nil, use os.Stdout as the default writer
 	var writer io.Writer = os.Stdout
 
 	vc := &VersionInfo{
@@ -70,8 +69,6 @@ func PrintVersion() {
 // AddVersionFlag adds a version flag to the root command
 // This function adds a global persistent flag to support the --version/-v flag
 // and sets up a PersistentPreRunE hook to check for the flag and print version information
-// Note: This function preserves any existing PersistentPreRunE hook by storing it and
-// calling it after checking for the version flag
 func AddVersionFlag(rootCmd *cobra.Command) {
 	// Register a global persistent flag to support short form (e.g., `ocloud -v`)
 	rootCmd.PersistentFlags().BoolP(flags.FlagNameVersion, flags.FlagShortVersion, false, flags.FlagDescVersion)

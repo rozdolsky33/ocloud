@@ -14,12 +14,11 @@ func TestListCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new list command
-	cmd := NewListCmd(appCtx)
+	cmd := NewGetCmd(appCtx)
 
 	// Test that the list command is properly configured
-	assert.Equal(t, "list", cmd.Use)
-	assert.Equal(t, []string{"l"}, cmd.Aliases)
-	assert.Equal(t, "List all images", cmd.Short)
+	assert.Equal(t, "get", cmd.Use)
+	assert.Equal(t, "Get all images", cmd.Short)
 	assert.Equal(t, listLong, cmd.Long)
 	assert.Equal(t, listExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
@@ -35,7 +34,4 @@ func TestListCommand(t *testing.T) {
 	assert.NotNil(t, pageFlag, "list command should have page flag")
 	assert.Equal(t, "page", pageFlag.Name)
 	assert.Equal(t, "p", pageFlag.Shorthand)
-
-	// Note: The JSON flag is a global flag and is not directly added to the command in the list.go file.
-	// It's added at a higher level in the command hierarchy.
 }

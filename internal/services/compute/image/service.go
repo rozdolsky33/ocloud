@@ -27,9 +27,9 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	}, nil
 }
 
-// List retrieves a paginated list of image with given limit and page number parameters.
+// Get retrieves a paginated list of image with given limit and page number parameters.
 // It returns the slice of image, total count, next page token, and an error if encountered.
-func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
+func (s *Service) Get(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
 		"limit", limit,
 		"pageNum", pageNum)

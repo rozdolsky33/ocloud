@@ -49,12 +49,10 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 // If showImageDetails is true, it also enriches instances with image details.
 // Returns instances, total count, next page token, and an error, if any.
 func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDetails bool) ([]Instance, int, string, error) {
-	// Log input parameters at debug level
 	logger.LogWithLevel(s.logger, 3, "List() called with pagination parameters",
 		"limit", limit,
 		"pageNum", pageNum)
 
-	// Initialize variables
 	var instances []Instance
 	instanceMap := make(map[string]*Instance)
 	var nextPageToken string
@@ -181,9 +179,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	for _, oc := range resp.Items {
 		inst := mapToInstance(oc)
 		instances = append(instances, inst)
-
 		// Create a copy of the instance and store a pointer to it in the map
-		// This ensures the pointer remains valid even if the slice is reallocated
 		instanceCopy := inst
 		instanceMap[*oc.Id] = &instanceCopy
 	}
@@ -221,7 +217,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 	// The most direct way to determine if there are more pages is to check if there's a next page token
 	hasNextPage := resp.OpcNextPage != nil
 
-	// Log detailed pagination information at debug level 1 for better visibility
+	// Log detailed pagination information at debug level
 	if hasNextPage {
 		logger.LogWithLevel(s.logger, 1, "Pagination information",
 			"currentPage", pageNum,
@@ -252,7 +248,6 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 	var instanceMap = make(map[string]*Instance)
 	var allInstances []Instance
 
-	// Initialize pagination variables
 	var page string
 	currentPage := 1
 
@@ -300,8 +295,6 @@ func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetai
 		for _, oc := range resp.Items {
 			inst := mapToInstance(oc)
 			allInstances = append(allInstances, inst)
-
-			// Add a pointer to the instance to the map for enrichment
 			instanceCopy := inst
 			instanceMap[*oc.Id] = &instanceCopy
 		}
@@ -551,12 +544,10 @@ func (s *Service) fetchImageDetails(ctx context.Context, imageID string) (*core.
 		return nil, nil
 	}
 
-	// Create a request to get the image details
 	request := core.GetImageRequest{
 		ImageId: &imageID,
 	}
 
-	// Call the OCI API to get the image details
 	response, err := s.compute.GetImage(ctx, request)
 	if err != nil {
 		return nil, fmt.Errorf("getting image details: %w", err)
@@ -568,7 +559,6 @@ func (s *Service) fetchImageDetails(ctx context.Context, imageID string) (*core.
 // enrichInstancesWithVnics enriches each instance in the provided map with its associated VNIC information.
 // This method uses a batch approach to fetch VNIC attachments for all instances at once, reducing API calls.
 func (s *Service) enrichInstancesWithVnics(ctx context.Context, instanceMap map[string]*Instance) error {
-	// Extract instance IDs
 	var instanceIDs []string
 	for id := range instanceMap {
 		instanceIDs = append(instanceIDs, id)
@@ -927,7 +917,7 @@ func (s *Service) fetchRouteTableDetails(ctx context.Context, routeTableID strin
 	return &resp.RouteTable, nil
 }
 
-// mapToInstance maps SDK Instance to local model.
+// mapToInstance maps SDK Instance to a local model.
 func mapToInstance(oc core.Instance) Instance {
 	return Instance{
 		Name: *oc.DisplayName,

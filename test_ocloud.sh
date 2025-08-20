@@ -94,13 +94,13 @@ print_header "Testing compute image command"
 run_command ./bin/ocloud compute image --help
 run_command ./bin/ocloud comp img --help
 
-# Test compute image list command
-print_header "Testing compute image list command"
-run_command ./bin/ocloud compute image list
-run_command ./bin/ocloud compute image list
-run_command ./bin/ocloud compute image list --limit 10 --page 1 --json
-run_command ./bin/ocloud compute image list -m 10 -p 1 -j
-run_command ./bin/ocloud comp img l
+# Test compute image get command
+print_header "Testing compute image get command"
+run_command ./bin/ocloud compute image get
+run_command ./bin/ocloud compute image get
+run_command ./bin/ocloud compute image get --limit 10 --page 1 --json
+run_command ./bin/ocloud compute image get -m 10 -p 1 -j
+run_command ./bin/ocloud comp img get
 
 # Test compute image find command
 print_header "Testing compute image find command"

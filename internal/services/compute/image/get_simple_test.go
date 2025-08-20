@@ -1,11 +1,12 @@
 package image
 
 import (
+	"io"
+	"testing"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"testing"
 )
 
 // TestListImagesSimple is a simplified test for the ListImages function
@@ -28,8 +29,7 @@ func TestListImagesSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := ListImages(appCtx, 20, 1, false)
+	err := GetImages(appCtx, 20, 1, false)
 
-	// but if we did, we would expect no error
 	assert.NoError(t, err)
 }

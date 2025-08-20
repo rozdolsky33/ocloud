@@ -49,10 +49,8 @@ func CreateRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func CreateRootCmdWithoutContext() *cobra.Command {
 	rootCmd := CreateRootCmd(nil)
 
-	// Add placeholder commands for help display
 	addPlaceholderCommands(rootCmd)
 
-	// Set the default behavior to show help
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	}
@@ -63,7 +61,6 @@ func CreateRootCmdWithoutContext() *cobra.Command {
 // addPlaceholderCommands adds placeholder commands that will be displayed in help
 // but will show a message about needing to initialize if they're actually run
 func addPlaceholderCommands(rootCmd *cobra.Command) {
-	// Define command types to add placeholders for
 	commandTypes := []struct {
 		use   string
 		short string
@@ -74,7 +71,6 @@ func addPlaceholderCommands(rootCmd *cobra.Command) {
 		{"network", "Manage OCI networking services"},
 	}
 
-	// Add placeholder commands
 	for _, cmdType := range commandTypes {
 		cmd := &cobra.Command{
 			Use:   cmdType.use,

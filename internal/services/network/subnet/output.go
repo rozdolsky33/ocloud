@@ -11,13 +11,9 @@ import (
 
 // PrintSubnetTable displays a table of subnets with details such as name, CIDR, and DNS info.
 // Supports JSON output, pagination, and sorting by specified fields.
-// Returns an error if data marshaling or printing fails.
 func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, sortBy string) error {
-
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// Adjust the pagination information if available
 	if pagination != nil {
 		util.AdjustPaginationInfo(pagination)
 	}
@@ -85,7 +81,6 @@ func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, paginati
 // - subnets: A slice of Subnet structs containing data to display.
 // - appCtx: A pointer to the application context, used for output and configuration.
 // - useJSON: A boolean indicating whether the output should be in JSON format.
-// Returns an error if JSON marshaling or other operations fail.
 func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
@@ -99,7 +94,7 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 		return nil
 	}
 
-	// Print each policy as a separate key-value table with a colored title,
+	// Print each policy as a separate key-value.
 	for _, subnet := range subnets {
 		publicIPAllowed := "No"
 		if !subnet.ProhibitPublicIPOnVnic {
@@ -113,7 +108,6 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 			"Subnet Domain": subnet.SubnetDomainName,
 		}
 
-		// Define ordered keys
 		orderedKeys := []string{
 			"Name", "Public IP", "CIDR", "DNS Label", "Subnet Domain",
 		}
@@ -121,7 +115,6 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 		// Create the colored title using components from the app context
 		title := util.FormatColoredTitle(appCtx, subnet.Name)
 
-		// Call the printer method to render the key-value from the app context.
 		p.PrintKeyValues(title, subnetData, orderedKeys)
 	}
 

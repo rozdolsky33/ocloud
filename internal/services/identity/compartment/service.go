@@ -30,8 +30,6 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Compartment, 
 	var totalCount int
 	logger.LogWithLevel(s.logger, 3, "List compartments", "limit", limit, "pageNum", pageNum, "Total Count", totalCount)
 
-	// Prepare the base request
-	// to Create a request with a limit parameter to fetch only the required page
 	request := identity.ListCompartmentsRequest{
 		CompartmentId:          &s.TenancyID,
 		AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,

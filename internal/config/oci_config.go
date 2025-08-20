@@ -71,7 +71,6 @@ func GetTenancyOCID() (string, error) {
 		return MockGetTenancyOCID()
 	}
 
-	// Normal implementation
 	id, err := LoadOCIConfig().TenancyOCID()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to retrieve tenancy OCID from OCI config")
@@ -87,7 +86,6 @@ func LookupTenancyID(tenancyName string) (string, error) {
 		return MockLookupTenancyID(tenancyName)
 	}
 
-	// Normal implementation
 	path := TenancyMapPath()
 	logger.LogWithLevel(logger.Logger, 3, "looking up tenancy in map", "tenancy", tenancyName, "path", path)
 
