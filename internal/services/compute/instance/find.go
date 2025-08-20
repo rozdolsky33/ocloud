@@ -31,10 +31,8 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, showImage
 	}
 
 	// TODO:
-	// Display matched instances
 	if len(matchedInstances) == 0 {
 		if useJSON {
-			// Return an empty JSON array if no instances found
 			fmt.Fprintln(appCtx.Stdout, `{"instances": [], "pagination": null}`)
 		} else {
 			fmt.Fprintf(appCtx.Stdout, "No instances found matching pattern: %s\n", namePattern)

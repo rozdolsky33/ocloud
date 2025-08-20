@@ -83,7 +83,7 @@ func FlattenTags(freeform map[string]string, defined map[string]map[string]inter
 	if freeform != nil {
 		for k, v := range freeform {
 			if k == "" || v == "" {
-				continue // skip empty keys/values
+				continue
 			}
 			parts = append(parts, fmt.Sprintf("%s:%s", strings.ToLower(k), strings.ToLower(v)))
 		}
@@ -99,8 +99,6 @@ func FlattenTags(freeform map[string]string, defined map[string]map[string]inter
 					continue
 				}
 
-				// You can restrict this to specific types if desired (e.g., string only)
-				// Convert to string safely
 				var valueStr string
 				switch val := v.(type) {
 				case string:
@@ -132,7 +130,7 @@ func ExtractTagValues(freeform map[string]string, defined map[string]map[string]
 	if freeform != nil {
 		for _, v := range freeform {
 			if v == "" {
-				continue // skip empty values
+				continue
 			}
 			values = append(values, strings.ToLower(v))
 		}
@@ -149,7 +147,6 @@ func ExtractTagValues(freeform map[string]string, defined map[string]map[string]
 					continue
 				}
 
-				// Convert to string safely
 				var valueStr string
 				switch val := v.(type) {
 				case string:

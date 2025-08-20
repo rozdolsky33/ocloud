@@ -12,7 +12,6 @@ import (
 // ListAutonomousDatabase fetches and lists all autonomous databases within a specified application context.
 // appCtx represents the application context containing configuration and client details.
 // useJSON if true, outputs the list of databases in JSON format; otherwise, uses a plain-text format.
-// Returns an error if the operation fails.
 func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Listing Autonomous Databases")
 

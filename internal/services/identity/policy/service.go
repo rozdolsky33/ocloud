@@ -12,7 +12,6 @@ import (
 )
 
 // NewService initializes a new Service instance with the provided application context.
-// Returns a Service pointer and an error if initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	return &Service{
 		identityClient: appCtx.IdentityClient,
@@ -30,7 +29,6 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 	var totalCount int
 
 	// Prepare the base request
-	// Create a request with a limited parameter to fetch only the required page
 	request := identity.ListPoliciesRequest{
 		CompartmentId: &s.CompartmentID,
 	}

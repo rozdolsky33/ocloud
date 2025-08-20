@@ -18,7 +18,6 @@ func NewInstanceCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	// Add subcommands
 	cmd.AddCommand(NewListCmd(appCtx))
 	cmd.AddCommand(NewFindCmd(appCtx))
 

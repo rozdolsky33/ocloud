@@ -1,9 +1,10 @@
 package logger
 
 import (
-	"github.com/go-logr/logr"
 	"io"
 	"log/slog"
+
+	"github.com/go-logr/logr"
 )
 
 // NewTestLogger creates a logger suitable for testing that doesn't produce output.

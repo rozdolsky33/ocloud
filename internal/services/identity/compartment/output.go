@@ -9,11 +9,8 @@ import (
 // PrintCompartmentsTable displays a table or JSON representation of compartments based on the provided configuration.
 // It optionally includes pagination details and writes to the application's standard output or as structured JSON.
 func PrintCompartmentsTable(compartments []Compartment, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
-
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// Adjust the pagination information if available
 	if pagination != nil {
 		util.AdjustPaginationInfo(pagination)
 	}
@@ -56,13 +53,10 @@ func PrintCompartmentsTable(compartments []Compartment, appCtx *app.ApplicationC
 // PrintCompartmentsInfo displays information about a list of compartments in either JSON or formatted table output.
 // It accepts a slice of Compartment, application context, pagination info, and a boolean to indicate JSON output.
 // It adjusts pagination details, validates empty compartments, and logs pagination info post-output.
-// Returns an error if JSON marshalling or output rendering fails.
 func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// Adjust the pagination information if available
 	if pagination != nil {
 		util.AdjustPaginationInfo(pagination)
 	}
@@ -80,7 +74,7 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 		return nil
 	}
 
-	// Print each Compartment as a separate key-value table with a colored title.
+	// Print each Compartment as a separate key-value.
 	for _, compartment := range compartments {
 		compartmentData := map[string]string{
 			"Name":        compartment.Name,
@@ -94,7 +88,6 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 
 		title := util.FormatColoredTitle(appCtx, compartment.Name)
 
-		// Call the printer method to render the key-value table for this instance.
 		p.PrintKeyValues(title, compartmentData, orderedKeys)
 	}
 

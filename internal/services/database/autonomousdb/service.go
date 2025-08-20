@@ -13,7 +13,6 @@ import (
 )
 
 // NewService initializes a new Service instance with the provided application context.
-// Returns a Service pointer and an error if initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	dbClient, err := oci.NewDatabaseClient(cfg)

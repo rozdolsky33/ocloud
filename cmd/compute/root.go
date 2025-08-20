@@ -20,7 +20,6 @@ func NewComputeCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	// Add subcommands, passing in the ApplicationContext
 	cmd.AddCommand(instance.NewInstanceCmd(appCtx))
 	cmd.AddCommand(image.NewImageCmd(appCtx))
 	cmd.AddCommand(oke.NewOKECmd(appCtx))

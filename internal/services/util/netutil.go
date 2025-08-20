@@ -1,5 +1,5 @@
 // Package bastion Network-related utilities (hostname extraction and ctx-aware DNS).
-package bastion
+package util
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// extractHostname removes schema/port/path and returns just the host portion.
-func extractHostname(endpoint string) string {
+// ExtractHostname removes schema/port/path and returns just the host portion.
+func ExtractHostname(endpoint string) string {
 	if endpoint == "" {
 		return ""
 	}
@@ -28,9 +28,9 @@ func extractHostname(endpoint string) string {
 	return host
 }
 
-// resolveHostToIP resolves hostname to the first IP (IPv4/IPv6). It uses ctx so
+// ResolveHostToIP resolves the hostname to the first IP (IPv4/IPv6). It uses ctx so
 // cancellation/timeouts propagate.
-func resolveHostToIP(ctx context.Context, hostname string) (string, error) {
+func ResolveHostToIP(ctx context.Context, hostname string) (string, error) {
 	var r net.Resolver
 	ips, err := r.LookupIP(ctx, "ip", hostname)
 	if err != nil {

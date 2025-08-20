@@ -80,11 +80,11 @@ func TestListSubnetsWithPagination(t *testing.T) {
 
 	// This is a placeholder test that would normally test the ListSubnets function with pagination
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
-	// 2. Call ListSubnets with different limit and page parameters
+	// 1. Create a mock application context with mock stdout
+	// 2. Call ListSubnets with different limits and page parameters
 	// 3. Verify that the output contains the expected information and pagination details
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -113,11 +113,11 @@ func TestListSubnetsWithSorting(t *testing.T) {
 
 	// This is a placeholder test that would normally test the ListSubnets function with sorting
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Call ListSubnets with different sortBy parameters
 	// 3. Verify that the output contains the subnets in the expected order
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -145,11 +145,11 @@ func TestListSubnetsError(t *testing.T) {
 
 	// This is a placeholder test that would normally test the ListSubnets function with an error
 	// In a real test, we would:
-	// 1. Create a mock application context with a mock stdout
+	// 1. Create a mock application context with mock stdout
 	// 2. Set up the mock to return an error
 	// 3. Call ListSubnets and verify that it returns the expected error
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout

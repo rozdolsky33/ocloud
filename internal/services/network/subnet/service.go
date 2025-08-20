@@ -13,7 +13,6 @@ import (
 )
 
 // NewService creates and initializes a new Service instance using the provided application context.
-// It returns the created Service or an error if initialization fails.
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	cfg := appCtx.Provider
 	nc, err := oci.NewNetworkClient(cfg)
@@ -36,7 +35,6 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 	var totalCount int
 
 	// Prepare the base request
-	// Create a request with limited parameters to fetch only the required page
 	request := core.ListSubnetsRequest{
 		CompartmentId: &s.compartmentID,
 	}

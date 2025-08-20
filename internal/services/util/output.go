@@ -20,7 +20,6 @@ func MarshalDataToJSONResponse[T any](p *printer.Printer, items []T, pagination 
 
 // FormatColoredTitle builds a colorized title string with tenancy, compartment, and cluster.
 func FormatColoredTitle(appCtx *app.ApplicationContext, name string) string {
-	// Create the colored title using components from the app context.
 	coloredTenancy := text.Colors{text.FgMagenta}.Sprint(appCtx.TenancyName)
 	coloredCompartment := text.Colors{text.FgCyan}.Sprint(appCtx.CompartmentName)
 	coloredName := text.Colors{text.FgBlue}.Sprint(name)
@@ -39,7 +38,6 @@ func SplitTextByMaxWidth(text string) []string {
 
 	parts := strings.Fields(text)
 
-	// If there's only one part, or it's short enough, return it as is
 	if len(parts) <= 1 {
 		return []string{text}
 	}
@@ -48,8 +46,7 @@ func SplitTextByMaxWidth(text string) []string {
 	currentLine := parts[0]
 
 	for i := 1; i < len(parts); i++ {
-		// If adding the next part makes the line too long, start a new line
-		if len(currentLine)+len(parts[i])+1 > 30 { // 30 is a reasonable width for the column
+		if len(currentLine)+len(parts[i])+1 > 30 {
 			result = append(result, currentLine)
 			currentLine = parts[i]
 		} else {

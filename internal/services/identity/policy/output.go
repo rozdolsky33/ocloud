@@ -7,13 +7,11 @@ import (
 )
 
 // PrintPolicyInfo prints the details of policies to the standard output or in JSON format.
-// If pagination info is provided, it adjusts and logs it. Returns an error if JSON marshaling fails.
+// If pagination info is provided, it adjusts and logs it.
 func PrintPolicyInfo(policies []Policy, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 
-	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// Adjust the pagination information if available
 	if pagination != nil {
 		util.AdjustPaginationInfo(pagination)
 	}

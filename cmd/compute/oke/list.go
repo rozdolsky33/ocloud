@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the list command
 var listLong = `
 List all Oracle Kubernetes Engine (OKE) clusters in the specified compartment.
 
@@ -23,7 +22,6 @@ Additional Information:
 - Use --page (-p) to navigate between pages of results
 `
 
-// Examples for the list command
 var listExamples = `
   # List all OKE clusters in the current compartment
   ocloud compute oke list

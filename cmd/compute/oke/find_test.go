@@ -27,6 +27,4 @@ func TestFindCommand(t *testing.T) {
 	// Verify that the command requires exactly one argument
 	assert.NotNil(t, cmd.Args)
 
-	// Note: The JSON flag is a global flag and is not directly added to the command in the find.go file.
-	// It's added at a higher level in the command hierarchy.
 }

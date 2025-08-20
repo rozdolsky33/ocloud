@@ -120,6 +120,5 @@ func TestSplitTextByMaxWidth(t *testing.T) {
 	// Test with a string that has multiple spaces
 	multiSpaceString := "This   string   has   multiple   spaces"
 	result = SplitTextByMaxWidth(multiSpaceString)
-	// The function uses strings.Fields which normalizes spaces, but also splits by max width
 	assert.Equal(t, []string{"This string has multiple", "spaces"}, result, "String with multiple spaces should be normalized and split if needed")
 }

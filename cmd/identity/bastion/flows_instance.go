@@ -27,6 +27,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	if err != nil {
 		return fmt.Errorf("list instances: %w", err)
 	}
+
 	if len(instances) == 0 {
 		fmt.Println("No instances found.")
 		return nil
@@ -49,7 +50,6 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return err
 	}
 
-	// Find selection
 	var inst instancessvc.Instance
 	for _, it := range instances {
 		if it.ID == chosen.Choice() {
@@ -58,7 +58,6 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		}
 	}
 
-	// Reachability
 	if ok, reason := svc.CanReach(ctx, b, inst.VcnID, inst.SubnetID); !ok {
 		fmt.Println("Bastion cannot reach selected instance:", reason)
 		return nil
@@ -110,7 +109,6 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		}
 		log.Printf("spawned tunnel pid=%d", pid)
 
-		// (optional)
 		if err := bastionSvc.WaitForListen(defaultPort, 5*time.Second); err != nil {
 			log.Printf("warning: %v", err)
 		}
