@@ -17,9 +17,8 @@ func TestListCommand(t *testing.T) {
 	cmd := NewGetCmd(appCtx)
 
 	// Test that the list command is properly configured
-	assert.Equal(t, "list", cmd.Use)
-	assert.Equal(t, []string{"l"}, cmd.Aliases)
-	assert.Equal(t, "List all images", cmd.Short)
+	assert.Equal(t, "get", cmd.Use)
+	assert.Equal(t, "Get all images", cmd.Short)
 	assert.Equal(t, listLong, cmd.Long)
 	assert.Equal(t, listExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

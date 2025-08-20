@@ -8,6 +8,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 )
 
+// ListImages lists all images in the given compartment, allowing the user to select one via a TUI and display its details.
+// It initializes required services, fetches images, processes user selection, and prints the chosen image information.
 func ListImages(ctx context.Context, appCtx *app.ApplicationContext) error {
 
 	service, err := NewService(appCtx)

@@ -9,10 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Dedicated documentation for the get command
 var listLong = `
-List all images in the specified compartment with pagination support.
+Get images in the specified compartment with pagination support.
 
-This command displays information about available images in the current compartment.
+This command retrieves available images in the current compartment.
 By default, it shows basic image information such as name, ID, operating system, and launch mode.
 
 The output is paginated, with a default limit of 20 images per page. You can navigate
@@ -25,17 +26,17 @@ Additional Information:
 `
 
 var listExamples = `
-  # List all images with default pagination (20 per page)
-  ocloud compute image list
+  # Get images with default pagination (20 per page)
+  ocloud compute image get
 
-  # List images with custom pagination (10 per page, page 2)
-  ocloud compute image list --limit 10 --page 2
+  # Get images with custom pagination (10 per page, page 2)
+  ocloud compute image get --limit 10 --page 2
 
-  # List images and output in JSON format
-  ocloud compute image list --json
+  # Get images and output in JSON format
+  ocloud compute image get --json
 
-  # List images with custom pagination and JSON output
-  ocloud compute image list --limit 5 --page 3 --json
+  # Get images with custom pagination and JSON output
+  ocloud compute image get --limit 5 --page 3 --json
 `
 
 // NewGetCmd creates a new command for listing images
