@@ -27,30 +27,39 @@ func TestImageCommand(t *testing.T) {
 	assert.True(t, cmd.SilenceErrors)
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")
 
-	// Test that the subcommands are added
+	// Test that the list subcommand is added and configured (TUI, no pagination flags)
 	listCmd := findSubCommand(cmd, "list")
 	assert.NotNil(t, listCmd, "list subcommand should be added")
 	assert.Equal(t, "List all images", listCmd.Short)
 	assert.NotNil(t, listCmd.RunE, "list subcommand should have a RunE function")
 
-	// Test that the list subcommand has the appropriate flags
-	limitFlag := listCmd.Flags().Lookup(flags.FlagNameLimit)
-	assert.NotNil(t, limitFlag, "limit flag should be added to list subcommand")
-	assert.Equal(t, flags.FlagShortLimit, limitFlag.Shorthand)
-	assert.Equal(t, flags.FlagDescLimit, limitFlag.Usage)
-
-	pageFlag := listCmd.Flags().Lookup(flags.FlagNamePage)
-	assert.NotNil(t, pageFlag, "page flag should be added to list subcommand")
-	assert.Equal(t, flags.FlagShortPage, pageFlag.Shorthand)
-	assert.Equal(t, flags.FlagDescPage, pageFlag.Usage)
-
-	// JSON flag is now a global flag, so it should not be in the local flags
+	// JSON flag is now a global flag, so it should not be in the local flags for a list
 	jsonFlag := listCmd.Flags().Lookup(flags.FlagNameJSON)
 	assert.Nil(t, jsonFlag, "json flag should not be added as a local flag to list subcommand")
 
 	// But we should still be able to get its value using flags.GetBoolFlag
 	useJSON := flags.GetBoolFlag(listCmd, flags.FlagNameJSON, false)
 	assert.False(t, useJSON, "default value of json flag should be false")
+
+	// Test that the get subcommand is added and has pagination flags
+	getCmd := findSubCommand(cmd, "get")
+	assert.NotNil(t, getCmd, "get subcommand should be added")
+	assert.Equal(t, "Get all images", getCmd.Short)
+	assert.NotNil(t, getCmd.RunE, "get subcommand should have a RunE function")
+
+	limitFlag := getCmd.Flags().Lookup(flags.FlagNameLimit)
+	assert.NotNil(t, limitFlag, "limit flag should be added to get subcommand")
+	assert.Equal(t, flags.FlagShortLimit, limitFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescLimit, limitFlag.Usage)
+
+	pageFlag := getCmd.Flags().Lookup(flags.FlagNamePage)
+	assert.NotNil(t, pageFlag, "page flag should be added to get subcommand")
+	assert.Equal(t, flags.FlagShortPage, pageFlag.Shorthand)
+	assert.Equal(t, flags.FlagDescPage, pageFlag.Usage)
+
+	// JSON flag is global, so it should not be in the local flags for get either
+	jsonFlagGet := getCmd.Flags().Lookup(flags.FlagNameJSON)
+	assert.Nil(t, jsonFlagGet, "json flag should not be added as a local flag to get subcommand")
 
 	// Test that the find subcommand is added
 	findCmd := findSubCommand(cmd, "find")
