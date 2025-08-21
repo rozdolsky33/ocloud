@@ -3,6 +3,8 @@ package bastion
 import (
 	"bytes"
 	"context"
+	"crypto"
+	xecdsa "crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
@@ -12,6 +14,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -37,6 +40,8 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 		return "", "", ErrAborted
 	}
 	pubKey = pPick.Choice()
+	// Log chosen public key name for user visibility
+	logger.CmdLogger.Info("selected public ssh key", "name", filepath.Base(pubKey), "path", pubKey)
 
 	// You can browse to choose a private key; we'll validate the match afterward.
 	// Allow browsing non-.pub files for private key selection
@@ -51,6 +56,8 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 		return "", "", ErrAborted
 	}
 	privKey = sPick.Choice()
+	// Log chosen private key name for user visibility (file name only)
+	logger.CmdLogger.Info("selected private ssh key", "name", filepath.Base(privKey), "path", privKey)
 
 	expected := strings.TrimSuffix(pubKey, ".pub")
 	if filepath.Base(privKey) != filepath.Base(expected) {
@@ -65,8 +72,8 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 }
 
 // validateSSHKeyPair ensures that:
-// 1) the public key type is ssh-rsa or ssh-ed25519,
-// 2) the private key is RSA or ED25519,
+// 1) the public key type is ssh-rsa, ssh-ed25519, or ecdsa-sha2-nistp{256,384,521},
+// 2) the private key is RSA, ED25519, or ECDSA,
 // 3) the derived public key from the private key matches the selected public key.
 func validateSSHKeyPair(pubPath, privPath string) error {
 	pubBytes, err := os.ReadFile(pubPath)
@@ -78,8 +85,8 @@ func validateSSHKeyPair(pubPath, privPath string) error {
 		return fmt.Errorf("parse public key: %w", pubErr)
 	}
 	pubType := pubKey.Type()
-	if pubType != ssh.KeyAlgoRSA && pubType != ssh.KeyAlgoED25519 {
-		return fmt.Errorf("unsupported public key type %s (allowed: ssh-rsa, ssh-ed25519)%s", pubType, formatComment(pubComment))
+	if pubType != ssh.KeyAlgoRSA && pubType != ssh.KeyAlgoED25519 && pubType != ssh.KeyAlgoECDSA256 && pubType != ssh.KeyAlgoECDSA384 && pubType != ssh.KeyAlgoECDSA521 {
+		return fmt.Errorf("unsupported public key type %s (allowed: ssh-rsa, ssh-ed25519, ecdsa-sha2-nistp256/384/521)%s", pubType, formatComment(pubComment))
 	}
 
 	privBytes, err := os.ReadFile(privPath)
@@ -103,17 +110,38 @@ func validateSSHKeyPair(pubPath, privPath string) error {
 	case ed25519.PrivateKey:
 		allowed = true
 		derived, err = ssh.NewPublicKey(k.Public())
+	case *xecdsa.PrivateKey:
+		allowed = true
+		derived, err = ssh.NewPublicKey(&k.PublicKey)
 	default:
 		allowed = false
 	}
 	if !allowed {
-		return fmt.Errorf("unsupported private key type (allowed: RSA, ED25519)")
+		// Fallback: handle keys parsed as crypto.Signer (e.g., PKCS#8 wrapped)
+		if s, ok := rawPriv.(crypto.Signer); ok {
+			switch pk := s.Public().(type) {
+			case ed25519.PublicKey:
+				derived, err = ssh.NewPublicKey(pk)
+				allowed = true
+			case *xecdsa.PublicKey:
+				derived, err = ssh.NewPublicKey(pk)
+				allowed = true
+			case *rsa.PublicKey:
+				derived, err = ssh.NewPublicKey(pk)
+				allowed = true
+			default:
+				return fmt.Errorf("unsupported private key type (allowed: RSA, ED25519, ECDSA)")
+			}
+		} else {
+			return fmt.Errorf("unsupported private key type (allowed: RSA, ED25519, ECDSA)")
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("derive public key from private: %w", err)
 	}
 
-	if (pubType == ssh.KeyAlgoRSA && derived.Type() != ssh.KeyAlgoRSA) || (pubType == ssh.KeyAlgoED25519 && derived.Type() != ssh.KeyAlgoED25519) {
+	if (pubType == ssh.KeyAlgoRSA && derived.Type() != ssh.KeyAlgoRSA) || (pubType == ssh.KeyAlgoED25519 && derived.Type() != ssh.KeyAlgoED25519) ||
+		(pubType == ssh.KeyAlgoECDSA256 && derived.Type() != ssh.KeyAlgoECDSA256) || (pubType == ssh.KeyAlgoECDSA384 && derived.Type() != ssh.KeyAlgoECDSA384) || (pubType == ssh.KeyAlgoECDSA521 && derived.Type() != ssh.KeyAlgoECDSA521) {
 		return fmt.Errorf("mismatch between public (%s) and private (%s) key algorithms", pubType, derived.Type())
 	}
 
