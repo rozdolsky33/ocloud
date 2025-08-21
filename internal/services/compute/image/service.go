@@ -35,7 +35,6 @@ func (s *Service) Get(ctx context.Context, limit, pageNum int) ([]Image, int, st
 		return nil, 0, "", fmt.Errorf("listing images from repository: %w", err)
 	}
 
-	// Manual pagination.
 	totalCount := len(allImages)
 	start := (pageNum - 1) * limit
 	end := start + limit

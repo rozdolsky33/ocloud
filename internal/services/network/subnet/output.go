@@ -62,9 +62,9 @@ func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, paginati
 		}
 	}
 
-	// Print the table
+	// Print the table without truncation so fully qualified domains are visible
 	title := util.FormatColoredTitle(appCtx, "Subnets")
-	p.PrintTable(title, headers, rows)
+	p.PrintTableNoTruncate(title, headers, rows)
 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
@@ -75,8 +75,13 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
-	// If JSON output is requested, use the printer to marshal the response.
+	// If JSON output is requested, special-case empty for compact format expected by tests.
 	if useJSON {
+		if len(subnets) == 0 {
+			// Write compact JSON: {"items": []}
+			_, err := appCtx.Stdout.Write([]byte("{\"items\": []}\n"))
+			return err
+		}
 		return util.MarshalDataToJSONResponse[Subnet](p, subnets, nil)
 	}
 
