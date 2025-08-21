@@ -37,7 +37,7 @@ type ApplicationContext struct {
 // InitApp initializes the application context, setting up configuration, clients, logging, and determineConcurrencyStatus settings.
 // Returns an ApplicationContext instance and an error if initialization fails.
 func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, error) {
-	logger.CmdLogger.V(logger.Info).Info("Initializing application context...")
+	logger.CmdLogger.V(logger.Debug).Info("Initializing application context...")
 	provider := config.LoadOCIConfig()
 
 	identityClient, err := oci.NewIdentityClient(provider)
@@ -64,7 +64,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, erro
 		return nil, fmt.Errorf("resolving tenancy and compartment: %w", err)
 	}
 
-	logger.CmdLogger.V(logger.Info).Info("Application context initialized successfully.")
+	logger.CmdLogger.V(logger.Debug).Info("Application context initialized successfully.")
 	return appCtx, nil
 }
 
