@@ -2,14 +2,53 @@ package instance
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
+// InstanceOutput defines the structure for the JSON output of an instance.
+type InstanceOutput struct {
+	Name              string                 `json:"Name"`
+	ID                string                 `json:"ID"`
+	IP                string                 `json:"IP"`
+	ImageID           string                 `json:"ImageID"`
+	SubnetID          string                 `json:"SubnetID"`
+	Shape             string                 `json:"Shape"`
+	State             string                 `json:"State"`
+	CreatedAt         time.Time              `json:"CreatedAt"`
+	Placement         Placement              `json:"Placement"`
+	Resources         Resources              `json:"Resources"`
+	ImageName         string                 `json:"ImageName,omitempty"`
+	ImageOS           string                 `json:"ImageOS,omitempty"`
+	InstanceTags      map[string]interface{} `json:"InstanceTags"`
+	Hostname          string                 `json:"Hostname,omitempty"`
+	SubnetName        string                 `json:"SubnetName,omitempty"`
+	VcnID             string                 `json:"VcnID,omitempty"`
+	VcnName           string                 `json:"VcnName,omitempty"`
+	PrivateDNSEnabled bool                   `json:"PrivateDNSEnabled,omitempty"`
+	RouteTableID      string                 `json:"RouteTableID,omitempty"`
+	RouteTableName    string                 `json:"RouteTableName,omitempty"`
+}
+
+// Placement represents the location of an instance.
+type Placement struct {
+	Region             string `json:"Region"`
+	AvailabilityDomain string `json:"AvailabilityDomain"`
+	FaultDomain        string `json:"FaultDomain"`
+}
+
+// Resources represents the compute resources of an instance.
+type Resources struct {
+	VCPUs    int     `json:"VCPUs"`
+	MemoryGB float32 `json:"MemoryGB"`
+}
+
 // PrintInstancesInfo displays instances in a formatted table or JSON format.
-func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showImageDetails bool) error {
+func PrintInstancesInfo(instances []domain.Instance, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showImageDetails bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -17,7 +56,42 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 	}
 
 	if useJSON {
-		return util.MarshalDataToJSONResponse[Instance](p, instances, pagination)
+		outputInstances := make([]InstanceOutput, len(instances))
+		for i, inst := range instances {
+			outputInstances[i] = InstanceOutput{
+				Name:      inst.DisplayName,
+				ID:        inst.OCID,
+				IP:        inst.PrimaryIP,
+				ImageID:   inst.ImageID,
+				SubnetID:  inst.SubnetID,
+				Shape:     inst.Shape,
+				State:     inst.State,
+				CreatedAt: inst.TimeCreated,
+				Placement: Placement{
+					Region:             inst.Region,
+					AvailabilityDomain: inst.AvailabilityDomain,
+					FaultDomain:        inst.FaultDomain,
+				},
+				Resources: Resources{
+					VCPUs:    inst.VCPUs,
+					MemoryGB: inst.MemoryGB,
+				},
+				ImageName: inst.ImageName,
+				ImageOS:   inst.ImageOS,
+				InstanceTags: map[string]interface{}{
+					"FreeformTags": inst.FreeformTags,
+					"DefinedTags":  inst.DefinedTags,
+				},
+				Hostname:          inst.Hostname,
+				SubnetName:        inst.SubnetName,
+				VcnID:             inst.VcnID,
+				VcnName:           inst.VcnName,
+				PrivateDNSEnabled: inst.PrivateDNSEnabled,
+				RouteTableID:      inst.RouteTableID,
+				RouteTableName:    inst.RouteTableName,
+			}
+		}
+		return util.MarshalDataToJSONResponse(p, outputInstances, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(instances, pagination, appCtx.Stdout) {

@@ -75,6 +75,8 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 				FaultDomain:        *ociInstance.FaultDomain,
 				VCPUs:              int(*ociInstance.ShapeConfig.Vcpus),
 				MemoryGB:           *ociInstance.ShapeConfig.MemoryInGBs,
+				FreeformTags:       ociInstance.FreeformTags,
+				DefinedTags:        ociInstance.DefinedTags,
 			}
 
 			vnic, err := a.getPrimaryVnic(ctx, *ociInstance.Id, *ociInstance.CompartmentId)
@@ -98,6 +100,7 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 					dm.SubnetName = *subnet.DisplayName
 					dm.VcnID = *subnet.VcnId
 					if subnet.RouteTableId != nil {
+						dm.RouteTableID = *subnet.RouteTableId
 						rt, err := a.getRouteTable(ctx, *subnet.RouteTableId)
 						if err != nil {
 							errChan <- fmt.Errorf("enriching instance %s with route table: %w", dm.OCID, err)
@@ -150,7 +153,7 @@ func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID 
 	initialBackoff := 1 * time.Second
 	maxBackoff := 32 * time.Second
 
-	// Retry ListVnicAttachments with unified helper
+	// Retry ListVnicAttachments with a unified helper
 	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
 		var e error
 		attachments, e = a.computeClient.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
@@ -168,7 +171,7 @@ func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID 
 			var resp core.GetVnicResponse
 			var vnicErr error
 
-			// Retry GetVnic using unified helper; if it still fails, move on to next VNIC
+			// Retry GetVnic using a unified helper; if it still fails, move on to the next VNIC
 			vnicErr = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
 				var e error
 				resp, e = a.networkClient.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
@@ -289,7 +292,6 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 			continue
 		}
 
-		// Non-rate-limit error: return immediately
 		return err
 	}
 	return nil

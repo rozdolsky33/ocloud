@@ -18,6 +18,8 @@ type Instance struct {
 	FaultDomain        string
 	VCPUs              int
 	MemoryGB           float32
+	FreeformTags       map[string]string
+	DefinedTags        map[string]map[string]interface{}
 	// Enriched fields
 	PrimaryIP         string
 	SubnetID          string
@@ -29,6 +31,7 @@ type Instance struct {
 	Hostname          string
 	PrivateDNSEnabled bool
 	RouteTableName    string
+	RouteTableID      string
 }
 
 // InstanceRepository defines the port for interacting with instance storage.
