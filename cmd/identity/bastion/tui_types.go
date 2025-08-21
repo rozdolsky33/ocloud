@@ -399,8 +399,8 @@ type SSHFilesModel struct {
 	list       list.Model
 	choice     string
 	currentDir string
-	showPublic bool // if true: filter .pub files; else non-.pub files
-	browsing   bool // if true: enable directory navigation
+	showPublic bool
+	browsing   bool
 	keys       struct {
 		confirm key.Binding
 		quit    key.Binding
@@ -423,9 +423,9 @@ func (m SSHFilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.browsing && key.Matches(msg, m.keys.upDir) {
 			if m.currentDir != "" {
 				parent := path.Dir(m.currentDir)
-				if parent != m.currentDir { // stop at root
+				if parent != m.currentDir {
 					m.currentDir = parent
-					m.populate()
+					m.NewSSHFilesModelFancyList()
 				}
 			}
 			return m, nil
@@ -433,20 +433,18 @@ func (m SSHFilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, m.keys.confirm) {
 			if it, ok := m.list.SelectedItem().(SSHFileItem); ok {
 				if m.browsing && it.isDir {
-					// Navigate into a directory
 					if it.path == ".." {
 						parent := path.Dir(m.currentDir)
 						if parent != m.currentDir {
 							m.currentDir = parent
-							m.populate()
+							m.NewSSHFilesModelFancyList()
 						}
 					} else {
 						m.currentDir = it.path
-						m.populate()
+						m.NewSSHFilesModelFancyList()
 					}
 					return m, nil
 				}
-				// Select file
 				m.choice = it.path
 			}
 			return m, tea.Quit
@@ -486,44 +484,25 @@ func filePermString(path string) string {
 	return fmt.Sprintf("%o", perm)
 }
 
-// NewSSHFilesModelFancyList creates an SSHFilesModel from a list of key paths with actual permissions.
-func NewSSHFilesModelFancyList(title string, keys []string) SSHFilesModel {
-	items := make([]list.Item, 0, len(keys))
-	for _, k := range keys {
-		title := path.Base(k)
-		items = append(items, SSHFileItem{path: k, title: title, permission: filePermString(k), isDir: false})
-	}
-	return newSSHList(title, items)
-}
-
-// NewSSHKeysModelFancyList creates a new SHHFilesModel instance populated with SSH key items for the given title and keys list.
-func NewSSHKeysModelFancyList(title string, keys []string) SHHFilesModel {
-	return NewSSHFilesModelFancyList(title, keys)
-}
-
-// populate populates the list items based on currentDir and filtering rules.
-func (m *SSHFilesModel) populate() {
+// NewSSHFilesModelFancyList populates the list items based on currentDir and filtering rules.
+func (m *SSHFilesModel) NewSSHFilesModelFancyList() {
 	if !m.browsing || m.currentDir == "" {
 		return
 	}
 	entries, err := os.ReadDir(m.currentDir)
 	if err != nil {
-		// if you cannot read, leave a list unchanged
 		return
 	}
 	items := make([]list.Item, 0, len(entries)+1)
-	// Parent dir entry
 	if parent := path.Dir(m.currentDir); parent != m.currentDir {
 		items = append(items, SSHFileItem{path: "..", title: "..", permission: "", isDir: true})
 	}
-	// Directories first
 	for _, e := range entries {
 		if e.IsDir() {
 			p := path.Join(m.currentDir, e.Name())
 			items = append(items, SSHFileItem{path: p, title: e.Name() + string(os.PathSeparator), permission: "dir", isDir: true})
 		}
 	}
-	// Files filtered
 	for _, e := range entries {
 		if !e.IsDir() {
 			name := e.Name()
@@ -546,6 +525,6 @@ func NewSSHKeysModelBrowser(title, startDir string, showPublic bool) SHHFilesMod
 	m.browsing = true
 	m.currentDir = startDir
 	m.showPublic = showPublic
-	m.populate()
+	m.NewSSHFilesModelFancyList()
 	return m
 }
