@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	ocidbadapter "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	autonomousdbsvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
@@ -15,10 +16,11 @@ import (
 func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType) error {
 
-	dbService, err := autonomousdbsvc.NewService(appCtx)
+	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
-		return fmt.Errorf("erro crating service for database: %w", err)
+		return fmt.Errorf("error creating database adapter: %w", err)
 	}
+	dbService := autonomousdbsvc.NewService(adapter, appCtx)
 
 	dbs, _, _, err := dbService.List(ctx, 1000, 0)
 	if err != nil {

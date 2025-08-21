@@ -1,5 +1,3 @@
-// Package bastion Bubble Tea models and simple list UIs.
-// Keep these UIs-only: no network calls or side effects here.
 package bastion
 
 import (
@@ -85,7 +83,7 @@ func (m TypeSelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View returns a string representation of the model's state.'
+// View returns a string representation of the model's state.
 func (m TypeSelectionModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a type:\n\n")
@@ -178,7 +176,7 @@ func NewSessionTypeModel(bastionID string) SessionTypeModel {
 // Init initializes the SessionTypeModel and returns an optional command to execute.
 func (m SessionTypeModel) Init() tea.Cmd { return nil }
 
-// Update processes incoming messages, updates the model's state, and determines the next command to execute.'
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.
 func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -202,7 +200,7 @@ func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View returns a string representation of the model's state.'
+// View returns a string representation of the model's state.
 func (m SessionTypeModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a session type:\n\n")
@@ -237,7 +235,7 @@ func NewTargetTypeModel(bastionID string) TargetTypeModel {
 // Init initializes the TargetTypeModel and returns an optional command to execute.
 func (m TargetTypeModel) Init() tea.Cmd { return nil }
 
-// Update processes incoming messages, updates the model's state, and determines the next command to execute.'
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.
 func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -261,7 +259,7 @@ func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View returns a string representation of the model's state.'
+// View returns a string representation of the model's state.
 func (m TargetTypeModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a target type:\n\n")
@@ -336,26 +334,21 @@ func newResourceList(title string, items []list.Item) ResourceListModel {
 }
 
 // NewInstanceListModelFancy creates a ResourceListModel to display instances in a searchable and interactive list.
-// It transforms each instance into a resourceItem with its name, ID, and VCN name as attributes.
 func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListModel {
 	items := make([]list.Item, 0, len(instances))
 	for _, inst := range instances {
-		name := inst.Name
+		name := inst.DisplayName
 		if name == "" {
-			if inst.Hostname != "" {
-				name = inst.Hostname
-			} else {
-				name = inst.ID
-			}
+			name = inst.OCID
 		}
-		desc := inst.ID
+		desc := fmt.Sprintf("IP: %s", inst.PrimaryIP)
 		if inst.VcnName != "" {
 			desc = inst.VcnName
 			if inst.SubnetName != "" {
 				desc += " · " + inst.SubnetName
 			}
 		}
-		items = append(items, resourceItem{id: inst.ID, title: name, description: desc})
+		items = append(items, resourceItem{id: inst.OCID, title: name, description: desc})
 	}
 	return newResourceList("Instances", items)
 }
@@ -364,17 +357,16 @@ func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListMod
 func NewOKEListModelFancy(clusters []okeSvc.Cluster) ResourceListModel {
 	items := make([]list.Item, 0, len(clusters))
 	for _, c := range clusters {
-		desc := c.Version
+		desc := c.KubernetesVersion
 		if c.PrivateEndpoint != "" {
 			desc += " · PE"
 		}
-		items = append(items, resourceItem{id: c.ID, title: c.Name, description: desc})
+		items = append(items, resourceItem{id: c.OCID, title: c.DisplayName, description: desc})
 	}
 	return newResourceList("OKE Clusters", items)
 }
 
 // NewDBListModelFancy creates a ResourceListModel populated with a list of autonomous databases for TUI display.
-// It transforms each database into a resourceItem with its name, ID, and private endpoint as attributes.
 func NewDBListModelFancy(dbs []autonomousdbSvc.AutonomousDatabase) ResourceListModel {
 	items := make([]list.Item, 0, len(dbs))
 	for _, d := range dbs {

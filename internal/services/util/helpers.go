@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
@@ -136,4 +137,20 @@ func DefaultPrivateSSHKeys() []string {
 		privKeys = append(privKeys, filepath.Join(sshDir, name))
 	}
 	return privKeys
+}
+
+// ConvertOciTagsToResourceTags converts OCI FreeformTags and DefinedTags to domain.ResourceTags.
+func ConvertOciTagsToResourceTags(freeformTags map[string]string, definedTags map[string]map[string]interface{}) domain.ResourceTags {
+	resourceTags := make(domain.ResourceTags)
+	for k, v := range freeformTags {
+		resourceTags[k] = v
+	}
+	for namespace, tags := range definedTags {
+		for k, v := range tags {
+			if strVal, ok := v.(string); ok {
+				resourceTags[fmt.Sprintf("%s.%s", namespace, k)] = strVal
+			}
+		}
+	}
+	return resourceTags
 }

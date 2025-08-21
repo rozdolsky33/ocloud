@@ -5,346 +5,88 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rozdolsky33/ocloud/internal/services/util"
-
-	"github.com/oracle/oci-go-sdk/v65/common"
-	"github.com/oracle/oci-go-sdk/v65/containerengine"
-
-	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/oci"
+	"github.com/go-logr/logr"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 )
 
-// NewService creates a new Service instance with an OCI container engine client using the provided ApplicationContext.
-func NewService(appCtx *app.ApplicationContext) (*Service, error) {
-	cfg := appCtx.Provider
-	cec, err := oci.NewContainerEngineClient(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create container engine client: %w", err)
-	}
+// Service is the application-layer service for OKE operations.
+type Service struct {
+	clusterRepo   domain.ClusterRepository
+	logger        logr.Logger
+	compartmentID string
+}
+
+// NewService initializes a new Service instance.
+func NewService(repo domain.ClusterRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
-		containerEngineClient: cec,
-		logger:                appCtx.Logger,
-		compartmentID:         appCtx.CompartmentID,
-	}, nil
+		clusterRepo:   repo,
+		logger:        logger,
+		compartmentID: compartmentID,
+	}
 }
 
-// List retrieves OKE clusters within the specified compartment with pagination support.
-// It enriches each cluster with its associated node pools.
+// List retrieves a paginated list of clusters.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
-	logger.LogWithLevel(s.logger, 3, "Listing clusters with pagination",
-		"limit", limit,
-		"pageNum", pageNum)
+	s.logger.V(1).Info("listing clusters", "limit", limit, "pageNum", pageNum)
 
-	var clusters []Cluster
+	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
+	if err != nil {
+		return nil, 0, "", fmt.Errorf("listing clusters from repository: %w", err)
+	}
+
+	// Manual pagination.
+	totalCount := len(allClusters)
+	start := (pageNum - 1) * limit
+	end := start + limit
+
+	if start >= totalCount {
+		return []Cluster{}, totalCount, "", nil
+	}
+
+	if end > totalCount {
+		end = totalCount
+	}
+
+	pagedResults := allClusters[start:end]
+
 	var nextPageToken string
-	var totalCount int
-
-	request := containerengine.ListClustersRequest{
-		CompartmentId: &s.compartmentID,
+	if end < totalCount {
+		nextPageToken = fmt.Sprintf("%d", pageNum+1)
 	}
 
-	if limit > 0 {
-		limitInt := limit
-		request.Limit = &limitInt
-		logger.LogWithLevel(s.logger, 3, "Setting limit parameter", "limit", limit)
-	}
-
-	// If pageNum > 1, we need to fetch the appropriate page token
-	if pageNum > 1 && limit > 0 {
-		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
-
-		// We need to fetch page tokens until we reach the desired page
-		var page *string
-		currentPage := 1
-
-		for currentPage < pageNum {
-			// Fetch just the page token, not actual data
-			// Use the same limit to ensure consistent pagination
-			tokenRequest := containerengine.ListClustersRequest{
-				CompartmentId: &s.compartmentID,
-			}
-
-			// Only set the Page field if we have a valid page token
-			if page != nil {
-				tokenRequest.Page = page
-			}
-			if limit > 0 {
-				limitInt := limit
-				tokenRequest.Limit = &limitInt
-			}
-
-			resp, err := s.containerEngineClient.ListClusters(ctx, tokenRequest)
-			if err != nil {
-				return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
-			}
-
-			// If there's no next page, we've reached the end
-			if resp.OpcNextPage == nil {
-				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
-					"currentPage", currentPage, "targetPage", pageNum)
-				// Return an empty result since the requested page is beyond available data
-				return []Cluster{}, 0, "", nil
-			}
-			// Move to the next page
-			page = resp.OpcNextPage
-			currentPage++
-		}
-		// Set the page token for the actual request
-		request.Page = page
-		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
-	}
-
-	// Fetch clusters for the requested page
-	response, err := s.containerEngineClient.ListClusters(ctx, request)
-	if err != nil {
-		return nil, 0, "", fmt.Errorf("listing clusters: %w", err)
-	}
-
-	// Set the total count to the number of clusters returned
-	// If we have a next page, this is an estimate
-	totalCount = len(response.Items)
-	// If we have a next page, we know there are more clusters
-	if response.OpcNextPage != nil {
-		// Estimate total count based on current page and items per page
-		totalCount = pageNum*limit + limit
-	}
-
-	// Save the next page token if available
-	if response.OpcNextPage != nil {
-		nextPageToken = *response.OpcNextPage
-		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
-	}
-
-	for _, cluster := range response.Items {
-		// Create a cluster without node pools first
-		clusterObj := mapToCluster(cluster)
-
-		// Get node pools for this cluster
-		nodePools, err := s.getClusterNodePools(ctx, *cluster.Id)
-		if err != nil {
-			return nil, 0, "", fmt.Errorf("listing node pools: %w", err)
-		}
-
-		// Assign node pools to the cluster
-		clusterObj.NodePools = nodePools
-
-		// Add the cluster to the result
-		clusters = append(clusters, clusterObj)
-	}
-
-	// Calculate if there are more pages after the current page
-	hasNextPage := pageNum*limit < totalCount
-	logger.LogWithLevel(s.logger, 2, "Completed cluster listing with pagination",
-		"returnedCount", len(clusters),
-		"totalCount", totalCount,
-		"page", pageNum,
-		"limit", limit,
-		"hasNextPage", hasNextPage)
-
-	return clusters, totalCount, nextPageToken, nil
+	s.logger.Info("completed cluster listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
+	return pagedResults, totalCount, nextPageToken, nil
 }
 
-// fetchAllClusters retrieves all clusters within the specified compartment using pagination.
-func (s *Service) fetchAllClusters(ctx context.Context) ([]Cluster, error) {
-	logger.LogWithLevel(s.logger, 3, "Fetching all clusters")
-
-	var allClusters []Cluster
-	var page *string
-
-	for {
-		// Create a request with pagination
-		request := containerengine.ListClustersRequest{
-			CompartmentId: &s.compartmentID,
-		}
-
-		// Only set the Page field if we have a valid page token
-		if page != nil {
-			request.Page = page
-		}
-
-		// Fetch clusters for the current page
-		response, err := s.containerEngineClient.ListClusters(ctx, request)
-		if err != nil {
-			return nil, fmt.Errorf("listing clusters: %w", err)
-		}
-
-		// Process clusters from this page
-		for _, cluster := range response.Items {
-			clusterObj := mapToCluster(cluster)
-
-			// Get node pools for this cluster
-			nodePools, err := s.getClusterNodePools(ctx, *cluster.Id)
-			if err != nil {
-				return nil, fmt.Errorf("listing node pools: %w", err)
-			}
-
-			clusterObj.NodePools = nodePools
-
-			allClusters = append(allClusters, clusterObj)
-		}
-
-		if response.OpcNextPage == nil {
-			break
-		}
-
-		page = response.OpcNextPage
-	}
-
-	logger.LogWithLevel(s.logger, 2, "Fetched all clusters", "count", len(allClusters))
-	return allClusters, nil
-}
-
-// Find searches for OKE clusters matching the given pattern within the compartment.
-// It performs a case-insensitive search on cluster names and node pool names.
-// If searchPattern is empty, it returns all clusters.
+// Find performs a case-insensitive search for clusters.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, error) {
-	logger.LogWithLevel(s.logger, 1, "Finding clusters", "pattern", searchPattern)
+	s.logger.V(1).Info("finding clusters with search", "pattern", searchPattern)
 
-	// First, get all clusters using fetchAllClusters
-	clusters, err := s.fetchAllClusters(ctx)
+	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
 	if err != nil {
-		return nil, fmt.Errorf("listing clusters for search: %w", err)
+		return nil, fmt.Errorf("fetching all clusters for search: %w", err)
 	}
 
-	// If a search pattern is empty, return all clusters
 	if searchPattern == "" {
-		return clusters, nil
+		return allClusters, nil
 	}
 
-	// Filter clusters by name (case-insensitive)
 	var matchedClusters []Cluster
 	searchPattern = strings.ToLower(searchPattern)
 
-	for _, cluster := range clusters {
-		if strings.Contains(strings.ToLower(cluster.Name), searchPattern) {
+	for _, cluster := range allClusters {
+		if strings.Contains(strings.ToLower(cluster.DisplayName), searchPattern) {
 			matchedClusters = append(matchedClusters, cluster)
 			continue
 		}
-
 		for _, nodePool := range cluster.NodePools {
-			if strings.Contains(strings.ToLower(nodePool.Name), searchPattern) {
+			if strings.Contains(strings.ToLower(nodePool.DisplayName), searchPattern) {
 				matchedClusters = append(matchedClusters, cluster)
 				break
 			}
 		}
 	}
 
-	logger.LogWithLevel(s.logger, 2, "Found clusters", "count", len(matchedClusters))
+	s.logger.Info("cluster search complete", "matches", len(matchedClusters))
 	return matchedClusters, nil
-}
-
-// getClusterNodePools retrieves all node pools associated with the specified cluster.
-func (s *Service) getClusterNodePools(ctx context.Context, clusterID string) ([]NodePool, error) {
-	logger.LogWithLevel(s.logger, 3, "Getting node pools for cluster", "clusterID", clusterID)
-
-	var clusterNodePools []NodePool
-	nodePools, err := s.containerEngineClient.ListNodePools(ctx, containerengine.ListNodePoolsRequest{
-		CompartmentId: common.String(s.compartmentID),
-		ClusterId:     common.String(clusterID),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("listing node pools: %w", err)
-	}
-
-	for _, nodePool := range nodePools.Items {
-		clusterNodePools = append(clusterNodePools, mapToNodePool(nodePool))
-	}
-
-	logger.LogWithLevel(s.logger, 3, "Found node pools for cluster", "clusterID", clusterID, "count", len(clusterNodePools))
-	return clusterNodePools, nil
-}
-
-// mapToCluster maps an OCI ClusterSummary to our shared Cluster model.
-func mapToCluster(cluster containerengine.ClusterSummary) Cluster {
-	id := ""
-	if cluster.Id != nil {
-		id = *cluster.Id
-	}
-	name := ""
-	if cluster.Name != nil {
-		name = *cluster.Name
-	}
-	createdAt := ""
-	if cluster.Metadata != nil && cluster.Metadata.TimeCreated != nil {
-		createdAt = cluster.Metadata.TimeCreated.String()
-	}
-	version := ""
-	if cluster.KubernetesVersion != nil {
-		version = *cluster.KubernetesVersion
-	}
-	privateEndpoint := ""
-	kubeEndpoint := ""
-	if cluster.Endpoints != nil {
-		if cluster.Endpoints.PrivateEndpoint != nil {
-			privateEndpoint = *cluster.Endpoints.PrivateEndpoint
-		}
-		if cluster.Endpoints.Kubernetes != nil {
-			kubeEndpoint = *cluster.Endpoints.Kubernetes
-		}
-	}
-	vcnID := ""
-	if cluster.VcnId != nil {
-		vcnID = *cluster.VcnId
-	}
-
-	return Cluster{
-		ID:                 id,
-		Name:               name,
-		CreatedAt:          createdAt,
-		Version:            version,
-		State:              cluster.LifecycleState,
-		PrivateEndpoint:    privateEndpoint,
-		KubernetesEndpoint: kubeEndpoint,
-		VcnID:              vcnID,
-		NodePools:          []NodePool{},
-		OKETags: util.ResourceTags{
-			FreeformTags: cluster.FreeformTags,
-			DefinedTags:  cluster.DefinedTags,
-		},
-	}
-}
-
-// mapToNodePool maps an OCI NodePoolSummary to our shared NodePool model.
-func mapToNodePool(nodePool containerengine.NodePoolSummary) NodePool {
-	var nodeCount int
-	if nodePool.NodeConfigDetails != nil && nodePool.NodeConfigDetails.Size != nil {
-		nodeCount = *nodePool.NodeConfigDetails.Size
-	} else if nodePool.QuantityPerSubnet != nil {
-		nodeCount = *nodePool.QuantityPerSubnet * len(nodePool.SubnetIds)
-	}
-
-	// Extract image details from NodeSourceDetails
-	image := ""
-	if details, ok := nodePool.NodeSourceDetails.(containerengine.NodeSourceViaImageDetails); ok && details.ImageId != nil {
-		image = *details.ImageId
-	}
-
-	// Optional custom logic for parsing shapeConfig
-	ocpus := ""
-	memory := ""
-	if nodePool.NodeShapeConfig != nil {
-		if nodePool.NodeShapeConfig.Ocpus != nil {
-			ocpus = fmt.Sprintf("%.1f", *nodePool.NodeShapeConfig.Ocpus)
-		}
-		if nodePool.NodeShapeConfig.MemoryInGBs != nil {
-			memory = fmt.Sprintf("%.0f", *nodePool.NodeShapeConfig.MemoryInGBs)
-		}
-	}
-
-	return NodePool{
-		Name:      *nodePool.Name,
-		ID:        *nodePool.Id,
-		Version:   *nodePool.KubernetesVersion,
-		State:     nodePool.LifecycleState,
-		NodeShape: *nodePool.NodeShape,
-		NodeCount: nodeCount,
-		Image:     image,
-		Ocpus:     ocpus,
-		MemoryGB:  memory,
-		NodeTags: util.ResourceTags{
-			FreeformTags: nodePool.FreeformTags,
-			DefinedTags:  nodePool.DefinedTags,
-		},
-	}
 }

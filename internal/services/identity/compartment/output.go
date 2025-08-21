@@ -37,8 +37,8 @@ func PrintCompartmentsTable(compartments []Compartment, appCtx *app.ApplicationC
 
 		// Create a row for this compartment
 		rows[i] = []string{
-			c.Name,
-			c.ID,
+			c.DisplayName,
+			c.OCID,
 		}
 	}
 
@@ -77,8 +77,8 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 	// Print each Compartment as a separate key-value.
 	for _, compartment := range compartments {
 		compartmentData := map[string]string{
-			"Name":        compartment.Name,
-			"ID":          compartment.ID,
+			"Name":        compartment.DisplayName,
+			"ID":          compartment.OCID,
 			"Description": compartment.Description,
 		}
 		// Define ordered keys
@@ -86,7 +86,7 @@ func PrintCompartmentsInfo(compartments []Compartment, appCtx *app.ApplicationCo
 			"Name", "ID", "Description",
 		}
 
-		title := util.FormatColoredTitle(appCtx, compartment.Name)
+		title := util.FormatColoredTitle(appCtx, compartment.DisplayName)
 
 		p.PrintKeyValues(title, compartmentData, orderedKeys)
 	}

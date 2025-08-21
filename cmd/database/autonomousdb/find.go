@@ -3,7 +3,9 @@ package autonomousdb
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	autonomousdboci "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/spf13/cobra"
 )
@@ -56,5 +58,20 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running find command", "pattern", namePattern, "json", useJSON)
-	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON)
+
+	repo, err := autonomousdboci.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	if err != nil {
+		return err
+	}
+	service := autonomousdb.NewService(repo, appCtx)
+	databases, err := service.Find(cmd.Context(), namePattern)
+	if err != nil {
+		return err
+	}
+	// Convert service type to domain type for output
+	domainDbs := make([]domain.AutonomousDatabase, 0, len(databases))
+	for _, db := range databases {
+		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
+	}
+	return autonomousdb.PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON)
 }

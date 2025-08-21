@@ -5,36 +5,24 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci"
+	ocioke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
 )
 
+// FindClusters finds and displays OKE clusters matching a name pattern.
 func FindClusters(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Finding OKE clusters", "pattern", namePattern)
-
-	service, err := NewService(appCtx)
+	containerEngineClient, err := oci.NewContainerEngineClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("creating oke cluster service: %w", err)
+		return fmt.Errorf("creating container engine client: %w", err)
 	}
 
-	ctx := context.Background()
-	clusters, err := service.Find(ctx, namePattern)
+	clusterAdapter := ocioke.NewAdapter(containerEngineClient)
+	service := NewService(clusterAdapter, appCtx.Logger, appCtx.CompartmentID)
+
+	matchedClusters, err := service.Find(context.Background(), namePattern)
 	if err != nil {
-		return fmt.Errorf("finding oke clusters: %w", err)
+		return fmt.Errorf("finding clusters: %w", err)
 	}
 
-	if len(clusters) == 0 {
-		if useJSON {
-			fmt.Fprintln(appCtx.Stdout, `{"clusters": []}`)
-		} else {
-			fmt.Fprintf(appCtx.Stdout, "No clusters found matching pattern: %s\n", namePattern)
-		}
-		return nil
-	}
-
-	err = PrintOKEInfo(clusters, appCtx, nil, useJSON)
-	if err != nil {
-		return fmt.Errorf("printing clusters: %w", err)
-	}
-
-	return nil
+	return PrintOKEInfo(matchedClusters, appCtx, nil, useJSON)
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	ocidbadapter "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -15,10 +17,11 @@ import (
 func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
 	logger.LogWithLevel(appCtx.Logger, 1, "Listing Autonomous Databases")
 
-	service, err := NewService(appCtx)
+	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
-		return fmt.Errorf("creating autonomous database service: %w", err)
+		return fmt.Errorf("creating database adapter: %w", err)
 	}
+	service := NewService(adapter, appCtx)
 
 	ctx := context.Background()
 	allDatabases, totalCount, nextPageToken, err := service.List(ctx, limit, page)
@@ -26,15 +29,19 @@ func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit,
 		return fmt.Errorf("listing autonomous databases: %w", err)
 	}
 
-	// Display image information with pagination details
-	err = PrintAutonomousDbInfo(allDatabases, appCtx, &util.PaginationInfo{
+	// Convert to domain type for printing
+	domainDbs := make([]domain.AutonomousDatabase, 0, len(allDatabases))
+	for _, db := range allDatabases {
+		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
+	}
+
+	// Display database information with pagination details
+	if err := PrintAutonomousDbInfo(domainDbs, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
-	}, useJSON)
-
-	if err != nil {
+	}, useJSON); err != nil {
 		return fmt.Errorf("printing image table: %w", err)
 	}
 

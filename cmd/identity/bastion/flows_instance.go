@@ -8,20 +8,27 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/oci"
+	ociinstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 	instancessvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// connectInstance runs the flow for an Instance target. It validates reachability
-// and creates either Managed SSH or Port-Forwarding session, spawning SSH accordingly.
+// connectInstance runs the flow for an Instance target.
 func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType) error {
 
-	instService, err := instancessvc.NewService(appCtx)
+	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("create instance service: %w", err)
+		return fmt.Errorf("creating compute client: %w", err)
 	}
+	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
+	if err != nil {
+		return fmt.Errorf("creating network client: %w", err)
+	}
+	instanceAdapter := ociinstance.NewAdapter(computeClient, networkClient)
+	instService := instancessvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
 	instances, _, _, err := instService.List(ctx, 300, 0, true)
 	if err != nil {
@@ -52,7 +59,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 
 	var inst instancessvc.Instance
 	for _, it := range instances {
-		if it.ID == chosen.Choice() {
+		if it.OCID == chosen.Choice() {
 			inst = it
 			break
 		}
@@ -64,7 +71,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	}
 
 	fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
-		sType, b.Name, b.ID, inst.Name)
+		sType, b.Name, b.ID, inst.DisplayName)
 
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
@@ -77,26 +84,25 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("read ssh username: %w", err)
 		}
-		sessID, err := svc.EnsureManagedSSHSession(ctx, b.ID, inst.ID, inst.IP, sshUser, 22, pubKey, 0)
+		sessID, err := svc.EnsureManagedSSHSession(ctx, b.ID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
 		if err != nil {
 			return fmt.Errorf("ensure managed SSH: %w", err)
 		}
-		sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessID, region, inst.IP, sshUser)
+		sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessID, region, inst.PrimaryIP, sshUser)
 		fmt.Printf("\nExecuting: %s\n\n", sshCmd)
 		return bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
-		//TODO: verify approach
 	case TypePortForwarding:
 		defaultPort := 5901
 		port, err := util.PromptPort("Enter port to forward (local:target)", defaultPort)
 		if err != nil {
 			return fmt.Errorf("read port: %w", err)
 		}
-		sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, inst.IP, port, pubKey)
+		sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, inst.PrimaryIP, port, pubKey)
 		if err != nil {
 			return fmt.Errorf("ensure port forward: %w", err)
 		}
 		logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", port)
-		sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, inst.IP, port, port)
+		sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, inst.PrimaryIP, port, port)
 		if err != nil {
 			return fmt.Errorf("build args: %w", err)
 		}

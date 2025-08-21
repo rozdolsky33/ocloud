@@ -66,8 +66,12 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunFindCommand handles the execution of the find command
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
-	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
+	showDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, 1, "Running instance find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return instance.FindInstances(appCtx, namePattern, imageDetails, useJSON)
+	err := instance.FindInstances(appCtx, namePattern, useJSON, showDetails)
+	if err != nil {
+		return err
+	}
+	return nil
 }
