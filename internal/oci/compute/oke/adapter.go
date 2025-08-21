@@ -53,11 +53,21 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 			State:             string(ociCluster.LifecycleState),
 		}
 		if ociCluster.Endpoints != nil {
-			dc.PrivateEndpoint = *ociCluster.Endpoints.PrivateEndpoint
-			dc.PublicEndpoint = *ociCluster.Endpoints.Kubernetes
+			if ociCluster.Endpoints.PrivateEndpoint != nil {
+				dc.PrivateEndpoint = *ociCluster.Endpoints.PrivateEndpoint
+			}
+			if ociCluster.Endpoints.Kubernetes != nil {
+				dc.PublicEndpoint = *ociCluster.Endpoints.Kubernetes
+			}
 		}
 		if ociCluster.Metadata != nil && ociCluster.Metadata.TimeCreated != nil {
 			dc.TimeCreated = ociCluster.Metadata.TimeCreated.Time
+		}
+
+		// Check if CompartmentId and I'd are not nil before dereferencing
+		if ociCluster.CompartmentId == nil || ociCluster.Id == nil {
+			domainClusters = append(domainClusters, dc)
+			continue
 		}
 
 		nodePools, err := a.listNodePools(ctx, *ociCluster.CompartmentId, *ociCluster.Id)

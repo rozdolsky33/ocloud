@@ -38,6 +38,12 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 
 	// Manual pagination.
 	totalCount := len(allInstances)
+
+	// Handle pageNum=0 as the first page
+	if pageNum <= 0 {
+		pageNum = 1
+	}
+
 	start := (pageNum - 1) * limit
 	end := start + limit
 
