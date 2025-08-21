@@ -146,45 +146,20 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID string) (*core.Vnic, error) {
 	var attachments core.ListVnicAttachmentsResponse
 	var err error
-
-	// Retry parameters
 	maxRetries := 5
 	initialBackoff := 1 * time.Second
 	maxBackoff := 32 * time.Second
-	backoff := initialBackoff
 
-	// Retry loop for ListVnicAttachments
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		attachments, err = a.computeClient.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
+	// Retry ListVnicAttachments with unified helper
+	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+		var e error
+		attachments, e = a.computeClient.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
 			CompartmentId: &compartmentID,
 			InstanceId:    &instanceID,
 		})
-
-		// If no error or not a rate limit error, break the retry loop
-		if err == nil {
-			break
-		}
-
-		// Check if it's a rate limit error (HTTP 429)
-		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-			// If this is the last attempt, return the error
-			if attempt == maxRetries-1 {
-				return nil, fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
-			}
-
-			// Sleep with exponential backoff before retrying
-			time.Sleep(backoff)
-
-			// Increase backoff for the next attempt, but don't exceed maxBackoff
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-
-			continue
-		}
-
-		// For non-rate-limit errors, return immediately
+		return e
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -193,44 +168,20 @@ func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID 
 			var resp core.GetVnicResponse
 			var vnicErr error
 
-			// Retry for GetVnic with the same parameters as ListVnicAttachments
-			retryBackoff := initialBackoff
-			for vnicAttempt := 0; vnicAttempt < maxRetries; vnicAttempt++ {
-				resp, vnicErr = a.networkClient.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
-
-				// If no error or not a rate limit error, break the retry loop
-				if vnicErr == nil {
-					if resp.Vnic.IsPrimary != nil && *resp.Vnic.IsPrimary {
-						return &resp.Vnic, nil
-					}
-					break
+			// Retry GetVnic using unified helper; if it still fails, move on to next VNIC
+			vnicErr = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+				var e error
+				resp, e = a.networkClient.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
+				return e
+			})
+			if vnicErr == nil {
+				if resp.Vnic.IsPrimary != nil && *resp.Vnic.IsPrimary {
+					return &resp.Vnic, nil
 				}
-
-				// Check if it's a rate limit error (HTTP 429)
-				if serviceErr, ok := common.IsServiceError(vnicErr); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-					// If this is the last attempt, continue to the next VNIC
-					if vnicAttempt == maxRetries-1 {
-						break
-					}
-
-					// Sleep with exponential backoff before retrying
-					time.Sleep(retryBackoff)
-
-					// Increase backoff for next attempt, but don't exceed maxBackoff
-					retryBackoff *= 2
-					if retryBackoff > maxBackoff {
-						retryBackoff = maxBackoff
-					}
-
-					continue
-				}
-
-				// For non-rate-limit errors, break and try the next VNIC
-				break
 			}
 		}
 	}
-	return nil, nil // No primary VNIC found
+	return nil, nil
 }
 
 // getSubnet fetches subnet details.
@@ -242,42 +193,12 @@ func (a *Adapter) getSubnet(ctx context.Context, subnetID string) (*core.Subnet,
 	maxRetries := 5
 	initialBackoff := 1 * time.Second
 	maxBackoff := 32 * time.Second
-	backoff := initialBackoff
 
-	// Retry loop for GetSubnet
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		resp, err = a.networkClient.GetSubnet(ctx, core.GetSubnetRequest{
-			SubnetId: &subnetID,
-		})
-
-		// If no error or not a rate limit error, break the retry loop
-		if err == nil {
-			break
-		}
-
-		// Check if it's a rate limit error (HTTP 429)
-		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-			// If this is the last attempt, return the error
-			if attempt == maxRetries-1 {
-				return nil, fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
-			}
-
-			// Sleep with exponential backoff before retrying
-			time.Sleep(backoff)
-
-			// Increase backoff for next attempt, but don't exceed maxBackoff
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-
-			continue
-		}
-
-		// For non-rate-limit errors, return immediately
-		return nil, err
-	}
-
+	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+		var e error
+		resp, e = a.networkClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &subnetID})
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -288,47 +209,16 @@ func (a *Adapter) getSubnet(ctx context.Context, subnetID string) (*core.Subnet,
 func (a *Adapter) getVcn(ctx context.Context, vcnID string) (*core.Vcn, error) {
 	var resp core.GetVcnResponse
 	var err error
-
-	// Retry parameters
+	// Retry
 	maxRetries := 5
 	initialBackoff := 1 * time.Second
 	maxBackoff := 32 * time.Second
-	backoff := initialBackoff
 
-	// Retry loop for GetVcn
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		resp, err = a.networkClient.GetVcn(ctx, core.GetVcnRequest{
-			VcnId: &vcnID,
-		})
-
-		// If no error or not a rate limit error, break the retry loop
-		if err == nil {
-			break
-		}
-
-		// Check if it's a rate limit error (HTTP 429)
-		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-			// If this is the last attempt, return the error
-			if attempt == maxRetries-1 {
-				return nil, fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
-			}
-
-			// Sleep with exponential backoff before retrying
-			time.Sleep(backoff)
-
-			// Increase backoff for next attempt, but don't exceed maxBackoff
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-
-			continue
-		}
-
-		// For non-rate-limit errors, return immediately
-		return nil, err
-	}
-
+	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+		var e error
+		resp, e = a.networkClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -344,42 +234,12 @@ func (a *Adapter) getImage(ctx context.Context, imageID string) (*core.Image, er
 	maxRetries := 5
 	initialBackoff := 1 * time.Second
 	maxBackoff := 32 * time.Second
-	backoff := initialBackoff
 
-	// Retry loop for GetImage
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		resp, err = a.computeClient.GetImage(ctx, core.GetImageRequest{
-			ImageId: &imageID,
-		})
-
-		// If no error or not a rate limit error, break the retry loop
-		if err == nil {
-			break
-		}
-
-		// Check if it's a rate limit error (HTTP 429)
-		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-			// If this is the last attempt, return the error
-			if attempt == maxRetries-1 {
-				return nil, fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
-			}
-
-			// Sleep with exponential backoff before retrying
-			time.Sleep(backoff)
-
-			// Increase backoff for the next attempt, but don't exceed maxBackoff
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-
-			continue
-		}
-
-		// For non-rate-limit errors, return immediately
-		return nil, err
-	}
-
+	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+		var e error
+		resp, e = a.computeClient.GetImage(ctx, core.GetImageRequest{ImageId: &imageID})
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -395,44 +255,42 @@ func (a *Adapter) getRouteTable(ctx context.Context, rtID string) (*core.RouteTa
 	maxRetries := 5
 	initialBackoff := 1 * time.Second
 	maxBackoff := 32 * time.Second
-	backoff := initialBackoff
 
-	// Retry loop for GetRouteTable
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		resp, err = a.networkClient.GetRouteTable(ctx, core.GetRouteTableRequest{
-			RtId: &rtID,
-		})
-
-		// If no error or not a rate limit error, break the retry loop
-		if err == nil {
-			break
-		}
-
-		// Check if it's a rate limit error (HTTP 429)
-		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-			// If this is the last attempt, return the error
-			if attempt == maxRetries-1 {
-				return nil, fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
-			}
-
-			// Sleep with exponential backoff before retrying
-			time.Sleep(backoff)
-
-			// Increase backoff for the next attempt, but don't exceed maxBackoff
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-
-			continue
-		}
-
-		// For non-rate-limit errors, return immediately
-		return nil, err
-	}
-
+	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+		var e error
+		resp, e = a.networkClient.GetRouteTable(ctx, core.GetRouteTableRequest{RtId: &rtID})
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
 	return &resp.RouteTable, nil
+}
+
+// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 (rate limited).
+// It applies exponential backoff between retries and preserves the original behavior and error messages.
+func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
+	backoff := initialBackoff
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := op()
+		if err == nil {
+			return nil
+		}
+
+		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		// Non-rate-limit error: return immediately
+		return err
+	}
+	return nil
 }
