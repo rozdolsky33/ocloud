@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -31,7 +32,7 @@ func NewService(repo domain.CompartmentRepository, logger logr.Logger, tenancyID
 // List retrieves a paginated list of compartments.
 // Note: The pagination logic here is simplified. A real implementation might need more robust cursor handling.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]domain.Compartment, int, string, error) {
-	s.logger.V(1).Info("listing compartments", "limit", limit, "pageNum", pageNum)
+	s.logger.V(logger.Debug).Info("listing compartments", "limit", limit, "pageNum", pageNum)
 
 	// Fetch all compartments from the repository.
 	// The underlying adapter handles the complexity of OCI pagination.
@@ -67,7 +68,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]domain.Compar
 
 // Find performs a fuzzy search for compartments based on the provided searchPattern.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Compartment, error) {
-	s.logger.V(1).Info("finding compartments with fuzzy search", "pattern", searchPattern)
+	s.logger.V(logger.Debug).Info("finding compartments with fuzzy search", "pattern", searchPattern)
 
 	// Step 1: Fetch all compartments from the repository.
 	allCompartments, err := s.compartmentRepo.ListCompartments(ctx, s.tenancyID)
@@ -82,6 +83,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Comp
 	if err != nil {
 		return nil, fmt.Errorf("building search index: %w", err)
 	}
+	logger.Logger.V(logger.Debug).Info("Search index built successfully.", "numEntries", len(allCompartments))
 
 	// Step 3: Perform the fuzzy search.
 	fields := []string{"Name", "Description"}
@@ -89,8 +91,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Comp
 	if err != nil {
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
 	}
-
-	// Step 4: Map indices back to the original compartment models.
+	logger.Logger.V(logger.Debug).Info("Fuzzy search completed.", "numMatches", len(matchedIdxs))
 	var results []domain.Compartment
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allCompartments) {

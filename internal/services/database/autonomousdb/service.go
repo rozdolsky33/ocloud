@@ -50,11 +50,13 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 	end := start + limit
 
 	if start >= len(allDatabases) {
+		logger.LogWithLevel(s.logger, logger.Trace, "Pagination: start index out of bounds", "start", start, "totalDatabases", len(allDatabases))
 		return []AutonomousDatabase{}, 0, "", nil // No results for this page
 	}
 
 	if end > len(allDatabases) {
 		end = len(allDatabases)
+		logger.LogWithLevel(s.logger, logger.Trace, "Pagination: adjusted end index", "end", end, "totalDatabases", len(allDatabases))
 	}
 
 	databases = make([]AutonomousDatabase, 0, limit)
@@ -70,19 +72,20 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 	// Calculate if there are more pages after the current page
 	hasNextPage := pageNum*limit < totalCount
 
-	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
+	logger.LogWithLevel(s.logger, logger.Trace, "Completed instance listing with pagination",
 		"returnedCount", len(databases),
 		"totalCount", totalCount,
 		"page", pageNum,
 		"limit", limit,
 		"hasNextPage", hasNextPage)
 
+	logger.Logger.V(logger.Info).Info("Autonomous Database list completed.", "returnedCount", len(databases), "totalCount", totalCount)
 	return databases, totalCount, nextPageToken, nil
 }
 
 // Find performs a fuzzy search to find autonomous databases matching the given search pattern in their Name field.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousDatabase, error) {
-	logger.LogWithLevel(s.logger, 3, "finding database with bleve fuzzy search", "pattern", searchPattern)
+	logger.LogWithLevel(s.logger, logger.Trace, "finding database with bleve fuzzy search", "pattern", searchPattern)
 
 	// 1: Fetch all databases
 	allDatabases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
@@ -111,7 +114,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousD
 			results = append(results, AutonomousDatabase(allDatabases[idx]))
 		}
 	}
-	logger.LogWithLevel(s.logger, 2, "Compartment search complete", "matches", len(results))
+	logger.LogWithLevel(s.logger, logger.Trace, "Compartment search complete", "matches", len(results))
 
 	return results, nil
 }

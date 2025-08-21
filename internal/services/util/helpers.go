@@ -33,7 +33,7 @@ func LogPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 
 		// Add debug logs for navigation hints
 		if pagination.CurrentPage > 1 {
-			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
+			logger.LogWithLevel(appCtx.Logger, logger.Trace, "Pagination navigation",
 				"action", "previous page",
 				"page", pagination.CurrentPage-1,
 				"limit", pagination.Limit)
@@ -42,7 +42,7 @@ func LogPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 		// Check if there are more pages after the current page
 		// The most direct way to determine if there are more pages is to check if there's a next page token
 		if pagination.NextPageToken != "" {
-			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
+			logger.LogWithLevel(appCtx.Logger, logger.Trace, "Pagination navigation",
 				"action", "next page",
 				"page", pagination.CurrentPage+1,
 				"limit", pagination.Limit)
@@ -135,7 +135,9 @@ func DefaultPrivateSSHKeys() []string {
 			continue
 		}
 		privKeys = append(privKeys, filepath.Join(sshDir, name))
+		logger.Logger.V(logger.Trace).Info("Found private SSH key.", "key", filepath.Join(sshDir, name))
 	}
+	logger.Logger.V(logger.Debug).Info("Finished finding default private SSH keys.", "count", len(privKeys))
 	return privKeys
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -28,7 +29,7 @@ func NewService(repo domain.SubnetRepository, logger logr.Logger, compartmentID 
 
 // List retrieves a paginated list of subnets.
 func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, int, string, error) {
-	s.logger.V(1).Info("listing subnets", "limit", limit, "pageNum", pageNum)
+	s.logger.V(logger.Debug).Info("listing subnets", "limit", limit, "pageNum", pageNum)
 
 	allSubnets, err := s.subnetRepo.ListSubnets(ctx, s.compartmentID)
 	if err != nil {
@@ -61,7 +62,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 
 // Find retrieves a slice of subnets whose attributes match the provided name pattern using fuzzy search.
 func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error) {
-	s.logger.V(1).Info("finding subnet with fuzzy search", "pattern", namePattern)
+	s.logger.V(logger.Debug).Info("finding subnet with fuzzy search", "pattern", namePattern)
 
 	allSubnets, err := s.subnetRepo.ListSubnets(ctx, s.compartmentID)
 	if err != nil {
@@ -74,13 +75,14 @@ func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error
 	if err != nil {
 		return nil, fmt.Errorf("building search index: %w", err)
 	}
+	logger.Logger.V(logger.Debug).Info("Search index built successfully.", "numEntries", len(allSubnets))
 
 	fields := []string{"Name", "CIDR"}
 	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(namePattern), fields)
 	if err != nil {
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
 	}
-
+	logger.Logger.V(logger.Debug).Info("Fuzzy search completed.", "numMatches", len(matchedIdxs))
 	var matchedSubnets []Subnet
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allSubnets) {

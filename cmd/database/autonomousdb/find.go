@@ -57,7 +57,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running find command", "pattern", namePattern, "json", useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
 
 	repo, err := autonomousdboci.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
@@ -68,10 +68,15 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	if err != nil {
 		return err
 	}
-	// Convert service type to domain type for output
+	// Convert a service type to a domain type for output
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(databases))
 	for _, db := range databases {
 		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
 	}
-	return autonomousdb.PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON)
+	err = autonomousdb.PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("Autonomous DB find command completed.")
+	return nil
 }

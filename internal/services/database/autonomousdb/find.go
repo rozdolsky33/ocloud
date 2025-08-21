@@ -13,7 +13,7 @@ import (
 // FindAutonomousDatabases searches for Autonomous Databases matching the provided name pattern in the application context.
 // Logs database discovery tasks and can format the result based on the useJSON flag.
 func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Finding Autonomous Databases", "pattern", namePattern)
+	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Autonomous Databases", "pattern", namePattern)
 
 	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
@@ -27,7 +27,7 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 		return fmt.Errorf("finding autonomous databases: %w", err)
 	}
 
-	// Convert to domain type for printing
+	// Convert to a domain type for printing
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(matchedDatabases))
 	for _, db := range matchedDatabases {
 		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
@@ -36,6 +36,6 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 	if err := PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON); err != nil {
 		return fmt.Errorf("printing autonomous databases: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Autonomous Database find operation completed successfully.")
 	return nil
 }

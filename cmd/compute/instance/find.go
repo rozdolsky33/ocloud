@@ -68,10 +68,11 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	showDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running instance find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
 	err := instance.FindInstances(appCtx, namePattern, useJSON, showDetails)
 	if err != nil {
 		return err
 	}
+	logger.CmdLogger.V(logger.Info).Info("Instance find command completed.")
 	return nil
 }

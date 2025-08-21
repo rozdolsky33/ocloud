@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -28,7 +29,7 @@ func NewService(repo domain.ImageRepository, logger logr.Logger, compartmentID s
 
 // Get retrieves a paginated list of images.
 func (s *Service) Get(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
-	s.logger.V(1).Info("listing images", "limit", limit, "pageNum", pageNum)
+	s.logger.V(logger.Debug).Info("listing images", "limit", limit, "pageNum", pageNum)
 
 	allImages, err := s.imageRepo.ListImages(ctx, s.compartmentID)
 	if err != nil {
@@ -60,7 +61,7 @@ func (s *Service) Get(ctx context.Context, limit, pageNum int) ([]Image, int, st
 
 // Find performs a fuzzy search for images.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, error) {
-	s.logger.V(1).Info("finding images with fuzzy search", "pattern", searchPattern)
+	s.logger.V(logger.Debug).Info("finding images with fuzzy search", "pattern", searchPattern)
 
 	allImages, err := s.imageRepo.ListImages(ctx, s.compartmentID)
 	if err != nil {
@@ -73,13 +74,14 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, erro
 	if err != nil {
 		return nil, fmt.Errorf("building search index: %w", err)
 	}
+	s.logger.V(logger.Debug).Info("Search index built successfully.", "numEntries", len(allImages))
 
 	fields := []string{"Name", "OperatingSystem", "OperatingSystemVersion"}
 	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
 	if err != nil {
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
 	}
-
+	s.logger.V(logger.Debug).Info("Fuzzy search completed.", "numMatches", len(matchedIdxs))
 	var results []Image
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allImages) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
 // Service is the application-layer service for OKE operations.
@@ -27,7 +28,7 @@ func NewService(repo domain.ClusterRepository, logger logr.Logger, compartmentID
 
 // List retrieves a paginated list of clusters.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
-	s.logger.V(1).Info("listing clusters", "limit", limit, "pageNum", pageNum)
+	s.logger.V(logger.Debug).Info("listing clusters", "limit", limit, "pageNum", pageNum)
 
 	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
 	if err != nil {
@@ -60,7 +61,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int,
 
 // Find performs a case-insensitive search for clusters.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, error) {
-	s.logger.V(1).Info("finding clusters with search", "pattern", searchPattern)
+	s.logger.V(logger.Debug).Info("finding clusters with search", "pattern", searchPattern)
 
 	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
 	if err != nil {
@@ -68,11 +69,14 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, er
 	}
 
 	if searchPattern == "" {
+		s.logger.V(logger.Debug).Info("Empty search pattern, returning all clusters.")
 		return allClusters, nil
 	}
 
 	var matchedClusters []Cluster
 	searchPattern = strings.ToLower(searchPattern)
+
+	s.logger.V(logger.Trace).Info("Starting cluster iteration for search.", "totalClusters", len(allClusters))
 
 	for _, cluster := range allClusters {
 		if strings.Contains(strings.ToLower(cluster.DisplayName), searchPattern) {

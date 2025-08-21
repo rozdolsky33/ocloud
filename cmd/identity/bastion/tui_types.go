@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	instanceSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
-	autonomousdbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
@@ -367,7 +367,7 @@ func NewOKEListModelFancy(clusters []okeSvc.Cluster) ResourceListModel {
 }
 
 // NewDBListModelFancy creates a ResourceListModel populated with a list of autonomous databases for TUI display.
-func NewDBListModelFancy(dbs []autonomousdbSvc.AutonomousDatabase) ResourceListModel {
+func NewDBListModelFancy(dbs []adbSvc.AutonomousDatabase) ResourceListModel {
 	items := make([]list.Item, 0, len(dbs))
 	for _, d := range dbs {
 		desc := d.PrivateEndpoint
@@ -443,14 +443,12 @@ func newSSHList(title string, items []list.Item) SSHFilesModel {
 }
 
 // filePermString returns the file's unix permission bits as a short octal string (e.g., "600").
-// If the file can't be stat'ed, returns "n/a".
 func filePermString(path string) string {
 	info, err := os.Stat(path)
 	if err != nil {
 		return "n/a"
 	}
 	perm := info.Mode().Perm()
-	// Format without leading 0 (e.g., 0600 -> 600)
 	return fmt.Sprintf("%o", perm)
 }
 

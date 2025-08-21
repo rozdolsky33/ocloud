@@ -59,6 +59,11 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.ListClusters(appCtx, useJSON, limit, page)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running oke list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
+	err := oke.ListClusters(appCtx, useJSON, limit, page)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("OKE list command completed.")
+	return nil
 }

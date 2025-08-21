@@ -10,10 +10,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ociinstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
-	ocioke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
-	instancessvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
-	okesvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
+	ociInstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
+	ociOke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
+	instancesSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
+	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
@@ -26,8 +26,8 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	if err != nil {
 		return fmt.Errorf("creating container engine client: %w", err)
 	}
-	okeAdapter := ocioke.NewAdapter(containerEngineClient)
-	okeService := okesvc.NewService(okeAdapter, appCtx.Logger, appCtx.CompartmentID)
+	okeAdapter := ociOke.NewAdapter(containerEngineClient)
+	okeService := okeSvc.NewService(okeAdapter, appCtx.Logger, appCtx.CompartmentID)
 
 	clusters, _, _, err := okeService.List(ctx, 1000, 0)
 	if err != nil {
@@ -49,7 +49,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		return ErrAborted
 	}
 
-	var cluster okesvc.Cluster
+	var cluster okeSvc.Cluster
 	for _, c := range clusters {
 		if c.OCID == chosen.Choice() {
 			cluster = c
@@ -75,14 +75,14 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		if err != nil {
 			return fmt.Errorf("creating network client: %w", err)
 		}
-		instanceAdapter := ociinstance.NewAdapter(computeClient, networkClient)
-		instService := instancessvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
+		instanceAdapter := ociInstance.NewAdapter(computeClient, networkClient)
+		instService := instancesSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
 		instances, _, _, err := instService.List(ctx, 300, 0, true)
 		if err != nil {
 			return fmt.Errorf("list instances: %w", err)
 		}
-		filtered := make([]instancessvc.Instance, 0, len(instances))
+		filtered := make([]instancesSvc.Instance, 0, len(instances))
 		for _, it := range instances {
 			if strings.HasPrefix(strings.ToLower(it.DisplayName), "oke") {
 				filtered = append(filtered, it)
@@ -103,7 +103,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		if !ok || chosenInstRes.Choice() == "" {
 			return ErrAborted
 		}
-		var inst instancessvc.Instance
+		var inst instancesSvc.Instance
 		for _, it := range filtered {
 			if it.OCID == chosenInstRes.Choice() {
 				inst = it
@@ -190,14 +190,14 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 			return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", port)
 		}
 
-		exists, err := okesvc.KubeconfigExistsForOKE(cluster, region)
+		exists, err := okeSvc.KubeconfigExistsForOKE(cluster, region)
 		if err != nil {
 			return fmt.Errorf("check kubeconfig: %w", err)
 		}
 		if !exists {
 			question := "Kubeconfig for this OKE cluster was not found in ~/.kube/config. Create and merge it now?"
 			if util.PromptYesNo(question) {
-				if err := okesvc.EnsureKubeconfigForOKE(cluster, region, port); err != nil {
+				if err := okeSvc.EnsureKubeconfigForOKE(cluster, region, port); err != nil {
 					return fmt.Errorf("ensure kubeconfig: %w", err)
 				}
 			} else {

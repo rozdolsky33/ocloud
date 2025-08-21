@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci/identity"
 )
 
 // FindCompartments searches and displays compartments matching a given name pattern.
 func FindCompartments(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
-	appCtx.Logger.V(1).Info("finding compartments", "pattern", namePattern)
+	appCtx.Logger.V(logger.Debug).Info("finding compartments", "pattern", namePattern)
 
 	// Create the infrastructure adapter.
 	compartmentAdapter := identity.NewCompartmentAdapter(appCtx.IdentityClient, appCtx.TenancyID)
@@ -28,6 +29,6 @@ func FindCompartments(appCtx *app.ApplicationContext, namePattern string, useJSO
 	if err != nil {
 		return fmt.Errorf("printing matched compartments: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Compartment find operation completed successfully.")
 	return nil
 }

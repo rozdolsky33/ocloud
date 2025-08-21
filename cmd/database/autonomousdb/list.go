@@ -5,7 +5,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/domain"
-	autonomousdb_oci "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	autonomousdboci "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/spf13/cobra"
@@ -71,7 +71,7 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 
-	repo, err := autonomousdb_oci.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	repo, err := autonomousdboci.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	if err != nil {
 		return err
 	}
-	// Convert service type to domain type for output
+	// Convert a service type to a domain type for output
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(databases))
 	for _, db := range databases {
 		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))

@@ -61,6 +61,12 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running find command", "pattern", namePattern, "json", useJSON)
-	return compartment.FindCompartments(appCtx, namePattern, useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
+
+	err := compartment.FindCompartments(appCtx, namePattern, useJSON)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("Compartment find command completed.")
+	return nil
 }

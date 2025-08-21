@@ -15,7 +15,7 @@ import (
 // appCtx represents the application context containing configuration and client details.
 // useJSON if true, outputs the list of databases in JSON format; otherwise, uses a plain-text format.
 func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing Autonomous Databases")
+	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Autonomous Databases")
 
 	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
@@ -29,7 +29,7 @@ func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit,
 		return fmt.Errorf("listing autonomous databases: %w", err)
 	}
 
-	// Convert to domain type for printing
+	// Convert to a domain type for printing
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(allDatabases))
 	for _, db := range allDatabases {
 		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
@@ -44,6 +44,6 @@ func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit,
 	}, useJSON); err != nil {
 		return fmt.Errorf("printing image table: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Autonomous Database list operation completed successfully.")
 	return nil
 }

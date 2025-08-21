@@ -74,7 +74,6 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 				MemoryGB:           *ociInstance.ShapeConfig.MemoryInGBs,
 			}
 
-			// Enrich with network details
 			vnic, err := a.getPrimaryVnic(ctx, *ociInstance.Id, *ociInstance.CompartmentId)
 			if err != nil {
 				errChan <- fmt.Errorf("enriching instance %s with network: %w", dm.OCID, err)
@@ -83,10 +82,25 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 			if vnic != nil {
 				dm.PrimaryIP = *vnic.PrivateIp
 				dm.SubnetID = *vnic.SubnetId
-				// Further enrichment can be added here (subnet name, vcn name)
+				subnet, err := a.getSubnet(ctx, *vnic.SubnetId)
+				if err != nil {
+					errChan <- fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
+					return
+				}
+				if subnet != nil {
+					dm.SubnetName = *subnet.DisplayName
+					dm.VcnID = *subnet.VcnId
+					vcn, err := a.getVcn(ctx, *subnet.VcnId)
+					if err != nil {
+						errChan <- fmt.Errorf("enriching instance %s with vcn: %w", dm.OCID, err)
+						return
+					}
+					if vcn != nil {
+						dm.VcnName = *vcn.DisplayName
+					}
+				}
 			}
 
-			// Enrich with image details
 			image, err := a.getImage(ctx, *ociInstance.ImageId)
 			if err != nil {
 				errChan <- fmt.Errorf("enriching instance %s with image: %w", dm.OCID, err)
@@ -105,7 +119,6 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 	close(errChan)
 
 	for err := range errChan {
-		// For now, we just return the first error. A more robust implementation might collect all errors.
 		return nil, err
 	}
 
@@ -131,6 +144,28 @@ func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID 
 		}
 	}
 	return nil, nil // No primary VNIC found
+}
+
+// getSubnet fetches subnet details.
+func (a *Adapter) getSubnet(ctx context.Context, subnetID string) (*core.Subnet, error) {
+	resp, err := a.networkClient.GetSubnet(ctx, core.GetSubnetRequest{
+		SubnetId: &subnetID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Subnet, nil
+}
+
+// getVcn fetches VCN details.
+func (a *Adapter) getVcn(ctx context.Context, vcnID string) (*core.Vcn, error) {
+	resp, err := a.networkClient.GetVcn(ctx, core.GetVcnRequest{
+		VcnId: &vcnID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &resp.Vcn, nil
 }
 
 // getImage fetches image details.

@@ -78,7 +78,6 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 	// If JSON output is requested, special-case empty for compact format expected by tests.
 	if useJSON {
 		if len(subnets) == 0 {
-			// Write compact JSON: {"items": []}
 			_, err := appCtx.Stdout.Write([]byte("{\"items\": []}\n"))
 			return err
 		}

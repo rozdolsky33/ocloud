@@ -13,6 +13,7 @@ import (
 
 // NewService creates a new bastion service
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
+	logger.Logger.V(logger.Info).Info("Creating new Bastion service.")
 	cfg := appCtx.Provider
 	bc, err := oci.NewBastionClient(cfg)
 	if err != nil {
@@ -39,7 +40,7 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 
 // List retrieves and returns all bastion hosts from the given compartment in the OCI account.
 func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
-	logger.LogWithLevel(s.logger, 1, "Listing Bastions in compartment", "compartmentID", s.compartmentID)
+	logger.LogWithLevel(s.logger, logger.Debug, "Listing Bastions in compartment", "compartmentID", s.compartmentID)
 	request := bastion.ListBastionsRequest{
 		CompartmentId: &s.compartmentID,
 	}
@@ -48,14 +49,16 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list bastions: %w", err)
 	}
+	logger.Logger.V(logger.Info).Info("Successfully listed bastions.", "count", len(response.Items))
 	var allBastions []Bastion
 
 	for _, b := range response.Items {
+		logger.Logger.V(logger.Debug).Info("Processing bastion", "bastionID", *b.Id, "bastionName", *b.Name)
 		toBastion := mapToBastion(b)
 		if b.TargetVcnId != nil && *b.TargetVcnId != "" {
 			vcn, err := s.fetchVcnDetails(ctx, *b.TargetVcnId)
 			if err != nil {
-				logger.LogWithLevel(s.logger, 2, "Failed to fetch VCN details", "vcnID", *b.TargetVcnId, "error", err)
+				logger.LogWithLevel(s.logger, logger.Trace, "Failed to fetch VCN details", "vcnID", *b.TargetVcnId, "error", err)
 			} else if vcn.DisplayName != nil {
 				toBastion.TargetVcnName = *vcn.DisplayName
 			}
@@ -65,7 +68,7 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 		if b.TargetSubnetId != nil && *b.TargetSubnetId != "" {
 			subnet, err := s.fetchSubnetDetails(ctx, *b.TargetSubnetId)
 			if err != nil {
-				logger.LogWithLevel(s.logger, 2, "Failed to fetch Subnet details", "subnetID", *b.TargetSubnetId, "error", err)
+				logger.LogWithLevel(s.logger, logger.Trace, "Failed to fetch Subnet details", "subnetID", *b.TargetSubnetId, "error", err)
 			} else if subnet.DisplayName != nil {
 				toBastion.TargetSubnetName = *subnet.DisplayName
 			}
@@ -81,11 +84,12 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn, error) {
 
 	if vcn, ok := s.vcnCache[vcnID]; ok {
-		logger.LogWithLevel(s.logger, 3, "VCN cache hit", "vcnID", vcnID)
+		logger.LogWithLevel(s.logger, logger.Trace, "VCN cache hit", "vcnID", vcnID)
 		return vcn, nil
 	}
 
-	logger.LogWithLevel(s.logger, 3, "VCN cache miss", "vcnID", vcnID)
+	logger.LogWithLevel(s.logger, logger.Trace, "VCN cache miss", "vcnID", vcnID)
+	logger.Logger.V(logger.Debug).Info("Calling OCI API to get VCN details.", "vcnID", vcnID)
 	resp, err := s.networkClient.GetVcn(ctx, core.GetVcnRequest{
 		VcnId: &vcnID,
 	})
@@ -101,12 +105,13 @@ func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn,
 // It uses a cache to avoid making repeated API calls for the same subnet.
 func (s *Service) fetchSubnetDetails(ctx context.Context, subnetID string) (*core.Subnet, error) {
 	if subnet, ok := s.subnetCache[subnetID]; ok {
-		logger.LogWithLevel(s.logger, 3, "subnet cache hit", "subnetID", subnetID)
+		logger.LogWithLevel(s.logger, logger.Trace, "subnet cache hit", "subnetID", subnetID)
 		return subnet, nil
 	}
 
 	// Cache miss, fetch from API
-	logger.LogWithLevel(s.logger, 3, "subnet cache miss", "subnetID", subnetID)
+	logger.LogWithLevel(s.logger, logger.Trace, "subnet cache miss", "subnetID", subnetID)
+	logger.Logger.V(logger.Debug).Info("Calling OCI API to get Subnet details.", "subnetID", subnetID)
 	resp, err := s.networkClient.GetSubnet(ctx, core.GetSubnetRequest{
 		SubnetId: &subnetID,
 	})
