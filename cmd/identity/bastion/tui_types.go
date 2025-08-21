@@ -3,6 +3,7 @@ package bastion
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -378,25 +379,32 @@ func NewDBListModelFancy(dbs []adbSvc.AutonomousDatabase) ResourceListModel {
 
 //---------------------------------------SSH Keys----------------------------------------------------------------------
 
-// SSHFileItem is a list item representing an SSH key file.
+// SSHFileItem is a list item representing a file system entry (file or directory).
 type SSHFileItem struct {
-	fileName, permission string
+	path       string
+	title      string
+	permission string
+	isDir      bool
 }
 
-// Title returns the file name (implements list.Item).
-func (i SSHFileItem) Title() string { return i.fileName }
+// Title returns the display title (implements list.Item).
+func (i SSHFileItem) Title() string { return i.title }
 
 // Description returns permissions or metadata (implements list.Item).
 func (i SSHFileItem) Description() string { return i.permission }
-func (i SSHFileItem) FilterValue() string { return i.fileName + " " + i.permission }
+func (i SSHFileItem) FilterValue() string { return i.title + " " + i.permission }
 
-// SSHFilesModel is the canonical model name for SSH file selection.
+// SSHFilesModel is the canonical model name for SSH file selection/browsing.
 type SSHFilesModel struct {
-	list   list.Model
-	choice string
-	keys   struct {
+	list       list.Model
+	choice     string
+	currentDir string
+	showPublic bool // if true: filter .pub files; else non-.pub files
+	browsing   bool // if true: enable directory navigation
+	keys       struct {
 		confirm key.Binding
 		quit    key.Binding
+		upDir   key.Binding
 	}
 }
 
@@ -412,9 +420,34 @@ func (m SSHFilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, m.keys.quit) {
 			return m, tea.Quit
 		}
+		if m.browsing && key.Matches(msg, m.keys.upDir) {
+			if m.currentDir != "" {
+				parent := path.Dir(m.currentDir)
+				if parent != m.currentDir { // stop at root
+					m.currentDir = parent
+					m.populate()
+				}
+			}
+			return m, nil
+		}
 		if key.Matches(msg, m.keys.confirm) {
 			if it, ok := m.list.SelectedItem().(SSHFileItem); ok {
-				m.choice = it.fileName
+				if m.browsing && it.isDir {
+					// Navigate into a directory
+					if it.path == ".." {
+						parent := path.Dir(m.currentDir)
+						if parent != m.currentDir {
+							m.currentDir = parent
+							m.populate()
+						}
+					} else {
+						m.currentDir = it.path
+						m.populate()
+					}
+					return m, nil
+				}
+				// Select file
+				m.choice = it.path
 			}
 			return m, tea.Quit
 		}
@@ -439,6 +472,7 @@ func newSSHList(title string, items []list.Item) SSHFilesModel {
 	rm := SSHFilesModel{list: l}
 	rm.keys.confirm = key.NewBinding(key.WithKeys("enter"))
 	rm.keys.quit = key.NewBinding(key.WithKeys("q", "esc", "ctrl+c"))
+	rm.keys.upDir = key.NewBinding(key.WithKeys("backspace", "left"))
 	return rm
 }
 
@@ -456,7 +490,8 @@ func filePermString(path string) string {
 func NewSSHFilesModelFancyList(title string, keys []string) SSHFilesModel {
 	items := make([]list.Item, 0, len(keys))
 	for _, k := range keys {
-		items = append(items, SSHFileItem{fileName: k, permission: filePermString(k)})
+		title := path.Base(k)
+		items = append(items, SSHFileItem{path: k, title: title, permission: filePermString(k), isDir: false})
 	}
 	return newSSHList(title, items)
 }
@@ -464,4 +499,53 @@ func NewSSHFilesModelFancyList(title string, keys []string) SSHFilesModel {
 // NewSSHKeysModelFancyList creates a new SHHFilesModel instance populated with SSH key items for the given title and keys list.
 func NewSSHKeysModelFancyList(title string, keys []string) SHHFilesModel {
 	return NewSSHFilesModelFancyList(title, keys)
+}
+
+// populate populates the list items based on currentDir and filtering rules.
+func (m *SSHFilesModel) populate() {
+	if !m.browsing || m.currentDir == "" {
+		return
+	}
+	entries, err := os.ReadDir(m.currentDir)
+	if err != nil {
+		// if you cannot read, leave a list unchanged
+		return
+	}
+	items := make([]list.Item, 0, len(entries)+1)
+	// Parent dir entry
+	if parent := path.Dir(m.currentDir); parent != m.currentDir {
+		items = append(items, SSHFileItem{path: "..", title: "..", permission: "", isDir: true})
+	}
+	// Directories first
+	for _, e := range entries {
+		if e.IsDir() {
+			p := path.Join(m.currentDir, e.Name())
+			items = append(items, SSHFileItem{path: p, title: e.Name() + string(os.PathSeparator), permission: "dir", isDir: true})
+		}
+	}
+	// Files filtered
+	for _, e := range entries {
+		if !e.IsDir() {
+			name := e.Name()
+			if m.showPublic && !strings.HasSuffix(name, ".pub") {
+				continue
+			}
+			if !m.showPublic && strings.HasSuffix(name, ".pub") {
+				continue
+			}
+			p := path.Join(m.currentDir, name)
+			items = append(items, SSHFileItem{path: p, title: name, permission: filePermString(p), isDir: false})
+		}
+	}
+	m.list.SetItems(items)
+}
+
+// NewSSHKeysModelBrowser creates a navigable SSHFilesModel starting from startDir.
+func NewSSHKeysModelBrowser(title, startDir string, showPublic bool) SHHFilesModel {
+	m := newSSHList(title, nil)
+	m.browsing = true
+	m.currentDir = startDir
+	m.showPublic = showPublic
+	m.populate()
+	return m
 }

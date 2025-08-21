@@ -3,17 +3,25 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // SelectSSHKeyPair opens two TUIs to select a matching SSH public and private key.
 // It returns ErrAborted if the user cancels either selection.
 func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
-	pk := NewSSHKeysModelFancyList("Choose Public Key", util.DefaultPublicSSHKey())
+	// Start at ~/.ssh for browsing
+	home := os.Getenv("HOME")
+	if home == "" {
+		if h, err := os.UserHomeDir(); err == nil {
+			home = h
+		}
+	}
+	startDir := filepath.Join(home, ".ssh")
+	pk := NewSSHKeysModelBrowser("Choose Public Key", startDir, true)
 	pProg := tea.NewProgram(pk, tea.WithContext(ctx))
 	pRes, err := pProg.Run()
 	if err != nil {
@@ -25,22 +33,9 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 	}
 	pubKey = pPick.Choice()
 
-	// Filter private keys to match the selected public key basename (without .pub)
-	privList := util.DefaultPrivateSSHKeys()
-	expectedBase := filepath.Base(strings.TrimSuffix(pubKey, ".pub"))
-	filteredPriv := make([]string, 0, len(privList))
-	for _, p := range privList {
-		if filepath.Base(p) == expectedBase {
-			filteredPriv = append(filteredPriv, p)
-		}
-	}
-	var privOptions []string
-	if len(filteredPriv) > 0 {
-		privOptions = filteredPriv
-	} else {
-		privOptions = privList
-	}
-	sk := NewSSHKeysModelFancyList("Choose Private Key", privOptions)
+	// You can browse to choose a private key; we'll validate the match afterward.
+	// Allow browsing non-.pub files for private key selection
+	sk := NewSSHKeysModelBrowser("Choose Private Key", startDir, false)
 	sProg := tea.NewProgram(sk, tea.WithContext(ctx))
 	sRes, err := sProg.Run()
 	if err != nil {
