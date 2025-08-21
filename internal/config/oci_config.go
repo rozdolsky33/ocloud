@@ -38,7 +38,7 @@ var DefaultTenancyMapPath = func() string {
 // LoadOCIConfig picks the profile from env or default, and logs at debug level.
 // If there's an error getting the home directory, it falls back to the default provider.
 func LoadOCIConfig() common.ConfigurationProvider {
-	logger.Logger.V(logger.Info).Info("Loading OCI configuration...")
+	logger.Logger.V(logger.Debug).Info("Loading OCI configuration...")
 	profile := GetOCIProfile()
 	if profile == flags.DefaultProfileName {
 		logger.LogWithLevel(logger.Logger, logger.Trace, "using default profile")

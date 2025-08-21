@@ -47,9 +47,12 @@ func PrintInstancesInfo(instances []Instance, appCtx *app.ApplicationContext, pa
 			instanceData["Region"] = instance.Region
 			instanceData["Subnet Name"] = instance.SubnetName
 			instanceData["VCN Name"] = instance.VcnName
+			instanceData["Hostname"] = instance.Hostname
+			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
+			instanceData["Route Table Name"] = instance.RouteTableName
 
 			imageKeys := []string{
-				"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name",
+				"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name",
 			}
 			orderedKeys = append(orderedKeys, imageKeys...)
 		}

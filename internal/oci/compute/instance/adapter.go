@@ -82,6 +82,10 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 			if vnic != nil {
 				dm.PrimaryIP = *vnic.PrivateIp
 				dm.SubnetID = *vnic.SubnetId
+				if vnic.HostnameLabel != nil {
+					dm.Hostname = *vnic.HostnameLabel
+				}
+				dm.PrivateDNSEnabled = vnic.SkipSourceDestCheck == nil || !*vnic.SkipSourceDestCheck
 				subnet, err := a.getSubnet(ctx, *vnic.SubnetId)
 				if err != nil {
 					errChan <- fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
@@ -90,6 +94,16 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 				if subnet != nil {
 					dm.SubnetName = *subnet.DisplayName
 					dm.VcnID = *subnet.VcnId
+					if subnet.RouteTableId != nil {
+						rt, err := a.getRouteTable(ctx, *subnet.RouteTableId)
+						if err != nil {
+							errChan <- fmt.Errorf("enriching instance %s with route table: %w", dm.OCID, err)
+							return
+						}
+						if rt != nil {
+							dm.RouteTableName = *rt.DisplayName
+						}
+					}
 					vcn, err := a.getVcn(ctx, *subnet.VcnId)
 					if err != nil {
 						errChan <- fmt.Errorf("enriching instance %s with vcn: %w", dm.OCID, err)
@@ -177,4 +191,15 @@ func (a *Adapter) getImage(ctx context.Context, imageID string) (*core.Image, er
 		return nil, err
 	}
 	return &resp.Image, nil
+}
+
+// getRouteTable fetches route table details.
+func (a *Adapter) getRouteTable(ctx context.Context, rtID string) (*core.RouteTable, error) {
+	resp, err := a.networkClient.GetRouteTable(ctx, core.GetRouteTableRequest{
+		RtId: &rtID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &resp.RouteTable, nil
 }

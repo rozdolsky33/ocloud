@@ -19,13 +19,16 @@ type Instance struct {
 	VCPUs              int
 	MemoryGB           float32
 	// Enriched fields
-	PrimaryIP  string
-	SubnetID   string
-	SubnetName string
-	VcnID      string
-	VcnName    string
-	ImageName  string
-	ImageOS    string
+	PrimaryIP         string
+	SubnetID          string
+	SubnetName        string
+	VcnID             string
+	VcnName           string
+	ImageName         string
+	ImageOS           string
+	Hostname          string
+	PrivateDNSEnabled bool
+	RouteTableName    string
 }
 
 // InstanceRepository defines the port for interacting with instance storage.
