@@ -41,7 +41,7 @@ type Placement struct {
 	FaultDomain        string `json:"FaultDomain"`
 }
 
-// Resources represents the compute resources of an instance.
+// Resources represent the compute resources of an instance.
 type Resources struct {
 	VCPUs    int     `json:"VCPUs"`
 	MemoryGB float32 `json:"MemoryGB"`

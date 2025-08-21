@@ -24,7 +24,7 @@ func ListInstances(appCtx *app.ApplicationContext, useJSON bool, limit, page int
 	instanceAdapter := ociinstance.NewAdapter(computeClient, networkClient)
 	service := NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	instances, totalCount, nextPageToken, err := service.List(context.Background(), limit, page, showDetails)
+	instances, totalCount, nextPageToken, err := service.List(context.Background(), limit, page)
 	if err != nil {
 		return fmt.Errorf("listing instances: %w", err)
 	}

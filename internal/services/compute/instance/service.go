@@ -28,7 +28,7 @@ func NewService(repo domain.InstanceRepository, logger logr.Logger, compartmentI
 }
 
 // List retrieves a paginated list of instances.
-func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDetails bool) ([]Instance, int, string, error) {
+func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing instances", "limit", limit, "pageNum", pageNum)
 
 	allInstances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)
@@ -67,7 +67,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int, showImageDet
 }
 
 // Find performs a fuzzy search for instances.
-func (s *Service) Find(ctx context.Context, searchPattern string, showImageDetails bool) ([]Instance, error) {
+func (s *Service) Find(ctx context.Context, searchPattern string) ([]Instance, error) {
 	s.logger.V(logger.Debug).Info("finding instances with fuzzy search", "pattern", searchPattern)
 
 	allInstances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)

@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ociinstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
-	instancessvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
+	ociInst "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
+	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
@@ -27,10 +27,10 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	if err != nil {
 		return fmt.Errorf("creating network client: %w", err)
 	}
-	instanceAdapter := ociinstance.NewAdapter(computeClient, networkClient)
-	instService := instancessvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
+	instanceAdapter := ociInst.NewAdapter(computeClient, networkClient)
+	instService := instSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	instances, _, _, err := instService.List(ctx, 300, 0, true)
+	instances, _, _, err := instService.List(ctx, 300, 0)
 	if err != nil {
 		return fmt.Errorf("list instances: %w", err)
 	}
@@ -57,7 +57,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return err
 	}
 
-	var inst instancessvc.Instance
+	var inst instSvc.Instance
 	for _, it := range instances {
 		if it.OCID == chosen.Choice() {
 			inst = it

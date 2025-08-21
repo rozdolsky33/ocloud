@@ -23,7 +23,7 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, useJSON, 
 	instanceAdapter := ociinstance.NewAdapter(computeClient, networkClient)
 	service := NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	matchedInstances, err := service.Find(context.Background(), namePattern, showDetails)
+	matchedInstances, err := service.Find(context.Background(), namePattern)
 	if err != nil {
 		return fmt.Errorf("finding instances: %w", err)
 	}

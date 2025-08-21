@@ -78,7 +78,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		instanceAdapter := ociInstance.NewAdapter(computeClient, networkClient)
 		instService := instancesSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-		instances, _, _, err := instService.List(ctx, 300, 0, true)
+		instances, _, _, err := instService.List(ctx, 300, 0)
 		if err != nil {
 			return fmt.Errorf("list instances: %w", err)
 		}
