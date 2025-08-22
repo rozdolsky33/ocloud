@@ -3,11 +3,11 @@ package bastion
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociInst "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
@@ -36,7 +36,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	}
 
 	if len(instances) == 0 {
-		fmt.Println("No instances found.")
+		logger.Logger.Info("No instances found.")
 		return nil
 	}
 
@@ -66,12 +66,11 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	}
 
 	if ok, reason := svc.CanReach(ctx, b, inst.VcnID, inst.SubnetID); !ok {
-		fmt.Println("Bastion cannot reach selected instance:", reason)
+		logger.Logger.Info("Bastion cannot reach selected instance", "reason", reason)
 		return nil
 	}
 
-	fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to Instance %s.\n",
-		sType, b.Name, b.ID, inst.DisplayName)
+	logger.Logger.Info("Validated session on Bastion to Instance", "session_type", sType, "bastion_name", b.Name, "bastion_id", b.ID, "instance_name", inst.DisplayName)
 
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
@@ -89,7 +88,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 			return fmt.Errorf("ensure managed SSH: %w", err)
 		}
 		sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessID, region, inst.PrimaryIP, sshUser)
-		fmt.Printf("\nExecuting: %s\n\n", sshCmd)
+		logger.Logger.Info("Executing", "command", sshCmd)
 		return bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
 	case TypePortForwarding:
 		defaultPort := 5901
@@ -107,21 +106,21 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 			return fmt.Errorf("build args: %w", err)
 		}
 
-		fmt.Printf("\nStarting background tunnel: %s\n\n", sshTunnelArgs)
+		logger.Logger.Info("Starting background tunnel", "args", sshTunnelArgs)
 		pid, err := bastionSvc.SpawnDetached(sshTunnelArgs, "/tmp/ssh-tunnel.log")
 
 		if err != nil {
 			return fmt.Errorf("spawn detached: %w", err)
 		}
-		log.Printf("spawned tunnel pid=%d", pid)
+		logger.Logger.V(1).Info("spawned tunnel", "pid", pid)
 
 		if err := bastionSvc.WaitForListen(defaultPort, 5*time.Second); err != nil {
-			log.Printf("warning: %v", err)
+			logger.Logger.Error(err, "warning")
 		}
 
-		fmt.Printf("\nStarting background tunnel: %s\n\n", sshTunnelArgs)
+		logger.Logger.Info("Starting background tunnel", "args", sshTunnelArgs)
 
-		fmt.Printf("SSH tunnel started in background. Logs: %s\n", logFile)
+		logger.Logger.Info("SSH tunnel started in background", "logs", logFile)
 		return nil
 	default:
 		return fmt.Errorf("unsupported session type: %s", sType)

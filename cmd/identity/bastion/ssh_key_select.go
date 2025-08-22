@@ -21,7 +21,6 @@ import (
 // SelectSSHKeyPair opens two TUIs to select a matching SSH public and private key.
 // It returns ErrAborted if the user cancels either selection.
 func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
-	// Start at ~/.ssh for browsing
 	home := os.Getenv("HOME")
 	if home == "" {
 		if h, err := os.UserHomeDir(); err == nil {
@@ -40,11 +39,7 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 		return "", "", ErrAborted
 	}
 	pubKey = pPick.Choice()
-	// Log chosen public key name for user visibility
 	logger.CmdLogger.Info("selected public ssh key", "name", filepath.Base(pubKey), "path", pubKey)
-
-	// You can browse to choose a private key; we'll validate the match afterward.
-	// Allow browsing non-.pub files for private key selection
 	sk := NewSSHKeysModelBrowser("Choose Private Key", startDir, false)
 	sProg := tea.NewProgram(sk, tea.WithContext(ctx))
 	sRes, err := sProg.Run()
@@ -56,7 +51,6 @@ func SelectSSHKeyPair(ctx context.Context) (pubKey, privKey string, err error) {
 		return "", "", ErrAborted
 	}
 	privKey = sPick.Choice()
-	// Log chosen private key name for user visibility (file name only)
 	logger.CmdLogger.Info("selected private ssh key", "name", filepath.Base(privKey), "path", privKey)
 
 	expected := strings.TrimSuffix(pubKey, ".pub")
@@ -117,7 +111,6 @@ func validateSSHKeyPair(pubPath, privPath string) error {
 		allowed = false
 	}
 	if !allowed {
-		// Fallback: handle keys parsed as crypto.Signer (e.g., PKCS#8 wrapped)
 		if s, ok := rawPriv.(crypto.Signer); ok {
 			switch pk := s.Public().(type) {
 			case ed25519.PublicKey:
@@ -140,8 +133,7 @@ func validateSSHKeyPair(pubPath, privPath string) error {
 		return fmt.Errorf("derive public key from private: %w", err)
 	}
 
-	if (pubType == ssh.KeyAlgoRSA && derived.Type() != ssh.KeyAlgoRSA) || (pubType == ssh.KeyAlgoED25519 && derived.Type() != ssh.KeyAlgoED25519) ||
-		(pubType == ssh.KeyAlgoECDSA256 && derived.Type() != ssh.KeyAlgoECDSA256) || (pubType == ssh.KeyAlgoECDSA384 && derived.Type() != ssh.KeyAlgoECDSA384) || (pubType == ssh.KeyAlgoECDSA521 && derived.Type() != ssh.KeyAlgoECDSA521) {
+	if isKeyAlgorithmMismatch(pubType, derived.Type()) {
 		return fmt.Errorf("mismatch between public (%s) and private (%s) key algorithms", pubType, derived.Type())
 	}
 
@@ -151,6 +143,12 @@ func validateSSHKeyPair(pubPath, privPath string) error {
 	return nil
 }
 
+// isKeyAlgorithmMismatch returns true if the public and private key types do not match.
+func isKeyAlgorithmMismatch(pubType, derivedType string) bool {
+	return pubType != derivedType
+}
+
+// formatComment returns a comment string with a colon prefix if the comment is not empty.
 func formatComment(c string) string {
 	if c == "" {
 		return ""

@@ -64,7 +64,6 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 			dc.TimeCreated = ociCluster.Metadata.TimeCreated.Time
 		}
 
-		// Check if CompartmentId and I'd are not nil before dereferencing
 		if ociCluster.CompartmentId == nil || ociCluster.Id == nil {
 			domainClusters = append(domainClusters, dc)
 			continue

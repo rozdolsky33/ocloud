@@ -32,6 +32,5 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("Bastion list command completed.")
 	return nil
 }

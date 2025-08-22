@@ -3,12 +3,12 @@ package bastion
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociInstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 	ociOke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
@@ -34,7 +34,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		return fmt.Errorf("list OKE clusters: %w", err)
 	}
 	if len(clusters) == 0 {
-		fmt.Println("No OKE clusters found.")
+		logger.Logger.Info("No OKE clusters found.")
 		return nil
 	}
 
@@ -58,12 +58,11 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	}
 
 	if ok, reason := svc.CanReach(ctx, b, cluster.VcnOCID, ""); !ok {
-		fmt.Println("Bastion cannot reach selected OKE cluster:", reason)
+		logger.Logger.Info("Bastion cannot reach selected OKE cluster", "reason", reason)
 		return nil
 	}
 
-	fmt.Printf("\n---\nValidated %s session on Bastion %s (ID: %s) to OKE cluster %s.\n",
-		sType, b.Name, b.ID, cluster.DisplayName)
+	logger.Logger.Info("Validated session on Bastion to OKE cluster", "session_type", sType, "bastion_name", b.Name, "bastion_id", b.ID, "cluster_name", cluster.DisplayName)
 
 	switch sType {
 	case TypeManagedSSH:
@@ -89,7 +88,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 			}
 		}
 		if len(filtered) == 0 {
-			fmt.Println("No instances with name starting with 'oke' found.")
+			logger.Logger.Info("No instances with name starting with 'oke' found.")
 			return nil
 		}
 
@@ -117,7 +116,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		}
 
 		if ok, reason := svc.CanReach(ctx, b, inst.VcnID, inst.SubnetID); !ok {
-			fmt.Println("Bastion cannot reach selected instance:", reason)
+			logger.Logger.Info("Bastion cannot reach selected instance", "reason", reason)
 			return nil
 		}
 
@@ -135,7 +134,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 			return fmt.Errorf("ensure managed SSH: %w", err)
 		}
 		sshCmd := bastionSvc.BuildManagedSSHCommand(privKey, sessID, region, inst.PrimaryIP, sshUser)
-		fmt.Printf("\nExecuting: %s\n\n", sshCmd)
+		logger.Logger.Info("Executing", "command", sshCmd)
 		return bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
 
 	case TypePortForwarding:
@@ -201,7 +200,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 					return fmt.Errorf("ensure kubeconfig: %w", err)
 				}
 			} else {
-				fmt.Println("Skipping kubeconfig creation for this OKE cluster.")
+				logger.Logger.Info("Skipping kubeconfig creation for this OKE cluster.")
 			}
 		}
 
@@ -217,16 +216,15 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		if err != nil {
 			return fmt.Errorf("spawn detached: %w", err)
 		}
-		log.Printf("spawned tunnel pid=%d", pid)
+		logger.Logger.V(1).Info("spawned tunnel", "pid", pid)
 
 		if err := bastionSvc.WaitForListen(okeTargetPort, 5*time.Second); err != nil {
-			log.Printf("warning: %v", err)
+			logger.Logger.Error(err, "warning")
 		}
 
-		fmt.Printf("\nStarting background OKE API tunnel: %s\n\n", sshTunnelArgs)
+		logger.Logger.Info("Starting background OKE API tunnel", "args", sshTunnelArgs)
 
-		fmt.Printf("SSH tunnel to OKE API started. Access: https://127.0.0.1:%d (kube-apiserver)\nLogs: %s\n",
-			localPort, logFile)
+		logger.Logger.Info("SSH tunnel to OKE API started", "access", fmt.Sprintf("https://127.0.0.1:%d (kube-apiserver)", localPort), "logs", logFile)
 		return nil
 	default:
 		return fmt.Errorf("unsupported session type: %s", sType)
