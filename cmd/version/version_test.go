@@ -23,10 +23,10 @@ func TestNewVersionCommand(t *testing.T) {
 
 // TestRunCommand tests the runCommand method of VersionInfo
 func TestRunCommand(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a VersionInfo with the buffer as writer
+	// Create a VersionInfo with the buffer as a writer
 	vi := &VersionInfo{
 		writer: &buf,
 		cmd:    &cobra.Command{},
@@ -47,7 +47,7 @@ func TestRunCommand(t *testing.T) {
 
 // TestPrintVersionInfo tests the PrintVersionInfo function
 func TestPrintVersionInfo(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Call the function
@@ -90,7 +90,7 @@ func TestAddVersionFlag(t *testing.T) {
 	assert.NotNil(t, shortFlag, "short version flag should be added")
 	assert.Equal(t, flag, shortFlag, "short flag should be the same as the long flag")
 
-	// Test the PersistentPreRunE function with version flag
+	// Test the PersistentPreRunE function with the version flag
 	// Create a buffer to capture output
 	var buf bytes.Buffer
 	rootCmd.SetOut(&buf)
@@ -110,10 +110,10 @@ func TestAddVersionFlag(t *testing.T) {
 
 // TestVersionInfoPrintVersionInfo tests the printVersionInfo method of VersionInfo
 func TestVersionInfoPrintVersionInfo(t *testing.T) {
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
-	// Create a VersionInfo with the buffer as writer
+	// Create a VersionInfo with the buffer as a writer
 	vi := &VersionInfo{
 		writer: &buf,
 	}
