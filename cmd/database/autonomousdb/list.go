@@ -5,7 +5,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/domain"
-	autonomousdboci "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/spf13/cobra"
@@ -56,7 +56,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
-	// Add flags specific to the list command
+
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 
@@ -67,11 +67,10 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 
-	repo, err := autonomousdboci.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	repo, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
 		return err
 	}

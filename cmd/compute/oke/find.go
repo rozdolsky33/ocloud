@@ -62,6 +62,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("OKE find command completed.")
 	return nil
 }

@@ -57,7 +57,6 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	// Add flags specific to the find command
 	instaceFlags.ImageDetailsFlag.Add(cmd)
 
 	return cmd
@@ -73,6 +72,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("Instance find command completed.")
+
 	return nil
 }

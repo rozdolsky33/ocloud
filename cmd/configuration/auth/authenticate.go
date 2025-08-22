@@ -37,10 +37,8 @@ func NewAuthenticateCmd() *cobra.Command {
 			return RunAuthenticateCommand(cmd)
 		},
 	}
-	// Add filter flag
-	configurationFlags.FilterFlag.Add(cmd)
 
-	// Add realm filter flag
+	configurationFlags.FilterFlag.Add(cmd)
 	configurationFlags.RealmFlag.Add(cmd)
 
 	return cmd

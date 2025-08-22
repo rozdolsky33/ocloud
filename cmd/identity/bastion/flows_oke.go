@@ -10,9 +10,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ociInstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
+	ociInst "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 	ociOke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
-	instancesSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
+	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -74,14 +74,14 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		if err != nil {
 			return fmt.Errorf("creating network client: %w", err)
 		}
-		instanceAdapter := ociInstance.NewAdapter(computeClient, networkClient)
-		instService := instancesSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
+		instanceAdapter := ociInst.NewAdapter(computeClient, networkClient)
+		instService := instSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
 		instances, _, _, err := instService.List(ctx, 300, 0)
 		if err != nil {
 			return fmt.Errorf("list instances: %w", err)
 		}
-		filtered := make([]instancesSvc.Instance, 0, len(instances))
+		filtered := make([]instSvc.Instance, 0, len(instances))
 		for _, it := range instances {
 			if strings.HasPrefix(strings.ToLower(it.DisplayName), "oke") {
 				filtered = append(filtered, it)
@@ -102,7 +102,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		if !ok || chosenInstRes.Choice() == "" {
 			return ErrAborted
 		}
-		var inst instancesSvc.Instance
+		var inst instSvc.Instance
 		for _, it := range filtered {
 			if it.OCID == chosenInstRes.Choice() {
 				inst = it

@@ -47,7 +47,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	// Add pagination flags
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 
@@ -64,6 +63,6 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("OKE list command completed.")
+
 	return nil
 }

@@ -270,7 +270,7 @@ func (a *Adapter) getRouteTable(ctx context.Context, rtID string) (*core.RouteTa
 	return &resp.RouteTable, nil
 }
 
-// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 (rate limited).
+// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.
 // It applies exponential backoff between retries and preserves the original behavior and error messages.
 func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
 	backoff := initialBackoff

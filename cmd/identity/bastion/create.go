@@ -26,8 +26,7 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunCreateCommand orchestrates the full flow. It calls TUI for selections,
-// validates reachability, and spawns processes (SSH/tunnels) as needed.
+// RunCreateCommand orchestrates the full flow. It calls TUI for selections.
 func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
 

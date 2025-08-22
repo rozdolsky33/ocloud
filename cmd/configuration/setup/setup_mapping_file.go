@@ -52,6 +52,7 @@ func SetupMappingFile() *cobra.Command {
 	return cmd
 }
 
+// RunSetupFileMappingCommand handles the execution of the setup command
 func RunSetupFileMappingCommand(cmd *cobra.Command) error {
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running setup command")
 	err := setup.SetupTenancyMapping()

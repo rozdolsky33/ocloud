@@ -22,16 +22,15 @@ import (
 // ApplicationContext represents the application with all its clients, configuration, and resolved IDs.
 // It holds all the components needed for command execution.
 type ApplicationContext struct {
-	Provider          common.ConfigurationProvider
-	IdentityClient    identity.IdentityClient
-	TenancyID         string
-	TenancyName       string
-	CompartmentName   string
-	CompartmentID     string
-	Logger            logr.Logger
-	EnableConcurrency bool
-	Stdout            io.Writer
-	Stderr            io.Writer
+	Provider        common.ConfigurationProvider
+	IdentityClient  identity.IdentityClient
+	TenancyID       string
+	TenancyName     string
+	CompartmentName string
+	CompartmentID   string
+	Logger          logr.Logger
+	Stdout          io.Writer
+	Stderr          io.Writer
 }
 
 // InitApp initializes the application context, setting up configuration, clients, logging, and determineConcurrencyStatus settings.
@@ -47,14 +46,11 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, erro
 
 	configureClientRegion(identityClient)
 
-	enableConcurrency := determineConcurrencyStatus(cmd)
-
 	appCtx := &ApplicationContext{
-		Provider:          provider,
-		IdentityClient:    identityClient,
-		CompartmentName:   viper.GetString(flags.FlagNameCompartment),
-		Logger:            logger.CmdLogger,
-		EnableConcurrency: enableConcurrency,
+		Provider:        provider,
+		IdentityClient:  identityClient,
+		CompartmentName: viper.GetString(flags.FlagNameCompartment),
+		Logger:          logger.CmdLogger,
 	}
 	// Set the standard writers for the application's lifetime.
 	appCtx.Stdout = os.Stdout
@@ -74,29 +70,6 @@ func configureClientRegion(client identity.IdentityClient) {
 		client.SetRegion(region)
 		logger.LogWithLevel(logger.CmdLogger, logger.Trace, "overriding region from env", "region", region)
 	}
-}
-
-// determineConcurrencyStatus determines whether determineConcurrencyStatus is enabled based on command flags and specific CLI arguments.
-// Returns true if determineConcurrencyStatus is enabled, or false if explicitly disabled via flags or defaults to enable.
-func determineConcurrencyStatus(cmd *cobra.Command) bool {
-	disable := flags.GetBoolFlag(cmd, flags.FlagNameDisableConcurrency, false)
-	explicit := cmd.Flags().Changed(flags.FlagNameDisableConcurrency)
-
-	if explicit {
-		status := !disable // Invert the value since the flag is "disable-determineConcurrencyStatus"
-		logger.CmdLogger.V(logger.Debug).Info("Concurrency status determined by flag", "status", status)
-		return status
-	}
-
-	for _, arg := range os.Args {
-		if arg == flags.FlagPrefixShortDisableConcurrency || arg == flags.FlagPrefixDisableConcurrency {
-			logger.CmdLogger.V(logger.Debug).Info("Concurrency disabled via CLI argument")
-			return false
-		}
-	}
-
-	logger.CmdLogger.V(logger.Debug).Info("Concurrency enabled by default")
-	return true
 }
 
 // resolveTenancyAndCompartment resolves the tenancy ID, tenancy name, and compartment ID for the application context.

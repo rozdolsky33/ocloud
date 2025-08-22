@@ -113,7 +113,6 @@ Flags:
       --color                 Enable colored log messages.
   -c, --compartment string    OCI compartment name
   -d, --debug                 Enable debug logging
-  -x, --disable-concurrency   Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)
   -h, --help                  help for ocloud (shorthand: -h)
   -j, --json                  Output information in JSON format
       --log-level string      Set the log verbosity debug, (default "info")
@@ -217,7 +216,6 @@ ocloud config info map-file --realm OC1
 | `--debug` | `-d` | Enable debug logging |
 | `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
-| `--disable-concurrency` | `-x` | Disable concurrency when fetching instance details |
 | `--version` | `-v` | Print the version number |
 | `--help` | `-h` | Display help information |
 

@@ -5,7 +5,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	autonomousdboci "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/spf13/cobra"
 )
@@ -53,13 +53,15 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
+//TODO:
+
 // RunFindCommand handles the execution of the find command
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
 
-	repo, err := autonomousdboci.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	repo, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
 		return err
 	}

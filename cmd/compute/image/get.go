@@ -72,6 +72,5 @@ func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("Image get command completed.")
 	return nil
 }

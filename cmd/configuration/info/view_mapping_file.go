@@ -51,10 +51,7 @@ func ViewMappingFile() *cobra.Command {
 		},
 	}
 
-	// Add JSON flag
 	flags.JSONFlag.Add(cmd)
-
-	// Add realm filter flag
 	configurationFlags.RealmFlag.Add(cmd)
 
 	return cmd
@@ -69,6 +66,5 @@ func RunViewFileMappingCommand(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("Map-file command completed.")
 	return nil
 }

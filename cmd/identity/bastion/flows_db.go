@@ -7,8 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	ocidbadapter "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
-	autonomousdbsvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
@@ -17,11 +17,11 @@ import (
 func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType) error {
 
-	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	adapter, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
 		return fmt.Errorf("error creating database adapter: %w", err)
 	}
-	dbService := autonomousdbsvc.NewService(adapter, appCtx)
+	dbService := adbSvc.NewService(adapter, appCtx)
 
 	dbs, _, _, err := dbService.List(ctx, 1000, 0)
 	if err != nil {
@@ -45,7 +45,7 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return ErrAborted
 	}
 
-	var db autonomousdbsvc.AutonomousDatabase
+	var db adbSvc.AutonomousDatabase
 	for _, d := range dbs {
 		if d.ID == chosen.Choice() {
 			db = d

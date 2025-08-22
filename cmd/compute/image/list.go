@@ -54,6 +54,5 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	if err != nil {
 		return err
 	}
-	logger.CmdLogger.V(logger.Info).Info("Image list (TUI) command completed.")
 	return nil
 }

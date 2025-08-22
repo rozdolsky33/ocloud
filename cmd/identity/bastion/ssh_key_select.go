@@ -95,40 +95,7 @@ func validateSSHKeyPair(pubPath, privPath string) error {
 		return fmt.Errorf("parse private key: %w", err)
 	}
 
-	var allowed bool
-	var derived ssh.PublicKey
-	switch k := rawPriv.(type) {
-	case *rsa.PrivateKey:
-		allowed = true
-		derived, err = ssh.NewPublicKey(&k.PublicKey)
-	case ed25519.PrivateKey:
-		allowed = true
-		derived, err = ssh.NewPublicKey(k.Public())
-	case *xecdsa.PrivateKey:
-		allowed = true
-		derived, err = ssh.NewPublicKey(&k.PublicKey)
-	default:
-		allowed = false
-	}
-	if !allowed {
-		if s, ok := rawPriv.(crypto.Signer); ok {
-			switch pk := s.Public().(type) {
-			case ed25519.PublicKey:
-				derived, err = ssh.NewPublicKey(pk)
-				allowed = true
-			case *xecdsa.PublicKey:
-				derived, err = ssh.NewPublicKey(pk)
-				allowed = true
-			case *rsa.PublicKey:
-				derived, err = ssh.NewPublicKey(pk)
-				allowed = true
-			default:
-				return fmt.Errorf("unsupported private key type (allowed: RSA, ED25519, ECDSA)")
-			}
-		} else {
-			return fmt.Errorf("unsupported private key type (allowed: RSA, ED25519, ECDSA)")
-		}
-	}
+	derived, err := deriveSSHPublicKeyFromPrivate(rawPriv)
 	if err != nil {
 		return fmt.Errorf("derive public key from private: %w", err)
 	}
@@ -154,4 +121,31 @@ func formatComment(c string) string {
 		return ""
 	}
 	return ": " + c
+}
+
+// deriveSSHPublicKeyFromPrivate attempts to derive an ssh.PublicKey from a parsed private key.
+// It supports RSA, ED25519, and ECDSA. If the concrete type is not directly matched,
+// it falls back to using crypto.Signer to obtain the corresponding public key.
+// Returns an error if the private key type is unsupported.
+func deriveSSHPublicKeyFromPrivate(rawPriv any) (ssh.PublicKey, error) {
+	switch k := rawPriv.(type) {
+	case *rsa.PrivateKey:
+		return ssh.NewPublicKey(&k.PublicKey)
+	case ed25519.PrivateKey:
+		return ssh.NewPublicKey(k.Public())
+	case *xecdsa.PrivateKey:
+		return ssh.NewPublicKey(&k.PublicKey)
+	default:
+		if s, ok := rawPriv.(crypto.Signer); ok {
+			switch pk := s.Public().(type) {
+			case ed25519.PublicKey:
+				return ssh.NewPublicKey(pk)
+			case *xecdsa.PublicKey:
+				return ssh.NewPublicKey(pk)
+			case *rsa.PublicKey:
+				return ssh.NewPublicKey(pk)
+			}
+		}
+		return nil, fmt.Errorf("unsupported private key type (allowed: RSA, ED25519, ECDSA)")
+	}
 }

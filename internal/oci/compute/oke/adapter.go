@@ -42,6 +42,7 @@ func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]dom
 	return a.mapAndEnrichClusters(ctx, ociClusters)
 }
 
+// mapAndEnrichClusters maps OCI clusters to domain models and enriches them with node pools.
 func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []containerengine.ClusterSummary) ([]domain.Cluster, error) {
 	var domainClusters []domain.Cluster
 	for _, ociCluster := range ociClusters {
@@ -81,6 +82,7 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 	return domainClusters, nil
 }
 
+// listNodePools fetches all node pools in a cluster.
 func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID string) ([]domain.NodePool, error) {
 	var domainNodePools []domain.NodePool
 	var page *string

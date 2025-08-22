@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	instanceSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
+	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
@@ -335,7 +335,7 @@ func newResourceList(title string, items []list.Item) ResourceListModel {
 }
 
 // NewInstanceListModelFancy creates a ResourceListModel to display instances in a searchable and interactive list.
-func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListModel {
+func NewInstanceListModelFancy(instances []instSvc.Instance) ResourceListModel {
 	items := make([]list.Item, 0, len(instances))
 	for _, inst := range instances {
 		name := inst.DisplayName
