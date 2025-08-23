@@ -5,37 +5,34 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci"
+	ociinstance "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListInstances lists instances in the configured compartment using the provided application.
-// It uses the pre-initialized compute client from the ApplicationContext struct and supports pagination.
-func ListInstances(appCtx *app.ApplicationContext, limit int, page int, useJSON bool, showImageDetails bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "ListInstances", "limit", limit, "page", page, "json", useJSON, "showImageDetails", showImageDetails)
-
-	service, err := NewService(appCtx)
+// ListInstances retrieves and displays a paginated list of instances.
+func ListInstances(appCtx *app.ApplicationContext, useJSON bool, limit, page int, showDetails bool) error {
+	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("creating compute service: %w", err)
+		return fmt.Errorf("creating compute client: %w", err)
+	}
+	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
+	if err != nil {
+		return fmt.Errorf("creating network client: %w", err)
 	}
 
-	ctx := context.Background()
-	instances, totalCount, nextPageToken, err := service.List(ctx, limit, page, showImageDetails)
+	instanceAdapter := ociinstance.NewAdapter(computeClient, networkClient)
+	service := NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
+
+	instances, totalCount, nextPageToken, err := service.List(context.Background(), limit, page)
 	if err != nil {
 		return fmt.Errorf("listing instances: %w", err)
 	}
 
-	// Display instance information with pagination details
-	err = PrintInstancesInfo(instances, appCtx, &util.PaginationInfo{
+	return PrintInstancesInfo(instances, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
-	}, useJSON, showImageDetails)
-
-	if err != nil {
-		return fmt.Errorf("printing instances table: %w", err)
-	}
-
-	return nil
+	}, useJSON, showDetails)
 }

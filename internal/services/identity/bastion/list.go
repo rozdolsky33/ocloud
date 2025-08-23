@@ -11,7 +11,7 @@ import (
 // ListBastions retrieves a list of bastion hosts and displays their information, optionally in JSON format.
 func ListBastions(ctx context.Context, appCtx *app.ApplicationContext, useJSON bool) error {
 
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing bastions")
+	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing bastions")
 
 	service, err := NewService(appCtx)
 	if err != nil {
@@ -27,6 +27,6 @@ func ListBastions(ctx context.Context, appCtx *app.ApplicationContext, useJSON b
 	if err != nil {
 		return fmt.Errorf("printing bastions: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Bastion list operation completed successfully.")
 	return nil
 }

@@ -7,7 +7,6 @@ import (
 // IsNoContextCommand checks if a command doesn't need a full application context
 func IsNoContextCommand() bool {
 	args := os.Args
-	// If no arguments are provided (just the program name), we don't need context
 	if len(args) < 2 {
 		return true
 	}

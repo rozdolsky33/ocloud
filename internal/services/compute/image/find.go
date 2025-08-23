@@ -5,33 +5,24 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci"
+	ociimage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
 )
 
-// FindImages retrieves image matching the provided search pattern and outputs them in either table or JSON format.
-// Parameters:
-// - appCtx: The application context containing configuration, clients, and logging.
-// - searchPattern: The string used to search for matching image.
-// - useJSON: A boolean indicating whether to output the result in JSON format.
-// Returns an error if the operation fails at any stage (service creation, image retrieval, or output).
-func FindImages(appCtx *app.ApplicationContext, searchPattern string, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "FindImage", "json", useJSON)
-
-	service, err := NewService(appCtx)
+// FindImages finds and displays images matching a name pattern.
+func FindImages(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
+	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("creating compute service: %w", err)
+		return fmt.Errorf("creating compute client: %w", err)
 	}
 
-	ctx := context.Background()
-	matchedImages, err := service.Find(ctx, searchPattern)
+	imageAdapter := ociimage.NewAdapter(computeClient)
+	service := NewService(imageAdapter, appCtx.Logger, appCtx.CompartmentID)
+
+	matchedImages, err := service.Find(context.Background(), namePattern)
 	if err != nil {
-		return fmt.Errorf("finding image: %w", err)
+		return fmt.Errorf("finding images: %w", err)
 	}
 
-	err = PrintImagesInfo(matchedImages, appCtx, nil, useJSON)
-	if err != nil {
-		return fmt.Errorf("printing image table: %w", err)
-	}
-
-	return nil
+	return PrintImagesInfo(matchedImages, appCtx, nil, useJSON)
 }

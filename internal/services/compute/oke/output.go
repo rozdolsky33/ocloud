@@ -10,9 +10,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// PrintOKETable groups cluster metadata and node‑pool details into **one**
-// responsive table per cluster. The first row summarizes the cluster; the
-// following rows list each node pool.
+// PrintOKETable groups cluster metadata and node-pool details into one table per cluster.
 func PrintOKETable(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -29,51 +27,40 @@ func PrintOKETable(clusters []Cluster, appCtx *app.ApplicationContext, paginatio
 	}
 
 	for _, c := range clusters {
-		// Header defines unified columns for both cluster + node‑pool rows.
-		headers := []string{
-			"Name",           // cluster or node‑pool name
-			"Type",           // "Cluster" or "NodePool"
-			"Version",        // k8s version
-			"Shape/Endpoint", // node shape or cluster endpoint
-			"Count/Created",  // node count or created timestamp
-			"State",          // lifecycle state
-		}
+		headers := []string{"Name", "Type", "Version", "Shape/Endpoint", "Count/Created", "State"}
 
-		// Build rows — first row is the cluster summary.
 		rows := [][]string{
 			{
-				c.Name,
+				c.DisplayName,
 				"Cluster",
-				c.Version,
+				c.KubernetesVersion,
 				c.PrivateEndpoint,
-				c.CreatedAt,
-				string(c.State),
+				c.TimeCreated.Format("2006-01-02"),
+				c.State,
 			},
 		}
 
-		// Append node‑pool rows.
 		for _, np := range c.NodePools {
 			rows = append(rows, []string{
-				np.Name,
+				np.DisplayName,
 				"NodePool",
-				np.Version,
+				np.KubernetesVersion,
 				np.NodeShape,
 				fmt.Sprintf("%d", np.NodeCount),
-				string(np.State),
+				"", // State for node pools is not in the domain model yet
 			})
 		}
 
-		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s (%d node pools)", c.Name, len(c.NodePools)))
+		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s (%d node pools)", c.DisplayName, len(c.NodePools)))
 		p.PrintTable(title, headers, rows)
-		fmt.Fprintln(appCtx.Stdout) // spacer between clusters
+		fmt.Fprintln(appCtx.Stdout)
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }
 
-// PrintOKEInfo prints a detailed, troubleshooting‑oriented view of OKE clusters
-// and their node pools.
+// PrintOKEInfo prints a detailed view of OKE clusters.
 func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -89,50 +76,43 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination
 		return nil
 	}
 
-	// Sort clusters by name for deterministic output.
 	sort.Slice(clusters, func(i, j int) bool {
-		return strings.ToLower(clusters[i].Name) < strings.ToLower(clusters[j].Name)
+		return strings.ToLower(clusters[i].DisplayName) < strings.ToLower(clusters[j].DisplayName)
 	})
 
 	for _, c := range clusters {
 		summary := map[string]string{
-			"ID":               c.ID,
-			"Name":             c.Name,
-			"K8s Version":      c.Version,
-			"Created":          c.CreatedAt,
-			"State":            string(c.State),
+			"ID":               c.OCID,
+			"Name":             c.DisplayName,
+			"K8s Version":      c.KubernetesVersion,
+			"Created":          c.TimeCreated.Format("2006-01-02 15:04:05"),
+			"State":            c.State,
 			"Private Endpoint": c.PrivateEndpoint,
 			"Node Pools":       fmt.Sprintf("%d", len(c.NodePools)),
 		}
 
 		order := []string{"ID", "Name", "K8s Version", "Created", "State", "Private Endpoint", "Node Pools"}
 
-		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s", c.Name))
+		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s", c.DisplayName))
 		p.PrintKeyValues(title, summary, order)
-		fmt.Fprintln(appCtx.Stdout) // spacer
+		fmt.Fprintln(appCtx.Stdout)
 
-		//-----------------------------------------------------------------
-		// Node pool details (table)
-		//-----------------------------------------------------------------
 		if len(c.NodePools) > 0 {
-			headers := []string{"Node Pool", "Version", "Shape", "OCPUs", "Mem(GB)", "Node Cnt", "State"}
+			headers := []string{"Node Pool", "Version", "Shape", "Node Count"}
 			rows := make([][]string, len(c.NodePools))
 
 			for i, np := range c.NodePools {
 				rows[i] = []string{
-					np.Name,
-					np.Version,
+					np.DisplayName,
+					np.KubernetesVersion,
 					np.NodeShape,
-					np.Ocpus,
-					np.MemoryGB,
 					fmt.Sprintf("%d", np.NodeCount),
-					string(np.State),
 				}
 			}
 
 			tableTitle := util.FormatColoredTitle(appCtx, "Node Pools")
 			p.PrintTable(tableTitle, headers, rows)
-			fmt.Fprintln(appCtx.Stdout) // spacer between clusters
+			fmt.Fprintln(appCtx.Stdout)
 		}
 	}
 

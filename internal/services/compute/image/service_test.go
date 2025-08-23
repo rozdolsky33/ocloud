@@ -1,57 +1,80 @@
 package image
 
 import (
+	"context"
+	"errors"
 	"testing"
 
-	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/go-logr/logr"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestServiceStruct tests the basic structure of the Service struct
-func TestServiceStruct(t *testing.T) {
-	// Create a simple service with nil clients
-	service := &Service{
-		logger:        logger.NewTestLogger(),
-		compartmentID: "test-compartment-id",
+// mockImageRepository is a mock implementation of the ImageRepository for testing.
+type mockImageRepository struct {
+	images []domain.Image
+	err    error
+}
+
+func (m *mockImageRepository) GetImage(ctx context.Context, ocid string) (*domain.Image, error) {
+	if m.err != nil {
+		return nil, m.err
 	}
-
-	// Test that the service was created correctly
-	assert.NotNil(t, service)
-	assert.Equal(t, "test-compartment-id", service.compartmentID)
+	for _, i := range m.images {
+		if i.OCID == ocid {
+			return &i, nil
+		}
+	}
+	return nil, domain.ErrNotFound
 }
 
-// TestMapToImage tests the mapToImage function
-func TestMapToImage(t *testing.T) {
-	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for mapToImage since it requires the OCI SDK")
-
-	// This is a placeholder test that would normally test the mapToImage function
-	// In a real test, we would:
-	// 1. Create a mock OCI image
-	// 2. Call mapToImage with the mock image
-	// 3. Verify that the returned Image has the expected values
+func (m *mockImageRepository) ListImages(ctx context.Context, compartmentID string) ([]domain.Image, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.images, nil
 }
 
-// TestList tests the List function
-func TestList(t *testing.T) {
-	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for List since it requires the OCI SDK")
+func TestService_Find(t *testing.T) {
+	mockRepo := &mockImageRepository{
+		images: []domain.Image{
+			{DisplayName: "Test Image", OperatingSystem: "Linux"},
+			{DisplayName: "Another Image", OperatingSystem: "Windows"},
+		},
+	}
+	service := NewService(mockRepo, logr.Discard(), "test-compartment")
 
-	// This is a placeholder test that would normally test the List function
-	// In a real test, we would:
-	// 1. Create a mock service with mock clients
-	// 2. Call List with different parameters
-	// 3. Verify that the returned images, total count, and next page token are correct
+	results, err := service.Find(context.Background(), "test")
+
+	assert.NoError(t, err)
+	assert.Len(t, results, 1)
+	assert.Equal(t, "Test Image", results[0].DisplayName)
 }
 
-// TestFind tests the Find function
-func TestFind(t *testing.T) {
-	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for Find since it requires the OCI SDK")
+func TestService_Get(t *testing.T) {
+	mockRepo := &mockImageRepository{
+		images: []domain.Image{
+			{DisplayName: "Test Image"},
+			{DisplayName: "Another Image"},
+		},
+	}
+	service := NewService(mockRepo, logr.Discard(), "test-compartment")
 
-	// This is a placeholder test that would normally test the Find function
-	// In a real test, we would:
-	// 1. Create a mock service with mock clients
-	// 2. Call Find with different search patterns
-	// 3. Verify that the returned images match the search pattern
+	results, _, _, err := service.Get(context.Background(), 10, 1)
+
+	assert.NoError(t, err)
+	assert.Len(t, results, 2)
+}
+
+func TestService_Get_Error(t *testing.T) {
+	expectedErr := errors.New("some error")
+	mockRepo := &mockImageRepository{
+		err: expectedErr,
+	}
+	service := NewService(mockRepo, logr.Discard(), "test-compartment")
+
+	_, _, _, err := service.Get(context.Background(), 10, 1)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), expectedErr.Error())
 }

@@ -8,3 +8,7 @@ REPORT.md
 test_ocloud_README.md
 docs/TECHNICAL_OVERVIEW_v2.md
 replace_repo_path.sh
+docs/logging.md
+docs/pagination-fix.md
+docs/TECHNICAL_OVERVIEW_V3.md
+docs/rate-limiting-changes.md

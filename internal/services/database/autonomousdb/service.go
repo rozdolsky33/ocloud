@@ -5,25 +5,27 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/oracle/oci-go-sdk/v65/database"
+	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/oci"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
+// Service provides operations and functionalities related to database management, logging, and compartment handling.
+type Service struct {
+	repo          domain.AutonomousDatabaseRepository
+	logger        logr.Logger
+	compartmentID string
+}
+
 // NewService initializes a new Service instance with the provided application context.
-func NewService(appCtx *app.ApplicationContext) (*Service, error) {
-	cfg := appCtx.Provider
-	dbClient, err := oci.NewDatabaseClient(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database client: %w", err)
-	}
+func NewService(repo domain.AutonomousDatabaseRepository, appCtx *app.ApplicationContext) *Service {
 	return &Service{
-		dbClient:      dbClient,
+		repo:          repo,
 		logger:        appCtx.Logger,
 		compartmentID: appCtx.CompartmentID,
-	}, nil
+	}
 }
 
 // List retrieves a paginated list of databases with given limit and page number parameters.
@@ -38,106 +40,60 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDat
 	var nextPageToken string
 	var totalCount int
 
-	// Create a request with a limit parameter to fetch only the required page
-	request := database.ListAutonomousDatabasesRequest{
-		CompartmentId: &s.compartmentID,
-	}
-
-	// Add limit parameters if specified
-	if limit > 0 {
-		request.Limit = &limit
-		logger.LogWithLevel(s.logger, 3, "Setting limit parameter", "limit", limit)
-	}
-
-	// If pageNum > 1, we need to fetch the appropriate page token
-	if pageNum > 1 && limit > 0 {
-		logger.LogWithLevel(s.logger, 3, "Calculating page token for page", "pageNum", pageNum)
-
-		// We need to fetch page tokens until we reach the desired page
-		page := ""
-		currentPage := 1
-
-		for currentPage < pageNum {
-			// Fetch just the page token, not actual data
-			// Use the same limit to ensure consistent pagination
-			tokenRequest := database.ListAutonomousDatabasesRequest{
-				CompartmentId: &s.compartmentID,
-				Page:          &page,
-			}
-			if limit > 0 {
-				tokenRequest.Limit = &limit
-			}
-
-			resp, err := s.dbClient.ListAutonomousDatabases(ctx, tokenRequest)
-			if err != nil {
-				return nil, 0, "", fmt.Errorf("fetching page token: %w", err)
-			}
-
-			// If there's no next page, we've reached the end
-			if resp.OpcNextPage == nil {
-				logger.LogWithLevel(s.logger, 3, "Reached end of data while calculating page token",
-					"currentPage", currentPage, "targetPage", pageNum)
-				// Return an empty result since the requested page is beyond available data
-				return []AutonomousDatabase{}, 0, "", nil
-			}
-			// Move to the next page
-			page = *resp.OpcNextPage
-			currentPage++
-		}
-		// Set the page token for the actual request
-		request.Page = &page
-		logger.LogWithLevel(s.logger, 3, "Using page token for page", "pageNum", pageNum, "token", page)
-	}
-
-	// Fetch database for the request
-	resp, err := s.dbClient.ListAutonomousDatabases(ctx, request)
+	allDatabases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
 	if err != nil {
-		return nil, 0, "", fmt.Errorf("listing database: %w", err)
-	}
-	// Set the total count to the number of instances returned
-	// If we have a next page, this is an estimate
-	totalCount = len(resp.Items)
-	//If we have a next page, we know there are more instances
-	if resp.OpcNextPage != nil {
-		// Estimate total count based on current page and items per rage
-		totalCount = pageNum*limit + limit
+		return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
 	}
 
-	// Save the next page token if available
-	if resp.OpcNextPage != nil {
-		nextPageToken = *resp.OpcNextPage
-		logger.LogWithLevel(s.logger, 3, "Next page token", "token", nextPageToken)
+	// Apply pagination logic
+	start := (pageNum - 1) * limit
+	end := start + limit
+
+	if start >= len(allDatabases) {
+		logger.LogWithLevel(s.logger, logger.Trace, "Pagination: start index out of bounds", "start", start, "totalDatabases", len(allDatabases))
+		return []AutonomousDatabase{}, 0, "", nil // No results for this page
 	}
 
-	// Process the databases
-	for _, item := range resp.Items {
-		databases = append(databases, mapToDatabase(item))
+	if end > len(allDatabases) {
+		end = len(allDatabases)
+		logger.LogWithLevel(s.logger, logger.Trace, "Pagination: adjusted end index", "end", end, "totalDatabases", len(allDatabases))
+	}
+
+	databases = make([]AutonomousDatabase, 0, limit)
+	for _, db := range allDatabases[start:end] {
+		databases = append(databases, AutonomousDatabase(db)) // Convert domain.AutonomousDatabase to local AutonomousDatabase
+	}
+
+	totalCount = len(allDatabases)
+	if end < len(allDatabases) {
+		nextPageToken = "true" // Indicate there's a next page
 	}
 
 	// Calculate if there are more pages after the current page
 	hasNextPage := pageNum*limit < totalCount
 
-	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
+	logger.LogWithLevel(s.logger, logger.Trace, "Completed instance listing with pagination",
 		"returnedCount", len(databases),
 		"totalCount", totalCount,
 		"page", pageNum,
 		"limit", limit,
 		"hasNextPage", hasNextPage)
 
+	logger.Logger.V(logger.Info).Info("Autonomous Database list completed.", "returnedCount", len(databases), "totalCount", totalCount)
 	return databases, totalCount, nextPageToken, nil
 }
 
 // Find performs a fuzzy search to find autonomous databases matching the given search pattern in their Name field.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousDatabase, error) {
-	logger.LogWithLevel(s.logger, 3, "finding database with bleve fuzzy search", "pattern", searchPattern)
+	logger.LogWithLevel(s.logger, logger.Trace, "finding database with bleve fuzzy search", "pattern", searchPattern)
 
 	// 1: Fetch all databases
-	allDatabases, err := s.fetchAllAutonomousDatabases(ctx)
+	allDatabases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch all databases: %w", err)
 	}
 	// 2: Build index
-	index, err := util.BuildIndex(allDatabases, func(db AutonomousDatabase) any {
+	index, err := util.BuildIndex(allDatabases, func(db domain.AutonomousDatabase) any {
 		return mapToIndexableDatabase(db)
 	})
 
@@ -155,58 +111,18 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousD
 	var results []AutonomousDatabase
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allDatabases) {
-			results = append(results, allDatabases[idx])
+			results = append(results, AutonomousDatabase(allDatabases[idx]))
 		}
 	}
-	logger.LogWithLevel(s.logger, 2, "Compartment search complete", "matches", len(results))
+	logger.LogWithLevel(s.logger, logger.Trace, "Compartment search complete", "matches", len(results))
 
 	return results, nil
 }
 
-// fetchAllAutonomousDatabases retrieves all autonomous databases in the specified compartment by paginating through results.
-// It returns a slice of AutonomousDatabase and an error if the retrieval fails.
-func (s *Service) fetchAllAutonomousDatabases(ctx context.Context) ([]AutonomousDatabase, error) {
-	var allDatabases []AutonomousDatabase
-	page := ""
-	for {
-		resp, err := s.dbClient.ListAutonomousDatabases(ctx, database.ListAutonomousDatabasesRequest{
-			CompartmentId: &s.compartmentID,
-			Page:          &page,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list database: %w", err)
-		}
-		for _, item := range resp.Items {
-			allDatabases = append(allDatabases, mapToDatabase(item))
-		}
-		if resp.OpcNextPage == nil {
-			break
-		}
-		page = *resp.OpcNextPage
-	}
-	return allDatabases, nil
-}
-
 // mapToIndexableDatabase converts an AutonomousDatabase object into an IndexableAutonomousDatabase object.
-// It maps only relevant fields required for indexing, such as the database's name.
-func mapToIndexableDatabase(db AutonomousDatabase) IndexableAutonomousDatabase {
+// It maps only relevant fields required for indexing, such as the database\'s name.
+func mapToIndexableDatabase(db domain.AutonomousDatabase) IndexableAutonomousDatabase {
 	return IndexableAutonomousDatabase{
 		Name: db.Name,
-	}
-}
-
-// mapToDatabase transforms a database.AutonomousDatabaseSummary instance into an AutonomousDatabase struct.
-func mapToDatabase(db database.AutonomousDatabaseSummary) AutonomousDatabase {
-	return AutonomousDatabase{
-		Name:              *db.DbName,
-		ID:                *db.Id,
-		PrivateEndpoint:   *db.PrivateEndpoint,
-		PrivateEndpointIp: *db.PrivateEndpointIp,
-		ConnectionStrings: db.ConnectionStrings.AllConnectionStrings,
-		Profiles:          db.ConnectionStrings.Profiles,
-		DatabaseTags: util.ResourceTags{
-			FreeformTags: db.FreeformTags,
-			DefinedTags:  db.DefinedTags,
-		},
 	}
 }

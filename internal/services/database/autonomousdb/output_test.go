@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/stretchr/testify/assert"
@@ -13,7 +14,7 @@ import (
 // TestPrintAutonomousDbInfo tests the PrintAutonomousDbInfo function
 func TestPrintAutonomousDbInfo(t *testing.T) {
 	// Create test databases
-	databases := []AutonomousDatabase{
+	databases := []domain.AutonomousDatabase{
 		{
 			Name:              "TestDatabase1",
 			ID:                "ocid1.autonomousdatabase.oc1.phx.test1",
@@ -96,7 +97,7 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 // TestPrintAutonomousDbInfoEmpty tests the PrintAutonomousDbInfo function with empty databases
 func TestPrintAutonomousDbInfoEmpty(t *testing.T) {
 	// Create an empty databases slice
-	databases := []AutonomousDatabase{}
+	databases := []domain.AutonomousDatabase{}
 
 	// Create a buffer to capture the output
 	var buf bytes.Buffer
@@ -132,7 +133,7 @@ func TestPrintAutonomousDbInfoEmpty(t *testing.T) {
 // TestPrintAutonomousDbInfoWithPagination tests the PrintAutonomousDbInfo function with pagination
 func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	// Create test databases
-	databases := []AutonomousDatabase{
+	databases := []domain.AutonomousDatabase{
 		{
 			Name:              "TestDatabase1",
 			ID:                "ocid1.autonomousdatabase.oc1.phx.test1",

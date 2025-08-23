@@ -11,15 +11,14 @@ import (
 func TestServiceStruct(t *testing.T) {
 	// Create a simple service with nil clients
 	service := &Service{
-		logger:            logger.NewTestLogger(),
-		compartmentID:     "test-compartment-id",
-		enableConcurrency: false,
+		logger:        logger.NewTestLogger(),
+		compartmentID: "test-compartment-id",
 	}
 
 	// Test that the service was created correctly
 	assert.NotNil(t, service)
 	assert.Equal(t, "test-compartment-id", service.compartmentID)
-	assert.False(t, service.enableConcurrency)
+
 }
 
 // TestMapToInstance tests the mapToInstance function

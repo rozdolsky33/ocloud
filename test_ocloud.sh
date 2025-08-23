@@ -140,11 +140,6 @@ run_command ./bin/ocloud --debug compute instance list
 print_header "Testing with color flag"
 run_command ./bin/ocloud --color compute instance list
 
-# Test with disable concurrency flag
-print_header "Testing with disable concurrency flag"
-run_command ./bin/ocloud -x compute instance list
-run_command ./bin/ocloud --disable-concurrency compute instance list
-
 # Test identity command
 print_header "Testing identity command"
 run_command ./bin/ocloud identity --help

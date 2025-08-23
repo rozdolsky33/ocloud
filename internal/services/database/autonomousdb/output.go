@@ -2,13 +2,14 @@ package autonomousdb
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // PrintAutonomousDbInfo displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
-func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	// Adjust the pagination information if available
@@ -18,11 +19,10 @@ func PrintAutonomousDbInfo(databases []AutonomousDatabase, appCtx *app.Applicati
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		// Special case for empty databases list - return an empty object
 		if len(databases) == 0 && pagination == nil {
 			return p.MarshalToJSON(struct{}{})
 		}
-		return util.MarshalDataToJSONResponse[AutonomousDatabase](p, databases, pagination)
+		return util.MarshalDataToJSONResponse[domain.AutonomousDatabase](p, databases, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(databases, pagination, appCtx.Stdout) {

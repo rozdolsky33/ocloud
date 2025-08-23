@@ -3,13 +3,13 @@
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
 [![Downloads](https://img.shields.io/github/downloads/rozdolsky33/ocloud/total?style=flat&logo=cloudsmith&logoColor=white&label=downloads&labelColor=2f363d&color=brightgreen)](https://github.com/rozdolsky33/ocloud/releases)
 [![Version](https://img.shields.io/badge/goversion-1.24.x-blue.svg)](https://golang.org)
-[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE.md)
+[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
 [![Go Coverage](https://github.com/rozdolsky33/ocloud/wiki/coverage.svg)](https://raw.githack.com/wiki/rozdolsky33/ocloud/coverage.html)
 
 ## Overview
 
-OCloud is a powerful command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for managing compute resources with a focus on usability, performance, and automation capabilities.
+OCloud is a powerful command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for managing common OCI services—including compute, identity, networking, and database—with a focus on usability, performance, and automation.
 
 Whether you're managing instances, working with images, or need to quickly find resources across your OCI environment, OCloud offers an intuitive and efficient interface that works seamlessly with your existing OCI configuration.
 
@@ -100,7 +100,6 @@ Usage:
   ocloud [command]
 
 Available Commands:
-  completion  Generate the autocompletion script for the specified shell
   compute     Manage OCI compute services
   config      Manage ocloud CLI configurations file and authentication
   database    Manage OCI Database services
@@ -113,7 +112,6 @@ Flags:
       --color                 Enable colored log messages.
   -c, --compartment string    OCI compartment name
   -d, --debug                 Enable debug logging
-  -x, --disable-concurrency   Disable concurrency when fetching instance details (use -x to disable concurrency if rate limit is reached for large result sets)
   -h, --help                  help for ocloud (shorthand: -h)
   -j, --json                  Output information in JSON format
       --log-level string      Set the log verbosity debug, (default "info")
@@ -217,7 +215,6 @@ ocloud config info map-file --realm OC1
 | `--debug` | `-d` | Enable debug logging |
 | `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
-| `--disable-concurrency` | `-x` | Disable concurrency when fetching instance details |
 | `--version` | `-v` | Print the version number |
 | `--help` | `-h` | Display help information |
 

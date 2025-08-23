@@ -73,13 +73,10 @@ func InitLogger(logger logr.Logger) {
 }
 
 // LogWithLevel logs a message at the specified verbosity level.
-// If the verbosity level is less than or equal to GLOBAL_VERBOSITY,
-// it logs the message using the logger's V(level).Info() method.
-// Otherwise, it does nothing.
+// It logs the message using the logger's V(level).Info() method.
+// The logr library handles verbosity filtering based on the logger's configured level.
 func LogWithLevel(logger logr.Logger, level int, msg string, keysAndValues ...interface{}) {
-	if level <= GLOBAL_VERBOSITY {
-		logger.V(level).Info(msg, keysAndValues...)
-	}
+	logger.V(level).Info(msg, keysAndValues...)
 }
 
 // getSlogLevel converts a string log level to a slog.Level

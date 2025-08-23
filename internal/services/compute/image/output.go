@@ -7,7 +7,6 @@ import (
 )
 
 // PrintImagesInfo displays instances in a formatted table or JSON format.
-// It now returns an error to allow for proper error handling by the caller.
 func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -26,18 +25,18 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 	// Print each image as a separate key-value.
 	for _, image := range images {
 		imageData := map[string]string{
-			"Name":            image.Name,
-			"Created":         image.CreatedAt.String(),
-			"ImageOSVersion":  image.ImageOSVersion,
+			"Name":            image.DisplayName,
+			"Created":         image.TimeCreated.String(),
+			"OS Version":      image.OperatingSystemVersion,
 			"OperatingSystem": image.OperatingSystem,
-			"LunchMode":       image.LunchMode,
+			"LaunchMode":      image.LaunchMode,
 		}
 
 		orderedKeys := []string{
-			"Name", "Created", "ImageName", "ImageOSVersion", "OperatingSystem", "LunchMode",
+			"Name", "Created", "OperatingSystem", "OS Version", "LaunchMode",
 		}
 
-		title := util.FormatColoredTitle(appCtx, image.Name)
+		title := util.FormatColoredTitle(appCtx, image.DisplayName)
 
 		p.PrintKeyValues(title, imageData, orderedKeys)
 	}
@@ -50,19 +49,19 @@ func PrintImageInfo(image Image, appCtx *app.ApplicationContext) error {
 	p := printer.New(appCtx.Stdout)
 
 	imageData := map[string]string{
-		"ID":              image.ID,
-		"Name":            image.Name,
-		"Created":         image.CreatedAt.String(),
-		"ImageOSVersion":  image.ImageOSVersion,
+		"ID":              image.OCID,
+		"Name":            image.DisplayName,
+		"Created":         image.TimeCreated.String(),
+		"OS Version":      image.OperatingSystemVersion,
 		"OperatingSystem": image.OperatingSystem,
-		"LunchMode":       image.LunchMode,
+		"LaunchMode":      image.LaunchMode,
 	}
 
 	orderedKeys := []string{
-		"ID", "Name", "Created", "ImageName", "ImageOSVersion", "OperatingSystem", "LunchMode",
+		"ID", "Name", "Created", "OperatingSystem", "OS Version", "LaunchMode",
 	}
 
-	title := util.FormatColoredTitle(appCtx, image.Name)
+	title := util.FormatColoredTitle(appCtx, image.DisplayName)
 
 	p.PrintKeyValues(title, imageData, orderedKeys)
 

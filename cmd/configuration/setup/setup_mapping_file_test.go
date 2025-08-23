@@ -23,17 +23,4 @@ func TestSetupMappingFile(t *testing.T) {
 func TestRunSetupFileMappingCommand(t *testing.T) {
 	// Skip this test in normal test runs since it's interactive
 	t.Skip("Skipping interactive test")
-
-	// In a real test environment, we would mock the setup.SetupTenancyMapping function
-	// For example:
-	// originalSetupTenancyMapping := setup.SetupTenancyMapping
-	// defer func() { setup.SetupTenancyMapping = originalSetupTenancyMapping }()
-	//
-	// setup.SetupTenancyMapping = func() error {
-	//     return nil
-	// }
-	//
-	// cmd := &cobra.Command{}
-	// err := RunSetupFileMappingCommand(cmd)
-	// assert.NoError(t, err, "RunSetupFileMappingCommand should not return an error")
 }

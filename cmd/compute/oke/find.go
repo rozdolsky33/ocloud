@@ -57,6 +57,10 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running oke find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.FindClusters(appCtx, namePattern, useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running oke find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
+	err := oke.FindClusters(appCtx, namePattern, useJSON)
+	if err != nil {
+		return err
+	}
+	return nil
 }

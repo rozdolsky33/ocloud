@@ -22,7 +22,7 @@ type kubeConfig struct {
 	CurrentContext string         `yaml:"current-context"`
 }
 
-// namedCluster represents a named Kubernetes cluster configuration consisting of a name and its corresponding details.
+// a namedCluster represents a named Kubernetes cluster configuration consisting of a name and its corresponding details.
 type namedCluster struct {
 	Name    string    `yaml:"name"`
 	Cluster kcCluster `yaml:"cluster"`
@@ -69,9 +69,9 @@ type kcContext struct {
 	User      string `yaml:"user"`
 }
 
-// EnsureKubeconfigForOKE ensures kubeconfig entries for the given cluster/region/profile and local port.
+// EnsureKubeconfigForOKE ensures kubeconfig entries for the given cluster/region and local port.
 // If entries already exist, it is a no-op.
-func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort int) error {
+func EnsureKubeconfigForOKE(cluster Cluster, region string, localPort int) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("get home dir: %w", err)
@@ -98,13 +98,12 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		if u.User.Exec == nil {
 			continue
 		}
-		if matchOKEExec(u.User.Exec, cluster.ID, region, profile) {
-			// Found an existing matching entry, skip creation entirely.
+		if matchOKEExec(u.User.Exec, cluster.OCID, region) {
 			return nil
 		}
 	}
 
-	suffix := shortID(cluster.ID)
+	suffix := shortID(cluster.OCID)
 	cName := "cluster-" + suffix
 	uName := "user-" + suffix
 	ctxName := "context-" + suffix
@@ -140,7 +139,7 @@ func EnsureKubeconfigForOKE(cluster Cluster, region, profile string, localPort i
 		User: kcUser{Exec: &kcExec{
 			APIVersion:         "client.authentication.k8s.io/v1beta1",
 			Command:            "oci",
-			Args:               []string{"ce", "cluster", "generate-token", "--cluster-id", cluster.ID, "--region", region, "--profile", profile, "--auth", "security_token"},
+			Args:               []string{"ce", "cluster", "generate-token", "--cluster-id", cluster.OCID, "--region", region, "--auth", "security_token"},
 			Env:                []any{},
 			InteractiveMode:    "",
 			ProvideClusterInfo: false,
@@ -247,8 +246,8 @@ func upsertContext(arr []namedContext, item namedContext) []namedContext {
 }
 
 // matchOKEExec returns true if the kcExec represents an OCI command generating a token for the given
-// cluster id, region, and profile.
-func matchOKEExec(exec *kcExec, clusterID, region, profile string) bool {
+// cluster id, region.
+func matchOKEExec(exec *kcExec, clusterID, region string) bool {
 	if exec == nil {
 		return false
 	}
@@ -263,9 +262,6 @@ func matchOKEExec(exec *kcExec, clusterID, region, profile string) bool {
 		return false
 	}
 	if flags["--region"] != region {
-		return false
-	}
-	if flags["--profile"] != profile {
 		return false
 	}
 	return true
@@ -306,9 +302,9 @@ func containsStr(arr []string, needle string) bool {
 }
 
 // KubeconfigExistsForOKE checks whether ~/.kube/config already contains an entry
-// for the given OKE cluster identified by cluster ID, region and profile.
+// for the given OKE cluster identified by cluster ID, region.
 // It returns true if a matching user exec section is found, false if not.
-func KubeconfigExistsForOKE(cluster Cluster, region, profile string) (bool, error) {
+func KubeconfigExistsForOKE(cluster Cluster, region string) (bool, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return false, fmt.Errorf("get home dir: %w", err)
@@ -319,7 +315,6 @@ func KubeconfigExistsForOKE(cluster Cluster, region, profile string) (bool, erro
 	if b, err := os.ReadFile(cfgPath); err == nil {
 		_ = yaml.Unmarshal(b, &kc)
 	} else if errors.Is(err, os.ErrNotExist) {
-		// kubeconfig file is not present at all -> no match
 		return false, nil
 	} else {
 		return false, fmt.Errorf("read kubeconfig: %w", err)
@@ -329,7 +324,7 @@ func KubeconfigExistsForOKE(cluster Cluster, region, profile string) (bool, erro
 		if u.User.Exec == nil {
 			continue
 		}
-		if matchOKEExec(u.User.Exec, cluster.ID, region, profile) {
+		if matchOKEExec(u.User.Exec, cluster.OCID, region) {
 			return true, nil
 		}
 	}

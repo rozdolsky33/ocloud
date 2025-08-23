@@ -71,6 +71,11 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
 	// Use LogWithLevel to ensure debug logs work with shorthand flags
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running compartment list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return compartment.ListCompartments(appCtx, useJSON, limit, page)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running compartment list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
+	err := compartment.ListCompartments(appCtx, useJSON, limit, page)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("Compartment list command completed.")
+	return nil
 }
