@@ -4,9 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -40,13 +43,106 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 
 	// Authenticate via OCI CLI
 	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
-	ociCmd.Stdout = os.Stdout
-	ociCmd.Stderr = os.Stderr
+	// Build a child process environment and apply explicit browser selection if requested
+	env := os.Environ()
+	// Helper to get/set/remove BROWSER in the env slice
+	findIdx := -1
+	for i, kv := range env {
+		if strings.HasPrefix(kv, "BROWSER=") {
+			findIdx = i
+			break
+		}
+	}
+
+	manualOpen := runtime.GOOS == "darwin" && s.browserOverride != ""
+	if s.browserUnset {
+		// Remove BROWSER entirely
+		if findIdx >= 0 {
+			env = append(env[:findIdx], env[findIdx+1:]...)
+		}
+		logger.LogWithLevel(s.logger, logger.Debug, "Passing to OCI CLI without BROWSER (system default)")
+	} else if s.browserOverride != "" {
+		// If we plan to open the URL ourselves on macOS, suppress OCI browser by setting BROWSER=true
+		if manualOpen {
+			if findIdx >= 0 {
+				env = append(env[:findIdx], env[findIdx+1:]...)
+			}
+			env = append(env, "BROWSER=true")
+			logger.LogWithLevel(s.logger, logger.Debug, "macOS manual open enabled: suppressing OCI auto-open with BROWSER=true")
+		} else {
+			// Remove any existing BROWSER and then append the override so only one entry remains
+			if findIdx >= 0 {
+				env = append(env[:findIdx], env[findIdx+1:]...)
+			}
+			env = append(env, "BROWSER="+s.browserOverride)
+			logger.LogWithLevel(s.logger, logger.Debug, "Passing BROWSER override to OCI CLI (appended, deduped)", "BROWSER", s.browserOverride)
+		}
+	} else {
+		// Keep whatever current env has
+		if findIdx >= 0 {
+			logger.LogWithLevel(s.logger, logger.Trace, "Using existing BROWSER from environment", "BROWSER", strings.TrimPrefix(env[findIdx], "BROWSER="))
+		} else {
+			logger.LogWithLevel(s.logger, logger.Trace, "No BROWSER set; OCI CLI/browser will use system default")
+		}
+	}
+	ociCmd.Env = env
 
 	logger.LogWithLevel(s.logger, logger.Trace, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
 
-	if err := ociCmd.Run(); err != nil {
-		return nil, errors.Wrap(err, "failed to run `oci session authenticate`")
+	if manualOpen {
+		// Capture output to extract the login URL and open with selected browser
+		stdoutPipe, err := ociCmd.StdoutPipe()
+		if err != nil {
+			return nil, errors.Wrap(err, "creating StdoutPipe")
+		}
+		stderrPipe, err := ociCmd.StderrPipe()
+		if err != nil {
+			return nil, errors.Wrap(err, "creating StderrPipe")
+		}
+		if err := ociCmd.Start(); err != nil {
+			return nil, errors.Wrap(err, "starting `oci session authenticate`")
+		}
+
+		re := regexp.MustCompile(`https?://[^\s]+`)
+		opened := false
+		openURL := func(url string) {
+			if opened {
+				return
+			}
+			opened = true
+			parts := strings.Fields(s.browserOverride)
+			if len(parts) == 0 {
+				return
+			}
+			cmd := exec.Command(parts[0], append(parts[1:], url)...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			_ = cmd.Start()
+			logger.LogWithLevel(s.logger, logger.Debug, "Opened login URL with selected browser", "cmd", s.browserOverride, "url", url)
+		}
+
+		go func() {
+			s := bufio.NewScanner(io.MultiReader(stdoutPipe, stderrPipe))
+			for s.Scan() {
+				line := s.Text()
+				fmt.Fprintln(os.Stdout, line)
+				if !opened && strings.Contains(line, "http") {
+					if m := re.FindString(line); m != "" {
+						openURL(m)
+					}
+				}
+			}
+		}()
+
+		if err := ociCmd.Wait(); err != nil {
+			return nil, errors.Wrap(err, "`oci session authenticate` failed")
+		}
+	} else {
+		ociCmd.Stdout = os.Stdout
+		ociCmd.Stderr = os.Stderr
+		if err := ociCmd.Run(); err != nil {
+			return nil, errors.Wrap(err, "failed to run `oci session authenticate`")
+		}
 	}
 
 	logger.Logger.V(logger.Info).Info("OCI CLI authentication successful.")
@@ -200,6 +296,27 @@ func (s *Service) viewConfigurationWithErrorHandling(realm string) error {
 // and returns the result of the authentication process.
 func (s *Service) performInteractiveAuthentication(filter, realm string) (*AuthenticationResult, error) {
 	logger.Logger.V(logger.Info).Info("Starting interactive authentication process.")
+
+	// Ask user to pick a browser before starting authentication
+	if util.PromptYesNo("Do you want to pick a browser for the OCI login flow?") {
+		if val, set, err := RunBrowserPicker(); err == nil {
+			if set {
+				if val == "__UNSET__" {
+					s.browserUnset = true
+					s.browserOverride = ""
+					logger.LogWithLevel(s.logger, logger.Debug, "Will unset BROWSER for OCI CLI child process (use system default)")
+				} else {
+					s.browserUnset = false
+					s.browserOverride = val
+					logger.LogWithLevel(s.logger, logger.Debug, "Will set BROWSER for OCI CLI child process", "BROWSER", val)
+				}
+			} else {
+				logger.LogWithLevel(s.logger, logger.Trace, "Keeping existing BROWSER environment or system default")
+			}
+		} else {
+			logger.LogWithLevel(s.logger, logger.Debug, "Browser picker failed; proceeding without changes to BROWSER")
+		}
+	}
 	profile, err := s.promptForProfile()
 	if err != nil {
 		return nil, fmt.Errorf("selecting profile: %w", err)
