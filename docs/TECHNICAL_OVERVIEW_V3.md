@@ -51,7 +51,7 @@ The presentation layer is responsible for:
 - Routing commands to the appropriate service
 
 **Key Components**:
-- Command definitions using Cobra library
+- Command definitions using a Cobra library
 - Flag definitions and parsing
 - Output formatting (JSON, table)
 
