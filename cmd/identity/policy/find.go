@@ -56,6 +56,11 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running policy find command", "pattern", namePattern, "json", useJSON)
-	return policy.FindPolicies(appCtx, namePattern, useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy find command", "pattern", namePattern, "json", useJSON)
+	err := policy.FindPolicies(appCtx, namePattern, useJSON)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("Policy find command completed.")
+	return nil
 }

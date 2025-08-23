@@ -71,9 +71,9 @@ func newResourceList(title string, items []list.Item) ResourceListModel {
 func NewImageListModelFancy(images []Image) ResourceListModel {
 	items := make([]list.Item, 0, len(images))
 	for _, img := range images {
-		name := img.Name
-		desc := fmt.Sprintf("ImageOSVersion: %s", img.ImageOSVersion)
-		id := img.ID
+		name := img.DisplayName
+		desc := fmt.Sprintf("ImageOSVersion: %s", img.OperatingSystemVersion)
+		id := img.OCID
 		items = append(items, resourceItem{id: id, title: name, description: desc})
 	}
 	return newResourceList("Images", items)

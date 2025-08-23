@@ -13,7 +13,7 @@ import (
 // namePattern specifies the pattern to filter policy names.
 // useJSON determines whether the output should be formatted as JSON.
 func FindPolicies(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Finding Policies", "pattern", namePattern)
+	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Policies", "pattern", namePattern)
 
 	service, err := NewService(appCtx)
 	if err != nil {
@@ -30,6 +30,6 @@ func FindPolicies(appCtx *app.ApplicationContext, namePattern string, useJSON bo
 	if err != nil {
 		return fmt.Errorf("printing matched policies: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Policy find operation completed successfully.")
 	return nil
 }

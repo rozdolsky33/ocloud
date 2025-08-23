@@ -26,7 +26,11 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running list command")
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running list command")
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	return bastion.ListBastions(ctx, appCtx, useJSON)
+	err := bastion.ListBastions(ctx, appCtx, useJSON)
+	if err != nil {
+		return err
+	}
+	return nil
 }

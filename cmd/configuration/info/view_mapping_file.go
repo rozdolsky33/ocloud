@@ -51,10 +51,7 @@ func ViewMappingFile() *cobra.Command {
 		},
 	}
 
-	// Add JSON flag
 	flags.JSONFlag.Add(cmd)
-
-	// Add realm filter flag
 	configurationFlags.RealmFlag.Add(cmd)
 
 	return cmd
@@ -64,6 +61,10 @@ func ViewMappingFile() *cobra.Command {
 func RunViewFileMappingCommand(cmd *cobra.Command) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	realm := flags.GetStringFlag(cmd, flags.FlagNameRealm, "")
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running map-file command", "json", useJSON, "realm", realm)
-	return info.ViewConfiguration(useJSON, realm)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running map-file command", "json", useJSON, "realm", realm)
+	err := info.ViewConfiguration(useJSON, realm)
+	if err != nil {
+		return err
+	}
+	return nil
 }

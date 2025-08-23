@@ -6,17 +6,24 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/oci"
+	ociimage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
 )
 
 // ListImages lists all images in the given compartment, allowing the user to select one via a TUI and display its details.
-// It initializes required services, fetches images, processes user selection, and prints the chosen image information.
 func ListImages(ctx context.Context, appCtx *app.ApplicationContext) error {
-
-	service, err := NewService(appCtx)
+	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("creating image service: %w", err)
+		return fmt.Errorf("creating compute client: %w", err)
 	}
-	images, err := service.fetchAllImages(ctx)
+
+	imageAdapter := ociimage.NewAdapter(computeClient)
+	service := NewService(imageAdapter, appCtx.Logger, appCtx.CompartmentID)
+
+	images, err := service.imageRepo.ListImages(ctx, appCtx.CompartmentID)
+	if err != nil {
+		return fmt.Errorf("listing images: %w", err)
+	}
 
 	// TUI selection
 	im := NewImageListModelFancy(images)
@@ -32,7 +39,7 @@ func ListImages(ctx context.Context, appCtx *app.ApplicationContext) error {
 
 	var img Image
 	for _, it := range images {
-		if it.ID == chosen.Choice() {
+		if it.OCID == chosen.Choice() {
 			img = it
 			break
 		}

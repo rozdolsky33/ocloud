@@ -11,7 +11,7 @@ import (
 
 // ListPolicies retrieves and displays the policies for a given application context, supporting pagination and JSON output format.
 func ListPolicies(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing Policies", "limit", limit, "page", page)
+	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Policies", "limit", limit, "page", page)
 
 	service, err := NewService(appCtx)
 	if err != nil {
@@ -35,6 +35,6 @@ func ListPolicies(appCtx *app.ApplicationContext, useJSON bool, limit, page int)
 	if err != nil {
 		return fmt.Errorf("printing policies: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Policy list operation completed successfully.")
 	return nil
 }

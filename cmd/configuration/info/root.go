@@ -31,7 +31,6 @@ func NewInfoCmd() *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	// Add subcommands
 	cmd.AddCommand(ViewMappingFile())
 
 	return cmd

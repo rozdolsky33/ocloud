@@ -48,13 +48,6 @@ var (
 		Usage:     FlagDescCompartment,
 	}
 
-	DisableConcurrencyFlag = BoolFlag{
-		Name:      FlagNameDisableConcurrency,
-		Shorthand: FlagShortDisableConcurrency,
-		Default:   false,
-		Usage:     FlagDescDisableConcurrency,
-	}
-
 	HelpFlag = BoolFlag{
 		Name:      FlagNameHelp,
 		Shorthand: FlagShortHelp,
@@ -77,7 +70,6 @@ var globalFlags = []Flag{
 	TenancyIDFlag,
 	TenancyNameFlag,
 	CompartmentFlag,
-	DisableConcurrencyFlag,
 	HelpFlag,
 	JSONFlag,
 }

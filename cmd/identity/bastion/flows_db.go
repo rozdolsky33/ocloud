@@ -6,7 +6,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
-	autonomousdbsvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	"github.com/rozdolsky33/ocloud/internal/logger"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
@@ -15,17 +17,18 @@ import (
 func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType) error {
 
-	dbService, err := autonomousdbsvc.NewService(appCtx)
+	adapter, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
 	if err != nil {
-		return fmt.Errorf("erro crating service for database: %w", err)
+		return fmt.Errorf("error creating database adapter: %w", err)
 	}
+	dbService := adbSvc.NewService(adapter, appCtx)
 
 	dbs, _, _, err := dbService.List(ctx, 1000, 0)
 	if err != nil {
 		return fmt.Errorf("list databases: %w", err)
 	}
 	if len(dbs) == 0 {
-		fmt.Println("No Autonomous Databases found.")
+		logger.Logger.Info("No Autonomous Databases found.")
 		return nil
 	}
 
@@ -42,7 +45,7 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return ErrAborted
 	}
 
-	var db autonomousdbsvc.AutonomousDatabase
+	var db adbSvc.AutonomousDatabase
 	for _, d := range dbs {
 		if d.ID == chosen.Choice() {
 			db = d
@@ -51,9 +54,8 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	}
 
 	_, reason := svc.CanReach(ctx, b, "", "")
-	fmt.Println("Reachability to DB cannot be automatically verified:", reason)
-	fmt.Printf("Selected database: %s (ID: %s)\n", db.Name, db.ID)
-	fmt.Printf("\n---\nPrepared %s session on Bastion %s (ID: %s) to database %s.\n",
-		sType, b.Name, b.ID, db.Name)
+	logger.Logger.Info("Reachability to DB cannot be automatically verified", "reason", reason)
+	logger.Logger.Info("Selected database", "name", db.Name, "id", db.ID)
+	logger.Logger.Info("Prepared session on Bastion to database", "session_type", sType, "bastion_name", b.Name, "bastion_id", b.ID, "database_name", db.Name)
 	return nil
 }

@@ -115,17 +115,17 @@ func PrintExportVariable(profile, tenancyName, compartment string) error {
 
 	if profile != "" {
 		exportVars[flags.EnvKeyProfile] = profile
-		logger.LogWithLevel(logger.Logger, 3, "Added profile to export variables", "profile", profile)
+		logger.Logger.V(logger.Trace).Info("Added profile to export variables", "profile", profile)
 	}
 
 	if tenancyName != "" {
 		exportVars[flags.EnvKeyTenancyName] = tenancyName
-		logger.LogWithLevel(logger.Logger, 3, "Added tenancy name to export variables", "tenancyName", tenancyName)
+		logger.Logger.V(logger.Trace).Info("Added tenancy name to export variables", "tenancyName", tenancyName)
 	}
 
 	if compartment != "" {
 		exportVars[flags.EnvKeyCompartment] = compartment
-		logger.LogWithLevel(logger.Logger, 3, "Added compartment to export variables", "compartment", compartment)
+		logger.Logger.V(logger.Trace).Info("Added compartment to export variables", "compartment", compartment)
 	}
 
 	// Create a printer and print the export variables in a table
@@ -134,7 +134,7 @@ func PrintExportVariable(profile, tenancyName, compartment string) error {
 	message := "ENVIRONMENT VARIABLES"
 	p.ResultTable(title, message, exportVars)
 
-	logger.LogWithLevel(logger.Logger, 3, "Printed export variables in table")
+	logger.LogWithLevel(logger.Logger, logger.Trace, "Printed export variables in table")
 
 	fmt.Println("\nTo persist your selection, export the following environment variables in your shell")
 

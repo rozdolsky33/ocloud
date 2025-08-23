@@ -42,7 +42,7 @@ var listExamples = `
 
 // NewListCmd creates a new cobra.Command for listing all policies in a specified tenancy or compartment.
 // The command supports pagination through the --limit and --page flags for controlling list size and navigation.
-// It also provides optional JSON output for formatted results using the --json flag.
+// It also provides optional JSON output for formatted results using the --JSON flag.
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
@@ -71,6 +71,11 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running policy list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return policy.ListPolicies(appCtx, useJSON, limit, page)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
+	err := policy.ListPolicies(appCtx, useJSON, limit, page)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("Policy list command completed.")
+	return nil
 }

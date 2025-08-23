@@ -35,7 +35,6 @@ func NewSessionCmd() *cobra.Command {
 		},
 	}
 
-	// Add subcommands
 	cmd.AddCommand(NewAuthenticateCmd())
 
 	return cmd

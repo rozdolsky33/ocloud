@@ -107,7 +107,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 	// Calculate if there are more pages after the current page
 	hasNextPage := pageNum*limit < totalCount
 
-	logger.LogWithLevel(s.logger, 2, "Completed instance listing with pagination",
+	logger.LogWithLevel(s.logger, logger.Trace, "Completed instance listing with pagination",
 		"returnedCount", len(policies),
 		"totalCount", totalCount,
 		"page", pageNum,
@@ -119,7 +119,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Policy, int, 
 
 // Find performs a fuzzy search for policies based on the provided searchPattern and returns matching policy.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Policy, error) {
-	logger.LogWithLevel(s.logger, 1, "Finding Policies", "pattern", searchPattern)
+	logger.LogWithLevel(s.logger, logger.Debug, "Finding Policies", "pattern", searchPattern)
 	var allPolicies []Policy
 
 	// 1. Fetch all policies in the compartment
@@ -152,7 +152,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Policy, err
 		}
 	}
 
-	logger.LogWithLevel(s.logger, 2, "Found policies", "count", len(matchedPolicies))
+	logger.LogWithLevel(s.logger, logger.Trace, "Found policies", "count", len(matchedPolicies))
 	return matchedPolicies, nil
 }
 
@@ -172,14 +172,16 @@ func (s *Service) fetchAllPolicies(ctx context.Context) ([]Policy, error) {
 			allPolicies = append(allPolicies, mapToPolicies(p))
 		}
 		if resp.OpcNextPage == nil {
+			logger.Logger.V(logger.Trace).Info("No more pages for policies.")
 			break
 		}
 		page = *resp.OpcNextPage
 	}
+	logger.Logger.V(logger.Debug).Info("Finished fetching all policies.", "count", len(allPolicies))
 	return allPolicies, nil
 }
 
-// mapToPolicies converts an identity.Policy object to an shared Policy representation, mapping all fields correspondingly.
+// mapToPolicies converts an identity.Policy object to a shared Policy representation, mapping all fields correspondingly.
 func mapToPolicies(policy identity.Policy) Policy {
 	return Policy{
 		Name:        *policy.Name,

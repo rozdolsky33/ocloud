@@ -221,3 +221,40 @@ func (p *Printer) ResultTable(title string, message string, exportVars map[strin
 
 	fmt.Fprintln(p.out, strings.Join(lines, "\n"))
 }
+
+// PrintTableNoTruncate renders a table without truncating cell values.
+// Useful for tests or outputs where full content must be visible regardless of terminal width.
+func (p *Printer) PrintTableNoTruncate(title string, headers []string, rows [][]string) {
+	// Set up the table writer
+	t := table.NewWriter()
+	t.SetOutputMirror(p.out)
+	t.SetStyle(table.StyleRounded)
+	t.Style().Title.Align = text.AlignCenter
+	t.SetTitle(title)
+
+	// Build header row
+	headerRow := make(table.Row, len(headers))
+	colConfigs := make([]table.ColumnConfig, len(headers))
+	for i, h := range headers {
+		headerRow[i] = text.Colors{text.FgHiYellow}.Sprint(h)
+		colConfigs[i] = table.ColumnConfig{
+			Number: i + 1,
+			// WidthMax left as 0 (no max) and no Transformer -> no truncation
+		}
+		if h == "CIDR" || strings.Contains(strings.ToLower(h), "ip") {
+			colConfigs[i].Align = text.AlignCenter
+		}
+	}
+	t.AppendHeader(headerRow)
+	t.SetColumnConfigs(colConfigs)
+
+	for _, row := range rows {
+		tblRow := make(table.Row, len(row))
+		for i, cell := range row {
+			tblRow[i] = cell
+		}
+		t.AppendRow(tblRow)
+	}
+
+	t.Render()
+}

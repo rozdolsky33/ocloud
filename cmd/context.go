@@ -14,14 +14,12 @@ import (
 // InitializeAppContext checks for help-related flags and initializes the ApplicationContext accordingly.
 // It returns an error instead of exiting directly.
 func InitializeAppContext(ctx context.Context, tempRoot *cobra.Command) (*app.ApplicationContext, error) {
-	// Check if a help flag is present
-	isHelpRequested := HasHelpFlag(os.Args)
 
+	isHelpRequested := HasHelpFlag(os.Args)
 	var appCtx *app.ApplicationContext
 	var err error
 
 	if isHelpRequested {
-		// If help is requested, create a minimal ApplicationContext without cloud configuration
 		appCtx = &app.ApplicationContext{
 			Logger:          logger.CmdLogger,
 			CompartmentName: flags.FlagValueHelpMode, // Set a dummy value to avoid nil pointer issues.

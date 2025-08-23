@@ -59,7 +59,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
-	// Add flags specific to the list command
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 	paginationFlags.SortFlag.Add(cmd)
@@ -70,13 +69,16 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	sortBy := flags.GetStringFlag(cmd, flags.FlagNameSort, "")
 
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
-	logger.LogWithLevel(logger.CmdLogger, 1, "Running subnet list command in", "compartment", appCtx.CompartmentName, "json", useJSON, "sort", sortBy)
-	return subnet.ListSubnets(appCtx, useJSON, limit, page, sortBy)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running subnet list command in", "compartment", appCtx.CompartmentName, "json", useJSON, "sort", sortBy)
+	err := subnet.ListSubnets(appCtx, useJSON, limit, page, sortBy)
+	if err != nil {
+		return err
+	}
+	logger.CmdLogger.V(logger.Info).Info("Subnet list command completed.")
+	return nil
 }

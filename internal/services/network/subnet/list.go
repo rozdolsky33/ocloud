@@ -5,37 +5,30 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci"
+	ocisubnet "github.com/rozdolsky33/ocloud/internal/oci/network/subnet"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListSubnets retrieves and displays a list of subnets, utilizing pagination, sorting, and optional JSON output.
-// Parameters include an application context, a flag for JSON output, limit, page number, and a sorting key.
+// ListSubnets retrieves and displays a paginated list of subnets.
 func ListSubnets(appCtx *app.ApplicationContext, useJSON bool, limit, page int, sortBy string) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Listing Subnets", "limit", limit, "page", page, "sortBy", sortBy)
-
-	service, err := NewService(appCtx)
+	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("creating subnet service: %w", err)
+		return fmt.Errorf("creating network client: %w", err)
 	}
 
-	ctx := context.Background()
-	policies, totalCount, nextPageToken, err := service.List(ctx, limit, page)
+	subnetAdapter := ocisubnet.NewAdapter(networkClient)
+	service := NewService(subnetAdapter, appCtx.Logger, appCtx.CompartmentID)
+
+	subnets, totalCount, nextPageToken, err := service.List(context.Background(), limit, page)
 	if err != nil {
 		return fmt.Errorf("listing subnets: %w", err)
 	}
 
-	// Display policies information with pagination details
-	err = PrintSubnetTable(policies, appCtx, &util.PaginationInfo{
+	return PrintSubnetTable(subnets, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
 	}, useJSON, sortBy)
-
-	if err != nil {
-		return fmt.Errorf("printing subnets: %w", err)
-	}
-
-	return nil
 }

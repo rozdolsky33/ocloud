@@ -4,7 +4,10 @@ import (
 	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/domain"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +56,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
-	// Add flags specific to the list command
+
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 
@@ -64,8 +67,27 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
-	return autonomousdb.ListAutonomousDatabase(appCtx, useJSON, limit, page)
+
+	repo, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	if err != nil {
+		return err
+	}
+	service := autonomousdb.NewService(repo, appCtx)
+	databases, totalCount, nextPageToken, err := service.List(cmd.Context(), limit, page)
+	if err != nil {
+		return err
+	}
+	// Convert a service type to a domain type for output
+	domainDbs := make([]domain.AutonomousDatabase, 0, len(databases))
+	for _, db := range databases {
+		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
+	}
+	return autonomousdb.PrintAutonomousDbInfo(domainDbs, appCtx, &util.PaginationInfo{
+		TotalCount:    totalCount,
+		Limit:         limit,
+		CurrentPage:   page,
+		NextPageToken: nextPageToken,
+	}, useJSON)
 }

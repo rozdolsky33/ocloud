@@ -3,11 +3,9 @@ package util
 import (
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
@@ -32,7 +30,7 @@ func LogPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 
 		// Add debug logs for navigation hints
 		if pagination.CurrentPage > 1 {
-			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
+			logger.LogWithLevel(appCtx.Logger, logger.Trace, "Pagination navigation",
 				"action", "previous page",
 				"page", pagination.CurrentPage-1,
 				"limit", pagination.Limit)
@@ -41,7 +39,7 @@ func LogPaginationInfo(pagination *PaginationInfo, appCtx *app.ApplicationContex
 		// Check if there are more pages after the current page
 		// The most direct way to determine if there are more pages is to check if there's a next page token
 		if pagination.NextPageToken != "" {
-			logger.LogWithLevel(appCtx.Logger, 2, "Pagination navigation",
+			logger.LogWithLevel(appCtx.Logger, logger.Trace, "Pagination navigation",
 				"action", "next page",
 				"page", pagination.CurrentPage+1,
 				"limit", pagination.Limit)
@@ -84,56 +82,18 @@ func ShowConstructionAnimation() {
 	fmt.Println("🚧 This feature is not implemented yet. Coming soon!")
 }
 
-// DefaultPublicSSHKey returns full paths to public SSH keys under ~/.ssh (only .pub files).
-func DefaultPublicSSHKey() []string {
-	// Return full paths to public SSH keys under ~/.ssh so the picker can be used directly.
-	sshKeys := make([]string, 0)
-	home := os.Getenv("HOME")
-	if home == "" {
-		if h, err := os.UserHomeDir(); err == nil {
-			home = h
+// ConvertOciTagsToResourceTags converts OCI FreeformTags and DefinedTags to domain.ResourceTags.
+func ConvertOciTagsToResourceTags(freeformTags map[string]string, definedTags map[string]map[string]interface{}) domain.ResourceTags {
+	resourceTags := make(domain.ResourceTags)
+	for k, v := range freeformTags {
+		resourceTags[k] = v
+	}
+	for namespace, tags := range definedTags {
+		for k, v := range tags {
+			if strVal, ok := v.(string); ok {
+				resourceTags[fmt.Sprintf("%s.%s", namespace, k)] = strVal
+			}
 		}
 	}
-	sshDir := filepath.Join(home, ".ssh")
-	dir, err := os.ReadDir(sshDir)
-	if err != nil {
-		return sshKeys
-	}
-	for _, f := range dir {
-		if f.IsDir() {
-			continue
-		}
-		name := f.Name()
-		if strings.HasSuffix(name, ".pub") {
-			sshKeys = append(sshKeys, filepath.Join(sshDir, name))
-		}
-	}
-	return sshKeys
-}
-
-// DefaultPrivateSSHKeys returns full paths to private SSH keys under ~/.ssh (non-.pub files).
-func DefaultPrivateSSHKeys() []string {
-	privKeys := make([]string, 0)
-	home := os.Getenv("HOME")
-	if home == "" {
-		if h, err := os.UserHomeDir(); err == nil {
-			home = h
-		}
-	}
-	sshDir := filepath.Join(home, ".ssh")
-	dir, err := os.ReadDir(sshDir)
-	if err != nil {
-		return privKeys
-	}
-	for _, f := range dir {
-		if f.IsDir() {
-			continue
-		}
-		name := f.Name()
-		if strings.HasSuffix(name, ".pub") {
-			continue
-		}
-		privKeys = append(privKeys, filepath.Join(sshDir, name))
-	}
-	return privKeys
+	return resourceTags
 }

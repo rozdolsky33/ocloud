@@ -17,7 +17,6 @@ func NewNetworkCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	// Add subcommands, passing in the ApplicationContext
 	cmd.AddCommand(subnet.NewSubnetCmd(appCtx))
 
 	return cmd

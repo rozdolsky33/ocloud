@@ -21,7 +21,6 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // Execute runs the root command with the given context.
 // It now returns an error instead of exiting directly.
 func Execute(ctx context.Context) error {
-	// Create a temporary root command for bootstrapping
 	tempRoot := &cobra.Command{
 		Use:          "ocloud",
 		Short:        "Interact with Oracle Cloud Infrastructure",
@@ -58,15 +57,12 @@ func Execute(ctx context.Context) error {
 		display.PrintOCIConfiguration()
 	}
 
-	// Create the real root command with the ApplicationContext
 	root := cmdcreate.CreateRootCmd(appCtx)
 
-	// Set the default behavior to show help
 	root.RunE = func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	}
 
-	// Execute the command
 	if err := root.ExecuteContext(ctx); err != nil {
 		return fmt.Errorf("failed to execute root command: %w", err)
 	}

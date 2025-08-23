@@ -23,12 +23,13 @@ func NewService() *Service {
 	service := &Service{
 		logger: appCtx.Logger,
 	}
+	logger.Logger.V(logger.Info).Info("Creating new configuration setup service.")
 	return service
 }
 
 // ConfigureTenancyFile creates or updates a tenancy mapping configuration file with user-provided inputs.
 func (s *Service) ConfigureTenancyFile() (err error) {
-	logger.LogWithLevel(s.logger, 1, "Configuring tenancy map")
+	logger.Logger.V(logger.Info).Info("Starting tenancy map configuration.")
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("getting user home directory: %w", err)
@@ -39,17 +40,18 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 
 	var mappingFile []appConfig.MappingsFile
 
-	logger.LogWithLevel(s.logger, 3, "Creating config directory", "dir", configDir)
+	logger.LogWithLevel(s.logger, logger.Trace, "Creating config directory", "dir", configDir)
 
 	// Load existing records if a file exists
 	if _, err := os.Stat(configFile); err == nil {
-		logger.LogWithLevel(s.logger, 3, "Loading existing tenancy map")
+		logger.LogWithLevel(s.logger, logger.Trace, "Loading existing tenancy map")
 		mappingFile, err = appConfig.LoadTenancyMap()
 		if err != nil {
 			return fmt.Errorf("loading existing tenancy map: %w", err)
 		}
 	} else {
 		fmt.Println("\nTenancy mapping file not found at:", configFile)
+		logger.Logger.V(logger.Info).Info("Tenancy mapping file not found.", "path", configFile)
 		if !util.PromptYesNo("Do you want to create the file and set up tenancy mapping?") {
 			fmt.Println("Setup cancelled. Exiting.")
 			return nil
@@ -58,12 +60,14 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 		if err := os.MkdirAll(configDir, 0o755); err != nil {
 			return fmt.Errorf("creating directory: %w", err)
 		}
+		logger.Logger.V(logger.Info).Info("Configuration directory created.", "dir", configDir)
 
-		logger.LogWithLevel(s.logger, 3, "Creating new tenancy map")
+		logger.LogWithLevel(s.logger, logger.Trace, "Creating new tenancy map")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
 
+	logger.Logger.V(logger.Info).Info("Prompting for new tenancy records.")
 	for {
 		fmt.Println("\t--- Add a new tenancy record ---")
 
@@ -116,15 +120,17 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 		fmt.Println(string(out))
 		if util.PromptYesNo("Do you want to add this record to the tenancy map?") {
 			mappingFile = append(mappingFile, record)
+			logger.Logger.V(logger.Info).Info("Record added to tenancy map.")
 		} else {
 			fmt.Println("Record discarded")
+			logger.Logger.V(logger.Info).Info("Record discarded.")
 		}
 		if !util.PromptYesNo("Do you want to add another record?") {
 			break
 		}
 	}
 	// Write to a file
-	logger.LogWithLevel(s.logger, 3, "Writing tenancy map to file")
+	logger.LogWithLevel(s.logger, logger.Trace, "Writing tenancy map to file")
 	out, err := yaml.Marshal(mappingFile)
 	if err != nil {
 		return fmt.Errorf("marshalling tenancy map: %w", err)
@@ -133,13 +139,14 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 	if err != nil {
 		return fmt.Errorf("writing tenancy map to file: %w", err)
 	}
-	logger.LogWithLevel(s.logger, 3, "Tenancy map written to file successfully", "file", configFile)
+	logger.Logger.V(logger.Info).Info("Tenancy map written to file successfully.", "file", configFile)
 
 	return nil
 }
 
 // prompt reads user input from the provided reader with a label and returns the trimmed input as a string.
 func prompt(reader *bufio.Reader, label string) string {
+	logger.Logger.V(logger.Debug).Info("Prompting for input.", "label", label)
 	fmt.Printf("%s: ", label)
 	text, _ := reader.ReadString('\n')
 	return strings.TrimSpace(text)
@@ -147,6 +154,7 @@ func prompt(reader *bufio.Reader, label string) string {
 
 // promptMulti reads a line of input for a given label and returns the input split into a slice of strings.
 func promptMulti(reader *bufio.Reader, label string) []string {
+	logger.Logger.V(logger.Debug).Info("Prompting for multi-input.", "label", label)
 	fmt.Printf("%s: ", label)
 	text, _ := reader.ReadString('\n')
 	return strings.Fields(strings.TrimSpace(text))
@@ -177,6 +185,7 @@ func validateTenancyID(tenancyID string) (string, error) {
 
 // promptWithValidation prompts for input and validates it using the provided validation function
 func promptWithValidation(reader *bufio.Reader, label string, validate func(string) (string, error)) string {
+	logger.Logger.V(logger.Debug).Info("Prompting for input with validation.", "label", label)
 	for {
 		fmt.Printf("%s: ", label)
 		text, _ := reader.ReadString('\n')
@@ -185,9 +194,11 @@ func promptWithValidation(reader *bufio.Reader, label string, validate func(stri
 		validated, err := validate(input)
 		if err != nil {
 			fmt.Printf("Error: %s. Please try again.\n", err)
+			logger.Logger.V(logger.Debug).Info("Validation failed.", "error", err)
 			continue
 		}
 
+		logger.Logger.V(logger.Debug).Info("Validation successful.", "value", validated)
 		return validated
 	}
 }

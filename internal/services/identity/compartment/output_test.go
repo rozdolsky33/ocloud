@@ -15,13 +15,13 @@ func TestPrintCompartmentsInfo(t *testing.T) {
 	// Create test compartments
 	compartments := []Compartment{
 		{
-			Name:        "TestCompartment1",
-			ID:          "ocid1.compartment.oc1.phx.test1",
+			DisplayName: "TestCompartment1",
+			OCID:        "ocid1.compartment.oc1.phx.test1",
 			Description: "Test compartment 1 description",
 		},
 		{
-			Name:        "TestCompartment2",
-			ID:          "ocid1.compartment.oc1.phx.test2",
+			DisplayName: "TestCompartment2",
+			OCID:        "ocid1.compartment.oc1.phx.test2",
 			Description: "Test compartment 2 description",
 		},
 	}
@@ -108,8 +108,8 @@ func TestPrintCompartmentsInfoWithPagination(t *testing.T) {
 	// Create test compartments
 	compartments := []Compartment{
 		{
-			Name:        "TestCompartment1",
-			ID:          "ocid1.compartment.oc1.phx.test1",
+			DisplayName: "TestCompartment1",
+			OCID:        "ocid1.compartment.oc1.phx.test1",
 			Description: "Test compartment 1 description",
 		},
 	}
@@ -134,7 +134,8 @@ func TestPrintCompartmentsInfoWithPagination(t *testing.T) {
 	}
 
 	// Test with table output (useJSON = false)
-	err := PrintCompartmentsInfo(compartments, appCtx, pagination, false)
+	var err error
+	err = PrintCompartmentsInfo(compartments, appCtx, pagination, false)
 	assert.NoError(t, err)
 
 	// Verify that the output contains the expected information

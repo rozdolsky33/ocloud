@@ -6,17 +6,18 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci/identity"
 )
 
-// FindCompartments searches and displays compartments matching a given name pattern with optional JSON formatting.
-// It initializes necessary services, performs a fuzzy search, and outputs results using the defined application context.
+// FindCompartments searches and displays compartments matching a given name pattern.
 func FindCompartments(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, 1, "Finding Compartments", "pattern", namePattern)
+	appCtx.Logger.V(logger.Debug).Info("finding compartments", "pattern", namePattern)
 
-	service, err := NewService(appCtx)
-	if err != nil {
-		return fmt.Errorf("creating compartment service: %w", err)
-	}
+	// Create the infrastructure adapter.
+	compartmentAdapter := identity.NewCompartmentAdapter(appCtx.IdentityClient, appCtx.TenancyID)
+
+	// Create the application service, injecting the adapter.
+	service := NewService(compartmentAdapter, appCtx.Logger, appCtx.TenancyID)
 
 	ctx := context.Background()
 	matchedCompartments, err := service.Find(ctx, namePattern)
@@ -28,6 +29,6 @@ func FindCompartments(appCtx *app.ApplicationContext, namePattern string, useJSO
 	if err != nil {
 		return fmt.Errorf("printing matched compartments: %w", err)
 	}
-
+	logger.Logger.V(logger.Info).Info("Compartment find operation completed successfully.")
 	return nil
 }

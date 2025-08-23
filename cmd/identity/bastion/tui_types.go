@@ -1,18 +1,17 @@
-// Package bastion Bubble Tea models and simple list UIs.
-// Keep these UIs-only: no network calls or side effects here.
 package bastion
 
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	instanceSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
+	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
-	autonomousdbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
@@ -85,7 +84,7 @@ func (m TypeSelectionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View returns a string representation of the model's state.'
+// View returns a string representation of the model's state.
 func (m TypeSelectionModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a type:\n\n")
@@ -178,7 +177,7 @@ func NewSessionTypeModel(bastionID string) SessionTypeModel {
 // Init initializes the SessionTypeModel and returns an optional command to execute.
 func (m SessionTypeModel) Init() tea.Cmd { return nil }
 
-// Update processes incoming messages, updates the model's state, and determines the next command to execute.'
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.
 func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -202,7 +201,7 @@ func (m SessionTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View returns a string representation of the model's state.'
+// View returns a string representation of the model's state.
 func (m SessionTypeModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a session type:\n\n")
@@ -237,7 +236,7 @@ func NewTargetTypeModel(bastionID string) TargetTypeModel {
 // Init initializes the TargetTypeModel and returns an optional command to execute.
 func (m TargetTypeModel) Init() tea.Cmd { return nil }
 
-// Update processes incoming messages, updates the model's state, and determines the next command to execute.'
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.
 func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -261,7 +260,7 @@ func (m TargetTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View returns a string representation of the model's state.'
+// View returns a string representation of the model's state.
 func (m TargetTypeModel) View() string {
 	var b strings.Builder
 	b.WriteString("Select a target type:\n\n")
@@ -336,26 +335,21 @@ func newResourceList(title string, items []list.Item) ResourceListModel {
 }
 
 // NewInstanceListModelFancy creates a ResourceListModel to display instances in a searchable and interactive list.
-// It transforms each instance into a resourceItem with its name, ID, and VCN name as attributes.
-func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListModel {
+func NewInstanceListModelFancy(instances []instSvc.Instance) ResourceListModel {
 	items := make([]list.Item, 0, len(instances))
 	for _, inst := range instances {
-		name := inst.Name
+		name := inst.DisplayName
 		if name == "" {
-			if inst.Hostname != "" {
-				name = inst.Hostname
-			} else {
-				name = inst.ID
-			}
+			name = inst.OCID
 		}
-		desc := inst.ID
+		desc := fmt.Sprintf("IP: %s", inst.PrimaryIP)
 		if inst.VcnName != "" {
 			desc = inst.VcnName
 			if inst.SubnetName != "" {
 				desc += " · " + inst.SubnetName
 			}
 		}
-		items = append(items, resourceItem{id: inst.ID, title: name, description: desc})
+		items = append(items, resourceItem{id: inst.OCID, title: name, description: desc})
 	}
 	return newResourceList("Instances", items)
 }
@@ -364,18 +358,17 @@ func NewInstanceListModelFancy(instances []instanceSvc.Instance) ResourceListMod
 func NewOKEListModelFancy(clusters []okeSvc.Cluster) ResourceListModel {
 	items := make([]list.Item, 0, len(clusters))
 	for _, c := range clusters {
-		desc := c.Version
+		desc := c.KubernetesVersion
 		if c.PrivateEndpoint != "" {
 			desc += " · PE"
 		}
-		items = append(items, resourceItem{id: c.ID, title: c.Name, description: desc})
+		items = append(items, resourceItem{id: c.OCID, title: c.DisplayName, description: desc})
 	}
 	return newResourceList("OKE Clusters", items)
 }
 
 // NewDBListModelFancy creates a ResourceListModel populated with a list of autonomous databases for TUI display.
-// It transforms each database into a resourceItem with its name, ID, and private endpoint as attributes.
-func NewDBListModelFancy(dbs []autonomousdbSvc.AutonomousDatabase) ResourceListModel {
+func NewDBListModelFancy(dbs []adbSvc.AutonomousDatabase) ResourceListModel {
 	items := make([]list.Item, 0, len(dbs))
 	for _, d := range dbs {
 		desc := d.PrivateEndpoint
@@ -386,25 +379,32 @@ func NewDBListModelFancy(dbs []autonomousdbSvc.AutonomousDatabase) ResourceListM
 
 //---------------------------------------SSH Keys----------------------------------------------------------------------
 
-// SSHFileItem is a list item representing an SSH key file.
+// SSHFileItem is a list item representing a file system entry (file or directory).
 type SSHFileItem struct {
-	fileName, permission string
+	path       string
+	title      string
+	permission string
+	isDir      bool
 }
 
-// Title returns the file name (implements list.Item).
-func (i SSHFileItem) Title() string { return i.fileName }
+// Title returns the display title (implements list.Item).
+func (i SSHFileItem) Title() string { return i.title }
 
 // Description returns permissions or metadata (implements list.Item).
 func (i SSHFileItem) Description() string { return i.permission }
-func (i SSHFileItem) FilterValue() string { return i.fileName + " " + i.permission }
+func (i SSHFileItem) FilterValue() string { return i.title + " " + i.permission }
 
-// SSHFilesModel is the canonical model name for SSH file selection.
+// SSHFilesModel is the canonical model name for SSH file selection/browsing.
 type SSHFilesModel struct {
-	list   list.Model
-	choice string
-	keys   struct {
+	list       list.Model
+	choice     string
+	currentDir string
+	showPublic bool
+	browsing   bool
+	keys       struct {
 		confirm key.Binding
 		quit    key.Binding
+		upDir   key.Binding
 	}
 }
 
@@ -420,9 +420,32 @@ func (m SSHFilesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key.Matches(msg, m.keys.quit) {
 			return m, tea.Quit
 		}
+		if m.browsing && key.Matches(msg, m.keys.upDir) {
+			if m.currentDir != "" {
+				parent := path.Dir(m.currentDir)
+				if parent != m.currentDir {
+					m.currentDir = parent
+					m.NewSSHFilesModelFancyList()
+				}
+			}
+			return m, nil
+		}
 		if key.Matches(msg, m.keys.confirm) {
 			if it, ok := m.list.SelectedItem().(SSHFileItem); ok {
-				m.choice = it.fileName
+				if m.browsing && it.isDir {
+					if it.path == ".." {
+						parent := path.Dir(m.currentDir)
+						if parent != m.currentDir {
+							m.currentDir = parent
+							m.NewSSHFilesModelFancyList()
+						}
+					} else {
+						m.currentDir = it.path
+						m.NewSSHFilesModelFancyList()
+					}
+					return m, nil
+				}
+				m.choice = it.path
 			}
 			return m, tea.Quit
 		}
@@ -447,31 +470,61 @@ func newSSHList(title string, items []list.Item) SSHFilesModel {
 	rm := SSHFilesModel{list: l}
 	rm.keys.confirm = key.NewBinding(key.WithKeys("enter"))
 	rm.keys.quit = key.NewBinding(key.WithKeys("q", "esc", "ctrl+c"))
+	rm.keys.upDir = key.NewBinding(key.WithKeys("backspace", "left"))
 	return rm
 }
 
 // filePermString returns the file's unix permission bits as a short octal string (e.g., "600").
-// If the file can't be stat'ed, returns "n/a".
 func filePermString(path string) string {
 	info, err := os.Stat(path)
 	if err != nil {
 		return "n/a"
 	}
 	perm := info.Mode().Perm()
-	// Format without leading 0 (e.g., 0600 -> 600)
 	return fmt.Sprintf("%o", perm)
 }
 
-// NewSSHFilesModelFancyList creates an SSHFilesModel from a list of key paths with actual permissions.
-func NewSSHFilesModelFancyList(title string, keys []string) SSHFilesModel {
-	items := make([]list.Item, 0, len(keys))
-	for _, k := range keys {
-		items = append(items, SSHFileItem{fileName: k, permission: filePermString(k)})
+// NewSSHFilesModelFancyList populates the list items based on currentDir and filtering rules.
+func (m *SSHFilesModel) NewSSHFilesModelFancyList() {
+	if !m.browsing || m.currentDir == "" {
+		return
 	}
-	return newSSHList(title, items)
+	entries, err := os.ReadDir(m.currentDir)
+	if err != nil {
+		return
+	}
+	items := make([]list.Item, 0, len(entries)+1)
+	if parent := path.Dir(m.currentDir); parent != m.currentDir {
+		items = append(items, SSHFileItem{path: "..", title: "..", permission: "", isDir: true})
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			p := path.Join(m.currentDir, e.Name())
+			items = append(items, SSHFileItem{path: p, title: e.Name() + string(os.PathSeparator), permission: "dir", isDir: true})
+		}
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			name := e.Name()
+			if m.showPublic && !strings.HasSuffix(name, ".pub") {
+				continue
+			}
+			if !m.showPublic && strings.HasSuffix(name, ".pub") {
+				continue
+			}
+			p := path.Join(m.currentDir, name)
+			items = append(items, SSHFileItem{path: p, title: name, permission: filePermString(p), isDir: false})
+		}
+	}
+	m.list.SetItems(items)
 }
 
-// NewSSHKeysModelFancyList creates a new SHHFilesModel instance populated with SSH key items for the given title and keys list.
-func NewSSHKeysModelFancyList(title string, keys []string) SHHFilesModel {
-	return NewSSHFilesModelFancyList(title, keys)
+// NewSSHKeysModelBrowser creates a navigable SSHFilesModel starting from startDir.
+func NewSSHKeysModelBrowser(title, startDir string, showPublic bool) SHHFilesModel {
+	m := newSSHList(title, nil)
+	m.browsing = true
+	m.currentDir = startDir
+	m.showPublic = showPublic
+	m.NewSSHFilesModelFancyList()
+	return m
 }
