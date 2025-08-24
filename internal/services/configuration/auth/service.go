@@ -33,7 +33,6 @@ func NewService() *Service {
 		logger:   appCtx.Logger,
 		Provider: config.LoadOCIConfig(),
 	}
-	logger.Logger.V(logger.Info).Info("Created new authentication service")
 	return service
 }
 
@@ -41,11 +40,8 @@ func NewService() *Service {
 func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, error) {
 	logger.Logger.V(logger.Info).Info("Starting OCI authentication.", "profile", profile, "region", region)
 
-	// Authenticate via OCI CLI
 	ociCmd := exec.Command("oci", "session", "authenticate", "--profile-name", profile, "--region", region)
-	// Build a child process environment and apply explicit browser selection if requested
 	env := os.Environ()
-	// Helper to get/set/remove BROWSER in the env slice
 	findIdx := -1
 	for i, kv := range env {
 		if strings.HasPrefix(kv, "BROWSER=") {
@@ -56,13 +52,11 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 
 	manualOpen := runtime.GOOS == "darwin" && s.browserOverride != ""
 	if s.browserUnset {
-		// Remove BROWSER entirely
 		if findIdx >= 0 {
 			env = append(env[:findIdx], env[findIdx+1:]...)
 		}
 		logger.LogWithLevel(s.logger, logger.Debug, "Passing to OCI CLI without BROWSER (system default)")
 	} else if s.browserOverride != "" {
-		// If we plan to open the URL ourselves on macOS, suppress OCI browser by setting BROWSER=true
 		if manualOpen {
 			if findIdx >= 0 {
 				env = append(env[:findIdx], env[findIdx+1:]...)
@@ -70,7 +64,6 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 			env = append(env, "BROWSER=true")
 			logger.LogWithLevel(s.logger, logger.Debug, "macOS manual open enabled: suppressing OCI auto-open with BROWSER=true")
 		} else {
-			// Remove any existing BROWSER and then append the override so only one entry remains
 			if findIdx >= 0 {
 				env = append(env[:findIdx], env[findIdx+1:]...)
 			}
@@ -78,7 +71,6 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 			logger.LogWithLevel(s.logger, logger.Debug, "Passing BROWSER override to OCI CLI (appended, deduped)", "BROWSER", s.browserOverride)
 		}
 	} else {
-		// Keep whatever current env has
 		if findIdx >= 0 {
 			logger.LogWithLevel(s.logger, logger.Trace, "Using existing BROWSER from environment", "BROWSER", strings.TrimPrefix(env[findIdx], "BROWSER="))
 		} else {
@@ -90,7 +82,7 @@ func (s *Service) Authenticate(profile, region string) (*AuthenticationResult, e
 	logger.LogWithLevel(s.logger, logger.Trace, "Running OCI CLI command", "command", "oci session authenticate", "profile", profile, "region", region)
 
 	if manualOpen {
-		// Capture output to extract the login URL and open with selected browser
+		// Capture output to extract the login URL and open with the selected browser
 		stdoutPipe, err := ociCmd.StdoutPipe()
 		if err != nil {
 			return nil, errors.Wrap(err, "creating StdoutPipe")
@@ -292,12 +284,8 @@ func (s *Service) viewConfigurationWithErrorHandling(realm string) error {
 }
 
 // performInteractiveAuthentication handles the interactive authentication process.
-// It prompts the user for profile and region selection, authenticates with OCI,
-// and returns the result of the authentication process.
+// It prompts the user for profile and region selection, authenticates with OCI
 func (s *Service) performInteractiveAuthentication(filter, realm string) (*AuthenticationResult, error) {
-	logger.Logger.V(logger.Info).Info("Starting interactive authentication process.")
-
-	// Ask user to pick a browser before starting authentication
 	if util.PromptYesNo("Do you want to pick a browser for the OCI login flow?") {
 		if val, set, err := RunBrowserPicker(); err == nil {
 			if set {

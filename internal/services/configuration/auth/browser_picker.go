@@ -24,8 +24,6 @@ type BrowserSelectionModel struct {
 func newBrowserSelectionModel() BrowserSelectionModel {
 
 	isMac := runtime.GOOS == "darwin"
-
-	// Helper to choose a value per OS
 	firefoxVal := "firefox"
 	chromeVal := "google-chrome"
 	braveVal := "brave"
