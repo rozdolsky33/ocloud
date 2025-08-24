@@ -22,6 +22,8 @@ type AuthenticationResult struct {
 
 // Service represents a service for handling OCI configuration and authentication processes.
 type Service struct {
-	Provider common.ConfigurationProvider
-	logger   logr.Logger
+	Provider        common.ConfigurationProvider
+	logger          logr.Logger
+	browserOverride string
+	browserUnset    bool
 }
