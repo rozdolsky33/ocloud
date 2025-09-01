@@ -44,6 +44,5 @@ func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit,
 	}, useJSON); err != nil {
 		return fmt.Errorf("printing image table: %w", err)
 	}
-	logger.Logger.V(logger.Info).Info("Autonomous Database list operation completed successfully.")
 	return nil
 }

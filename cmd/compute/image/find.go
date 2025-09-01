@@ -67,10 +67,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running image find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-
-	err := image.FindImages(appCtx, namePattern, useJSON)
-	if err != nil {
-		return err
-	}
-	return nil
+	return image.FindImages(appCtx, namePattern, useJSON)
 }

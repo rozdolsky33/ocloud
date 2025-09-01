@@ -73,12 +73,6 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	sortBy := flags.GetStringFlag(cmd, flags.FlagNameSort, "")
-
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running subnet list command in", "compartment", appCtx.CompartmentName, "json", useJSON, "sort", sortBy)
-	err := subnet.ListSubnets(appCtx, useJSON, limit, page, sortBy)
-	if err != nil {
-		return err
-	}
-	logger.CmdLogger.V(logger.Info).Info("Subnet list command completed.")
-	return nil
+	return subnet.ListSubnets(appCtx, useJSON, limit, page, sortBy)
 }

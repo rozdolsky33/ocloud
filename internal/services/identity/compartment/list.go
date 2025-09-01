@@ -6,7 +6,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/oci/identity"
+	"github.com/rozdolsky33/ocloud/internal/oci/identity/compartment"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -15,7 +15,7 @@ func ListCompartments(appCtx *app.ApplicationContext, useJSON bool, limit, page 
 	appCtx.Logger.V(logger.Debug).Info("listing compartments", "limit", limit, "page", page)
 
 	// Create the infrastructure adapter.
-	compartmentAdapter := identity.NewCompartmentAdapter(appCtx.IdentityClient, appCtx.TenancyID)
+	compartmentAdapter := compartment.NewCompartmentAdapter(appCtx.IdentityClient, appCtx.TenancyID)
 
 	// Create the application service, injecting the adapter.
 	// The service is now decoupled from the OCI SDK.

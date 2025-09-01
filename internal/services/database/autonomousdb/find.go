@@ -36,6 +36,5 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 	if err := PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON); err != nil {
 		return fmt.Errorf("printing autonomous databases: %w", err)
 	}
-	logger.Logger.V(logger.Info).Info("Autonomous Database find operation completed successfully.")
 	return nil
 }

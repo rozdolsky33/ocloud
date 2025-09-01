@@ -6,7 +6,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ociimage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
+	ociImage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -17,7 +17,7 @@ func GetImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool
 		return fmt.Errorf("creating compute client: %w", err)
 	}
 
-	imageAdapter := ociimage.NewAdapter(computeClient)
+	imageAdapter := ociImage.NewAdapter(computeClient)
 	service := NewService(imageAdapter, appCtx.Logger, appCtx.CompartmentID)
 
 	images, totalCount, nextPageToken, err := service.Get(context.Background(), limit, page)

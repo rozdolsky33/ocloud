@@ -1,4 +1,4 @@
-package identity
+package compartment
 
 import (
 	"context"

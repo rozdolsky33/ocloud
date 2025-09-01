@@ -3,9 +3,7 @@ package autonomousdb
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
-	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/spf13/cobra"
 )
@@ -60,25 +58,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
-
-	repo, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
-	if err != nil {
-		return err
-	}
-	service := autonomousdb.NewService(repo, appCtx)
-	databases, err := service.Find(cmd.Context(), namePattern)
-	if err != nil {
-		return err
-	}
-	// Convert a service type to a domain type for output
-	domainDbs := make([]domain.AutonomousDatabase, 0, len(databases))
-	for _, db := range databases {
-		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
-	}
-	err = autonomousdb.PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON)
-	if err != nil {
-		return err
-	}
-	logger.CmdLogger.V(logger.Info).Info("Autonomous DB find command completed.")
-	return nil
+	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON)
 }
