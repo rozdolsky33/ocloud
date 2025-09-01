@@ -48,10 +48,5 @@ func RunAuthenticateCommand(cmd *cobra.Command) error {
 	filter := flags.GetStringFlag(cmd, flags.FlagNameFilter, "")
 	realm := flags.GetStringFlag(cmd, flags.FlagNameRealm, "")
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running authenticate command", "filter", filter, "realm", realm)
-	err := auth.AuthenticateWithOCI(filter, realm)
-	if err != nil {
-		return err
-	}
-	logger.CmdLogger.V(logger.Info).Info("Authentication command completed.")
-	return nil
+	return auth.AuthenticateWithOCI(filter, realm)
 }

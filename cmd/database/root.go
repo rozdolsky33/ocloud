@@ -18,7 +18,6 @@ func NewDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	// Add subcommands, passing in the ApplicationContext
 	cmd.AddCommand(autonomousdb.NewAutonomousDatabaseCmd(appCtx))
 
 	return cmd
