@@ -65,17 +65,9 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	// Get pagination parameters
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
-	// Use LogWithLevel to ensure debug logs work with shorthand flags
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running compartment list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	err := compartment.ListCompartments(appCtx, useJSON, limit, page)
-	if err != nil {
-		return err
-	}
-	logger.CmdLogger.V(logger.Info).Info("Compartment list command completed.")
-	return nil
+	return compartment.ListCompartments(appCtx, useJSON, limit, page)
 }

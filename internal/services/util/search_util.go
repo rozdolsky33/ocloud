@@ -152,7 +152,6 @@ func ExtractTagValues(freeform map[string]string, defined map[string]map[string]
 				case string:
 					valueStr = val
 				default:
-					// fallback to fmt.Sprintf
 					valueStr = fmt.Sprintf("%v", val)
 				}
 

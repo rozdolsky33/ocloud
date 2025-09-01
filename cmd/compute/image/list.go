@@ -49,10 +49,5 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running image list (TUI) command in", "compartment", appCtx.CompartmentName)
-
-	err := image.ListImages(ctx, appCtx)
-	if err != nil {
-		return err
-	}
-	return nil
+	return image.ListImages(ctx, appCtx)
 }

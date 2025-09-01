@@ -74,11 +74,6 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
-
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)
-	err := instance.ListInstances(appCtx, useJSON, limit, page, imageDetails)
-	if err != nil {
-		return err
-	}
-	return nil
+	return instance.ListInstances(appCtx, useJSON, limit, page, imageDetails)
 }

@@ -61,16 +61,9 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunGetCommand handles the execution of the list command
 func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running image list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
-
-	err := image.GetImages(appCtx, limit, page, useJSON)
-	if err != nil {
-		return err
-	}
-	return nil
+	return image.GetImages(appCtx, limit, page, useJSON)
 }
