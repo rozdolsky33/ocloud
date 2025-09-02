@@ -41,7 +41,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, erro
 
 	identityClient, err := oci.NewIdentityClient(provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating identity client: %w", err)
 	}
 
 	configureClientRegion(identityClient)
@@ -57,7 +57,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, erro
 	appCtx.Stderr = os.Stderr
 
 	if err := resolveTenancyAndCompartment(ctx, cmd, appCtx); err != nil {
-		return nil, fmt.Errorf("resolving tenancy and compartment: %w", err)
+		return nil, fmt.Errorf("resolving tenancy and compartment %w", err)
 	}
 
 	logger.CmdLogger.V(logger.Debug).Info("Application context initialized successfully.")
