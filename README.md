@@ -84,7 +84,7 @@ Running `ocloud` without any arguments displays the configuration details and av
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: 0.0.31
+	      Version: 0.0.32
 
 Configuration Details: Valid until 2025-08-02 23:26:28
   OCI_CLI_PROFILE: DEFAULT
@@ -269,14 +269,14 @@ To run the test script:
 
 ## Error Handling
 
-OCloud provides detailed error messages and supports different verbosity levels:
+OCloud provides detailed error messages and supports multiple log verbosity levels. The valid values for --log-level are:
 
-- `--log-level info`: Shows standard information (default)
-- `--log-level debug`: Shows detailed debugging information
-- `--log-level warn`: Shows only warnings and errors
-- `--log-level error`: Shows only errors
+- `--log-level debug`: Most verbose; shows all logs, including detailed developer output. Equivalent to using `-d` / `--debug`.
+- `--log-level info`: Default; shows standard, user‑facing information and errors.
+- `--log-level warn`: Shows warnings and errors only.
+- `--log-level error`: Shows errors only.
 
-You can also use the shorthand `-d` flag to enable debug logging.
+Tip: You can also enable colored log messages with `--color`.
 
 ## License
 

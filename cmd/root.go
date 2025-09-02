@@ -22,10 +22,11 @@ func NewRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // It now returns an error instead of exiting directly.
 func Execute(ctx context.Context) error {
 	tempRoot := &cobra.Command{
-		Use:          "ocloud",
-		Short:        "Interact with Oracle Cloud Infrastructure",
-		Long:         "",
-		SilenceUsage: true,
+		Use:           "ocloud",
+		Short:         "Interact with Oracle Cloud Infrastructure",
+		Long:          "",
+		SilenceUsage:  true,
+		SilenceErrors: true,
 	}
 
 	flags.AddGlobalFlags(tempRoot)
