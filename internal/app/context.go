@@ -41,7 +41,7 @@ func InitApp(ctx context.Context, cmd *cobra.Command) (*ApplicationContext, erro
 
 	identityClient, err := oci.NewIdentityClient(provider)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating identity client: %w", err)
 	}
 
 	configureClientRegion(identityClient)
