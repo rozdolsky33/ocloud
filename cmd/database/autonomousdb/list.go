@@ -10,7 +10,7 @@ import (
 
 // Long description for the list command
 var listLong = `
-List all Autonomous Databases in the specified compartment with pagination support.
+FetchPaginatedInstances all Autonomous Databases in the specified compartment with pagination support.
 
 This command displays information about available Autonomous Databases in the current compartment.
 By default, it shows basic database information such as name, ID, state, and workload type.
@@ -26,16 +26,16 @@ Additional Information:
 
 // Examples for the list command
 var listExamples = `
-  # List all Autonomous Databases with default pagination (20 per page)
+  # FetchPaginatedInstances all Autonomous Databases with default pagination (20 per page)
   ocloud database autonomous list
 
-  # List Autonomous Databases with custom pagination (10 per page, page 2)
+  # FetchPaginatedInstances Autonomous Databases with custom pagination (10 per page, page 2)
   ocloud database autonomous list --limit 10 --page 2
 
-  # List Autonomous Databases and output in JSON format
+  # FetchPaginatedInstances Autonomous Databases and output in JSON format
   ocloud database autonomous list --json
 
-  # List Autonomous Databases with custom pagination and JSON output
+  # FetchPaginatedInstances Autonomous Databases with custom pagination and JSON output
   ocloud database autonomous list --limit 5 --page 3 --json
 `
 
@@ -44,7 +44,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "List all Databases in the specified compartment",
+		Short:         "FetchPaginatedInstances all Databases in the specified compartment",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,

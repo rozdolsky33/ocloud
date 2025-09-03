@@ -27,8 +27,8 @@ func NewService(repo domain.InstanceRepository, logger logr.Logger, compartmentI
 	}
 }
 
-// List retrieves a paginated list of instances.
-func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
+// FetchPaginatedInstances retrieves a paginated list of instances.
+func (s *Service) FetchPaginatedInstances(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing instances", "limit", limit, "pageNum", pageNum)
 
 	allInstances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)

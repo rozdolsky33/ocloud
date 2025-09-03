@@ -32,7 +32,7 @@ func NewService(repo domain.AutonomousDatabaseRepository, appCtx *app.Applicatio
 // It returns the slice of databases, total count, next page token, and an error if encountered.
 func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
 	// Log input parameters at debug level
-	logger.LogWithLevel(s.logger, 3, "List called with pagination parameters",
+	logger.LogWithLevel(s.logger, 3, "FetchPaginatedInstances called with pagination parameters",
 		"limit", limit,
 		"pageNum", pageNum)
 

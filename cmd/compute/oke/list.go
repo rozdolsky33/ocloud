@@ -10,7 +10,7 @@ import (
 )
 
 var listLong = `
-List all Oracle Kubernetes Engine (OKE) clusters in the specified compartment.
+FetchPaginatedInstances all Oracle Kubernetes Engine (OKE) clusters in the specified compartment.
 
 This command displays information about all OKE clusters in the current compartment,
 including their names, Kubernetes versions, endpoints, and associated node pools.
@@ -23,13 +23,13 @@ Additional Information:
 `
 
 var listExamples = `
-  # List all OKE clusters in the current compartment
+  # FetchPaginatedInstances all OKE clusters in the current compartment
   ocloud compute oke list
 
-  # List all OKE clusters and output in JSON format
+  # FetchPaginatedInstances all OKE clusters and output in JSON format
   ocloud compute oke list --json
 
-  # List OKE clusters with pagination (10 per page, page 2)
+  # FetchPaginatedInstances OKE clusters with pagination (10 per page, page 2)
   ocloud compute oke list --limit 10 --page 2
 `
 
@@ -37,7 +37,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "List all Oracle Kubernetes Engine (OKE) clusters",
+		Short:         "FetchPaginatedInstances all Oracle Kubernetes Engine (OKE) clusters",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,

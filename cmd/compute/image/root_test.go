@@ -44,7 +44,7 @@ func TestImageCommand(t *testing.T) {
 	// Test that the get subcommand is added and has pagination flags
 	getCmd := findSubCommand(cmd, "get")
 	assert.NotNil(t, getCmd, "get subcommand should be added")
-	assert.Equal(t, "Get all images", getCmd.Short)
+	assert.Equal(t, "Paginated Image Results", getCmd.Short)
 	assert.NotNil(t, getCmd.RunE, "get subcommand should have a RunE function")
 
 	limitFlag := getCmd.Flags().Lookup(flags.FlagNameLimit)

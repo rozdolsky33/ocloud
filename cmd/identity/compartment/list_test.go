@@ -19,7 +19,7 @@ func TestListCommand(t *testing.T) {
 	// Test that the list command is properly configured
 	assert.Equal(t, "list", cmd.Use)
 	assert.Equal(t, []string{"l"}, cmd.Aliases)
-	assert.Equal(t, "List all Compartments in the specified tenancy or compartment", cmd.Short)
+	assert.Equal(t, "FetchPaginatedInstances all Compartments in the specified tenancy or compartment", cmd.Short)
 	assert.Equal(t, listLong, cmd.Long)
 	assert.Equal(t, listExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

@@ -27,8 +27,8 @@ func NewService(repo domain.ImageRepository, logger logr.Logger, compartmentID s
 	}
 }
 
-// Get retrieves a paginated list of images.
-func (s *Service) Get(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
+// FetchPaginatedImages retrieves a paginated list of images.
+func (s *Service) FetchPaginatedImages(ctx context.Context, limit, pageNum int) ([]Image, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing images", "limit", limit, "pageNum", pageNum)
 
 	allImages, err := s.imageRepo.ListImages(ctx, s.compartmentID)

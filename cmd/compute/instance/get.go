@@ -11,7 +11,7 @@ import (
 )
 
 var listLong = `
-List all instances in the specified compartment with pagination support.
+Get all instances in the specified compartment with pagination support.
 
 This command displays information about running instances in the current compartment.
 By default, it shows basic instance information such as name, ID, IP address, and shape.
@@ -27,37 +27,36 @@ Additional Information:
 `
 
 var listExamples = `
-  # List all instances with default pagination (20 per page)
-  ocloud compute instance list
+  # Get all instances with default pagination (20 per page)
+  ocloud compute instance get
 
-  # List instances with custom pagination (10 per page, page 2)
-  ocloud compute instance list --limit 10 --page 2
+  # Get instances with custom pagination (10 per page, page 2)
+  ocloud compute instance get --limit 10 --page 2
 
-  # List instances and include image details
-  ocloud compute instance list --all
+  # Get instances and include image details
+  ocloud compute instance get --all
 
-  # List instances with image details (using shorthand flag)
-  ocloud compute instance list -A
+  # Get instances with image details (using shorthand flag)
+  ocloud compute instance get -A
 
-  # List instances and output in JSON format
-  ocloud compute instance list --json
+  # Get instances and output in JSON format
+  ocloud compute instance get --json
 
-  # List instances with both image details and JSON output
-  ocloud compute instance list --all --json
+  # Get instances with both image details and JSON output
+  ocloud compute instance get --all --json
 `
 
-// NewListCmd creates a new command for listing instances
-func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewGetCmd creates a new command for listing instances
+func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "list",
-		Aliases:       []string{"l"},
-		Short:         "List all instances",
+		Use:           "get",
+		Short:         "Paginated Instance Results",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunListCommand(cmd, appCtx)
+			return RunGetCommand(cmd, appCtx)
 		},
 	}
 
@@ -68,12 +67,12 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunListCommand handles the execution of the list command
-func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// RunGetCommand handles the execution of the list command
+func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)
-	return instance.ListInstances(appCtx, useJSON, limit, page, imageDetails)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance get command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)
+	return instance.GetInstances(appCtx, useJSON, limit, page, imageDetails)
 }

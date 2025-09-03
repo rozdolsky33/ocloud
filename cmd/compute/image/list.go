@@ -2,6 +2,7 @@ package image
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/compute/image"
 	"github.com/spf13/cobra"
@@ -48,6 +49,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand executes the interactive TUI image lister
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
+	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running image list (TUI) command in", "compartment", appCtx.CompartmentName)
-	return image.ListImages(ctx, appCtx)
+	return image.ListImages(ctx, appCtx, useJSON)
 }

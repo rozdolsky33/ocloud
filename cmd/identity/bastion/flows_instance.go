@@ -30,7 +30,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	instanceAdapter := ociInst.NewAdapter(computeClient, networkClient)
 	instService := instSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	instances, _, _, err := instService.List(ctx, 300, 0)
+	instances, _, _, err := instService.FetchPaginatedInstances(ctx, 300, 0)
 	if err != nil {
 		return fmt.Errorf("list instances: %w", err)
 	}

@@ -75,11 +75,11 @@ run_command ./bin/ocloud comp inst --help
 
 # Test compute instance list command
 print_header "Testing compute instance list command"
-run_command ./bin/ocloud compute instance list
-run_command ./bin/ocloud compute instance list
-run_command ./bin/ocloud compute instance list --limit 10 --page 1 --json
-run_command ./bin/ocloud compute instance list -m 10 -p 1 -j
-run_command ./bin/ocloud comp inst l
+run_command ./bin/ocloud compute instance get
+run_command ./bin/ocloud compute instance get
+run_command ./bin/ocloud compute instance get --limit 10 --page 1 --json
+run_command ./bin/ocloud compute instance get -m 10 -p 1 -j
+run_command ./bin/ocloud comp inst get
 
 # Test compute instance find command
 print_header "Testing compute instance find command"

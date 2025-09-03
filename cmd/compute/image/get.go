@@ -43,7 +43,7 @@ var listExamples = `
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
-		Short:         "Get all images",
+		Short:         "Paginated Image Results",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,

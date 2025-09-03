@@ -13,12 +13,12 @@ func NewInstanceCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"inst"},
 		Short:         "Manage OCI Instances",
 		Long:          "Manage Oracle Cloud Infrastructure Compute Instances - list all instances or find instances by name pattern.",
-		Example:       "  ocloud compute instance list\n  ocloud compute instance find myinstance",
+		Example:       "  ocloud compute instance get\n  ocloud compute instance find myinstance",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
-	cmd.AddCommand(NewListCmd(appCtx))
+	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewFindCmd(appCtx))
 
 	return cmd

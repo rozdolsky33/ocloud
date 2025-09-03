@@ -10,8 +10,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListInstances retrieves and displays a paginated list of instances.
-func ListInstances(appCtx *app.ApplicationContext, useJSON bool, limit, page int, showDetails bool) error {
+// GetInstances retrieves and displays a paginated list of instances.
+func GetInstances(appCtx *app.ApplicationContext, useJSON bool, limit, page int, showDetails bool) error {
 	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating compute client: %w", err)
@@ -24,7 +24,7 @@ func ListInstances(appCtx *app.ApplicationContext, useJSON bool, limit, page int
 	instanceAdapter := ociInst.NewAdapter(computeClient, networkClient)
 	service := NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	instances, totalCount, nextPageToken, err := service.List(context.Background(), limit, page)
+	instances, totalCount, nextPageToken, err := service.FetchPaginatedInstances(context.Background(), limit, page)
 	if err != nil {
 		return fmt.Errorf("listing instances: %w", err)
 	}

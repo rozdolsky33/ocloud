@@ -62,7 +62,7 @@ func TestNewService(t *testing.T) {
 	assert.Equal(t, appCtx.CompartmentID, service.compartmentID)
 }
 
-// TestList tests the List function
+// TestList tests the FetchPaginatedInstances function
 func TestList(t *testing.T) {
 	mockRepo := new(MockAutonomousDatabaseRepository)
 	appCtx := &app.ApplicationContext{

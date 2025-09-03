@@ -22,15 +22,15 @@ func TestInstanceCommand(t *testing.T) {
 	assert.Equal(t, "instance", cmd.Use)
 	assert.Equal(t, "Manage OCI Instances", cmd.Short)
 	assert.Equal(t, "Manage Oracle Cloud Infrastructure Compute Instances - list all instances or find instances by name pattern.", cmd.Long)
-	assert.Equal(t, "  ocloud compute instance list\n  ocloud compute instance find myinstance", cmd.Example)
+	assert.Equal(t, "  ocloud compute instance get\n  ocloud compute instance find myinstance", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")
 
 	// Test that the subcommands are added
-	listCmd := findSubCommand(cmd, "list")
-	assert.NotNil(t, listCmd, "list subcommand should be added")
-	assert.Equal(t, "List all instances", listCmd.Short)
+	listCmd := findSubCommand(cmd, "get")
+	assert.NotNil(t, listCmd, "get subcommand should be added")
+	assert.Equal(t, "Paginated Instance Results", listCmd.Short)
 	assert.NotNil(t, listCmd.RunE, "list subcommand should have a RunE function")
 
 	// Test that the list subcommand has the appropriate flags
