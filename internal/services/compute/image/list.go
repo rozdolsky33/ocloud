@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociImage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
+	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
 // ListImages lists all images in the given compartment, allowing the user to select one via a TUI and display its details.
@@ -25,19 +25,14 @@ func ListImages(ctx context.Context, appCtx *app.ApplicationContext, useJSON boo
 		return fmt.Errorf("listing images: %w", err)
 	}
 
-	// TUI selection
-	im := NewImageListModelFancy(images)
-	ip := tea.NewProgram(im, tea.WithContext(ctx))
-	ires, err := ip.Run()
+	// TUI
+	model := ociImage.NewImageListModel(images)
+	id, err := listx.Run(model)
 	if err != nil {
 		return fmt.Errorf("image selection TUI: %w", err)
 	}
-	chosen, ok := ires.(ResourceListModel)
-	if !ok || chosen.Choice() == "" {
-		return err
-	}
 
-	image, err := service.imageRepo.GetImage(ctx, chosen.Choice())
+	image, err := service.imageRepo.GetImage(ctx, id)
 	if err != nil {
 		return fmt.Errorf("getting image: %w", err)
 	}
