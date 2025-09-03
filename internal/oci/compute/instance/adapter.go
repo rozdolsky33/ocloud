@@ -428,5 +428,8 @@ func (a *Adapter) toDomainModel(inst core.Instance) domain.Instance {
 		TimeCreated: inst.TimeCreated.Time,
 		Shape:       *inst.Shape,
 		State:       string(inst.LifecycleState),
+		VCPUs:       int(*inst.ShapeConfig.Vcpus),
+		MemoryGB:    *inst.ShapeConfig.MemoryInGBs,
+		FaultDomain: *inst.FaultDomain,
 	}
 }

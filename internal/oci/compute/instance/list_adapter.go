@@ -20,25 +20,46 @@ func NewImageListModel(instances []domain.Instance) listx.Model {
 }
 
 func description(inst domain.Instance) string {
-	date := inst.TimeCreated.Format("2006-01-02")
-
-	adfd := inst.AvailabilityDomain
-	if inst.FaultDomain != "" {
-		adfd = fmt.Sprintf("%s/FD-%s", adfd, inst.FaultDomain)
-	}
-
 	cpuMem := ""
 	if inst.VCPUs > 0 || inst.MemoryGB > 0 {
-		cpuMem = fmt.Sprintf(" %dvCPU/%.1fGB", inst.VCPUs, inst.MemoryGB)
+		mem := fmt.Sprintf("%.1f", inst.MemoryGB)
+		mem = strings.TrimSuffix(mem, ".0")
+		cpuMem = fmt.Sprintf(" %dvCPU/%sGB", inst.VCPUs, mem)
 	}
+	spec := strings.TrimSpace(inst.Shape + cpuMem)
+	fd := inst.FaultDomain
+	if strings.HasPrefix(fd, "FAULT-DOMAIN-") {
+		fd = "FD-" + strings.TrimPrefix(fd, "FAULT-DOMAIN-")
+	}
+	var locParts []string
+	if inst.Region != "" {
+		locParts = append(locParts, inst.Region)
+	}
+	if inst.AvailabilityDomain != "" && fd != "" {
+		locParts = append(locParts, inst.AvailabilityDomain+"/"+fd)
+	} else if inst.AvailabilityDomain != "" {
+		locParts = append(locParts, inst.AvailabilityDomain)
+	} else if fd != "" {
+		locParts = append(locParts, fd)
+	}
+	loc := strings.Join(locParts, " ")
 
-	spec := inst.Shape
+	date := ""
+	if !inst.TimeCreated.IsZero() {
+		date = inst.TimeCreated.Format("2006-01-02")
+	}
+	parts := make([]string, 0, 4)
+	if inst.State != "" {
+		parts = append(parts, inst.State)
+	}
 	if spec != "" {
-		spec += cpuMem
-	} else {
-		spec = strings.TrimSpace(cpuMem)
+		parts = append(parts, spec)
 	}
-
-	return fmt.Sprintf("%s • %s • %s %s • %s",
-		inst.State, spec, inst.Region, adfd, date)
+	if loc != "" {
+		parts = append(parts, loc)
+	}
+	if date != "" {
+		parts = append(parts, date)
+	}
+	return strings.Join(parts, " • ")
 }
