@@ -23,10 +23,5 @@ func ListBastions(ctx context.Context, appCtx *app.ApplicationContext, useJSON b
 		return fmt.Errorf("listing bastions: %w", err)
 	}
 
-	err = PrintBastionInfo(bastions, appCtx, useJSON)
-	if err != nil {
-		return fmt.Errorf("printing bastions: %w", err)
-	}
-	logger.Logger.V(logger.Info).Info("Bastion list operation completed successfully.")
-	return nil
+	return PrintBastionInfo(bastions, appCtx, useJSON)
 }

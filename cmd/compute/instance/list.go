@@ -12,8 +12,8 @@ import (
 // NewListCmd creates a new command for listing instances
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "get",
-		Short:         "Paginated Instance Results",
+		Use:           "list",
+		Short:         "List all Instances",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,
@@ -31,7 +31,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance list command in", "compartment", appCtx.CompartmentName, useJSON, "imageDetails", imageDetails)
-	return instance.ListInstances(appCtx, useJSON, imageDetails)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance list command in", "compartment", appCtx.CompartmentName, useJSON)
+	return instance.ListInstances(appCtx, useJSON)
 }
