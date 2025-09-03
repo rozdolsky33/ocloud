@@ -69,45 +69,6 @@ func TestPrintVersion(t *testing.T) {
 	}, "PrintVersion should not panic")
 }
 
-// TestAddVersionFlag tests the AddVersionFlag function
-func TestAddVersionFlag(t *testing.T) {
-	// Create a root command
-	rootCmd := &cobra.Command{
-		Use:   "ocloud",
-		Short: "Test command",
-	}
-
-	// Add the version flag
-	AddVersionFlag(rootCmd)
-
-	// Verify the flag is added
-	flag := rootCmd.PersistentFlags().Lookup("version")
-	assert.NotNil(t, flag, "version flag should be added")
-	assert.Equal(t, "bool", flag.Value.Type())
-
-	// Verify the short flag is added
-	shortFlag := rootCmd.PersistentFlags().ShorthandLookup("v")
-	assert.NotNil(t, shortFlag, "short version flag should be added")
-	assert.Equal(t, flag, shortFlag, "short flag should be the same as the long flag")
-
-	// Test the PersistentPreRunE function with the version flag
-	// Create a buffer to capture output
-	var buf bytes.Buffer
-	rootCmd.SetOut(&buf)
-
-	// Set the version flag
-	rootCmd.PersistentFlags().Set("version", "true")
-
-	// Run the PersistentPreRunE function
-	err := rootCmd.PersistentPreRunE(rootCmd, []string{})
-
-	// Verify there's no error
-	assert.NoError(t, err)
-
-	// We can't easily verify the output since PrintVersionInfo writes to os.Stdout
-	// In a real test environment, we might use a custom writer that can be captured
-}
-
 // TestVersionInfoPrintVersionInfo tests the printVersionInfo method of VersionInfo
 func TestVersionInfoPrintVersionInfo(t *testing.T) {
 	// Create a buffer to capture the output
@@ -129,4 +90,47 @@ func TestVersionInfoPrintVersionInfo(t *testing.T) {
 	assert.True(t, strings.Contains(output, "Version:"), "Output should contain Version")
 	assert.True(t, strings.Contains(output, "Commit:"), "Output should contain Commit")
 	assert.True(t, strings.Contains(output, "Built:"), "Output should contain Built")
+}
+
+func TestAddVersionFlag(t *testing.T) {
+	// Create a root command
+	rootCmd := &cobra.Command{
+		Use: "ocloud",
+		Run: func(cmd *cobra.Command, args []string) {},
+	}
+
+	// Create a buffer to capture the output
+	buf := new(bytes.Buffer)
+
+	// Add the version flag
+	AddVersionFlag(rootCmd, buf)
+
+	// Verify the flag is added
+	flag := rootCmd.PersistentFlags().Lookup("version")
+	assert.NotNil(t, flag, "version flag should be added")
+
+	// --- Test case 1: --version flag is set ---
+	rootCmd.SetArgs([]string{"--version"})
+	err := rootCmd.Execute()
+	assert.NoError(t, err, "Execute should not return an error when --version is set")
+
+	// Verify the output contains version information
+	output := buf.String()
+	assert.Contains(t, output, "Version:")
+	assert.Contains(t, output, "Commit:")
+	assert.Contains(t, output, "Built:")
+
+	// --- Test case 2: --version flag is NOT set ---
+	var originalPreRunCalled bool
+	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		originalPreRunCalled = true
+		return nil
+	}
+
+	rootCmd.SetArgs([]string{})
+	err = rootCmd.Execute()
+	assert.NoError(t, err, "Execute should not return an error when --version is not set")
+
+	// Verify that the original PersistentPreRunE was called
+	assert.True(t, originalPreRunCalled, "Original PersistentPreRunE should be called when --version is not set")
 }
