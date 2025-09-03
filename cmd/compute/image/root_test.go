@@ -20,9 +20,9 @@ func TestImageCommand(t *testing.T) {
 
 	// Test that the image command is properly configured
 	assert.Equal(t, "image", cmd.Use)
-	assert.Equal(t, "Manage OCI Image", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Compute Image - list all image or find image by name pattern.", cmd.Long)
-	assert.Equal(t, "  ocloud compute image list\n  ocloud compute image find <image-name>", cmd.Example)
+	assert.Equal(t, "Manage OCI Compute images — list, paginate, and search.", cmd.Short)
+	assert.Equal(t, "List OCI Compute images in a compartment. Supports paging through large result sets and filtering by value pattern.", cmd.Long)
+	assert.Equal(t, "  ocloud compute image get\n  ocloud compute image list\n  ocloud compute image find <image-name>", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")

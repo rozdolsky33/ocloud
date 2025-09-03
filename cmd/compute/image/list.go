@@ -13,15 +13,15 @@ var listCmdLong = `
 Interactively browse and search images in the specified compartment using a TUI.
 
 This command launches a Bubble Tea-based terminal UI that loads available images and lets you:
-- Search/filter images as you type
+- Search/filter image as you type
 - Navigate the list
 - Select a single image to view its details
 
-After you pick an image, the tool prints detailed information about the selected image.
+After you pick an image, the tool prints detailed information about the selected image default table view or JSON format if specified with --json.
 `
 
 var listCmdExamples = `
-  # Launch the interactive image browser
+  # Launch the interactive instance browser
   ocloud compute image list
 
   # Use fuzzy search in the UI to quickly find what you need
