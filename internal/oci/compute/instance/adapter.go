@@ -12,6 +12,12 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/domain"
 )
 
+const (
+	defaultMaxRetries     = 5
+	defaultInitialBackoff = 1 * time.Second
+	defaultMaxBackoff     = 32 * time.Second
+)
+
 // Adapter is an infrastructure-layer adapter for compute instances.
 // It implements the domain.InstanceRepository interface.
 type Adapter struct {
@@ -25,20 +31,6 @@ func NewAdapter(computeClient core.ComputeClient, networkClient core.VirtualNetw
 		computeClient: computeClient,
 		networkClient: networkClient,
 	}
-}
-
-func (a *Adapter) GetInstance(ctx context.Context, id string) (*domain.Instance, error) {
-	resp, err := a.computeClient.GetInstance(ctx, core.GetInstanceRequest{
-		InstanceId: &id,
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("getting instance from OCI: %w", err)
-	}
-
-	inst := a.toDomainModel(resp.Instance)
-	return &inst, nil
-
 }
 
 // ListInstances fetches all running instances in a compartment.
@@ -99,7 +91,6 @@ func (a *Adapter) GetEnrichedInstance(ctx context.Context, instanceID string) (*
 	if err != nil {
 		return nil, fmt.Errorf("getting instance from OCI: %w", err)
 	}
-	// Enrich and map the single instance
 	dm, err := a.enrichAndMapInstance(ctx, resp.Instance)
 	if err != nil {
 		return nil, err
@@ -272,12 +263,7 @@ func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Ins
 func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID string) (*core.Vnic, error) {
 	var attachments core.ListVnicAttachmentsResponse
 	var err error
-	maxRetries := 5
-	initialBackoff := 1 * time.Second
-	maxBackoff := 32 * time.Second
-
-	// Retry ListVnicAttachments with a unified helper
-	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 		var e error
 		attachments, e = a.computeClient.ListVnicAttachments(ctx, core.ListVnicAttachmentsRequest{
 			CompartmentId: &compartmentID,
@@ -294,8 +280,7 @@ func (a *Adapter) getPrimaryVnic(ctx context.Context, instanceID, compartmentID 
 			var resp core.GetVnicResponse
 			var vnicErr error
 
-			// Retry GetVnic using a unified helper; if it still fails, move on to the next VNIC
-			vnicErr = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+			vnicErr = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 				var e error
 				resp, e = a.networkClient.GetVnic(ctx, core.GetVnicRequest{VnicId: attach.VnicId})
 				return e
@@ -315,12 +300,7 @@ func (a *Adapter) getSubnet(ctx context.Context, subnetID string) (*core.Subnet,
 	var resp core.GetSubnetResponse
 	var err error
 
-	// Retry parameters
-	maxRetries := 5
-	initialBackoff := 1 * time.Second
-	maxBackoff := 32 * time.Second
-
-	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 		var e error
 		resp, e = a.networkClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &subnetID})
 		return e
@@ -335,12 +315,8 @@ func (a *Adapter) getSubnet(ctx context.Context, subnetID string) (*core.Subnet,
 func (a *Adapter) getVcn(ctx context.Context, vcnID string) (*core.Vcn, error) {
 	var resp core.GetVcnResponse
 	var err error
-	// Retry
-	maxRetries := 5
-	initialBackoff := 1 * time.Second
-	maxBackoff := 32 * time.Second
 
-	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 		var e error
 		resp, e = a.networkClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
 		return e
@@ -356,12 +332,7 @@ func (a *Adapter) getImage(ctx context.Context, imageID string) (*core.Image, er
 	var resp core.GetImageResponse
 	var err error
 
-	// Retry parameters
-	maxRetries := 5
-	initialBackoff := 1 * time.Second
-	maxBackoff := 32 * time.Second
-
-	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 		var e error
 		resp, e = a.computeClient.GetImage(ctx, core.GetImageRequest{ImageId: &imageID})
 		return e
@@ -377,12 +348,7 @@ func (a *Adapter) getRouteTable(ctx context.Context, rtID string) (*core.RouteTa
 	var resp core.GetRouteTableResponse
 	var err error
 
-	// Retry parameters
-	maxRetries := 5
-	initialBackoff := 1 * time.Second
-	maxBackoff := 32 * time.Second
-
-	err = retryOnRateLimit(ctx, maxRetries, initialBackoff, maxBackoff, func() error {
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 		var e error
 		resp, e = a.networkClient.GetRouteTable(ctx, core.GetRouteTableRequest{RtId: &rtID})
 		return e

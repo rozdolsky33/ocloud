@@ -133,12 +133,12 @@ run_command ./bin/ocloud comp oke f "orion"
 
 # Test with debug flag
 print_header "Testing with debug flag"
-run_command ./bin/ocloud -d compute instance list
-run_command ./bin/ocloud --debug compute instance list
+run_command ./bin/ocloud -d compute instance get
+run_command ./bin/ocloud --debug compute instance get
 
 # Test with color flag
 print_header "Testing with color flag"
-run_command ./bin/ocloud --color compute instance list
+run_command ./bin/ocloud --color compute instance get
 
 # Test identity command
 print_header "Testing identity command"

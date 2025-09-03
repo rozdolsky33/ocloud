@@ -27,6 +27,7 @@ func NewService(repo domain.InstanceRepository, logger logr.Logger, compartmentI
 	}
 }
 
+// ListInstances retrieves a list of instances.
 func (s *Service) ListInstances(ctx context.Context) ([]Instance, error) {
 	s.logger.V(logger.Debug).Info("listing instances")
 	instances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)

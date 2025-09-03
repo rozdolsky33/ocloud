@@ -11,7 +11,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
-// ListInstances lists instances.
+// ListInstances lists instances in a formatted table or JSON format.
 func ListInstances(appCtx *app.ApplicationContext, useJSON bool) error {
 
 	ctx := context.Background()

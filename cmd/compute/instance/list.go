@@ -13,6 +13,7 @@ import (
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
+		Aliases:       []string{"l"},
 		Short:         "List all Instances",
 		Long:          listLong,
 		Example:       listExamples,
