@@ -20,7 +20,7 @@ func (i resourceItem) Title() string       { return i.title }
 func (i resourceItem) Description() string { return i.description }
 func (i resourceItem) FilterValue() string { return i.title + " " + i.description }
 
-// KeyMap defines key bindings (export if you want callers to override).
+// KeyMap defines key bindings TODO: export if you want callers to override.
 type KeyMap struct {
 	Confirm key.Binding
 	Quit    key.Binding
@@ -36,9 +36,10 @@ func DefaultKeyMap() KeyMap {
 
 // Model is a reusable Bubble Tea model for a searchable list of resources.
 type Model struct {
-	list   list.Model
-	choice string
-	keys   KeyMap
+	list      list.Model
+	choice    string
+	confirmed bool
+	keys      KeyMap
 }
 
 func (m Model) Init() tea.Cmd { return nil }
@@ -49,11 +50,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetSize(msg.Width, msg.Height-2)
 	case tea.KeyMsg:
 		if key.Matches(msg, m.keys.Quit) {
+			m.confirmed = false
 			return m, tea.Quit
 		}
 		if key.Matches(msg, m.keys.Confirm) {
 			if it, ok := m.list.SelectedItem().(resourceItem); ok {
 				m.choice = it.id
+				m.confirmed = true
 			}
 			return m, tea.Quit
 		}
@@ -67,8 +70,6 @@ func (m Model) View() string   { return m.list.View() }
 func (m Model) Choice() string { return m.choice }
 
 // NewModel creates a list model from arbitrary data by using an adapter.
-//
-// T is your domain type (Image, Instance, Node, etc.).
 // adapter maps T -> ResourceItemData (id/title/description).
 func NewModel[T any](title string, data []T, adapter func(T) ResourceItemData) Model {
 	items := make([]list.Item, 0, len(data))

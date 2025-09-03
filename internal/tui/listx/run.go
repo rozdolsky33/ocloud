@@ -1,8 +1,15 @@
 package listx
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	"errors"
 
-// Run returns the selected ID (or empty if none).
+	tea "github.com/charmbracelet/bubbletea"
+)
+
+// ErrCancelled is returned when the user quits without confirming.
+var ErrCancelled = errors.New("selection cancelled")
+
+// Run returns the selected ID, or ErrCancelled if the user quit without confirming.
 func Run(m Model) (string, error) {
 	p := tea.NewProgram(m)
 	finalModel, err := p.Run()
@@ -10,7 +17,10 @@ func Run(m Model) (string, error) {
 		return "", err
 	}
 	if mm, ok := finalModel.(Model); ok {
-		return mm.Choice(), nil
+		if !mm.confirmed || mm.choice == "" {
+			return "", ErrCancelled
+		}
+		return mm.choice, nil
 	}
-	return "", nil
+	return "", ErrCancelled
 }

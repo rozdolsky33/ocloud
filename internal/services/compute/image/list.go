@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -29,7 +30,10 @@ func ListImages(ctx context.Context, appCtx *app.ApplicationContext, useJSON boo
 	model := ociImage.NewImageListModel(images)
 	id, err := listx.Run(model)
 	if err != nil {
-		return fmt.Errorf("image selection TUI: %w", err)
+		if errors.Is(err, listx.ErrCancelled) {
+			return nil
+		}
+		return fmt.Errorf("selecting image: %w", err)
 	}
 
 	image, err := service.imageRepo.GetImage(ctx, id)
