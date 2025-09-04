@@ -60,8 +60,8 @@ func PrintOKETable(clusters []Cluster, appCtx *app.ApplicationContext, paginatio
 	return nil
 }
 
-// PrintOKEInfo prints a detailed view of OKE clusters.
-func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+// PrintOKEsInfo prints a detailed view of OKE clusters.
+func PrintOKEsInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -117,5 +117,46 @@ func PrintOKEInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
+	return nil
+}
+
+// PrintOKEInfo prints a detailed view of an OKE cluster.
+func PrintOKEInfo(appCtx *app.ApplicationContext, c *Cluster, useJSON bool) error {
+	p := printer.New(appCtx.Stdout)
+
+	summary := map[string]string{
+		"ID":               c.OCID,
+		"Name":             c.DisplayName,
+		"K8s Version":      c.KubernetesVersion,
+		"Created":          c.TimeCreated.Format("2006-01-02 15:04:05"),
+		"State":            c.State,
+		"Private Endpoint": c.PrivateEndpoint,
+		"Node Pools":       fmt.Sprintf("%d", len(c.NodePools)),
+	}
+
+	order := []string{"ID", "Name", "K8s Version", "Created", "State", "Private Endpoint", "Node Pools"}
+
+	title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s", c.DisplayName))
+	p.PrintKeyValues(title, summary, order)
+	fmt.Fprintln(appCtx.Stdout)
+
+	if len(c.NodePools) > 0 {
+		headers := []string{"Node Pool", "Version", "Shape", "Node Count"}
+		rows := make([][]string, len(c.NodePools))
+
+		for i, np := range c.NodePools {
+			rows[i] = []string{
+				np.DisplayName,
+				np.KubernetesVersion,
+				np.NodeShape,
+				fmt.Sprintf("%d", np.NodeCount),
+			}
+		}
+
+		tableTitle := util.FormatColoredTitle(appCtx, "Node Pools")
+		p.PrintTable(tableTitle, headers, rows)
+		fmt.Fprintln(appCtx.Stdout)
+	}
+
 	return nil
 }

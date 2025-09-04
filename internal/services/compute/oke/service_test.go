@@ -16,6 +16,11 @@ type mockClusterRepository struct {
 	err      error
 }
 
+func (m *mockClusterRepository) GetCluster(ctx context.Context, ocid string) (*Cluster, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *mockClusterRepository) ListClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
 	if m.err != nil {
 		return nil, m.err

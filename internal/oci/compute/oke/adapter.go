@@ -13,18 +13,26 @@ type Adapter struct {
 	client containerengine.ContainerEngineClient
 }
 
+// GetCluster retrieves a single cluster by its OCID.
+func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.Cluster, error) {
+	resp, err := a.client.GetCluster(ctx, containerengine.GetClusterRequest{
+		ClusterId: &clusterOCID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting cluster from OCI: %w", err)
+	}
+
+	cluster := a.toDomainModel(resp.Cluster)
+	return &cluster, nil
+}
+
 // NewAdapter creates a new OKE adapter.
 func NewAdapter(client containerengine.ContainerEngineClient) *Adapter {
 	return &Adapter{client: client}
 }
 
+// ListClusters fetches all clusters in a compartment and enriches them with node pools.
 func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-// GetClusters fetches all clusters in a compartment and enriches them with node pools.
-func (a *Adapter) GetClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
 	var ociClusters []containerengine.ClusterSummary
 	var page *string
 
@@ -121,4 +129,15 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 		page = resp.OpcNextPage
 	}
 	return domainNodePools, nil
+}
+
+func (a *Adapter) toDomainModel(c containerengine.Cluster) domain.Cluster {
+	return domain.Cluster{
+		OCID:              *c.Id,
+		DisplayName:       *c.Name,
+		KubernetesVersion: *c.KubernetesVersion,
+		VcnOCID:           *c.VcnId,
+		State:             string(c.LifecycleState),
+		TimeCreated:       c.Metadata.TimeCreated.Time,
+	}
 }

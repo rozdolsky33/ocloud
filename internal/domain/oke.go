@@ -30,5 +30,5 @@ type NodePool struct {
 // ClusterRepository defines the port for interacting with OKE cluster storage.
 type ClusterRepository interface {
 	ListClusters(ctx context.Context, compartmentID string) ([]Cluster, error)
-	GetClusters(ctx context.Context, ocid string) ([]Cluster, error)
+	GetCluster(ctx context.Context, ocid string) (*Cluster, error)
 }
