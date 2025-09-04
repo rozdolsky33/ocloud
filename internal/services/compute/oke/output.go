@@ -124,6 +124,10 @@ func PrintOKEsInfo(clusters []Cluster, appCtx *app.ApplicationContext, paginatio
 func PrintOKEInfo(appCtx *app.ApplicationContext, c *Cluster, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
+	if useJSON {
+		return p.MarshalToJSON(c)
+	}
+
 	summary := map[string]string{
 		"ID":               c.OCID,
 		"Name":             c.DisplayName,

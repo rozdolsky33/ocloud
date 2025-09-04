@@ -37,11 +37,12 @@ func ListClusters(appCtx *app.ApplicationContext, useJSON bool) error {
 		return fmt.Errorf("selecting image: %w", err)
 	}
 
-	cluster, err := service.clusterRepo.GetCluster(ctx, id)
-	if err != nil {
-		return fmt.Errorf("getting image: %w", err)
-	}
+	//cluster, err := service.clusterRepo.GetCluster(ctx, id)
+	//if err != nil {
+	//	return fmt.Errorf("getting image: %w", err)
+	//}
+	fmt.Println(id)
 
-	return PrintOKEInfo(appCtx, cluster, useJSON)
+	return PrintOKEsInfo(clusters, appCtx, nil, useJSON)
 
 }
