@@ -2,7 +2,6 @@ package instance
 
 import (
 	instaceFlags "github.com/rozdolsky33/ocloud/cmd/compute/flags"
-	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -10,40 +9,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Dedicated documentation for the list command (separate from get)
 var listLong = `
-List all instances in the specified compartment with pagination support.
+Interactively browse and search instances in the specified compartment using a TUI.
 
-This command displays information about running instances in the current compartment.
-By default, it shows basic instance information such as name, ID, IP address, and shape.
+This command launches a Bubble Tea-based terminal UI that loads available instances and lets you:
+- Search/filter instance as you type
+- Navigate the list
+- Select a single instance to view its details
 
-The output is paginated, with a default limit of 20 instances per page. You can navigate
-through pages using the --page flag and control the number of instances per page with
-the --limit flag.
-
-Additional Information:
-- Use --all (-A) to include information about the image used by each instance
-- Use --json (-j) to output the results in JSON format
-- The command only shows running instances by default
+After you pick an instance, the tool prints detailed information about the selected instance default table view or JSON format if specified with --json.
 `
 
 var listExamples = `
-  # List all instances with default pagination (20 per page)
+  # Launch the interactive instance browser
   ocloud compute instance list
 
-  # List instances with custom pagination (10 per page, page 2)
-  ocloud compute instance list --limit 10 --page 2
-
-  # List instances and include image details
-  ocloud compute instance list --all
-
-  # List instances with image details (using shorthand flag)
-  ocloud compute instance list -A
-
-  # List instances and output in JSON format
-  ocloud compute instance list --json
-
-  # List instances with both image details and JSON output
-  ocloud compute instance list --all --json
+  # Use fuzzy search in the UI to quickly find what you need
+  ocloud compute instance list
 `
 
 // NewListCmd creates a new command for listing instances
@@ -51,7 +34,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "List all instances",
+		Short:         "List all Instances",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,
@@ -61,19 +44,14 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	paginationFlags.LimitFlag.Add(cmd)
-	paginationFlags.PageFlag.Add(cmd)
-	instaceFlags.ImageDetailsFlag.Add(cmd)
+	instaceFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
 }
 
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)
-	return instance.ListInstances(appCtx, useJSON, limit, page, imageDetails)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance list command in", "compartment", appCtx.CompartmentName, useJSON)
+	return instance.ListInstances(appCtx, useJSON)
 }

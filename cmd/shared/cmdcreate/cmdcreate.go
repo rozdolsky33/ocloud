@@ -2,6 +2,7 @@ package cmdcreate
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/rozdolsky33/ocloud/cmd/compute"
 	"github.com/rozdolsky33/ocloud/cmd/configuration"
@@ -30,7 +31,7 @@ func CreateRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	// Add commands that don't need context
 	rootCmd.AddCommand(version.NewVersionCommand())
-	version.AddVersionFlag(rootCmd)
+	version.AddVersionFlag(rootCmd, os.Stdout)
 	rootCmd.AddCommand(configuration.NewConfigCmd())
 
 	// If appCtx is not nil, add commands that need context

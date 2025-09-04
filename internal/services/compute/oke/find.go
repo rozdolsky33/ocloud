@@ -24,5 +24,5 @@ func FindClusters(appCtx *app.ApplicationContext, namePattern string, useJSON bo
 		return fmt.Errorf("finding clusters: %w", err)
 	}
 
-	return PrintOKEInfo(matchedClusters, appCtx, nil, useJSON)
+	return PrintOKEsInfo(matchedClusters, appCtx, nil, useJSON)
 }

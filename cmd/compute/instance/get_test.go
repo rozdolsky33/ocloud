@@ -14,14 +14,13 @@ func TestListCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new list command
-	cmd := NewListCmd(appCtx)
+	cmd := NewGetCmd(appCtx)
 
 	// Test that the list command is properly configured
-	assert.Equal(t, "list", cmd.Use)
-	assert.Equal(t, []string{"l"}, cmd.Aliases)
-	assert.Equal(t, "List all instances", cmd.Short)
-	assert.Equal(t, listLong, cmd.Long)
-	assert.Equal(t, listExamples, cmd.Example)
+	assert.Equal(t, "get", cmd.Use)
+	assert.Equal(t, "Paginated Instance Results", cmd.Short)
+	assert.Equal(t, getLong, cmd.Long)
+	assert.Equal(t, getExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

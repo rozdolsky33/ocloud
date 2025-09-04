@@ -11,7 +11,7 @@ import (
 
 // Long description for the list command
 var listLong = `
-List all Compartments in the specified tenancy or compartment with pagination support.
+FetchPaginatedClusters all Compartments in the specified tenancy or compartment with pagination support.
 
 This command displays information about compartments in the current tenancy.
 By default, it shows basic compartment information such as name, ID, and description.
@@ -27,16 +27,16 @@ Additional Information:
 
 // Examples for the list command
 var listExamples = `
-  # List all compartments with default pagination (20 per page)
+  # FetchPaginatedClusters all compartments with default pagination (20 per page)
   ocloud identity compartment list
 
-  # List compartments with custom pagination (10 per page, page 2)
+  # FetchPaginatedClusters compartments with custom pagination (10 per page, page 2)
   ocloud identity compartment list --limit 10 --page 2
 
-  # List compartments and output in JSON format
+  # FetchPaginatedClusters compartments and output in JSON format
   ocloud identity compartment list --json
 
-  # List compartments with custom pagination and JSON output
+  # FetchPaginatedClusters compartments with custom pagination and JSON output
   ocloud identity compartment list --limit 5 --page 3 --json
 `
 
@@ -46,7 +46,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "List all Compartments in the specified tenancy or compartment",
+		Short:         "FetchPaginatedClusters all Compartments in the specified tenancy or compartment",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,

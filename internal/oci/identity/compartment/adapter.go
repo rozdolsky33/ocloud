@@ -73,7 +73,6 @@ func (a *CompartmentAdapter) ListCompartments(ctx context.Context, parentCompart
 }
 
 // toDomainModel converts an OCI SDK compartment object to our application's domain model.
-// This is the anti-corruption layer in action.
 func (a *CompartmentAdapter) toDomainModel(c identity.Compartment) domain.Compartment {
 	var parentID string
 	if c.CompartmentId != nil {

@@ -16,7 +16,20 @@ type mockClusterRepository struct {
 	err      error
 }
 
+func (m *mockClusterRepository) GetCluster(ctx context.Context, ocid string) (*Cluster, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *mockClusterRepository) ListClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.clusters, nil
+}
+
+// GetClusters is required to satisfy the domain.ClusterRepository interface.
+func (m *mockClusterRepository) GetClusters(ctx context.Context, ocid string) ([]domain.Cluster, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -48,7 +61,7 @@ func TestService_List(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-compartment")
 
-	results, _, _, err := service.List(context.Background(), 10, 1)
+	results, _, _, err := service.FetchPaginatedClusters(context.Background(), 10, 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
@@ -61,7 +74,7 @@ func TestService_List_Error(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-compartment")
 
-	_, _, _, err := service.List(context.Background(), 10, 1)
+	_, _, _, err := service.FetchPaginatedClusters(context.Background(), 10, 1)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), expectedErr.Error())

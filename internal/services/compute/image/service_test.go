@@ -60,7 +60,7 @@ func TestService_Get(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-compartment")
 
-	results, _, _, err := service.Get(context.Background(), 10, 1)
+	results, _, _, err := service.FetchPaginatedImages(context.Background(), 10, 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
@@ -73,7 +73,7 @@ func TestService_Get_Error(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-compartment")
 
-	_, _, _, err := service.Get(context.Background(), 10, 1)
+	_, _, _, err := service.FetchPaginatedImages(context.Background(), 10, 1)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), expectedErr.Error())

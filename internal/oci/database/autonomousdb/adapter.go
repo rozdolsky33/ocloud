@@ -53,7 +53,7 @@ func (a *Adapter) ListAutonomousDatabases(ctx context.Context, compartmentID str
 
 // FindAutonomousDatabase finds a specific autonomous database by name.
 // This implementation fetches all and filters, which might not be optimal for very large numbers of databases.
-// OCI SDK does not provide a direct "Get by Name" for autonomous databases.
+// OCI SDK does not provide a direct "FetchPaginatedImages by Name" for autonomous databases.
 func (a *Adapter) FindAutonomousDatabase(ctx context.Context, compartmentID, name string) (*domain.AutonomousDatabase, error) {
 	dbs, err := a.ListAutonomousDatabases(ctx, compartmentID)
 	if err != nil {
