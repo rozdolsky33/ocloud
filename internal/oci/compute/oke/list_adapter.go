@@ -26,7 +26,7 @@ func description(c domain.Cluster) string {
 		parts = append(parts, c.State)
 	}
 	if v := strings.TrimSpace(c.KubernetesVersion); v != "" {
-		parts = append(parts, "v"+v)
+		parts = append(parts, v)
 	}
 
 	np := len(c.NodePools)

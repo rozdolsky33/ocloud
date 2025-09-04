@@ -13,7 +13,7 @@ type Adapter struct {
 	client containerengine.ContainerEngineClient
 }
 
-// GetCluster retrieves a single cluster by its OCID.
+// GetCluster retrieves a single cluster by its OCID and enriches it with node pools.
 func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.Cluster, error) {
 	resp, err := a.client.GetCluster(ctx, containerengine.GetClusterRequest{
 		ClusterId: &clusterOCID,
@@ -22,8 +22,11 @@ func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.C
 		return nil, fmt.Errorf("getting cluster from OCI: %w", err)
 	}
 
-	cluster := a.toDomainModel(resp.Cluster)
-	return &cluster, nil
+	dc, err := a.enrichAndMapCluster(ctx, resp.Cluster)
+	if err != nil {
+		return nil, err
+	}
+	return &dc, nil
 }
 
 // NewAdapter creates a new OKE adapter.
@@ -55,17 +58,25 @@ func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]dom
 	return a.mapAndEnrichClusters(ctx, ociClusters)
 }
 
-// mapAndEnrichClusters maps OCI clusters to domain models and enriches them with node pools.
+// mapAndEnrichClusters maps OCI clusters (summaries) to domain models and enriches them with node pools.
 func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []containerengine.ClusterSummary) ([]domain.Cluster, error) {
 	var domainClusters []domain.Cluster
 	for _, ociCluster := range ociClusters {
-		dc := domain.Cluster{
-			OCID:              *ociCluster.Id,
-			DisplayName:       *ociCluster.Name,
-			KubernetesVersion: *ociCluster.KubernetesVersion,
-			VcnOCID:           *ociCluster.VcnId,
-			State:             string(ociCluster.LifecycleState),
+		dc := domain.Cluster{}
+		if ociCluster.Id != nil {
+			dc.OCID = *ociCluster.Id
 		}
+		if ociCluster.Name != nil {
+			dc.DisplayName = *ociCluster.Name
+		}
+		if ociCluster.KubernetesVersion != nil {
+			dc.KubernetesVersion = *ociCluster.KubernetesVersion
+		}
+		if ociCluster.VcnId != nil {
+			dc.VcnOCID = *ociCluster.VcnId
+		}
+		dc.State = string(ociCluster.LifecycleState)
+
 		if ociCluster.Endpoints != nil {
 			if ociCluster.Endpoints.PrivateEndpoint != nil {
 				dc.PrivateEndpoint = *ociCluster.Endpoints.PrivateEndpoint
@@ -85,14 +96,49 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 
 		nodePools, err := a.listNodePools(ctx, *ociCluster.CompartmentId, *ociCluster.Id)
 		if err != nil {
-			// In a real-world scenario, you might want to handle this more gracefully
-			// (e.g., log the error and continue), but for now, we'll fail fast.
 			return nil, fmt.Errorf("enriching cluster %s with node pools: %w", dc.OCID, err)
 		}
 		dc.NodePools = nodePools
 		domainClusters = append(domainClusters, dc)
 	}
 	return domainClusters, nil
+}
+
+// enrichAndMapCluster maps a single full OCI cluster object to domain model and enriches it with node pools.
+func (a *Adapter) enrichAndMapCluster(ctx context.Context, c containerengine.Cluster) (domain.Cluster, error) {
+	dc := domain.Cluster{}
+	if c.Id != nil {
+		dc.OCID = *c.Id
+	}
+	if c.Name != nil {
+		dc.DisplayName = *c.Name
+	}
+	if c.KubernetesVersion != nil {
+		dc.KubernetesVersion = *c.KubernetesVersion
+	}
+	if c.VcnId != nil {
+		dc.VcnOCID = *c.VcnId
+	}
+	dc.State = string(c.LifecycleState)
+	if c.Endpoints != nil {
+		if c.Endpoints.PrivateEndpoint != nil {
+			dc.PrivateEndpoint = *c.Endpoints.PrivateEndpoint
+		}
+		if c.Endpoints.Kubernetes != nil {
+			dc.PublicEndpoint = *c.Endpoints.Kubernetes
+		}
+	}
+	if c.Metadata != nil && c.Metadata.TimeCreated != nil {
+		dc.TimeCreated = c.Metadata.TimeCreated.Time
+	}
+	if c.CompartmentId != nil && c.Id != nil {
+		nps, err := a.listNodePools(ctx, *c.CompartmentId, *c.Id)
+		if err != nil {
+			return dc, fmt.Errorf("enriching cluster %s with node pools: %w", dc.OCID, err)
+		}
+		dc.NodePools = nps
+	}
+	return dc, nil
 }
 
 // listNodePools fetches all node pools in a cluster.

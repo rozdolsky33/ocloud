@@ -60,7 +60,7 @@ func PrintOKETable(clusters []Cluster, appCtx *app.ApplicationContext, paginatio
 	return nil
 }
 
-// PrintOKEsInfo prints a detailed view of OKE clusters.
+// PrintOKEsInfo displays instances in a formatted table or JSON format.
 func PrintOKEsInfo(clusters []Cluster, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -81,63 +81,44 @@ func PrintOKEsInfo(clusters []Cluster, appCtx *app.ApplicationContext, paginatio
 	})
 
 	for _, c := range clusters {
-		summary := map[string]string{
-			"ID":               c.OCID,
-			"Name":             c.DisplayName,
-			"K8s Version":      c.KubernetesVersion,
-			"Created":          c.TimeCreated.Format("2006-01-02 15:04:05"),
-			"State":            c.State,
-			"Private Endpoint": c.PrivateEndpoint,
-			"Node Pools":       fmt.Sprintf("%d", len(c.NodePools)),
-		}
-
-		order := []string{"ID", "Name", "K8s Version", "Created", "State", "Private Endpoint", "Node Pools"}
-
-		title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s", c.DisplayName))
-		p.PrintKeyValues(title, summary, order)
-		fmt.Fprintln(appCtx.Stdout)
-
-		if len(c.NodePools) > 0 {
-			headers := []string{"Node Pool", "Version", "Shape", "Node Count"}
-			rows := make([][]string, len(c.NodePools))
-
-			for i, np := range c.NodePools {
-				rows[i] = []string{
-					np.DisplayName,
-					np.KubernetesVersion,
-					np.NodeShape,
-					fmt.Sprintf("%d", np.NodeCount),
-				}
-			}
-
-			tableTitle := util.FormatColoredTitle(appCtx, "Node Pools")
-			p.PrintTable(tableTitle, headers, rows)
-			fmt.Fprintln(appCtx.Stdout)
-		}
+		renderCluster(p, appCtx, c)
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }
 
-// PrintOKEInfo prints a detailed view of an OKE cluster.
+// PrintOKEInfo prints a detailed view of a cluster.
 func PrintOKEInfo(appCtx *app.ApplicationContext, c *Cluster, useJSON bool) error {
+	if c == nil {
+		return fmt.Errorf("nil cluster")
+	}
 	p := printer.New(appCtx.Stdout)
 
 	if useJSON {
-		return p.MarshalToJSON(c)
+		return util.MarshalDataToJSONResponse[Cluster](p, []Cluster{*c}, nil)
+	}
+
+	renderCluster(p, appCtx, *c)
+	return nil
+}
+
+// renderCluster renders a cluster in a formatted table or JSON format.
+func renderCluster(p *printer.Printer, appCtx *app.ApplicationContext, c Cluster) {
+	created := "-"
+	if !c.TimeCreated.IsZero() {
+		created = c.TimeCreated.Format("2006-01-02 15:04:05")
 	}
 
 	summary := map[string]string{
 		"ID":               c.OCID,
 		"Name":             c.DisplayName,
 		"K8s Version":      c.KubernetesVersion,
-		"Created":          c.TimeCreated.Format("2006-01-02 15:04:05"),
+		"Created":          created,
 		"State":            c.State,
 		"Private Endpoint": c.PrivateEndpoint,
 		"Node Pools":       fmt.Sprintf("%d", len(c.NodePools)),
 	}
-
 	order := []string{"ID", "Name", "K8s Version", "Created", "State", "Private Endpoint", "Node Pools"}
 
 	title := util.FormatColoredTitle(appCtx, fmt.Sprintf("Cluster: %s", c.DisplayName))
@@ -147,7 +128,6 @@ func PrintOKEInfo(appCtx *app.ApplicationContext, c *Cluster, useJSON bool) erro
 	if len(c.NodePools) > 0 {
 		headers := []string{"Node Pool", "Version", "Shape", "Node Count"}
 		rows := make([][]string, len(c.NodePools))
-
 		for i, np := range c.NodePools {
 			rows[i] = []string{
 				np.DisplayName,
@@ -156,11 +136,8 @@ func PrintOKEInfo(appCtx *app.ApplicationContext, c *Cluster, useJSON bool) erro
 				fmt.Sprintf("%d", np.NodeCount),
 			}
 		}
-
 		tableTitle := util.FormatColoredTitle(appCtx, "Node Pools")
 		p.PrintTable(tableTitle, headers, rows)
 		fmt.Fprintln(appCtx.Stdout)
 	}
-
-	return nil
 }
