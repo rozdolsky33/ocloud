@@ -41,7 +41,6 @@ func ListClusters(appCtx *app.ApplicationContext, useJSON bool) error {
 	if err != nil {
 		return fmt.Errorf("getting image: %w", err)
 	}
-	fmt.Println(id)
 
 	return PrintOKEInfo(appCtx, cluster, useJSON)
 
