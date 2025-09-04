@@ -23,7 +23,7 @@ func TestGetOCIRegions(t *testing.T) {
 	// Create a new service
 	service := NewService()
 
-	// Get the OCI regions
+	// FetchPaginatedImages the OCI regions
 	regions := service.getOCIRegions()
 
 	// Verify that the region list is not empty

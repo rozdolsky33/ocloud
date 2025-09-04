@@ -18,9 +18,9 @@ func TestListCommand(t *testing.T) {
 
 	// Test that the list command is properly configured
 	assert.Equal(t, "get", cmd.Use)
-	assert.Equal(t, "Get all images", cmd.Short)
-	assert.Equal(t, listLong, cmd.Long)
-	assert.Equal(t, listExamples, cmd.Example)
+	assert.Equal(t, "Paginated Image Results", cmd.Short)
+	assert.Equal(t, getLong, cmd.Long)
+	assert.Equal(t, getExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

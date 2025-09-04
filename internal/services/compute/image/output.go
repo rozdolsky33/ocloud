@@ -2,6 +2,7 @@ package image
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
@@ -45,8 +46,13 @@ func PrintImagesInfo(images []Image, appCtx *app.ApplicationContext, pagination 
 	return nil
 }
 
-func PrintImageInfo(image Image, appCtx *app.ApplicationContext) error {
+// PrintImageInfo prints a detailed view of an image.
+func PrintImageInfo(image *domain.Image, appCtx *app.ApplicationContext, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
+
+	if useJSON {
+		return p.MarshalToJSON(image)
+	}
 
 	imageData := map[string]string{
 		"ID":              image.OCID,

@@ -2,33 +2,46 @@ package oke
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ocioke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
+	ociOke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
+	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
-// ListClusters retrieves and displays a paginated list of OKE clusters.
-func ListClusters(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
+// ListClusters lists all OKE clusters in the tenancy.
+func ListClusters(appCtx *app.ApplicationContext, useJSON bool) error {
+	ctx := context.Background()
 	containerEngineClient, err := oci.NewContainerEngineClient(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating container engine client: %w", err)
 	}
 
-	clusterAdapter := ocioke.NewAdapter(containerEngineClient)
+	clusterAdapter := ociOke.NewAdapter(containerEngineClient)
 	service := NewService(clusterAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	clusters, totalCount, nextPageToken, err := service.List(context.Background(), limit, page)
+	clusters, err := service.ListClusters(ctx)
 	if err != nil {
-		return fmt.Errorf("listing clusters: %w", err)
+		return fmt.Errorf("listing allClusters: %w", err)
 	}
 
-	return PrintOKETable(clusters, appCtx, &util.PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON)
+	// TUI
+	model := ociOke.NewImageListModel(clusters)
+	id, err := listx.Run(model)
+	if err != nil {
+		if errors.Is(err, listx.ErrCancelled) {
+			return nil
+		}
+		return fmt.Errorf("selecting image: %w", err)
+	}
+
+	cluster, err := service.clusterRepo.GetCluster(ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting image: %w", err)
+	}
+
+	return PrintOKEInfo(appCtx, cluster, useJSON)
+
 }

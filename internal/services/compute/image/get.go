@@ -20,7 +20,7 @@ func GetImages(appCtx *app.ApplicationContext, limit int, page int, useJSON bool
 	imageAdapter := ociImage.NewAdapter(computeClient)
 	service := NewService(imageAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	images, totalCount, nextPageToken, err := service.Get(context.Background(), limit, page)
+	images, totalCount, nextPageToken, err := service.FetchPaginatedImages(context.Background(), limit, page)
 	if err != nil {
 		return fmt.Errorf("listing images: %w", err)
 	}

@@ -25,9 +25,17 @@ func NewService(repo domain.ClusterRepository, logger logr.Logger, compartmentID
 		compartmentID: compartmentID,
 	}
 }
+func (s *Service) ListClusters(ctx context.Context) ([]Cluster, error) {
+	s.logger.V(logger.Debug).Info("listing clusters")
+	clusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("listing clusters from repository: %w", err)
+	}
+	return clusters, nil
+}
 
-// List retrieves a paginated list of clusters.
-func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
+// FetchPaginatedClusters retrieves a paginated list of clusters.
+func (s *Service) FetchPaginatedClusters(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing clusters", "limit", limit, "pageNum", pageNum)
 
 	// Ensure pageNum is at least 1 to avoid negative slice indices

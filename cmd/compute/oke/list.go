@@ -9,28 +9,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Dedicated documentation for the list command (separate from get)
 var listLong = `
-List all Oracle Kubernetes Engine (OKE) clusters in the specified compartment.
+Interactively browse and search oke cluster in the specified compartment using a TUI.
 
-This command displays information about all OKE clusters in the current compartment,
-including their names, Kubernetes versions, endpoints, and associated node pools.
-By default, it shows basic cluster information in a tabular format.
+This command launches a Bubble Tea-based terminal UI that loads available oke cluster and lets you:
+- Search/filter oke cluster as you type
+- Navigate the list
+- Select a single oke cluster to view its details
 
-Additional Information:
-- Use --json (-j) to output the results in JSON format
-- Use --limit (-m) to control the number of results per page
-- Use --page (-p) to navigate between pages of results
+After you pick an oke cluster, the tool prints detailed information about the selected oke cluster default table view or JSON format if specified with --json.
 `
 
 var listExamples = `
-  # List all OKE clusters in the current compartment
+  # Launch the interactive oke cluster browser
   ocloud compute oke list
 
-  # List all OKE clusters and output in JSON format
-  ocloud compute oke list --json
-
-  # List OKE clusters with pagination (10 per page, page 2)
-  ocloud compute oke list --limit 10 --page 2
+  # Use fuzzy search in the UI to quickly find what you need
+  ocloud compute oke list
 `
 
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
@@ -55,9 +51,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running oke list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.ListClusters(appCtx, useJSON, limit, page)
+	return oke.ListClusters(appCtx, useJSON)
 }

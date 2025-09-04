@@ -3,9 +3,9 @@ package flags
 
 import "github.com/rozdolsky33/ocloud/internal/config/flags"
 
-// ImageDetailsFlag Compute flags
+// AllInfoFlag Compute flags
 var (
-	ImageDetailsFlag = flags.BoolFlag{
+	AllInfoFlag = flags.BoolFlag{
 		Name:      flags.FlagNameAllInformation,
 		Shorthand: flags.FlagShortAllInformation,
 		Default:   false,

@@ -138,3 +138,84 @@ func PrintInstancesInfo(instances []domain.Instance, appCtx *app.ApplicationCont
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }
+
+func PrintInstanceInfo(instance *domain.Instance, appCtx *app.ApplicationContext, useJSON bool, showDetails bool) error {
+	p := printer.New(appCtx.Stdout)
+
+	if instance == nil {
+		return fmt.Errorf("instance is nil")
+	}
+
+	if useJSON {
+		out := InstanceOutput{
+			Name:      instance.DisplayName,
+			ID:        instance.OCID,
+			IP:        instance.PrimaryIP,
+			ImageID:   instance.ImageID,
+			SubnetID:  instance.SubnetID,
+			Shape:     instance.Shape,
+			State:     instance.State,
+			CreatedAt: instance.TimeCreated,
+			Placement: Placement{
+				Region:             instance.Region,
+				AvailabilityDomain: instance.AvailabilityDomain,
+				FaultDomain:        instance.FaultDomain,
+			},
+			Resources: Resources{
+				VCPUs:    instance.VCPUs,
+				MemoryGB: instance.MemoryGB,
+			},
+			ImageName: instance.ImageName,
+			ImageOS:   instance.ImageOS,
+			InstanceTags: map[string]interface{}{
+				"FreeformTags": instance.FreeformTags,
+				"DefinedTags":  instance.DefinedTags,
+			},
+			Hostname:          instance.Hostname,
+			SubnetName:        instance.SubnetName,
+			VcnID:             instance.VcnID,
+			VcnName:           instance.VcnName,
+			PrivateDNSEnabled: instance.PrivateDNSEnabled,
+			RouteTableID:      instance.RouteTableID,
+			RouteTableName:    instance.RouteTableName,
+		}
+		return p.MarshalToJSON(out)
+	}
+
+	instanceData := map[string]string{
+		"Name":       instance.DisplayName,
+		"Shape":      instance.Shape,
+		"vCPUs":      fmt.Sprintf("%d", instance.VCPUs),
+		"Memory":     fmt.Sprintf("%d GB", int(instance.MemoryGB)),
+		"Created":    instance.TimeCreated.String(),
+		"Private IP": instance.PrimaryIP,
+		"State":      instance.State,
+	}
+
+	orderedKeys := []string{
+		"Name", "Shape", "vCPUs", "Memory", "Created", "Private IP", "State",
+	}
+
+	if showDetails {
+		instanceData["Image Name"] = instance.ImageName
+		instanceData["Operating System"] = instance.ImageOS
+		instanceData["AD"] = instance.AvailabilityDomain
+		instanceData["FD"] = instance.FaultDomain
+		instanceData["Region"] = instance.Region
+		instanceData["Subnet Name"] = instance.SubnetName
+		instanceData["VCN Name"] = instance.VcnName
+		instanceData["Hostname"] = instance.Hostname
+		instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
+		instanceData["Route Table Name"] = instance.RouteTableName
+
+		imageKeys := []string{
+			"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name",
+		}
+		orderedKeys = append(orderedKeys, imageKeys...)
+	}
+
+	title := util.FormatColoredTitle(appCtx, instance.DisplayName)
+	p.PrintKeyValues(title, instanceData, orderedKeys)
+
+	return nil
+}

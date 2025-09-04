@@ -27,11 +27,21 @@ func NewService(repo domain.InstanceRepository, logger logr.Logger, compartmentI
 	}
 }
 
-// List retrieves a paginated list of instances.
-func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
+// ListInstances retrieves a list of instances.
+func (s *Service) ListInstances(ctx context.Context) ([]Instance, error) {
+	s.logger.V(logger.Debug).Info("listing instances")
+	instances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("listing instances from repository: %w", err)
+	}
+	return instances, nil
+}
+
+// FetchPaginatedInstances retrieves a paginated list of instances.
+func (s *Service) FetchPaginatedInstances(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing instances", "limit", limit, "pageNum", pageNum)
 
-	allInstances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)
+	allInstances, err := s.instanceRepo.ListEnrichedInstances(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing instances from repository: %w", err)
 	}
@@ -70,7 +80,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Instance,
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Instance, error) {
 	s.logger.V(logger.Debug).Info("finding instances with fuzzy search", "pattern", searchPattern)
 
-	allInstances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)
+	allInstances, err := s.instanceRepo.ListEnrichedInstances(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching all instances for search: %w", err)
 	}

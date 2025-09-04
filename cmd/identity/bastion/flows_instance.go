@@ -30,7 +30,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	instanceAdapter := ociInst.NewAdapter(computeClient, networkClient)
 	instService := instSvc.NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	instances, _, _, err := instService.List(ctx, 300, 0)
+	instances, _, _, err := instService.FetchPaginatedInstances(ctx, 300, 0)
 	if err != nil {
 		return fmt.Errorf("list instances: %w", err)
 	}
@@ -112,7 +112,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("spawn detached: %w", err)
 		}
-		logger.Logger.V(1).Info("spawned tunnel", "pid", pid)
+		logger.Logger.V(logger.Debug).Info("spawned tunnel", "pid", pid)
 
 		if err := bastionSvc.WaitForListen(defaultPort, 5*time.Second); err != nil {
 			logger.Logger.Error(err, "warning")

@@ -69,7 +69,7 @@ func PrintVersion() {
 // AddVersionFlag adds a version flag to the root command
 // This function adds a global persistent flag to support the --version/-v flag
 // and sets up a PersistentPreRunE hook to check for the flag and print version information
-func AddVersionFlag(rootCmd *cobra.Command) {
+func AddVersionFlag(rootCmd *cobra.Command, writer io.Writer) {
 	// Register a global persistent flag to support short form (e.g., `ocloud -v`)
 	rootCmd.PersistentFlags().BoolP(flags.FlagNameVersion, flags.FlagShortVersion, false, flags.FlagDescVersion)
 
@@ -79,7 +79,7 @@ func AddVersionFlag(rootCmd *cobra.Command) {
 	// Override the persistent pre-run hook to check for the `-v` flag
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if versionFlag := flags.GetBoolFlag(cmd, flags.FlagNameVersion, false); versionFlag {
-			PrintVersionInfo(os.Stdout)
+			PrintVersionInfo(writer)
 			return nil
 		}
 

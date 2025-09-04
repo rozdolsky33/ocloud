@@ -1,11 +1,11 @@
-// Package flags defines flag types and domain-specific flag collections for the CLI.
+// Package flags define flag types and domain-specific flag collections for the CLI.
 // It provides utility functions for safely retrieving flag values from cobra commands
 // with default fallbacks. This package is used throughout the application to handle
 // command-line flags in a consistent manner.
 //
 // Usage:
 //   - Import this package in your command handlers
-//   - Use the Get*Flag functions to safely retrieve flag values
+//   - Use the FetchPaginatedImages*Flag functions to safely retrieve flag values
 //   - Each function handles potential errors and returns a default value if the flag is not found
 //
 // Example:

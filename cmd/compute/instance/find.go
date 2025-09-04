@@ -16,8 +16,8 @@ The search is performed using a fuzzy matching algorithm that searches across mu
 
 Searchable Fields:
 - Name: Instance name
-- ImageName: Name of the image used by the instance
-- ImageOperatingSystem: Operating system of the image
+- InstanceName: Name of the instance used by the instance
+- InstanceOperatingSystem: Operating system of the instance
 - TagValues: Just the values of tags without keys (e.g., "8.10")
 
 The search pattern is automatically wrapped with wildcards, so partial matches are supported.
@@ -31,13 +31,13 @@ var findExamples = `
   # Find instances with a specific tag value (searching just the value)
   ocloud compute instance find 8.10
 
-  # Find instances with "api" in their name and include image details
+  # Find instances with "api" in their name and include instance details
   ocloud compute instance find api --all
 
   # Find instances with "server" in their name and output in JSON format
   ocloud compute instance find server --json
 
-  # Find instances with "oracle" in their image operating system
+  # Find instances with "oracle" in their instance operating system
   ocloud compute instance find oracle
 `
 
@@ -57,7 +57,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	instaceFlags.ImageDetailsFlag.Add(cmd)
+	instaceFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
 }

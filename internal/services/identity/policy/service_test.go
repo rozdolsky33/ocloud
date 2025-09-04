@@ -46,15 +46,15 @@ func TestNewService(t *testing.T) {
 	assert.NotNil(t, service)
 }
 
-// TestList tests the List function
+// TestList tests the FetchPaginatedClusters function
 func TestList(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for List since it requires the OCI SDK")
+	t.Skip("Skipping test for FetchPaginatedClusters since it requires the OCI SDK")
 
-	// This is a placeholder test that would normally test the List function
+	// This is a placeholder test that would normally test the FetchPaginatedClusters function
 	// In a real test, we would:
 	// 1. Create a mock service with mock clients
-	// 2. Call List with different parameters
+	// 2. Call FetchPaginatedClusters with different parameters
 	// 3. Verify that the returned policies, total count, and next page token are correct
 
 	service := &Service{
