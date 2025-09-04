@@ -29,7 +29,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 	okeAdapter := ociOke.NewAdapter(containerEngineClient)
 	okeService := okeSvc.NewService(okeAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	clusters, _, _, err := okeService.List(ctx, 1000, 0)
+	clusters, _, _, err := okeService.FetchPaginatedClusters(ctx, 1000, 0)
 	if err != nil {
 		return fmt.Errorf("list OKE clusters: %w", err)
 	}

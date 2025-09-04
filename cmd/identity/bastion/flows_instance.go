@@ -112,7 +112,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("spawn detached: %w", err)
 		}
-		logger.Logger.V(1).Info("spawned tunnel", "pid", pid)
+		logger.Logger.V(logger.Debug).Info("spawned tunnel", "pid", pid)
 
 		if err := bastionSvc.WaitForListen(defaultPort, 5*time.Second); err != nil {
 			logger.Logger.Error(err, "warning")

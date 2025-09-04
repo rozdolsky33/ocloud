@@ -10,7 +10,7 @@ import (
 )
 
 // Dedicated documentation for the list command (separate from get)
-var listCmdLong = `
+var listLong = `
 Interactively browse and search instances in the specified compartment using a TUI.
 
 This command launches a Bubble Tea-based terminal UI that loads available instances and lets you:
@@ -21,7 +21,7 @@ This command launches a Bubble Tea-based terminal UI that loads available instan
 After you pick an instance, the tool prints detailed information about the selected instance default table view or JSON format if specified with --json.
 `
 
-var listCmdExamples = `
+var listExamples = `
   # Launch the interactive instance browser
   ocloud compute instance list
 
@@ -35,8 +35,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "list",
 		Aliases:       []string{"l"},
 		Short:         "List all Instances",
-		Long:          listCmdLong,
-		Example:       listCmdExamples,
+		Long:          listLong,
+		Example:       listExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -44,7 +44,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	instaceFlags.ImageDetailsFlag.Add(cmd)
+	instaceFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
 }

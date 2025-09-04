@@ -26,8 +26,8 @@ func NewService(repo domain.ClusterRepository, logger logr.Logger, compartmentID
 	}
 }
 
-// List retrieves a paginated list of clusters.
-func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
+// FetchPaginatedClusters retrieves a paginated list of clusters.
+func (s *Service) FetchPaginatedClusters(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing clusters", "limit", limit, "pageNum", pageNum)
 
 	// Ensure pageNum is at least 1 to avoid negative slice indices
@@ -35,7 +35,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int,
 		pageNum = 1
 	}
 
-	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
+	allClusters, err := s.clusterRepo.GetClusters(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing clusters from repository: %w", err)
 	}
@@ -68,7 +68,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]Cluster, int,
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, error) {
 	s.logger.V(logger.Debug).Info("finding clusters with search", "pattern", searchPattern)
 
-	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
+	allClusters, err := s.clusterRepo.GetClusters(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching all clusters for search: %w", err)
 	}

@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestListImagesSimple is a simplified test for the ListImages function
+// TestGetImagesSimple is a simplified test for the GetImages function
 // that doesn't rely on mocking the OCI SDK interfaces
-func TestListImagesSimple(t *testing.T) {
+func TestGetImagesSimple(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListImages since it requires the OCI SDK")
 

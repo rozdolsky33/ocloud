@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listLong = `
+var getLong = `
 Get all instances in the specified compartment with pagination support.
 
 This command displays information about running instances in the current compartment.
@@ -21,28 +21,28 @@ through pages using the --page flag and control the number of instances per page
 the --limit flag.
 
 Additional Information:
-- Use --all (-A) to include information about the image used by each instance
+- Use --all (-A) to include detailed information about the instance
 - Use --json (-j) to output the results in JSON format
 - The command only shows running instances by default
 `
 
-var listExamples = `
+var getExamples = `
   # Get all instances with default pagination (20 per page)
   ocloud compute instance get
 
   # Get instances with custom pagination (10 per page, page 2)
   ocloud compute instance get --limit 10 --page 2
 
-  # Get instances and include image details
+  # Get instances and include instance details
   ocloud compute instance get --all
 
-  # Get instances with image details (using shorthand flag)
+  # Get instances with instance details (using shorthand flag)
   ocloud compute instance get -A
 
   # Get instances and output in JSON format
   ocloud compute instance get --json
 
-  # Get instances with both image details and JSON output
+  # Get instances with both instance details and JSON output
   ocloud compute instance get --all --json
 `
 
@@ -51,8 +51,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
 		Short:         "Paginated Instance Results",
-		Long:          listLong,
-		Example:       listExamples,
+		Long:          getLong,
+		Example:       getExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -62,7 +62,7 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
-	instaceFlags.ImageDetailsFlag.Add(cmd)
+	instaceFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
 }

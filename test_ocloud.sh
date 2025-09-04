@@ -115,13 +115,13 @@ print_header "Testing compute oke command"
 run_command ./bin/ocloud compute oke --help
 run_command ./bin/ocloud comp oke --help
 
-# Test compute oke list command
+# Test compute oke get command
 print_header "Testing compute oke list command"
-run_command ./bin/ocloud compute oke list
-run_command ./bin/ocloud compute oke list
-run_command ./bin/ocloud compute oke list --limit 10 --page 1 --json
-run_command ./bin/ocloud compute oke list -m 10 -p 1 -j
-run_command ./bin/ocloud comp oke l
+run_command ./bin/ocloud compute oke get
+run_command ./bin/ocloud compute oke get
+run_command ./bin/ocloud compute oke get --limit 10 --page 1 --json
+run_command ./bin/ocloud compute oke get -m 10 -p 1 -j
+run_command ./bin/ocloud comp oke get
 
 # Test compute oke find command
 print_header "Testing compute oke find command"

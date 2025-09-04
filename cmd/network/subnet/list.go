@@ -11,7 +11,7 @@ import (
 
 // Long description for the list command
 var listLong = `
-FetchPaginatedInstances all Subnets in the specified tenancy or compartment.
+FetchPaginatedClusters all Subnets in the specified tenancy or compartment.
 
 This command displays information about all subnets in the current compartment,
 including their names, CIDR blocks, and whether they allow public IP addresses.
@@ -26,19 +26,19 @@ Additional Information:
 
 // Examples for the list command
 var listExamples = `
-  # FetchPaginatedInstances all subnets in the current compartment
+  # FetchPaginatedClusters all subnets in the current compartment
   ocloud network subnet list
 
-  # FetchPaginatedInstances all subnets and output in JSON format
+  # FetchPaginatedClusters all subnets and output in JSON format
   ocloud network subnet list --json
 
-  # FetchPaginatedInstances subnets with pagination (10 per page, page 2)
+  # FetchPaginatedClusters subnets with pagination (10 per page, page 2)
   ocloud network subnet list --limit 10 --page 2
 
-  # FetchPaginatedInstances subnets sorted by name
+  # FetchPaginatedClusters subnets sorted by name
   ocloud network subnet list --sort name
 
-  # FetchPaginatedInstances subnets sorted by CIDR block
+  # FetchPaginatedClusters subnets sorted by CIDR block
   ocloud network subnet list --sort cidr
 `
 
@@ -50,7 +50,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "FetchPaginatedInstances all Subnets in the specified tenancy or compartment",
+		Short:         "FetchPaginatedClusters all Subnets in the specified tenancy or compartment",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,

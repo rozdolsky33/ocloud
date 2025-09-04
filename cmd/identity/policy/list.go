@@ -11,7 +11,7 @@ import (
 
 // Long description for the list command
 var listLong = `
-FetchPaginatedInstances all Policies in the specified compartment with pagination support.
+FetchPaginatedClusters all Policies in the specified compartment with pagination support.
 
 This command displays information about available Policies in the current compartment.
 By default, it shows basic policy information such as name, ID, and description.
@@ -27,16 +27,16 @@ Additional Information:
 
 // Examples for the list command
 var listExamples = `
-  # FetchPaginatedInstances all Policies with default pagination (20 per page)
+  # FetchPaginatedClusters all Policies with default pagination (20 per page)
   ocloud identity policy list
 
-  # FetchPaginatedInstances Policies with custom pagination (10 per page, page 2)
+  # FetchPaginatedClusters Policies with custom pagination (10 per page, page 2)
   ocloud identity policy list --limit 10 --page 2
 
-  # FetchPaginatedInstances Policies and output in JSON format
+  # FetchPaginatedClusters Policies and output in JSON format
   ocloud identity policy list --json
 
-  # FetchPaginatedInstances Policies with custom pagination and JSON output
+  # FetchPaginatedClusters Policies with custom pagination and JSON output
   ocloud identity policy list --limit 5 --page 3 --json
 `
 
@@ -47,7 +47,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "FetchPaginatedInstances all Policies in the specified tenancy or compartment",
+		Short:         "FetchPaginatedClusters all Policies in the specified tenancy or compartment",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,

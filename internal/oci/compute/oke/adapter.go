@@ -18,8 +18,13 @@ func NewAdapter(client containerengine.ContainerEngineClient) *Adapter {
 	return &Adapter{client: client}
 }
 
-// ListClusters fetches all clusters in a compartment and enriches them with node pools.
 func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+// GetClusters fetches all clusters in a compartment and enriches them with node pools.
+func (a *Adapter) GetClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
 	var ociClusters []containerengine.ClusterSummary
 	var page *string
 

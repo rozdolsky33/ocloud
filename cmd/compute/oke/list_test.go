@@ -19,7 +19,7 @@ func TestListCommand(t *testing.T) {
 	// Test that the list command is properly configured
 	assert.Equal(t, "list", cmd.Use)
 	assert.Equal(t, []string{"l"}, cmd.Aliases)
-	assert.Equal(t, "FetchPaginatedInstances all Oracle Kubernetes Engine (OKE) clusters", cmd.Short)
+	assert.Equal(t, "List all Oracle Kubernetes Engine (OKE) clusters", cmd.Short)
 	assert.Equal(t, listLong, cmd.Long)
 	assert.Equal(t, listExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

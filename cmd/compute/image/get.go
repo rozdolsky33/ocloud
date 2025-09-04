@@ -10,7 +10,7 @@ import (
 )
 
 // Dedicated documentation for the get command
-var listLong = `
+var getLong = `
 Get images in the specified compartment with pagination support.
 
 This command retrieves available images in the current compartment.
@@ -25,7 +25,7 @@ Additional Information:
 - The command shows all available images in the compartment
 `
 
-var listExamples = `
+var getExamples = `
   # Get images with default pagination (20 per page)
   ocloud compute image get
 
@@ -44,8 +44,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
 		Short:         "Paginated Image Results",
-		Long:          listLong,
-		Example:       listExamples,
+		Long:          getLong,
+		Example:       getExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -9,7 +9,7 @@ import (
 )
 
 // Dedicated documentation for the list command (separate from get)
-var listCmdLong = `
+var listLong = `
 Interactively browse and search images in the specified compartment using a TUI.
 
 This command launches a Bubble Tea-based terminal UI that loads available images and lets you:
@@ -20,8 +20,8 @@ This command launches a Bubble Tea-based terminal UI that loads available images
 After you pick an image, the tool prints detailed information about the selected image default table view or JSON format if specified with --json.
 `
 
-var listCmdExamples = `
-  # Launch the interactive instance browser
+var listExamples = `
+  # Launch the interactive images browser
   ocloud compute image list
 
   # Use fuzzy search in the UI to quickly find what you need
@@ -34,8 +34,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "list",
 		Short:         "List all images",
 		Aliases:       []string{"l"},
-		Long:          listCmdLong,
-		Example:       listCmdExamples,
+		Long:          listLong,
+		Example:       listExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
