@@ -48,7 +48,7 @@ func (a *Adapter) ListInstances(ctx context.Context, compartmentID string) ([]do
 			return nil, fmt.Errorf("listing instances from OCI: %w", err)
 		}
 		for _, item := range resp.Items {
-			allInstances = append(allInstances, a.toDomainModel(item))
+			allInstances = append(allInstances, a.toBaseDomainModel(item))
 		}
 
 		if resp.OpcNextPage == nil {
@@ -109,72 +109,11 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 		go func(i int, ociInstance core.Instance) {
 			defer wg.Done()
 
-			dm := domain.Instance{
-				OCID:               *ociInstance.Id,
-				DisplayName:        *ociInstance.DisplayName,
-				State:              string(ociInstance.LifecycleState),
-				Shape:              *ociInstance.Shape,
-				ImageID:            *ociInstance.ImageId,
-				TimeCreated:        ociInstance.TimeCreated.Time,
-				Region:             *ociInstance.Region,
-				AvailabilityDomain: *ociInstance.AvailabilityDomain,
-				FaultDomain:        *ociInstance.FaultDomain,
-				VCPUs:              int(*ociInstance.ShapeConfig.Vcpus),
-				MemoryGB:           *ociInstance.ShapeConfig.MemoryInGBs,
-				FreeformTags:       ociInstance.FreeformTags,
-				DefinedTags:        ociInstance.DefinedTags,
-			}
+			dm := a.toEnrichDomainModel(ociInstance)
 
-			vnic, err := a.getPrimaryVnic(ctx, *ociInstance.Id, *ociInstance.CompartmentId)
-			if err != nil {
-				errChan <- fmt.Errorf("enriching instance %s with network: %w", dm.OCID, err)
+			if err := a.enrichDomainInstance(ctx, &dm, ociInstance); err != nil {
+				errChan <- err
 				return
-			}
-			if vnic != nil {
-				dm.PrimaryIP = *vnic.PrivateIp
-				dm.SubnetID = *vnic.SubnetId
-				if vnic.HostnameLabel != nil {
-					dm.Hostname = *vnic.HostnameLabel
-				}
-				dm.PrivateDNSEnabled = vnic.SkipSourceDestCheck == nil || !*vnic.SkipSourceDestCheck
-				subnet, err := a.getSubnet(ctx, *vnic.SubnetId)
-				if err != nil {
-					errChan <- fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
-					return
-				}
-				if subnet != nil {
-					dm.SubnetName = *subnet.DisplayName
-					dm.VcnID = *subnet.VcnId
-					if subnet.RouteTableId != nil {
-						dm.RouteTableID = *subnet.RouteTableId
-						rt, err := a.getRouteTable(ctx, *subnet.RouteTableId)
-						if err != nil {
-							errChan <- fmt.Errorf("enriching instance %s with route table: %w", dm.OCID, err)
-							return
-						}
-						if rt != nil {
-							dm.RouteTableName = *rt.DisplayName
-						}
-					}
-					vcn, err := a.getVcn(ctx, *subnet.VcnId)
-					if err != nil {
-						errChan <- fmt.Errorf("enriching instance %s with vcn: %w", dm.OCID, err)
-						return
-					}
-					if vcn != nil {
-						dm.VcnName = *vcn.DisplayName
-					}
-				}
-			}
-
-			image, err := a.getImage(ctx, *ociInstance.ImageId)
-			if err != nil {
-				errChan <- fmt.Errorf("enriching instance %s with image: %w", dm.OCID, err)
-				return
-			}
-			if image != nil {
-				dm.ImageName = *image.DisplayName
-				dm.ImageOS = *image.OperatingSystem
 			}
 
 			domainInstances[i] = dm
@@ -193,25 +132,19 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 
 // enrichAndMapInstance converts a single OCI instance to a domain model and enriches it with details.
 func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Instance) (domain.Instance, error) {
-	dm := domain.Instance{
-		OCID:               *ociInstance.Id,
-		DisplayName:        *ociInstance.DisplayName,
-		State:              string(ociInstance.LifecycleState),
-		Shape:              *ociInstance.Shape,
-		ImageID:            *ociInstance.ImageId,
-		TimeCreated:        ociInstance.TimeCreated.Time,
-		Region:             *ociInstance.Region,
-		AvailabilityDomain: *ociInstance.AvailabilityDomain,
-		FaultDomain:        *ociInstance.FaultDomain,
-		VCPUs:              int(*ociInstance.ShapeConfig.Vcpus),
-		MemoryGB:           *ociInstance.ShapeConfig.MemoryInGBs,
-		FreeformTags:       ociInstance.FreeformTags,
-		DefinedTags:        ociInstance.DefinedTags,
+	dm := a.toEnrichDomainModel(ociInstance)
+	if err := a.enrichDomainInstance(ctx, &dm, ociInstance); err != nil {
+		return dm, err
 	}
 
+	return dm, nil
+}
+
+// enrichDomainInstance enriches the given domain instance with network, subnet, VCN, route table and image details.
+func (a *Adapter) enrichDomainInstance(ctx context.Context, dm *domain.Instance, ociInstance core.Instance) error {
 	vnic, err := a.getPrimaryVnic(ctx, *ociInstance.Id, *ociInstance.CompartmentId)
 	if err != nil {
-		return dm, fmt.Errorf("enriching instance %s with network: %w", dm.OCID, err)
+		return fmt.Errorf("enriching instance %s with network: %w", dm.OCID, err)
 	}
 	if vnic != nil {
 		dm.PrimaryIP = *vnic.PrivateIp
@@ -222,7 +155,7 @@ func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Ins
 		dm.PrivateDNSEnabled = vnic.SkipSourceDestCheck == nil || !*vnic.SkipSourceDestCheck
 		subnet, err := a.getSubnet(ctx, *vnic.SubnetId)
 		if err != nil {
-			return dm, fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
+			return fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
 		}
 		if subnet != nil {
 			dm.SubnetName = *subnet.DisplayName
@@ -231,7 +164,7 @@ func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Ins
 				dm.RouteTableID = *subnet.RouteTableId
 				rt, err := a.getRouteTable(ctx, *subnet.RouteTableId)
 				if err != nil {
-					return dm, fmt.Errorf("enriching instance %s with route table: %w", dm.OCID, err)
+					return fmt.Errorf("enriching instance %s with route table: %w", dm.OCID, err)
 				}
 				if rt != nil {
 					dm.RouteTableName = *rt.DisplayName
@@ -239,7 +172,7 @@ func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Ins
 			}
 			vcn, err := a.getVcn(ctx, *subnet.VcnId)
 			if err != nil {
-				return dm, fmt.Errorf("enriching instance %s with vcn: %w", dm.OCID, err)
+				return fmt.Errorf("enriching instance %s with vcn: %w", dm.OCID, err)
 			}
 			if vcn != nil {
 				dm.VcnName = *vcn.DisplayName
@@ -249,14 +182,13 @@ func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Ins
 
 	image, err := a.getImage(ctx, *ociInstance.ImageId)
 	if err != nil {
-		return dm, fmt.Errorf("enriching instance %s with image: %w", dm.OCID, err)
+		return fmt.Errorf("enriching instance %s with image: %w", dm.OCID, err)
 	}
 	if image != nil {
 		dm.ImageName = *image.DisplayName
 		dm.ImageOS = *image.OperatingSystem
 	}
-
-	return dm, nil
+	return nil
 }
 
 // getPrimaryVnic finds the primary VNIC for a given instance.
@@ -387,7 +319,7 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 }
 
 // toDomainModel converts an OCI SDK image object to our application's domain model.
-func (a *Adapter) toDomainModel(inst core.Instance) domain.Instance {
+func (a *Adapter) toBaseDomainModel(inst core.Instance) domain.Instance {
 	return domain.Instance{
 		OCID:        *inst.Id,
 		DisplayName: *inst.DisplayName,
@@ -397,5 +329,24 @@ func (a *Adapter) toDomainModel(inst core.Instance) domain.Instance {
 		VCPUs:       int(*inst.ShapeConfig.Vcpus),
 		MemoryGB:    *inst.ShapeConfig.MemoryInGBs,
 		FaultDomain: *inst.FaultDomain,
+	}
+}
+
+// toEnrichDomainModel converts an OCI SDK image object to our application's domain model.'
+func (a *Adapter) toEnrichDomainModel(inst core.Instance) domain.Instance {
+	return domain.Instance{
+		OCID:               *inst.Id,
+		DisplayName:        *inst.DisplayName,
+		State:              string(inst.LifecycleState),
+		Shape:              *inst.Shape,
+		ImageID:            *inst.ImageId,
+		TimeCreated:        inst.TimeCreated.Time,
+		Region:             *inst.Region,
+		AvailabilityDomain: *inst.AvailabilityDomain,
+		FaultDomain:        *inst.FaultDomain,
+		VCPUs:              int(*inst.ShapeConfig.Vcpus),
+		MemoryGB:           *inst.ShapeConfig.MemoryInGBs,
+		FreeformTags:       inst.FreeformTags,
+		DefinedTags:        inst.DefinedTags,
 	}
 }
