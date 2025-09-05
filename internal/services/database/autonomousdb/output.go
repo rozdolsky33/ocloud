@@ -83,6 +83,9 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 			} else if db.PrivateEndpoint != "" {
 				accessType = "Virtual cloud network"
 			}
+		} else if db.PrivateEndpoint != "" {
+			// Infer VCN when we have a private endpoint but no explicit public flag
+			accessType = "Virtual cloud network"
 		}
 		net := map[string]string{
 			"Private Endpoint Label": db.PrivateEndpointLabel,
@@ -101,30 +104,28 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 		// Capacity section: show ECPUs when ComputeModel is ECPU, otherwise OCPUs/CPU Cores
 		cap := map[string]string{}
 		var capKeys []string
+		// Determine storage value: prefer TBs, else GBs if present
+		storage := ""
+		if s := intToString(db.DataStorageSizeInTBs); s != "" {
+			storage = s + " TB"
+		} else if g := intToString(db.DataStorageSizeInGBs); g != "" {
+			storage = g + " GB"
+		}
 		if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
 			cap["Compute Model"] = db.ComputeModel
 			cap["ECPUs"] = floatToString(db.EcpuCount)
-			cap["Storage"] = intToString(db.DataStorageSizeInTBs)
+			cap["Storage"] = storage
 			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
 			capKeys = []string{"Compute Model", "ECPUs", "Storage", "Auto Scaling"}
 		} else {
 			cap["Compute Model"] = db.ComputeModel
 			cap["OCPUs"] = floatToString(db.OcpuCount)
 			cap["CPU Cores"] = intToString(db.CpuCoreCount)
-			cap["Storage"] = intToString(db.DataStorageSizeInTBs)
+			cap["Storage"] = storage
 			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
 			capKeys = []string{"Compute Model", "OCPUs", "CPU Cores", "Storage", "Auto Scaling"}
 		}
 		p.PrintKeyValues(title+" – Capacity", cap, capKeys)
-
-		// Maintenance basic
-		maint := map[string]string{
-			"Next Maintenance Run": db.NextMaintenanceRunId,
-			"Maintenance Schedule": db.MaintenanceScheduleType,
-			"Patch Model":          db.PatchModel,
-		}
-		maintKeys := []string{"Patch Model", "Next Maintenance Run", "Maintenance Schedule"}
-		p.PrintKeyValues(title+" – Maintenance", maint, maintKeys)
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)

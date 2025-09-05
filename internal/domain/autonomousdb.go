@@ -41,6 +41,7 @@ type AutonomousDatabase struct {
 	OcpuCount                   *float32
 	CpuCoreCount                *int
 	DataStorageSizeInTBs        *int
+	DataStorageSizeInGBs        *int
 	IsAutoScalingEnabled        *bool
 	IsStorageAutoScalingEnabled *bool
 

@@ -29,10 +29,16 @@ func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit,
 		return fmt.Errorf("listing autonomous databases: %w", err)
 	}
 
-	// Convert to a domain type for printing
+	// Convert to a domain type and best-effort enrich each item with a full Get call
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(allDatabases))
 	for _, db := range allDatabases {
-		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
+		basic := domain.AutonomousDatabase(db)
+		full, gerr := adapter.GetAutonomousDatabase(ctx, basic.ID)
+		if gerr == nil && full != nil {
+			domainDbs = append(domainDbs, *full)
+		} else {
+			domainDbs = append(domainDbs, basic)
+		}
 	}
 
 	// Display database information with pagination details
