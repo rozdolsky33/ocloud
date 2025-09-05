@@ -62,32 +62,7 @@ func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]dom
 func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []containerengine.ClusterSummary) ([]domain.Cluster, error) {
 	var domainClusters []domain.Cluster
 	for _, ociCluster := range ociClusters {
-		dc := domain.Cluster{}
-		if ociCluster.Id != nil {
-			dc.OCID = *ociCluster.Id
-		}
-		if ociCluster.Name != nil {
-			dc.DisplayName = *ociCluster.Name
-		}
-		if ociCluster.KubernetesVersion != nil {
-			dc.KubernetesVersion = *ociCluster.KubernetesVersion
-		}
-		if ociCluster.VcnId != nil {
-			dc.VcnOCID = *ociCluster.VcnId
-		}
-		dc.State = string(ociCluster.LifecycleState)
-
-		if ociCluster.Endpoints != nil {
-			if ociCluster.Endpoints.PrivateEndpoint != nil {
-				dc.PrivateEndpoint = *ociCluster.Endpoints.PrivateEndpoint
-			}
-			if ociCluster.Endpoints.Kubernetes != nil {
-				dc.PublicEndpoint = *ociCluster.Endpoints.Kubernetes
-			}
-		}
-		if ociCluster.Metadata != nil && ociCluster.Metadata.TimeCreated != nil {
-			dc.TimeCreated = ociCluster.Metadata.TimeCreated.Time
-		}
+		dc := a.toDomainModelSummary(ociCluster)
 
 		if ociCluster.CompartmentId == nil || ociCluster.Id == nil {
 			domainClusters = append(domainClusters, dc)
@@ -106,31 +81,7 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 
 // enrichAndMapCluster maps a single full OCI cluster object to domain model and enriches it with node pools.
 func (a *Adapter) enrichAndMapCluster(ctx context.Context, c containerengine.Cluster) (domain.Cluster, error) {
-	dc := domain.Cluster{}
-	if c.Id != nil {
-		dc.OCID = *c.Id
-	}
-	if c.Name != nil {
-		dc.DisplayName = *c.Name
-	}
-	if c.KubernetesVersion != nil {
-		dc.KubernetesVersion = *c.KubernetesVersion
-	}
-	if c.VcnId != nil {
-		dc.VcnOCID = *c.VcnId
-	}
-	dc.State = string(c.LifecycleState)
-	if c.Endpoints != nil {
-		if c.Endpoints.PrivateEndpoint != nil {
-			dc.PrivateEndpoint = *c.Endpoints.PrivateEndpoint
-		}
-		if c.Endpoints.Kubernetes != nil {
-			dc.PublicEndpoint = *c.Endpoints.Kubernetes
-		}
-	}
-	if c.Metadata != nil && c.Metadata.TimeCreated != nil {
-		dc.TimeCreated = c.Metadata.TimeCreated.Time
-	}
+	dc := a.toDomainModel(c)
 	if c.CompartmentId != nil && c.Id != nil {
 		nps, err := a.listNodePools(ctx, *c.CompartmentId, *c.Id)
 		if err != nil {
@@ -157,11 +108,18 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 		}
 
 		for _, ociNodePool := range resp.Items {
-			dnp := domain.NodePool{
-				OCID:              *ociNodePool.Id,
-				DisplayName:       *ociNodePool.Name,
-				KubernetesVersion: *ociNodePool.KubernetesVersion,
-				NodeShape:         *ociNodePool.NodeShape,
+			dnp := domain.NodePool{}
+			if ociNodePool.Id != nil {
+				dnp.OCID = *ociNodePool.Id
+			}
+			if ociNodePool.Name != nil {
+				dnp.DisplayName = *ociNodePool.Name
+			}
+			if ociNodePool.KubernetesVersion != nil {
+				dnp.KubernetesVersion = *ociNodePool.KubernetesVersion
+			}
+			if ociNodePool.NodeShape != nil {
+				dnp.NodeShape = *ociNodePool.NodeShape
 			}
 			if ociNodePool.NodeConfigDetails != nil && ociNodePool.NodeConfigDetails.Size != nil {
 				dnp.NodeCount = *ociNodePool.NodeConfigDetails.Size
@@ -178,12 +136,60 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 }
 
 func (a *Adapter) toDomainModel(c containerengine.Cluster) domain.Cluster {
-	return domain.Cluster{
-		OCID:              *c.Id,
-		DisplayName:       *c.Name,
-		KubernetesVersion: *c.KubernetesVersion,
-		VcnOCID:           *c.VcnId,
-		State:             string(c.LifecycleState),
-		TimeCreated:       c.Metadata.TimeCreated.Time,
+	dc := domain.Cluster{}
+	if c.Id != nil {
+		dc.OCID = *c.Id
 	}
+	if c.Name != nil {
+		dc.DisplayName = *c.Name
+	}
+	if c.KubernetesVersion != nil {
+		dc.KubernetesVersion = *c.KubernetesVersion
+	}
+	if c.VcnId != nil {
+		dc.VcnOCID = *c.VcnId
+	}
+	dc.State = string(c.LifecycleState)
+	if c.Endpoints != nil {
+		if c.Endpoints.PrivateEndpoint != nil {
+			dc.PrivateEndpoint = *c.Endpoints.PrivateEndpoint
+		}
+		if c.Endpoints.Kubernetes != nil {
+			dc.PublicEndpoint = *c.Endpoints.Kubernetes
+		}
+	}
+	if c.Metadata != nil && c.Metadata.TimeCreated != nil {
+		dc.TimeCreated = c.Metadata.TimeCreated.Time
+	}
+	return dc
+}
+
+// toDomainModelSummary maps an OCI ClusterSummary to a domain.Cluster (without enrichment).
+func (a *Adapter) toDomainModelSummary(s containerengine.ClusterSummary) domain.Cluster {
+	dc := domain.Cluster{}
+	if s.Id != nil {
+		dc.OCID = *s.Id
+	}
+	if s.Name != nil {
+		dc.DisplayName = *s.Name
+	}
+	if s.KubernetesVersion != nil {
+		dc.KubernetesVersion = *s.KubernetesVersion
+	}
+	if s.VcnId != nil {
+		dc.VcnOCID = *s.VcnId
+	}
+	dc.State = string(s.LifecycleState)
+	if s.Endpoints != nil {
+		if s.Endpoints.PrivateEndpoint != nil {
+			dc.PrivateEndpoint = *s.Endpoints.PrivateEndpoint
+		}
+		if s.Endpoints.Kubernetes != nil {
+			dc.PublicEndpoint = *s.Endpoints.Kubernetes
+		}
+	}
+	if s.Metadata != nil && s.Metadata.TimeCreated != nil {
+		dc.TimeCreated = s.Metadata.TimeCreated.Time
+	}
+	return dc
 }
