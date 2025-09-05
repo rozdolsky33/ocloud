@@ -34,15 +34,17 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 	for _, db := range databases {
 		title := util.FormatColoredTitle(appCtx, db.Name)
 
-		// Connection (existing behavior)
+		// Connection (existing behavior) + includes TP/TPURGENT if present
 		conn := map[string]string{
 			"Private IP":       db.PrivateEndpointIp,
 			"Private Endpoint": db.PrivateEndpoint,
 			"High":             db.ConnectionStrings["HIGH"],
 			"Medium":           db.ConnectionStrings["MEDIUM"],
 			"Low":              db.ConnectionStrings["LOW"],
+			"TP":               db.ConnectionStrings["TP"],
+			"TPURGENT":         db.ConnectionStrings["TPURGENT"],
 		}
-		connKeys := []string{"Private IP", "Private Endpoint", "High", "Medium", "Low"}
+		connKeys := []string{"Private IP", "Private Endpoint", "High", "Medium", "Low", "TP", "TPURGENT"}
 		p.PrintKeyValues(title, conn, connKeys)
 
 		// State section
