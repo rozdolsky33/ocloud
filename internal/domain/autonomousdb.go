@@ -28,7 +28,11 @@ type AutonomousDatabase struct {
 	PrivateEndpointIp    string
 	PrivateEndpointLabel string
 	SubnetId             string
+	SubnetName           string
+	VcnID                string
+	VcnName              string
 	NsgIds               []string
+	NsgNames             []string
 	IsMtlsRequired       *bool
 
 	// Capacity & autoscaling

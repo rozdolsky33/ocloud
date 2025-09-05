@@ -61,17 +61,41 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 		stateKeys := []string{"Lifecycle State", "Lifecycle Details", "DB Version", "Workload", "License Model", "Time Created"}
 		p.PrintKeyValues(title+" – State", state, stateKeys)
 
-		// Network section
+		// Network section (prefer names over OCIDs when available)
+		subnetVal := db.SubnetId
+		if db.SubnetName != "" {
+			subnetVal = db.SubnetName
+		}
+		vcnVal := db.VcnID
+		if db.VcnName != "" {
+			vcnVal = db.VcnName
+		}
+		nsgVal := ""
+		if len(db.NsgNames) > 0 {
+			nsgVal = fmt.Sprintf("%v", db.NsgNames)
+		} else if len(db.NsgIds) > 0 {
+			nsgVal = fmt.Sprintf("%v", db.NsgIds)
+		}
+		accessType := ""
+		if db.IsPubliclyAccessible != nil {
+			if *db.IsPubliclyAccessible {
+				accessType = "Public"
+			} else if db.PrivateEndpoint != "" {
+				accessType = "Virtual cloud network"
+			}
+		}
 		net := map[string]string{
 			"Private Endpoint Label": db.PrivateEndpointLabel,
-			"Subnet OCID":            db.SubnetId,
-			"NSGs":                   fmt.Sprintf("%v", db.NsgIds),
+			"Access Type":            accessType,
+			"Subnet":                 subnetVal,
+			"VCN":                    vcnVal,
+			"NSGs":                   nsgVal,
 			"mTLS Required":          boolToString(db.IsMtlsRequired),
 		}
 		if len(db.WhitelistedIps) > 0 {
 			net["Whitelisted IPs"] = fmt.Sprintf("%v", db.WhitelistedIps)
 		}
-		netKeys := []string{"Private Endpoint Label", "Subnet OCID", "NSGs", "Whitelisted IPs", "mTLS Required"}
+		netKeys := []string{"Private Endpoint Label", "Access Type", "Subnet", "VCN", "NSGs", "Whitelisted IPs", "mTLS Required"}
 		p.PrintKeyValues(title+" – Network", net, netKeys)
 
 		// Capacity section: show ECPUs when ComputeModel is ECPU, otherwise OCPUs/CPU Cores
@@ -80,16 +104,16 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 		if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
 			cap["Compute Model"] = db.ComputeModel
 			cap["ECPUs"] = floatToString(db.EcpuCount)
-			cap["Storage (TBs)"] = intToString(db.DataStorageSizeInTBs)
+			cap["Storage"] = intToString(db.DataStorageSizeInTBs)
 			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
-			capKeys = []string{"Compute Model", "ECPUs", "Storage (TBs)", "Auto Scaling"}
+			capKeys = []string{"Compute Model", "ECPUs", "Storage", "Auto Scaling"}
 		} else {
 			cap["Compute Model"] = db.ComputeModel
 			cap["OCPUs"] = floatToString(db.OcpuCount)
 			cap["CPU Cores"] = intToString(db.CpuCoreCount)
-			cap["Storage (TBs)"] = intToString(db.DataStorageSizeInTBs)
+			cap["Storage"] = intToString(db.DataStorageSizeInTBs)
 			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
-			capKeys = []string{"Compute Model", "OCPUs", "CPU Cores", "Storage (TBs)", "Auto Scaling"}
+			capKeys = []string{"Compute Model", "OCPUs", "CPU Cores", "Storage", "Auto Scaling"}
 		}
 		p.PrintKeyValues(title+" – Capacity", cap, capKeys)
 

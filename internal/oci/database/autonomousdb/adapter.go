@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/database"
 	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/oci"
@@ -12,7 +13,12 @@ import (
 
 // Adapter implements the domain.AutonomousDatabaseRepository interface for OCI.
 type Adapter struct {
-	dbClient database.DatabaseClient
+	dbClient      database.DatabaseClient
+	networkClient core.VirtualNetworkClient
+	// simple caches to avoid repeated lookups during a run
+	subnetCache map[string]*core.Subnet
+	vcnCache    map[string]*core.Vcn
+	nsgCache    map[string]*core.NetworkSecurityGroup
 }
 
 // NewAdapter creates a new Adapter instance. The compartmentID parameter is accepted for
@@ -22,8 +28,17 @@ func NewAdapter(provider oci.ClientProvider) (*Adapter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
+	// create virtual network client for name enrichment
+	netClient, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create virtual network client: %w", err)
+	}
 	return &Adapter{
-		dbClient: dbClient,
+		dbClient:      dbClient,
+		networkClient: netClient,
+		subnetCache:   make(map[string]*core.Subnet),
+		vcnCache:      make(map[string]*core.Vcn),
+		nsgCache:      make(map[string]*core.NetworkSecurityGroup),
 	}, nil
 }
 
@@ -36,6 +51,10 @@ func (a *Adapter) GetAutonomousDatabase(ctx context.Context, ocid string) (*doma
 		return nil, fmt.Errorf("failed to get autonomous database: %w", err)
 	}
 	db := a.toDomainAutonomousDB(response.AutonomousDatabase)
+	// Best-effort network name enrichment (subnet, VCN, NSGs)
+	if err := a.enrichNetworkNames(ctx, &db); err != nil {
+		// non-fatal; keep basic info if lookups fail
+	}
 	return &db, nil
 }
 
@@ -62,6 +81,73 @@ func (a *Adapter) ListAutonomousDatabases(ctx context.Context, compartmentID str
 	return allDatabases, nil
 }
 
+// enrichNetworkNames resolves display names for subnet, VCN, and NSGs where possible (best effort, cached).
+func (a *Adapter) enrichNetworkNames(ctx context.Context, d *domain.AutonomousDatabase) error {
+	// Subnet → name and VCN
+	if d.SubnetId != "" {
+		// subnet
+		if sub, err := a.getSubnet(ctx, d.SubnetId); err == nil && sub != nil {
+			if sub.DisplayName != nil {
+				d.SubnetName = *sub.DisplayName
+			}
+			if sub.VcnId != nil {
+				d.VcnID = *sub.VcnId
+				if vcn, err := a.getVcn(ctx, *sub.VcnId); err == nil && vcn != nil && vcn.DisplayName != nil {
+					d.VcnName = *vcn.DisplayName
+				}
+			}
+		}
+	}
+	// NSGs → names
+	if len(d.NsgIds) > 0 {
+		var names []string
+		for _, id := range d.NsgIds {
+			if nsg, err := a.getNsg(ctx, id); err == nil && nsg != nil && nsg.DisplayName != nil {
+				names = append(names, *nsg.DisplayName)
+			}
+		}
+		d.NsgNames = names
+	}
+	return nil
+}
+
+// cached lookups
+func (a *Adapter) getSubnet(ctx context.Context, id string) (*core.Subnet, error) {
+	if s, ok := a.subnetCache[id]; ok {
+		return s, nil
+	}
+	resp, err := a.networkClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
+	if err != nil {
+		return nil, err
+	}
+	a.subnetCache[id] = &resp.Subnet
+	return &resp.Subnet, nil
+}
+
+func (a *Adapter) getVcn(ctx context.Context, id string) (*core.Vcn, error) {
+	if v, ok := a.vcnCache[id]; ok {
+		return v, nil
+	}
+	resp, err := a.networkClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &id})
+	if err != nil {
+		return nil, err
+	}
+	a.vcnCache[id] = &resp.Vcn
+	return &resp.Vcn, nil
+}
+
+func (a *Adapter) getNsg(ctx context.Context, id string) (*core.NetworkSecurityGroup, error) {
+	if n, ok := a.nsgCache[id]; ok {
+		return n, nil
+	}
+	resp, err := a.networkClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
+	if err != nil {
+		return nil, err
+	}
+	a.nsgCache[id] = &resp.NetworkSecurityGroup
+	return &resp.NetworkSecurityGroup, nil
+}
+
 // toDomainAutonomousDB maps either a full database.AutonomousDatabase (from Get) or a database.AutonomousDatabaseSummary (from List) into the single domain.AutonomousDatabase type.
 func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousDatabase {
 	var (
@@ -83,14 +169,32 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		subnetId             *string
 		nsgIds               []string
 		isMtlsRequired       *bool
+		isPubliclyAccessible *bool
 
 		// capacity
-		computeModelStr string
-		ecpuCount       *float32
-		ocpuCount       *float32
-		cpuCoreCount    *int
-		storageTBs      *int
-		isAutoScale     *bool
+		computeModelStr             string
+		ecpuCount                   *float32
+		ocpuCount                   *float32
+		cpuCoreCount                *int
+		storageTBs                  *int
+		isAutoScale                 *bool
+		isStorageAutoScalingEnabled *bool
+
+		// operations & integrations
+		operationsInsightsStatus string
+		databaseManagementStatus string
+		dataSafeStatus           string
+		isFreeTier               *bool
+
+		// Data Guard / DR
+		isDataGuardEnabled  *bool
+		role                *string
+		peerAutonomousDbIds []string
+
+		// maintenance
+		patchModel           *string
+		nextMaintenanceRunId *string
+		maintenanceSchedule  *string
 
 		// connections
 		connStrings *database.AutonomousDatabaseConnectionStrings
@@ -216,6 +320,35 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	d.CpuCoreCount = cpuCoreCount
 	d.DataStorageSizeInTBs = storageTBs
 	d.IsAutoScalingEnabled = isAutoScale
+	// additional capacity flags
+	d.IsStorageAutoScalingEnabled = isStorageAutoScalingEnabled
+
+	// operations & integrations
+	d.OperationsInsightsStatus = operationsInsightsStatus
+	d.DatabaseManagementStatus = databaseManagementStatus
+	d.DataSafeStatus = dataSafeStatus
+	d.IsFreeTier = isFreeTier
+
+	// networking extras
+	d.IsPubliclyAccessible = isPubliclyAccessible
+
+	// Data Guard / DR
+	d.IsDataGuardEnabled = isDataGuardEnabled
+	if role != nil {
+		d.Role = *role
+	}
+	d.PeerAutonomousDbIds = peerAutonomousDbIds
+
+	// maintenance
+	if patchModel != nil {
+		d.PatchModel = *patchModel
+	}
+	if nextMaintenanceRunId != nil {
+		d.NextMaintenanceRunId = *nextMaintenanceRunId
+	}
+	if maintenanceSchedule != nil {
+		d.MaintenanceScheduleType = *maintenanceSchedule
+	}
 
 	// connections
 	if connStrings != nil {
