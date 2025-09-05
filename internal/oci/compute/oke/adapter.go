@@ -79,7 +79,7 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 	return domainClusters, nil
 }
 
-// enrichAndMapCluster maps a single full OCI cluster object to domain model and enriches it with node pools.
+// enrichAndMapCluster maps a single full OCI cluster object to a domain model and enriches it with node pools.
 func (a *Adapter) enrichAndMapCluster(ctx context.Context, c containerengine.Cluster) (domain.Cluster, error) {
 	dc := a.toDomainModel(c)
 	if c.CompartmentId != nil && c.Id != nil {
@@ -124,6 +124,8 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 			if ociNodePool.NodeConfigDetails != nil && ociNodePool.NodeConfigDetails.Size != nil {
 				dnp.NodeCount = *ociNodePool.NodeConfigDetails.Size
 			}
+			dnp.FreeformTags = ociNodePool.FreeformTags
+			dnp.DefinedTags = ociNodePool.DefinedTags
 			domainNodePools = append(domainNodePools, dnp)
 		}
 
@@ -161,6 +163,8 @@ func (a *Adapter) toDomainModel(c containerengine.Cluster) domain.Cluster {
 	if c.Metadata != nil && c.Metadata.TimeCreated != nil {
 		dc.TimeCreated = c.Metadata.TimeCreated.Time
 	}
+	dc.FreeformTags = c.FreeformTags
+	dc.DefinedTags = c.DefinedTags
 	return dc
 }
 
@@ -191,5 +195,7 @@ func (a *Adapter) toDomainModelSummary(s containerengine.ClusterSummary) domain.
 	if s.Metadata != nil && s.Metadata.TimeCreated != nil {
 		dc.TimeCreated = s.Metadata.TimeCreated.Time
 	}
+	dc.FreeformTags = s.FreeformTags
+	dc.DefinedTags = s.DefinedTags
 	return dc
 }
