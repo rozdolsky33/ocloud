@@ -1,7 +1,7 @@
 package instance
 
 import (
-	instaceFlags "github.com/rozdolsky33/ocloud/cmd/compute/flags"
+	instaceFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"

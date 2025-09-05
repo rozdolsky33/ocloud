@@ -1,7 +1,7 @@
 package autonomousdb
 
 import (
-	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
+	databaseFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
@@ -9,8 +9,8 @@ import (
 )
 
 // Long description for the list command
-var listLong = `
-FetchPaginatedClusters all Autonomous Databases in the specified compartment with pagination support.
+var getLong = `
+Fetch Autonomous Databases in the specified compartment with pagination support.
 
 This command displays information about available Autonomous Databases in the current compartment.
 By default, it shows basic database information such as name, ID, state, and workload type.
@@ -25,55 +25,48 @@ Additional Information:
 `
 
 // Examples for the list command
-var listExamples = `
+var getExamples = `
   # FetchPaginatedClusters all Autonomous Databases with default pagination (20 per page)
-  ocloud database autonomous list
+  ocloud database autonomous get
 
   # FetchPaginatedClusters Autonomous Databases with custom pagination (10 per page, page 2)
-  ocloud database autonomous list --limit 10 --page 2
+  ocloud database autonomous get --limit 10 --page 2
 
   # FetchPaginatedClusters Autonomous Databases and output in JSON format
-  ocloud database autonomous list --json
+  ocloud database autonomous get --json
 
   # FetchPaginatedClusters Autonomous Databases with custom pagination and JSON output
-  ocloud database autonomous list --limit 5 --page 3 --json
+  ocloud database autonomous get --limit 5 --page 3 --json
 `
 
-// NewListCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.
-func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewGetCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.
+func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "FetchPaginatedClusters all Databases in the specified compartment",
-		Long:          listLong,
-		Example:       listExamples,
+		Short:         "Get all Databases in the compartment",
+		Long:          getLong,
+		Example:       getExamples,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunListCommand(cmd, appCtx)
+			return RunGetCommand(cmd, appCtx)
 		},
 	}
 
-	paginationFlags.LimitFlag.Add(cmd)
-	paginationFlags.PageFlag.Add(cmd)
-
-	// Add --all / -A to control detailed vs. summary output
-	flags.BoolFlag{
-		Name:      flags.FlagNameAllInformation,
-		Shorthand: flags.FlagShortAllInformation,
-		Default:   false,
-		Usage:     flags.FlagDescAllInformation,
-	}.Add(cmd)
+	databaseFlags.LimitFlag.Add(cmd)
+	databaseFlags.PageFlag.Add(cmd)
+	databaseFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
 
 }
 
-// RunListCommand handles the execution of the list command
-func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// RunGetCommand handles the execution of the list command
+func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
+	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, databaseFlags.FlagDefaultLimit)
+	page := flags.GetIntFlag(cmd, flags.FlagNamePage, databaseFlags.FlagDefaultPage)
 	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 	return autonomousdb.ListAutonomousDatabase(appCtx, useJSON, limit, page, showAll)
 }

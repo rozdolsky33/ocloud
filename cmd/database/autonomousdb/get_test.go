@@ -14,25 +14,25 @@ func TestListCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new list command
-	cmd := NewListCmd(appCtx)
+	cmd := NewGetCmd(appCtx)
 
 	// Test that the list command is properly configured
 	assert.Equal(t, "list", cmd.Use)
 	assert.Equal(t, []string{"l"}, cmd.Aliases)
-	assert.Equal(t, "FetchPaginatedClusters all Databases in the specified compartment", cmd.Short)
-	assert.Equal(t, listLong, cmd.Long)
-	assert.Equal(t, listExamples, cmd.Example)
+	assert.Equal(t, "Get all Databases in the compartment", cmd.Short)
+	assert.Equal(t, getLong, cmd.Long)
+	assert.Equal(t, getExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
 	// Test that the flags are added
 	limitFlag := cmd.Flag("limit")
-	assert.NotNil(t, limitFlag, "list command should have limit flag")
+	assert.NotNil(t, limitFlag, "get command should have limit flag")
 	assert.Equal(t, "limit", limitFlag.Name)
 	assert.Equal(t, "m", limitFlag.Shorthand)
 
 	pageFlag := cmd.Flag("page")
-	assert.NotNil(t, pageFlag, "list command should have page flag")
+	assert.NotNil(t, pageFlag, "get command should have page flag")
 	assert.Equal(t, "page", pageFlag.Name)
 	assert.Equal(t, "p", pageFlag.Shorthand)
 }

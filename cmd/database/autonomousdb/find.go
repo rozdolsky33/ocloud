@@ -1,6 +1,7 @@
 package autonomousdb
 
 import (
+	databaseFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -47,18 +48,9 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunFindCommand(cmd, args, appCtx)
 		},
 	}
-
-	// Add --all / -A to control detailed vs. summary output
-	flags.BoolFlag{
-		Name:      flags.FlagNameAllInformation,
-		Shorthand: flags.FlagShortAllInformation,
-		Default:   false,
-		Usage:     flags.FlagDescAllInformation,
-	}.Add(cmd)
+	databaseFlags.AllInfoFlag.Add(cmd)
 	return cmd
 }
-
-//TODO:
 
 // RunFindCommand handles the execution of the find command
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
