@@ -32,6 +32,8 @@ type AutonomousDatabase struct {
 	IsMtlsRequired       *bool
 
 	// Capacity & autoscaling
+	ComputeModel                string
+	EcpuCount                   *float32
 	OcpuCount                   *float32
 	CpuCoreCount                *int
 	DataStorageSizeInTBs        *int

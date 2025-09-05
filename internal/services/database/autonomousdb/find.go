@@ -27,10 +27,18 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 		return fmt.Errorf("finding autonomous databases: %w", err)
 	}
 
-	// Convert to a domain type for printing
+	// Convert to domain type and best-effort enrich each item with a full Get call
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(matchedDatabases))
 	for _, db := range matchedDatabases {
-		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
+		basic := domain.AutonomousDatabase(db)
+		// Try to fetch full object to populate fields missing from summaries (patching, role, maintenance, capacities, etc.).
+		full, gerr := adapter.GetAutonomousDatabase(ctx, basic.ID)
+		if gerr == nil && full != nil {
+			domainDbs = append(domainDbs, *full)
+		} else {
+			// If enrichment fails, fall back to basic summary to avoid breaking the flow.
+			domainDbs = append(domainDbs, basic)
+		}
 	}
 
 	if err := PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON); err != nil {

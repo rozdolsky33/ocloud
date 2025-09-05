@@ -74,14 +74,23 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 		netKeys := []string{"Private Endpoint Label", "Subnet OCID", "NSGs", "Whitelisted IPs", "mTLS Required"}
 		p.PrintKeyValues(title+" – Network", net, netKeys)
 
-		// Capacity section
-		cap := map[string]string{
-			"OCPUs":         floatToString(db.OcpuCount),
-			"CPU Cores":     intToString(db.CpuCoreCount),
-			"Storage (TBs)": intToString(db.DataStorageSizeInTBs),
-			"Auto Scaling":  boolToString(db.IsAutoScalingEnabled),
+		// Capacity section: show ECPUs when ComputeModel is ECPU, otherwise OCPUs/CPU Cores
+		cap := map[string]string{}
+		var capKeys []string
+		if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
+			cap["Compute Model"] = db.ComputeModel
+			cap["ECPUs"] = floatToString(db.EcpuCount)
+			cap["Storage (TBs)"] = intToString(db.DataStorageSizeInTBs)
+			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
+			capKeys = []string{"Compute Model", "ECPUs", "Storage (TBs)", "Auto Scaling"}
+		} else {
+			cap["Compute Model"] = db.ComputeModel
+			cap["OCPUs"] = floatToString(db.OcpuCount)
+			cap["CPU Cores"] = intToString(db.CpuCoreCount)
+			cap["Storage (TBs)"] = intToString(db.DataStorageSizeInTBs)
+			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
+			capKeys = []string{"Compute Model", "OCPUs", "CPU Cores", "Storage (TBs)", "Auto Scaling"}
 		}
-		capKeys := []string{"OCPUs", "CPU Cores", "Storage (TBs)", "Auto Scaling"}
 		p.PrintKeyValues(title+" – Capacity", cap, capKeys)
 
 		// Maintenance basic

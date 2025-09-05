@@ -85,10 +85,12 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		isMtlsRequired       *bool
 
 		// capacity
-		ocpuCount    *float32
-		cpuCoreCount *int
-		storageTBs   *int
-		isAutoScale  *bool
+		computeModelStr string
+		ecpuCount       *float32
+		ocpuCount       *float32
+		cpuCoreCount    *int
+		storageTBs      *int
+		isAutoScale     *bool
 
 		// connections
 		connStrings *database.AutonomousDatabaseConnectionStrings
@@ -121,6 +123,8 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		nsgIds = src.NsgIds
 		isMtlsRequired = src.IsMtlsConnectionRequired
 
+		computeModelStr = string(src.ComputeModel)
+		ecpuCount = src.ComputeCount
 		ocpuCount = src.OcpuCount
 		cpuCoreCount = src.CpuCoreCount
 		storageTBs = src.DataStorageSizeInTBs
@@ -151,6 +155,8 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		nsgIds = src.NsgIds
 		isMtlsRequired = src.IsMtlsConnectionRequired
 
+		computeModelStr = string(src.ComputeModel)
+		ecpuCount = src.ComputeCount
 		ocpuCount = src.OcpuCount
 		cpuCoreCount = src.CpuCoreCount
 		storageTBs = src.DataStorageSizeInTBs
@@ -204,6 +210,8 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	d.IsMtlsRequired = isMtlsRequired
 
 	// capacity
+	d.ComputeModel = computeModelStr
+	d.EcpuCount = ecpuCount
 	d.OcpuCount = ocpuCount
 	d.CpuCoreCount = cpuCoreCount
 	d.DataStorageSizeInTBs = storageTBs
