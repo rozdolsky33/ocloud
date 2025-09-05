@@ -12,7 +12,7 @@ import (
 
 // FindAutonomousDatabases searches for Autonomous Databases matching the provided name pattern in the application context.
 // Logs database discovery tasks and can format the result based on the useJSON flag.
-func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
+func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string, useJSON bool, showAll bool) error {
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Autonomous Databases", "pattern", namePattern)
 
 	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider)
@@ -27,7 +27,7 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 		return fmt.Errorf("finding autonomous databases: %w", err)
 	}
 
-	// Convert to domain type and best-effort enrich each item with a full Get call
+	// Convert to a domain type and best-effort enrich each item with a full Get call
 	domainDbs := make([]domain.AutonomousDatabase, 0, len(matchedDatabases))
 	for _, db := range matchedDatabases {
 		basic := domain.AutonomousDatabase(db)
@@ -36,12 +36,12 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 		if gerr == nil && full != nil {
 			domainDbs = append(domainDbs, *full)
 		} else {
-			// If enrichment fails, fall back to basic summary to avoid breaking the flow.
+			// If enrichment fails, fall back to the basic summary to avoid breaking the flow.
 			domainDbs = append(domainDbs, basic)
 		}
 	}
 
-	if err := PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON); err != nil {
+	if err := PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON, showAll); err != nil {
 		return fmt.Errorf("printing autonomous databases: %w", err)
 	}
 	return nil

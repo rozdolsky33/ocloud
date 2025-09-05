@@ -28,7 +28,7 @@ func NewAdapter(provider oci.ClientProvider) (*Adapter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
-	// create virtual network client for name enrichment
+	// create a virtual network client for name enrichment
 	netClient, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create virtual network client: %w", err)
@@ -177,6 +177,7 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		ocpuCount                   *float32
 		cpuCoreCount                *int
 		storageTBs                  *int
+		storageGBs                  *int
 		isAutoScale                 *bool
 		isStorageAutoScalingEnabled *bool
 
@@ -276,6 +277,15 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		return domain.AutonomousDatabase{}
 	}
 
+	// Post-switch normalization for fields not captured in shared vars
+	switch src := ociObj.(type) {
+	case database.AutonomousDatabase:
+		// Capacity (additional fields)
+		storageGBs = src.DataStorageSizeInGBs
+	case database.AutonomousDatabaseSummary:
+		storageGBs = src.DataStorageSizeInGBs
+	}
+
 	d := domain.AutonomousDatabase{}
 	if name != nil {
 		d.Name = *name
@@ -319,6 +329,7 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	d.OcpuCount = ocpuCount
 	d.CpuCoreCount = cpuCoreCount
 	d.DataStorageSizeInTBs = storageTBs
+	d.DataStorageSizeInGBs = storageGBs
 	d.IsAutoScalingEnabled = isAutoScale
 	// additional capacity flags
 	d.IsStorageAutoScalingEnabled = isStorageAutoScalingEnabled

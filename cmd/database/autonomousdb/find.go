@@ -48,6 +48,13 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
+	// Add --all / -A to control detailed vs. summary output
+	flags.BoolFlag{
+		Name:      flags.FlagNameAllInformation,
+		Shorthand: flags.FlagShortAllInformation,
+		Default:   false,
+		Usage:     flags.FlagDescAllInformation,
+	}.Add(cmd)
 	return cmd
 }
 
@@ -58,5 +65,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
-	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON)
+	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
+	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON, showAll)
 }

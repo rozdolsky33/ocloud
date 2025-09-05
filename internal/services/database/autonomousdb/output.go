@@ -11,7 +11,7 @@ import (
 
 // PrintAutonomousDbInfo displays instances in a formatted table or JSON format.
 // It now returns an error to allow for proper error handling by the caller.
-func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	// Adjust the pagination information if available
@@ -34,7 +34,59 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 	for _, db := range databases {
 		title := util.FormatColoredTitle(appCtx, db.Name)
 
-		// Connection (existing behavior) + includes TP/TPURGENT if present
+		// Summary view (first glance) when showAll is false
+		if !showAll {
+			// Prepare name-preferred fields for subnet/VCN and NSGs
+			subnetVal := db.SubnetId
+			if db.SubnetName != "" {
+				subnetVal = db.SubnetName
+			}
+			vcnVal := db.VcnID
+			if db.VcnName != "" {
+				vcnVal = db.VcnName
+			}
+			nsgVal := ""
+			if len(db.NsgNames) > 0 {
+				nsgVal = fmt.Sprintf("%v", db.NsgNames)
+			} else if len(db.NsgIds) > 0 {
+				nsgVal = fmt.Sprintf("%v", db.NsgIds)
+			}
+			// Storage: prefer TBs than GBs
+			storage := ""
+			if s := intToString(db.DataStorageSizeInTBs); s != "" {
+				storage = s + " TB"
+			} else if g := intToString(db.DataStorageSizeInGBs); g != "" {
+				storage = g + " GB"
+			}
+			// CPU label/value based on compute model
+			cpuKey := "OCPUs"
+			cpuVal := floatToString(db.OcpuCount)
+			if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
+				cpuKey = "ECPUs"
+				cpuVal = floatToString(db.EcpuCount)
+			}
+			summary := map[string]string{
+				"Lifecycle State":  db.LifecycleState,
+				"DB Version":       db.DbVersion,
+				"Workload":         db.DbWorkload,
+				"Compute Model":    db.ComputeModel,
+				cpuKey:             cpuVal,
+				"Storage":          storage,
+				"Private IP":       db.PrivateEndpointIp,
+				"Private Endpoint": db.PrivateEndpoint,
+				"Subnet":           subnetVal,
+				"VCN":              vcnVal,
+				"NSGs":             nsgVal,
+			}
+			if db.TimeCreated != nil {
+				summary["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
+			}
+			// Ordered keys for summary
+			ordered := []string{"Lifecycle State", "DB Version", "Workload", "Compute Model", cpuKey, "Storage", "Private IP", "Private Endpoint", "Subnet", "VCN", "NSGs", "Time Created"}
+			p.PrintKeyValues(title, summary, ordered)
+			continue
+		}
+
 		conn := map[string]string{
 			"Private IP":       db.PrivateEndpointIp,
 			"Private Endpoint": db.PrivateEndpoint,

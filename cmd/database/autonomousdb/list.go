@@ -57,6 +57,14 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
 
+	// Add --all / -A to control detailed vs. summary output
+	flags.BoolFlag{
+		Name:      flags.FlagNameAllInformation,
+		Shorthand: flags.FlagShortAllInformation,
+		Default:   false,
+		Usage:     flags.FlagDescAllInformation,
+	}.Add(cmd)
+
 	return cmd
 
 }
@@ -66,5 +74,6 @@ func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
-	return autonomousdb.ListAutonomousDatabase(appCtx, useJSON, limit, page)
+	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
+	return autonomousdb.ListAutonomousDatabase(appCtx, useJSON, limit, page, showAll)
 }
