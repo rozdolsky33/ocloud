@@ -51,7 +51,7 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 	}
 
 	// Test with table output (useJSON = false)
-	err := PrintAutonomousDbInfo(databases, appCtx, nil, false)
+	err := PrintAutonomousDbInfo(databases, appCtx, nil, false, false)
 	assert.NoError(t, err)
 
 	// Verify that the output contains the expected information
@@ -59,21 +59,21 @@ func TestPrintAutonomousDbInfo(t *testing.T) {
 	assert.Contains(t, output, "TestDatabase1")
 	assert.Contains(t, output, "test-endpoint-1.example.com")
 	assert.Contains(t, output, "192.168.1.1")
-	assert.Contains(t, output, "high-connection-string-1")
-	assert.Contains(t, output, "medium-connection-string-1")
-	assert.Contains(t, output, "low-connection-string-1")
+	assert.NotContains(t, output, "high-connection-string-1")
+	assert.NotContains(t, output, "medium-connection-string-1")
+	assert.NotContains(t, output, "low-connection-string-1")
 	assert.Contains(t, output, "TestDatabase2")
 	assert.Contains(t, output, "test-endpoint-2.example.com")
 	assert.Contains(t, output, "192.168.1.2")
-	assert.Contains(t, output, "high-connection-string-2")
-	assert.Contains(t, output, "medium-connection-string-2")
-	assert.Contains(t, output, "low-connection-string-2")
+	assert.NotContains(t, output, "high-connection-string-2")
+	assert.NotContains(t, output, "medium-connection-string-2")
+	assert.NotContains(t, output, "low-connection-string-2")
 
 	// Reset the buffer
 	buf.Reset()
 
 	// Test with JSON output (useJSON = true)
-	err = PrintAutonomousDbInfo(databases, appCtx, nil, true)
+	err = PrintAutonomousDbInfo(databases, appCtx, nil, true, false)
 	assert.NoError(t, err)
 
 	// Verify that the output is valid JSON and contains the expected information
@@ -111,7 +111,7 @@ func TestPrintAutonomousDbInfoEmpty(t *testing.T) {
 	}
 
 	// Test with table output (useJSON = false)
-	err := PrintAutonomousDbInfo(databases, appCtx, nil, false)
+	err := PrintAutonomousDbInfo(databases, appCtx, nil, false, false)
 	assert.NoError(t, err)
 
 	// Verify that the output indicates no items found
@@ -122,7 +122,7 @@ func TestPrintAutonomousDbInfoEmpty(t *testing.T) {
 	buf.Reset()
 
 	// Test with JSON output (useJSON = true)
-	err = PrintAutonomousDbInfo(databases, appCtx, nil, true)
+	err = PrintAutonomousDbInfo(databases, appCtx, nil, true, false)
 	assert.NoError(t, err)
 
 	// Verify that the output is valid JSON and indicates an empty object
@@ -167,7 +167,7 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	}
 
 	// Test with table output (useJSON = false)
-	err := PrintAutonomousDbInfo(databases, appCtx, pagination, false)
+	err := PrintAutonomousDbInfo(databases, appCtx, pagination, false, false)
 	assert.NoError(t, err)
 
 	// Verify that the output contains the expected information
@@ -175,15 +175,15 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	assert.Contains(t, output, "TestDatabase1")
 	assert.Contains(t, output, "test-endpoint-1.example.com")
 	assert.Contains(t, output, "192.168.1.1")
-	assert.Contains(t, output, "high-connection-string-1")
-	assert.Contains(t, output, "medium-connection-string-1")
-	assert.Contains(t, output, "low-connection-string-1")
+	assert.NotContains(t, output, "high-connection-string-1")
+	assert.NotContains(t, output, "medium-connection-string-1")
+	assert.NotContains(t, output, "low-connection-string-1")
 
 	// Reset the buffer
 	buf.Reset()
 
 	// Test with JSON output (useJSON = true)
-	err = PrintAutonomousDbInfo(databases, appCtx, pagination, true)
+	err = PrintAutonomousDbInfo(databases, appCtx, pagination, true, false)
 	assert.NoError(t, err)
 
 	// Verify that the output is valid JSON and contains the expected information
@@ -200,4 +200,106 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 	assert.Contains(t, jsonOutput, "\"Limit\"")
 	assert.Contains(t, jsonOutput, "\"CurrentPage\"")
 	assert.Contains(t, jsonOutput, "\"NextPageToken\"")
+}
+
+// TestPrintAutonomousDbInfoShowAll tests the PrintAutonomousDbInfo function with the showAll flag set to true.
+func TestPrintAutonomousDbInfoShowAll(t *testing.T) {
+	// Create test databases
+	databases := []domain.AutonomousDatabase{
+		{
+			Name:                 "TestDatabase1",
+			ID:                   "ocid1.autonomousdatabase.oc1.phx.test1",
+			LifecycleState:       "AVAILABLE",
+			LifecycleDetails:     "Lifecycle Details",
+			DbVersion:            "19c",
+			DbWorkload:           "OLTP",
+			LicenseModel:         "BRING_YOUR_OWN_LICENSE",
+			ComputeModel:         "ECPU",
+			EcpuCount:            float32Ptr(2.0),
+			DataStorageSizeInTBs: intPtr(1),
+			IsAutoScalingEnabled: boolPtr(true),
+			PrivateEndpoint:      "test-endpoint-1.example.com",
+			PrivateEndpointIp:    "192.168.1.1",
+			SubnetName:           "Subnet-1",
+			VcnName:              "VCN-1",
+			NsgNames:             []string{"nsg1", "nsg2"},
+			IsMtlsRequired:       boolPtr(false),
+			ConnectionStrings: map[string]string{
+				"HIGH":     "high-connection-string-1",
+				"MEDIUM":   "medium-connection-string-1",
+				"LOW":      "low-connection-string-1",
+				"TP":       "tp-connection-string-1",
+				"TPURGENT": "tpurgent-connection-string-1",
+			},
+		},
+	}
+
+	// Create a buffer to capture output
+	var buf bytes.Buffer
+
+	// Create an application context with the buffer as stdout
+	appCtx := &app.ApplicationContext{
+		CompartmentName: "TestCompartment",
+		CompartmentID:   "ocid1.compartment.oc1.phx.test",
+		Logger:          logger.NewTestLogger(),
+		Stdout:          &buf,
+	}
+
+	// Test with table output (showAll = true)
+	err := PrintAutonomousDbInfo(databases, appCtx, nil, false, true)
+	assert.NoError(t, err)
+
+	// Verify that the output contains the expected information
+	output := buf.String()
+	assert.Contains(t, output, "TestDatabase1")
+	assert.Contains(t, output, "Lifecycle State")
+	assert.Contains(t, output, "AVAILABLE")
+	assert.Contains(t, output, "Lifecycle Details")
+	assert.Contains(t, output, "19c")
+	assert.Contains(t, output, "OLTP")
+	assert.Contains(t, output, "BRING_YOUR_OWN_LICENSE")
+	assert.Contains(t, output, "Compute Model")
+	assert.Contains(t, output, "ECPU")
+	assert.Contains(t, output, "ECPUs")
+	assert.Contains(t, output, "2.00")
+	assert.Contains(t, output, "Storage")
+	assert.Contains(t, output, "1 TB")
+	assert.Contains(t, output, "Auto Scaling")
+	assert.Contains(t, output, "true")
+	assert.Contains(t, output, "Access Type")
+	assert.Contains(t, output, "Virtual cloud network")
+	assert.Contains(t, output, "Private IP")
+	assert.Contains(t, output, "192.168.1.1")
+	assert.Contains(t, output, "Private Endpoint")
+	assert.Contains(t, output, "test-endpoint-1.example.com")
+	assert.Contains(t, output, "Subnet")
+	assert.Contains(t, output, "Subnet-1")
+	assert.Contains(t, output, "VCN")
+	assert.Contains(t, output, "VCN-1")
+	assert.Contains(t, output, "NSGs")
+	assert.Contains(t, output, "[nsg1 nsg2]")
+	assert.Contains(t, output, "mTLS Required")
+	assert.Contains(t, output, "false")
+	assert.Contains(t, output, "High")
+	assert.Contains(t, output, "high-connection-string-1")
+	assert.Contains(t, output, "Medium")
+	assert.Contains(t, output, "medium-connection-string-1")
+	assert.Contains(t, output, "Low")
+	assert.Contains(t, output, "low-connection-string-1")
+	assert.Contains(t, output, "TP")
+	assert.Contains(t, output, "tp-connection-string-1")
+	assert.Contains(t, output, "TPURGENT")
+	assert.Contains(t, output, "tpurgent-connection-string-1")
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func intPtr(i int) *int {
+	return &i
+}
+
+func float32Ptr(f float32) *float32 {
+	return &f
 }

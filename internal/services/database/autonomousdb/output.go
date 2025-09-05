@@ -34,37 +34,38 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 	for _, db := range databases {
 		title := util.FormatColoredTitle(appCtx, db.Name)
 
+		// Prepare name-preferred fields for subnet/VCN and NSGs
+		subnetVal := db.SubnetId
+		if db.SubnetName != "" {
+			subnetVal = db.SubnetName
+		}
+		vcnVal := db.VcnID
+		if db.VcnName != "" {
+			vcnVal = db.VcnName
+		}
+		nsgVal := ""
+		if len(db.NsgNames) > 0 {
+			nsgVal = fmt.Sprintf("%v", db.NsgNames)
+		} else if len(db.NsgIds) > 0 {
+			nsgVal = fmt.Sprintf("%v", db.NsgIds)
+		}
+		// Storage: prefer TBs than GBs
+		storage := ""
+		if s := intToString(db.DataStorageSizeInTBs); s != "" {
+			storage = s + " TB"
+		} else if g := intToString(db.DataStorageSizeInGBs); g != "" {
+			storage = g + " GB"
+		}
+		// CPU label/value based on compute model
+		cpuKey := "OCPUs"
+		cpuVal := floatToString(db.OcpuCount)
+		if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
+			cpuKey = "ECPUs"
+			cpuVal = floatToString(db.EcpuCount)
+		}
+
 		// Summary view (first glance) when showAll is false
 		if !showAll {
-			// Prepare name-preferred fields for subnet/VCN and NSGs
-			subnetVal := db.SubnetId
-			if db.SubnetName != "" {
-				subnetVal = db.SubnetName
-			}
-			vcnVal := db.VcnID
-			if db.VcnName != "" {
-				vcnVal = db.VcnName
-			}
-			nsgVal := ""
-			if len(db.NsgNames) > 0 {
-				nsgVal = fmt.Sprintf("%v", db.NsgNames)
-			} else if len(db.NsgIds) > 0 {
-				nsgVal = fmt.Sprintf("%v", db.NsgIds)
-			}
-			// Storage: prefer TBs than GBs
-			storage := ""
-			if s := intToString(db.DataStorageSizeInTBs); s != "" {
-				storage = s + " TB"
-			} else if g := intToString(db.DataStorageSizeInGBs); g != "" {
-				storage = g + " GB"
-			}
-			// CPU label/value based on compute model
-			cpuKey := "OCPUs"
-			cpuVal := floatToString(db.OcpuCount)
-			if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
-				cpuKey = "ECPUs"
-				cpuVal = floatToString(db.EcpuCount)
-			}
 			summary := map[string]string{
 				"Lifecycle State":  db.LifecycleState,
 				"DB Version":       db.DbVersion,
@@ -87,47 +88,36 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 			continue
 		}
 
-		conn := map[string]string{
-			"Private IP":       db.PrivateEndpointIp,
-			"Private Endpoint": db.PrivateEndpoint,
-			"High":             db.ConnectionStrings["HIGH"],
-			"Medium":           db.ConnectionStrings["MEDIUM"],
-			"Low":              db.ConnectionStrings["LOW"],
-			"TP":               db.ConnectionStrings["TP"],
-			"TPURGENT":         db.ConnectionStrings["TPURGENT"],
-		}
-		connKeys := []string{"Private IP", "Private Endpoint", "High", "Medium", "Low", "TP", "TPURGENT"}
-		p.PrintKeyValues(title, conn, connKeys)
+		// Detailed view (showAll is true)
+		details := make(map[string]string)
+		orderedKeys := []string{}
 
-		// State section
-		state := map[string]string{
-			"Lifecycle State":   db.LifecycleState,
-			"Lifecycle Details": db.LifecycleDetails,
-			"DB Version":        db.DbVersion,
-			"Workload":          db.DbWorkload,
-			"License Model":     db.LicenseModel,
-		}
+		// General Section
+		details["Lifecycle State"] = db.LifecycleState
+		details["Lifecycle Details"] = db.LifecycleDetails
+		details["DB Version"] = db.DbVersion
+		details["Workload"] = db.DbWorkload
+		details["License Model"] = db.LicenseModel
 		if db.TimeCreated != nil {
-			state["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
+			details["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
 		}
-		stateKeys := []string{"Lifecycle State", "Lifecycle Details", "DB Version", "Workload", "License Model", "Time Created"}
-		p.PrintKeyValues(title+" – State", state, stateKeys)
+		orderedKeys = append(orderedKeys, "Lifecycle State", "Lifecycle Details", "DB Version", "Workload", "License Model", "Time Created")
 
-		// Network section (prefer names over OCIDs when available)
-		subnetVal := db.SubnetId
-		if db.SubnetName != "" {
-			subnetVal = db.SubnetName
+		// Capacity Section
+		details["Compute Model"] = db.ComputeModel
+		if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
+			details["ECPUs"] = floatToString(db.EcpuCount)
+			orderedKeys = append(orderedKeys, "Compute Model", "ECPUs")
+		} else {
+			details["OCPUs"] = floatToString(db.OcpuCount)
+			details["CPU Cores"] = intToString(db.CpuCoreCount)
+			orderedKeys = append(orderedKeys, "Compute Model", "OCPUs", "CPU Cores")
 		}
-		vcnVal := db.VcnID
-		if db.VcnName != "" {
-			vcnVal = db.VcnName
-		}
-		nsgVal := ""
-		if len(db.NsgNames) > 0 {
-			nsgVal = fmt.Sprintf("%v", db.NsgNames)
-		} else if len(db.NsgIds) > 0 {
-			nsgVal = fmt.Sprintf("%v", db.NsgIds)
-		}
+		details["Storage"] = storage
+		details["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
+		orderedKeys = append(orderedKeys, "Storage", "Auto Scaling")
+
+		// Network Section
 		accessType := ""
 		if db.IsPubliclyAccessible != nil {
 			if *db.IsPubliclyAccessible {
@@ -139,45 +129,27 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 			// Infer VCN when we have a private endpoint but no explicit public flag
 			accessType = "Virtual cloud network"
 		}
-		net := map[string]string{
-			"Private Endpoint Label": db.PrivateEndpointLabel,
-			"Access Type":            accessType,
-			"Subnet":                 subnetVal,
-			"VCN":                    vcnVal,
-			"NSGs":                   nsgVal,
-			"mTLS Required":          boolToString(db.IsMtlsRequired),
-		}
+		details["Access Type"] = accessType
+		details["Private IP"] = db.PrivateEndpointIp
+		details["Private Endpoint"] = db.PrivateEndpoint
+		details["Subnet"] = subnetVal
+		details["VCN"] = vcnVal
+		details["NSGs"] = nsgVal
+		details["mTLS Required"] = boolToString(db.IsMtlsRequired)
 		if len(db.WhitelistedIps) > 0 {
-			net["Whitelisted IPs"] = fmt.Sprintf("%v", db.WhitelistedIps)
+			details["Whitelisted IPs"] = fmt.Sprintf("%v", db.WhitelistedIps)
 		}
-		netKeys := []string{"Private Endpoint Label", "Access Type", "Subnet", "VCN", "NSGs", "Whitelisted IPs", "mTLS Required"}
-		p.PrintKeyValues(title+" – Network", net, netKeys)
+		orderedKeys = append(orderedKeys, "Access Type", "Private IP", "Private Endpoint", "Subnet", "VCN", "NSGs", "mTLS Required", "Whitelisted IPs")
 
-		// Capacity section: show ECPUs when ComputeModel is ECPU, otherwise OCPUs/CPU Cores
-		cap := map[string]string{}
-		var capKeys []string
-		// Determine storage value: prefer TBs, else GBs if present
-		storage := ""
-		if s := intToString(db.DataStorageSizeInTBs); s != "" {
-			storage = s + " TB"
-		} else if g := intToString(db.DataStorageSizeInGBs); g != "" {
-			storage = g + " GB"
-		}
-		if db.ComputeModel == "ECPU" || db.EcpuCount != nil {
-			cap["Compute Model"] = db.ComputeModel
-			cap["ECPUs"] = floatToString(db.EcpuCount)
-			cap["Storage"] = storage
-			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
-			capKeys = []string{"Compute Model", "ECPUs", "Storage", "Auto Scaling"}
-		} else {
-			cap["Compute Model"] = db.ComputeModel
-			cap["OCPUs"] = floatToString(db.OcpuCount)
-			cap["CPU Cores"] = intToString(db.CpuCoreCount)
-			cap["Storage"] = storage
-			cap["Auto Scaling"] = boolToString(db.IsAutoScalingEnabled)
-			capKeys = []string{"Compute Model", "OCPUs", "CPU Cores", "Storage", "Auto Scaling"}
-		}
-		p.PrintKeyValues(title+" – Capacity", cap, capKeys)
+		// Connection Strings Section
+		details["High"] = db.ConnectionStrings["HIGH"]
+		details["Medium"] = db.ConnectionStrings["MEDIUM"]
+		details["Low"] = db.ConnectionStrings["LOW"]
+		details["TP"] = db.ConnectionStrings["TP"]
+		details["TPURGENT"] = db.ConnectionStrings["TPURGENT"]
+		orderedKeys = append(orderedKeys, "High", "Medium", "Low", "TP", "TPURGENT")
+
+		p.PrintKeyValues(title, details, orderedKeys)
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
