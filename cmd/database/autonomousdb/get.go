@@ -4,6 +4,7 @@ import (
 	databaseFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/spf13/cobra"
 )
@@ -42,8 +43,7 @@ var getExamples = `
 // NewGetCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "list",
-		Aliases:       []string{"l"},
+		Use:           "get",
 		Short:         "Get all Databases in the compartment",
 		Long:          getLong,
 		Example:       getExamples,
@@ -64,6 +64,7 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunGetCommand handles the execution of the list command
 func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running autonomous database Get command")
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, databaseFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, databaseFlags.FlagDefaultPage)
