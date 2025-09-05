@@ -33,6 +33,19 @@ func NewAdapter(computeClient core.ComputeClient, networkClient core.VirtualNetw
 	}
 }
 
+// GetEnrichedInstance fetches a single instance by OCID and enriches it with network and image details.
+func (a *Adapter) GetEnrichedInstance(ctx context.Context, instanceID string) (*domain.Instance, error) {
+	resp, err := a.computeClient.GetInstance(ctx, core.GetInstanceRequest{InstanceId: &instanceID})
+	if err != nil {
+		return nil, fmt.Errorf("getting instance from OCI: %w", err)
+	}
+	dm, err := a.enrichAndMapInstance(ctx, resp.Instance)
+	if err != nil {
+		return nil, err
+	}
+	return &dm, nil
+}
+
 // ListInstances fetches all running instances in a compartment.
 func (a *Adapter) ListInstances(ctx context.Context, compartmentID string) ([]domain.Instance, error) {
 	var allInstances []domain.Instance
@@ -48,7 +61,7 @@ func (a *Adapter) ListInstances(ctx context.Context, compartmentID string) ([]do
 			return nil, fmt.Errorf("listing instances from OCI: %w", err)
 		}
 		for _, item := range resp.Items {
-			allInstances = append(allInstances, a.toBaseDomainModel(item))
+			allInstances = append(allInstances, a.toBaseDomainInstanceModel(item))
 		}
 
 		if resp.OpcNextPage == nil {
@@ -85,19 +98,6 @@ func (a *Adapter) ListEnrichedInstances(ctx context.Context, compartmentID strin
 	return a.enrichAndMapInstances(ctx, allInstances)
 }
 
-// GetEnrichedInstance fetches a single instance by OCID and enriches it with network and image details.
-func (a *Adapter) GetEnrichedInstance(ctx context.Context, instanceID string) (*domain.Instance, error) {
-	resp, err := a.computeClient.GetInstance(ctx, core.GetInstanceRequest{InstanceId: &instanceID})
-	if err != nil {
-		return nil, fmt.Errorf("getting instance from OCI: %w", err)
-	}
-	dm, err := a.enrichAndMapInstance(ctx, resp.Instance)
-	if err != nil {
-		return nil, err
-	}
-	return &dm, nil
-}
-
 // enrichAndMapInstances converts OCI instances to domain models and enriches them with details.
 func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core.Instance) ([]domain.Instance, error) {
 	domainInstances := make([]domain.Instance, len(ociInstances))
@@ -109,7 +109,7 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 		go func(i int, ociInstance core.Instance) {
 			defer wg.Done()
 
-			dm := a.toEnrichDomainModel(ociInstance)
+			dm := a.toEnrichDomainInstanceModel(ociInstance)
 
 			if err := a.enrichDomainInstance(ctx, &dm, ociInstance); err != nil {
 				errChan <- err
@@ -132,7 +132,7 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 
 // enrichAndMapInstance converts a single OCI instance to a domain model and enriches it with details.
 func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Instance) (domain.Instance, error) {
-	dm := a.toEnrichDomainModel(ociInstance)
+	dm := a.toEnrichDomainInstanceModel(ociInstance)
 	if err := a.enrichDomainInstance(ctx, &dm, ociInstance); err != nil {
 		return dm, err
 	}
@@ -319,7 +319,7 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 }
 
 // toDomainModel converts an OCI SDK image object to our application's domain model.
-func (a *Adapter) toBaseDomainModel(inst core.Instance) domain.Instance {
+func (a *Adapter) toBaseDomainInstanceModel(inst core.Instance) domain.Instance {
 	return domain.Instance{
 		OCID:        *inst.Id,
 		DisplayName: *inst.DisplayName,
@@ -332,8 +332,8 @@ func (a *Adapter) toBaseDomainModel(inst core.Instance) domain.Instance {
 	}
 }
 
-// toEnrichDomainModel converts an OCI SDK image object to our application's domain model.'
-func (a *Adapter) toEnrichDomainModel(inst core.Instance) domain.Instance {
+// toEnrichDomainInstanceModel converts an OCI SDK image object to our application's domain model.'
+func (a *Adapter) toEnrichDomainInstanceModel(inst core.Instance) domain.Instance {
 	return domain.Instance{
 		OCID:               *inst.Id,
 		DisplayName:        *inst.DisplayName,

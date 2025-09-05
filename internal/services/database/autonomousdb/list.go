@@ -17,7 +17,7 @@ import (
 func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Autonomous Databases")
 
-	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating database adapter: %w", err)
 	}

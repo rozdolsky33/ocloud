@@ -13,6 +13,11 @@ type Adapter struct {
 	client containerengine.ContainerEngineClient
 }
 
+// NewAdapter creates a new OKE adapter.
+func NewAdapter(client containerengine.ContainerEngineClient) *Adapter {
+	return &Adapter{client: client}
+}
+
 // GetCluster retrieves a single cluster by its OCID and enriches it with node pools.
 func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.Cluster, error) {
 	resp, err := a.client.GetCluster(ctx, containerengine.GetClusterRequest{
@@ -27,11 +32,6 @@ func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.C
 		return nil, err
 	}
 	return &dc, nil
-}
-
-// NewAdapter creates a new OKE adapter.
-func NewAdapter(client containerengine.ContainerEngineClient) *Adapter {
-	return &Adapter{client: client}
 }
 
 // ListClusters fetches all clusters in a compartment and enriches them with node pools.
@@ -137,7 +137,7 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 	return domainNodePools, nil
 }
 
-// toDomainCluster converts either a full Cluster or a ClusterSummary from OCI into a domain.Cluster.
+// toDomainCluster maps either a full containerengine.Cluster (from Get) or a containerengine.ClusterSummary (from List) into the single domain.Cluster type.
 func (a *Adapter) toDomainCluster(ociCluster interface{}) domain.Cluster {
 	var (
 		clusterID         *string

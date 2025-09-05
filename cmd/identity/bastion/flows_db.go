@@ -17,7 +17,7 @@ import (
 func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType) error {
 
-	adapter, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	adapter, err := ociadb.NewAdapter(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("error creating database adapter: %w", err)
 	}

@@ -14,12 +14,12 @@ type AutonomousDatabase struct {
 	PrivateEndpointIp string
 	ConnectionStrings map[string]string
 	Profiles          []database.DatabaseConnectionStringProfile
-	DatabaseTags      ResourceTags
+	FreeformTags      map[string]string
+	DefinedTags       map[string]map[string]interface{}
 }
 
 // AutonomousDatabaseRepository defines the interface for interacting with Autonomous Database data.
 type AutonomousDatabaseRepository interface {
-	ListAutonomousDatabases(ctx context.Context, compartmentID string) ([]AutonomousDatabase, error)
-	FindAutonomousDatabase(ctx context.Context, compartmentID, name string) (*AutonomousDatabase, error)
 	GetAutonomousDatabase(ctx context.Context, ocid string) (*AutonomousDatabase, error)
+	ListAutonomousDatabases(ctx context.Context, compartmentID string) ([]AutonomousDatabase, error)
 }

@@ -15,7 +15,7 @@ import (
 func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Autonomous Databases", "pattern", namePattern)
 
-	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating database adapter: %w", err)
 	}
