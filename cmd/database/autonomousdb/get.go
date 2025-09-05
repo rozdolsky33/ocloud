@@ -69,5 +69,5 @@ func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, databaseFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, databaseFlags.FlagDefaultPage)
 	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
-	return autonomousdb.ListAutonomousDatabase(appCtx, useJSON, limit, page, showAll)
+	return autonomousdb.GetAutonomousDatabase(appCtx, useJSON, limit, page, showAll)
 }

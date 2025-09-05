@@ -204,13 +204,11 @@ func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
 
 // TestPrintAutonomousDbInfoShowAll tests the PrintAutonomousDbInfo function with the showAll flag set to true.
 func TestPrintAutonomousDbInfoShowAll(t *testing.T) {
-	// Create test databases
 	databases := []domain.AutonomousDatabase{
 		{
 			Name:                 "TestDatabase1",
 			ID:                   "ocid1.autonomousdatabase.oc1.phx.test1",
 			LifecycleState:       "AVAILABLE",
-			LifecycleDetails:     "Lifecycle Details",
 			DbVersion:            "19c",
 			DbWorkload:           "OLTP",
 			LicenseModel:         "BRING_YOUR_OWN_LICENSE",
@@ -234,7 +232,7 @@ func TestPrintAutonomousDbInfoShowAll(t *testing.T) {
 		},
 	}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -254,7 +252,6 @@ func TestPrintAutonomousDbInfoShowAll(t *testing.T) {
 	assert.Contains(t, output, "TestDatabase1")
 	assert.Contains(t, output, "Lifecycle State")
 	assert.Contains(t, output, "AVAILABLE")
-	assert.Contains(t, output, "Lifecycle Details")
 	assert.Contains(t, output, "19c")
 	assert.Contains(t, output, "OLTP")
 	assert.Contains(t, output, "BRING_YOUR_OWN_LICENSE")

@@ -10,16 +10,14 @@ import (
 // AutonomousDatabase represents an autonomous database instance with its attributes and connection details.
 type AutonomousDatabase struct {
 	// Identity & lifecycle
-	ID               string
-	Name             string
-	CompartmentOCID  string
-	Region           string
-	LifecycleState   string
-	LifecycleDetails string
-	DbVersion        string
-	DbWorkload       string
-	LicenseModel     string
-	IsFreeTier       *bool
+	ID              string
+	Name            string
+	CompartmentOCID string
+	LifecycleState  string
+	DbVersion       string
+	DbWorkload      string
+	LicenseModel    string
+	IsFreeTier      *bool
 
 	// Networking
 	IsPubliclyAccessible *bool

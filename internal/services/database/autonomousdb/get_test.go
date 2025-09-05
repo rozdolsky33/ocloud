@@ -28,7 +28,7 @@ func TestListAutonomousDatabaseSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := ListAutonomousDatabase(appCtx, false, 20, 1, false)
+	err := GetAutonomousDatabase(appCtx, false, 20, 1, false)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestListAutonomousDatabaseOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := ListAutonomousDatabase(appCtxJSON, true, 20, 1, false)
+	err := GetAutonomousDatabase(appCtxJSON, true, 20, 1, false)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,7 +64,7 @@ func TestListAutonomousDatabaseOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = ListAutonomousDatabase(appCtxTable, false, 20, 1, false)
+	err = GetAutonomousDatabase(appCtxTable, false, 20, 1, false)
 	assert.NoError(t, err)
 }
 
@@ -87,15 +87,15 @@ func TestListAutonomousDatabasePagination(t *testing.T) {
 	}
 
 	// Test page 1
-	err := ListAutonomousDatabase(appCtx, false, 10, 1, false)
+	err := GetAutonomousDatabase(appCtx, false, 10, 1, false)
 	assert.NoError(t, err)
 
 	// Test page 2
-	err = ListAutonomousDatabase(appCtx, false, 10, 2, false)
+	err = GetAutonomousDatabase(appCtx, false, 10, 2, false)
 	assert.NoError(t, err)
 
 	// Test with a large page number (beyond available data)
-	err = ListAutonomousDatabase(appCtx, false, 10, 100, false)
+	err = GetAutonomousDatabase(appCtx, false, 10, 100, false)
 	assert.NoError(t, err)
 }
 
@@ -117,7 +117,7 @@ func TestListAutonomousDatabaseError(t *testing.T) {
 		Stdout:          io.Discard,
 	}
 
-	err := ListAutonomousDatabase(appCtx, false, 20, 1, false)
+	err := GetAutonomousDatabase(appCtx, false, 20, 1, false)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

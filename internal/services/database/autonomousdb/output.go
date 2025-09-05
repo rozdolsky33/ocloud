@@ -94,7 +94,6 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 
 		// General Section
 		details["Lifecycle State"] = db.LifecycleState
-		details["Lifecycle Details"] = db.LifecycleDetails
 		details["DB Version"] = db.DbVersion
 		details["Workload"] = db.DbWorkload
 		details["License Model"] = db.LicenseModel

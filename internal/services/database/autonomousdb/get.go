@@ -11,10 +11,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// ListAutonomousDatabase fetches and lists all autonomous databases within a specified application context.
-// appCtx represents the application context containing configuration and client details.
-// useJSON if true, outputs the list of databases in JSON format; otherwise, uses a plain-text format.
-func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int, showAll bool) error {
+// GetAutonomousDatabase retrieves a list of Autonomous Databases and displays them in a table or JSON format.
+func GetAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int, showAll bool) error {
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Autonomous Databases")
 
 	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider)

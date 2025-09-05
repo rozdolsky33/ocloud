@@ -15,10 +15,9 @@ import (
 type Adapter struct {
 	dbClient      database.DatabaseClient
 	networkClient core.VirtualNetworkClient
-	// simple caches to avoid repeated lookups during a run
-	subnetCache map[string]*core.Subnet
-	vcnCache    map[string]*core.Vcn
-	nsgCache    map[string]*core.NetworkSecurityGroup
+	subnetCache   map[string]*core.Subnet
+	vcnCache      map[string]*core.Vcn
+	nsgCache      map[string]*core.NetworkSecurityGroup
 }
 
 // NewAdapter creates a new Adapter instance. The compartmentID parameter is accepted for
@@ -28,7 +27,6 @@ func NewAdapter(provider oci.ClientProvider) (*Adapter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
-	// create a virtual network client for name enrichment
 	netClient, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create virtual network client: %w", err)
@@ -53,7 +51,6 @@ func (a *Adapter) GetAutonomousDatabase(ctx context.Context, ocid string) (*doma
 	db := a.toDomainAutonomousDB(response.AutonomousDatabase)
 	// Best-effort network name enrichment (subnet, VCN, NSGs)
 	if err := a.enrichNetworkNames(ctx, &db); err != nil {
-		// non-fatal; keep basic info if lookups fail
 	}
 	return &db, nil
 }
@@ -81,7 +78,7 @@ func (a *Adapter) ListAutonomousDatabases(ctx context.Context, compartmentID str
 	return allDatabases, nil
 }
 
-// enrichNetworkNames resolves display names for subnet, VCN, and NSGs where possible (best effort, cached).
+// enrichNetworkNames resolves display names for subnet, VCN, and NSGs where possible (the best effort, cached).
 func (a *Adapter) enrichNetworkNames(ctx context.Context, d *domain.AutonomousDatabase) error {
 	// Subnet → name and VCN
 	if d.SubnetId != "" {
@@ -152,14 +149,13 @@ func (a *Adapter) getNsg(ctx context.Context, id string) (*core.NetworkSecurityG
 func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousDatabase {
 	var (
 		// identity
-		name             *string
-		id               *string
-		compartmentId    *string
-		lifecycleState   string
-		lifecycleDetails *string
-		dbVersion        *string
-		dbWorkloadStr    string
-		licenseModelStr  string
+		name            *string
+		id              *string
+		compartmentId   *string
+		lifecycleState  string
+		dbVersion       *string
+		dbWorkloadStr   string
+		licenseModelStr string
 
 		// networking
 		whitelistedIps       []string
@@ -215,7 +211,6 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		id = src.Id
 		compartmentId = src.CompartmentId
 		lifecycleState = string(src.LifecycleState)
-		lifecycleDetails = src.LifecycleDetails
 		dbVersion = src.DbVersion
 		dbWorkloadStr = string(src.DbWorkload)
 		licenseModelStr = string(src.LicenseModel)
@@ -247,7 +242,6 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		id = src.Id
 		compartmentId = src.CompartmentId
 		lifecycleState = string(src.LifecycleState)
-		lifecycleDetails = src.LifecycleDetails
 		dbVersion = src.DbVersion
 		dbWorkloadStr = string(src.DbWorkload)
 		licenseModelStr = string(src.LicenseModel)
@@ -297,9 +291,6 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		d.CompartmentOCID = *compartmentId
 	}
 	d.LifecycleState = lifecycleState
-	if lifecycleDetails != nil {
-		d.LifecycleDetails = *lifecycleDetails
-	}
 	if dbVersion != nil {
 		d.DbVersion = *dbVersion
 	}
