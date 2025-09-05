@@ -70,11 +70,12 @@ make build
 make install
 ```
 
-For detailed installation instructions, see the [Installation Guide](docs/installation.md).
 
 ## Configuration
 
-Running `ocloud` without any arguments displays the configuration details and available commands:
+Running `ocloud` without any arguments displays the configuration details and available commands.
+
+Example output (values will vary by version, time, and your environment):
 
 ```
  ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗
@@ -84,13 +85,13 @@ Running `ocloud` without any arguments displays the configuration details and av
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: 0.0.32
+	      Version: <current version>
 
-Configuration Details: Valid until 2025-08-02 23:26:28
+Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
   OCI_TENANCY_NAME: cloudops
   OCI_COMPARTMENT_NAME: cnopslabsdev1
-  OCI_AUTH_AUTO_REFRESHER: ON [44123]
+  OCI_AUTH_AUTO_REFRESHER: ON [<pid>]
   OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
 
 Interact with Oracle Cloud Infrastructure
@@ -132,7 +133,7 @@ OCloud uses the standard OCI configuration file located at `~/.oci/config`. You 
 
 ### Authentication
 
-ocloud provides interactive authentication with OCI through the `config session` command:
+ocloud provides interactive authentication with OCI through the `config session` command. You can also control which browser is used during the login flow; see docs/auth-browser-selection.md for details:
 
 ```bash
 # Authenticate with OCI
@@ -266,6 +267,10 @@ To run the test script:
 ```bash
 ./test_ocloud.sh
 ```
+
+## Tips
+
+- Interactive TUI lists (e.g., compute image list) support quitting with q/Esc/Ctrl+C. If you exit without selecting an item, the command will exit gracefully without an error.
 
 ## Error Handling
 
