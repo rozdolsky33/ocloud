@@ -21,4 +21,5 @@ type AutonomousDatabase struct {
 type AutonomousDatabaseRepository interface {
 	ListAutonomousDatabases(ctx context.Context, compartmentID string) ([]AutonomousDatabase, error)
 	FindAutonomousDatabase(ctx context.Context, compartmentID, name string) (*AutonomousDatabase, error)
+	GetAutonomousDatabase(ctx context.Context, ocid string) (*AutonomousDatabase, error)
 }

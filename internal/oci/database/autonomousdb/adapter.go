@@ -12,20 +12,23 @@ import (
 
 // Adapter implements the domain.AutonomousDatabaseRepository interface for OCI.
 type Adapter struct {
-	dbClient      database.DatabaseClient
-	compartmentID string
+	dbClient database.DatabaseClient
 }
 
 // NewAdapter creates a new Adapter instance.
-func NewAdapter(provider oci.ClientProvider, compartmentID string) (*Adapter, error) {
+func NewAdapter(provider oci.ClientProvider) (*Adapter, error) {
 	dbClient, err := oci.NewDatabaseClient(provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
 	return &Adapter{
-		dbClient:      dbClient,
-		compartmentID: compartmentID,
+		dbClient: dbClient,
 	}, nil
+}
+
+func (a *Adapter) GetAutonomousDatabase(ctx context.Context, ocid string) (*domain.AutonomousDatabase, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // ListAutonomousDatabases retrieves a list of autonomous databases from OCI.
