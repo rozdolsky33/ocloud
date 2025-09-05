@@ -17,9 +17,12 @@ type MockAutonomousDatabaseRepository struct {
 	mock.Mock
 }
 
-func (m *MockAutonomousDatabaseRepository) GetAutonomousDatabase(ctx context.Context, ocid string) (*AutonomousDatabase, error) {
-	//TODO implement me
-	panic("implement me")
+func (m *MockAutonomousDatabaseRepository) GetAutonomousDatabase(ctx context.Context, ocid string) (*domain.AutonomousDatabase, error) {
+	args := m.Called(ctx, ocid)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.AutonomousDatabase), args.Error(1)
 }
 
 // ListAutonomousDatabases mocks the ListAutonomousDatabases method of domain.AutonomousDatabaseRepository

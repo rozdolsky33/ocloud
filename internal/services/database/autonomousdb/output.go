@@ -1,6 +1,8 @@
 package autonomousdb
 
 import (
+	"fmt"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/printer"
@@ -28,26 +30,93 @@ func PrintAutonomousDbInfo(databases []domain.AutonomousDatabase, appCtx *app.Ap
 	if util.ValidateAndReportEmpty(databases, pagination, appCtx.Stdout) {
 		return nil
 	}
-	// Print each Compartment as a separate key-value table with a colored title.
-	for _, database := range databases {
-		databaseData := map[string]string{
-			"Private IP":       database.PrivateEndpointIp,
-			"Private Endpoint": database.PrivateEndpoint,
-			"High":             database.ConnectionStrings["HIGH"],
-			"Medium":           database.ConnectionStrings["MEDIUM"],
-			"Low":              database.ConnectionStrings["LOW"],
-		}
-		// Define ordered Keys
-		orderedKeys := []string{
-			"Private IP", "Private Endpoint", "High", "Medium", "Low",
-		}
+	// Print each database as a set of key-value sections with a colored title.
+	for _, db := range databases {
+		title := util.FormatColoredTitle(appCtx, db.Name)
 
-		title := util.FormatColoredTitle(appCtx, database.Name)
+		// Connection (existing behavior)
+		conn := map[string]string{
+			"Private IP":       db.PrivateEndpointIp,
+			"Private Endpoint": db.PrivateEndpoint,
+			"High":             db.ConnectionStrings["HIGH"],
+			"Medium":           db.ConnectionStrings["MEDIUM"],
+			"Low":              db.ConnectionStrings["LOW"],
+		}
+		connKeys := []string{"Private IP", "Private Endpoint", "High", "Medium", "Low"}
+		p.PrintKeyValues(title, conn, connKeys)
 
-		// Call the printer method to tender the key-value table for this instance
-		p.PrintKeyValues(title, databaseData, orderedKeys)
+		// State section
+		state := map[string]string{
+			"Lifecycle State":   db.LifecycleState,
+			"Lifecycle Details": db.LifecycleDetails,
+			"DB Version":        db.DbVersion,
+			"Workload":          db.DbWorkload,
+			"License Model":     db.LicenseModel,
+		}
+		if db.TimeCreated != nil {
+			state["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
+		}
+		stateKeys := []string{"Lifecycle State", "Lifecycle Details", "DB Version", "Workload", "License Model", "Time Created"}
+		p.PrintKeyValues(title+" – State", state, stateKeys)
+
+		// Network section
+		net := map[string]string{
+			"Private Endpoint Label": db.PrivateEndpointLabel,
+			"Subnet OCID":            db.SubnetId,
+			"NSGs":                   fmt.Sprintf("%v", db.NsgIds),
+			"mTLS Required":          boolToString(db.IsMtlsRequired),
+		}
+		if len(db.WhitelistedIps) > 0 {
+			net["Whitelisted IPs"] = fmt.Sprintf("%v", db.WhitelistedIps)
+		}
+		netKeys := []string{"Private Endpoint Label", "Subnet OCID", "NSGs", "Whitelisted IPs", "mTLS Required"}
+		p.PrintKeyValues(title+" – Network", net, netKeys)
+
+		// Capacity section
+		cap := map[string]string{
+			"OCPUs":         floatToString(db.OcpuCount),
+			"CPU Cores":     intToString(db.CpuCoreCount),
+			"Storage (TBs)": intToString(db.DataStorageSizeInTBs),
+			"Auto Scaling":  boolToString(db.IsAutoScalingEnabled),
+		}
+		capKeys := []string{"OCPUs", "CPU Cores", "Storage (TBs)", "Auto Scaling"}
+		p.PrintKeyValues(title+" – Capacity", cap, capKeys)
+
+		// Maintenance basic
+		maint := map[string]string{
+			"Next Maintenance Run": db.NextMaintenanceRunId,
+			"Maintenance Schedule": db.MaintenanceScheduleType,
+			"Patch Model":          db.PatchModel,
+		}
+		maintKeys := []string{"Patch Model", "Next Maintenance Run", "Maintenance Schedule"}
+		p.PrintKeyValues(title+" – Maintenance", maint, maintKeys)
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
+}
+
+// helpers for pointer formatting
+func boolToString(v *bool) string {
+	if v == nil {
+		return ""
+	}
+	if *v {
+		return "true"
+	}
+	return "false"
+}
+
+func intToString(v *int) string {
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%d", *v)
+}
+
+func floatToString(v *float32) string {
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", *v)
 }
