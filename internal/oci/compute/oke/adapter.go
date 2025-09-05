@@ -62,7 +62,7 @@ func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]dom
 func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []containerengine.ClusterSummary) ([]domain.Cluster, error) {
 	var domainClusters []domain.Cluster
 	for _, ociCluster := range ociClusters {
-		dc := a.toDomainModelSummary(ociCluster)
+		dc := a.toDomainCluster(ociCluster)
 
 		if ociCluster.CompartmentId == nil || ociCluster.Id == nil {
 			domainClusters = append(domainClusters, dc)
@@ -81,7 +81,7 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 
 // enrichAndMapCluster maps a single full OCI cluster object to a domain model and enriches it with node pools.
 func (a *Adapter) enrichAndMapCluster(ctx context.Context, c containerengine.Cluster) (domain.Cluster, error) {
-	dc := a.toDomainModel(c)
+	dc := a.toDomainCluster(c)
 	if c.CompartmentId != nil && c.Id != nil {
 		nps, err := a.listNodePools(ctx, *c.CompartmentId, *c.Id)
 		if err != nil {
@@ -137,65 +137,79 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 	return domainNodePools, nil
 }
 
-func (a *Adapter) toDomainModel(c containerengine.Cluster) domain.Cluster {
-	dc := domain.Cluster{}
-	if c.Id != nil {
-		dc.OCID = *c.Id
-	}
-	if c.Name != nil {
-		dc.DisplayName = *c.Name
-	}
-	if c.KubernetesVersion != nil {
-		dc.KubernetesVersion = *c.KubernetesVersion
-	}
-	if c.VcnId != nil {
-		dc.VcnOCID = *c.VcnId
-	}
-	dc.State = string(c.LifecycleState)
-	if c.Endpoints != nil {
-		if c.Endpoints.PrivateEndpoint != nil {
-			dc.PrivateEndpoint = *c.Endpoints.PrivateEndpoint
-		}
-		if c.Endpoints.Kubernetes != nil {
-			dc.PublicEndpoint = *c.Endpoints.Kubernetes
-		}
-	}
-	if c.Metadata != nil && c.Metadata.TimeCreated != nil {
-		dc.TimeCreated = c.Metadata.TimeCreated.Time
-	}
-	dc.FreeformTags = c.FreeformTags
-	dc.DefinedTags = c.DefinedTags
-	return dc
-}
+// toDomainCluster converts either a full Cluster or a ClusterSummary from OCI into a domain.Cluster.
+func (a *Adapter) toDomainCluster(ociCluster interface{}) domain.Cluster {
+	var (
+		clusterID         *string
+		displayName       *string
+		kubernetesVersion *string
+		vcnID             *string
+		lifecycleState    string
+		endpoints         *containerengine.ClusterEndpoints
+		metadata          *containerengine.ClusterMetadata
+		freeformTags      map[string]string
+		definedTags       map[string]map[string]interface{}
+	)
 
-// toDomainModelSummary maps an OCI ClusterSummary to a domain.Cluster (without enrichment).
-func (a *Adapter) toDomainModelSummary(s containerengine.ClusterSummary) domain.Cluster {
-	dc := domain.Cluster{}
-	if s.Id != nil {
-		dc.OCID = *s.Id
+	switch src := ociCluster.(type) {
+	case containerengine.Cluster:
+		clusterID = src.Id
+		displayName = src.Name
+		kubernetesVersion = src.KubernetesVersion
+		vcnID = src.VcnId
+		lifecycleState = string(src.LifecycleState)
+		endpoints = src.Endpoints
+		metadata = src.Metadata
+		freeformTags = src.FreeformTags
+		definedTags = src.DefinedTags
+
+	case containerengine.ClusterSummary:
+		clusterID = src.Id
+		displayName = src.Name
+		kubernetesVersion = src.KubernetesVersion
+		vcnID = src.VcnId
+		lifecycleState = string(src.LifecycleState)
+		endpoints = src.Endpoints
+		metadata = src.Metadata
+		freeformTags = src.FreeformTags
+		definedTags = src.DefinedTags
+
+	default:
+		return domain.Cluster{}
 	}
-	if s.Name != nil {
-		dc.DisplayName = *s.Name
+
+	domainCluster := domain.Cluster{}
+
+	if clusterID != nil {
+		domainCluster.OCID = *clusterID
 	}
-	if s.KubernetesVersion != nil {
-		dc.KubernetesVersion = *s.KubernetesVersion
+	if displayName != nil {
+		domainCluster.DisplayName = *displayName
 	}
-	if s.VcnId != nil {
-		dc.VcnOCID = *s.VcnId
+	if kubernetesVersion != nil {
+		domainCluster.KubernetesVersion = *kubernetesVersion
 	}
-	dc.State = string(s.LifecycleState)
-	if s.Endpoints != nil {
-		if s.Endpoints.PrivateEndpoint != nil {
-			dc.PrivateEndpoint = *s.Endpoints.PrivateEndpoint
+	if vcnID != nil {
+		domainCluster.VcnOCID = *vcnID
+	}
+
+	domainCluster.State = lifecycleState
+
+	if endpoints != nil {
+		if endpoints.PrivateEndpoint != nil {
+			domainCluster.PrivateEndpoint = *endpoints.PrivateEndpoint
 		}
-		if s.Endpoints.Kubernetes != nil {
-			dc.PublicEndpoint = *s.Endpoints.Kubernetes
+		if endpoints.Kubernetes != nil {
+			domainCluster.PublicEndpoint = *endpoints.Kubernetes
 		}
 	}
-	if s.Metadata != nil && s.Metadata.TimeCreated != nil {
-		dc.TimeCreated = s.Metadata.TimeCreated.Time
+
+	if metadata != nil && metadata.TimeCreated != nil {
+		domainCluster.TimeCreated = metadata.TimeCreated.Time
 	}
-	dc.FreeformTags = s.FreeformTags
-	dc.DefinedTags = s.DefinedTags
-	return dc
+
+	domainCluster.FreeformTags = freeformTags
+	domainCluster.DefinedTags = definedTags
+
+	return domainCluster
 }
