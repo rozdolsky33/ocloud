@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	ocidbadapter "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 )
 
 // FindAutonomousDatabases searches for Autonomous Databases matching the provided name pattern in the application context.
@@ -15,7 +14,7 @@ import (
 func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string, useJSON bool, showAll bool) error {
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Autonomous Databases", "pattern", namePattern)
 
-	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider)
+	adapter, err := ociadb.NewAdapter(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating database adapter: %w", err)
 	}
@@ -27,22 +26,5 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 		return fmt.Errorf("finding autonomous databases: %w", err)
 	}
 
-	// Convert to a domain type and best-effort enrich each item with a full Get call
-	domainDbs := make([]domain.AutonomousDatabase, 0, len(matchedDatabases))
-	for _, db := range matchedDatabases {
-		basic := domain.AutonomousDatabase(db)
-		// Try to fetch full object to populate fields missing from summaries (patching, role, maintenance, capacities, etc.).
-		full, gerr := adapter.GetAutonomousDatabase(ctx, basic.ID)
-		if gerr == nil && full != nil {
-			domainDbs = append(domainDbs, *full)
-		} else {
-			// If enrichment fails, fall back to the basic summary to avoid breaking the flow.
-			domainDbs = append(domainDbs, basic)
-		}
-	}
-
-	if err := PrintAutonomousDbInfo(domainDbs, appCtx, nil, useJSON, showAll); err != nil {
-		return fmt.Errorf("printing autonomous databases: %w", err)
-	}
-	return nil
+	return PrintAutonomousDbInfo(matchedDatabases, appCtx, nil, useJSON, showAll)
 }

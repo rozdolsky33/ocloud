@@ -44,7 +44,7 @@ var getExamples = `
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
-		Short:         "Get all Databases in the compartment",
+		Short:         "Get all Databases",
 		Long:          getLong,
 		Example:       getExamples,
 		SilenceUsage:  true,

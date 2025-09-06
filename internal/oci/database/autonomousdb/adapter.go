@@ -20,8 +20,7 @@ type Adapter struct {
 	nsgCache      map[string]*core.NetworkSecurityGroup
 }
 
-// NewAdapter creates a new Adapter instance. The compartmentID parameter is accepted for
-// backward compatibility with service wiring but is not required by the adapter itself.
+// NewAdapter creates a new Adapter instance. The compartmentID parameter is accepted for backward compatibility with service wiring but is not required by the adapter itself.
 func NewAdapter(provider oci.ClientProvider) (*Adapter, error) {
 	dbClient, err := oci.NewDatabaseClient(provider)
 	if err != nil {
@@ -49,7 +48,6 @@ func (a *Adapter) GetAutonomousDatabase(ctx context.Context, ocid string) (*doma
 		return nil, fmt.Errorf("failed to get autonomous database: %w", err)
 	}
 	db := a.toDomainAutonomousDB(response.AutonomousDatabase)
-	// Best-effort network name enrichment (subnet, VCN, NSGs)
 	if err := a.enrichNetworkNames(ctx, &db); err != nil {
 	}
 	return &db, nil
@@ -78,11 +76,9 @@ func (a *Adapter) ListAutonomousDatabases(ctx context.Context, compartmentID str
 	return allDatabases, nil
 }
 
-// enrichNetworkNames resolves display names for subnet, VCN, and NSGs where possible (the best effort, cached).
+// enrichNetworkNames resolves display names for subnet, VCN, and NSGs.
 func (a *Adapter) enrichNetworkNames(ctx context.Context, d *domain.AutonomousDatabase) error {
-	// Subnet → name and VCN
 	if d.SubnetId != "" {
-		// subnet
 		if sub, err := a.getSubnet(ctx, d.SubnetId); err == nil && sub != nil {
 			if sub.DisplayName != nil {
 				d.SubnetName = *sub.DisplayName
@@ -95,7 +91,6 @@ func (a *Adapter) enrichNetworkNames(ctx context.Context, d *domain.AutonomousDa
 			}
 		}
 	}
-	// NSGs → names
 	if len(d.NsgIds) > 0 {
 		var names []string
 		for _, id := range d.NsgIds {
@@ -108,7 +103,7 @@ func (a *Adapter) enrichNetworkNames(ctx context.Context, d *domain.AutonomousDa
 	return nil
 }
 
-// cached lookups
+// getSubnet retrieves a subnet by its ID, utilizing a local cache for improved performance.
 func (a *Adapter) getSubnet(ctx context.Context, id string) (*core.Subnet, error) {
 	if s, ok := a.subnetCache[id]; ok {
 		return s, nil
@@ -121,6 +116,7 @@ func (a *Adapter) getSubnet(ctx context.Context, id string) (*core.Subnet, error
 	return &resp.Subnet, nil
 }
 
+// getVcn retrieves a VCN by its ID, utilizing a local cache for improved performance.
 func (a *Adapter) getVcn(ctx context.Context, id string) (*core.Vcn, error) {
 	if v, ok := a.vcnCache[id]; ok {
 		return v, nil
@@ -133,6 +129,7 @@ func (a *Adapter) getVcn(ctx context.Context, id string) (*core.Vcn, error) {
 	return &resp.Vcn, nil
 }
 
+// getNsg retrieves a NSG by its ID, utilizing a local cache for improved performance.
 func (a *Adapter) getNsg(ctx context.Context, id string) (*core.NetworkSecurityGroup, error) {
 	if n, ok := a.nsgCache[id]; ok {
 		return n, nil
@@ -197,11 +194,9 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		connStrings *database.AutonomousDatabaseConnectionStrings
 		connUrls    *database.AutonomousDatabaseConnectionUrls
 
-		// tags
 		freeformTags map[string]string
 		definedTags  map[string]map[string]interface{}
 
-		// timestamps
 		timeCreated *common.SDKTime
 	)
 
@@ -270,11 +265,8 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	default:
 		return domain.AutonomousDatabase{}
 	}
-
-	// Post-switch normalization for fields not captured in shared vars
 	switch src := ociObj.(type) {
 	case database.AutonomousDatabase:
-		// Capacity (additional fields)
 		storageGBs = src.DataStorageSizeInGBs
 	case database.AutonomousDatabaseSummary:
 		storageGBs = src.DataStorageSizeInGBs
@@ -313,8 +305,6 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	}
 	d.NsgIds = nsgIds
 	d.IsMtlsRequired = isMtlsRequired
-
-	// capacity
 	d.ComputeModel = computeModelStr
 	d.EcpuCount = ecpuCount
 	d.OcpuCount = ocpuCount
@@ -322,26 +312,20 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	d.DataStorageSizeInTBs = storageTBs
 	d.DataStorageSizeInGBs = storageGBs
 	d.IsAutoScalingEnabled = isAutoScale
-	// additional capacity flags
 	d.IsStorageAutoScalingEnabled = isStorageAutoScalingEnabled
-
-	// operations & integrations
 	d.OperationsInsightsStatus = operationsInsightsStatus
 	d.DatabaseManagementStatus = databaseManagementStatus
 	d.DataSafeStatus = dataSafeStatus
 	d.IsFreeTier = isFreeTier
 
-	// networking extras
 	d.IsPubliclyAccessible = isPubliclyAccessible
 
-	// Data Guard / DR
 	d.IsDataGuardEnabled = isDataGuardEnabled
 	if role != nil {
 		d.Role = *role
 	}
 	d.PeerAutonomousDbIds = peerAutonomousDbIds
 
-	// maintenance
 	if patchModel != nil {
 		d.PatchModel = *patchModel
 	}
@@ -352,7 +336,6 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		d.MaintenanceScheduleType = *maintenanceSchedule
 	}
 
-	// connections
 	if connStrings != nil {
 		if connStrings.AllConnectionStrings != nil {
 			d.ConnectionStrings = connStrings.AllConnectionStrings
@@ -360,12 +343,8 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		d.Profiles = connStrings.Profiles
 	}
 	d.ConnectionUrls = connUrls
-
-	// tags
 	d.FreeformTags = freeformTags
 	d.DefinedTags = definedTags
-
-	// timestamps
 	if timeCreated != nil {
 		t := timeCreated.Time
 		d.TimeCreated = &t

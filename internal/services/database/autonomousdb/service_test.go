@@ -88,32 +88,32 @@ func TestList(t *testing.T) {
 
 	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
 
-	databases, totalCount, nextPageToken, err := service.List(ctx, 2, 1)
+	databases, totalCount, nextPageToken, err := service.FetchPaginatedAutonomousDb(ctx, 2, 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, databases, 2)
 	assert.Equal(t, expectedDBs[0].Name, databases[0].Name)
 	assert.Equal(t, expectedDBs[1].Name, databases[1].Name)
 	assert.Equal(t, len(expectedDBs), totalCount)
-	assert.Equal(t, "true", nextPageToken) // Because there's a next page
+	assert.Equal(t, "2", nextPageToken) // Because there's a next page
 
 	mockRepo.AssertExpectations(t)
 
 	// Test second page
 	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
-	databases, totalCount, nextPageToken, err = service.List(ctx, 2, 2)
+	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 2, 2)
 
 	assert.NoError(t, err)
 	assert.Len(t, databases, 1)
 	assert.Equal(t, expectedDBs[2].Name, databases[0].Name)
 	assert.Equal(t, len(expectedDBs), totalCount)
-	assert.Equal(t, "", nextPageToken) // No next page
+	assert.Equal(t, "", nextPageToken)
 
 	mockRepo.AssertExpectations(t)
 
 	// Test empty result
 	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, nil).Once()
-	databases, totalCount, nextPageToken, err = service.List(ctx, 10, 1)
+	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 10, 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, databases, 0)
@@ -124,7 +124,7 @@ func TestList(t *testing.T) {
 
 	// Test error case
 	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
-	databases, totalCount, nextPageToken, err = service.List(ctx, 10, 1)
+	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 10, 1)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "mock error")

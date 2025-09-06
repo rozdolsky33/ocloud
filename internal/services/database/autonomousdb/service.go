@@ -28,59 +28,37 @@ func NewService(repo domain.AutonomousDatabaseRepository, appCtx *app.Applicatio
 	}
 }
 
-// List retrieves a paginated list of databases with given limit and page number parameters.
+// FetchPaginatedAutonomousDb retrieves a paginated list of databases with given limit and page number parameters.
 // It returns the slice of databases, total count, next page token, and an error if encountered.
-func (s *Service) List(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
-	// Log input parameters at debug level
-	logger.LogWithLevel(s.logger, logger.Trace, "FetchPaginatedClusters called with pagination parameters",
-		"limit", limit,
-		"pageNum", pageNum)
-
-	var databases []AutonomousDatabase
-	var nextPageToken string
-	var totalCount int
+func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
+	s.logger.V(logger.Debug).Info("listing autonomous databases", "limit", limit, "pageNum", pageNum)
 
 	allDatabases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
 	}
 
-	// Apply pagination logic
+	totalCount := len(allDatabases)
 	start := (pageNum - 1) * limit
 	end := start + limit
 
-	if start >= len(allDatabases) {
-		logger.LogWithLevel(s.logger, logger.Trace, "Pagination: start index out of bounds", "start", start, "totalDatabases", len(allDatabases))
-		return []AutonomousDatabase{}, 0, "", nil // No results for this page
+	if start >= totalCount {
+		return []AutonomousDatabase{}, totalCount, "", nil
 	}
 
-	if end > len(allDatabases) {
-		end = len(allDatabases)
-		logger.LogWithLevel(s.logger, logger.Trace, "Pagination: adjusted end index", "end", end, "totalDatabases", len(allDatabases))
+	if end > totalCount {
+		end = totalCount
 	}
 
-	databases = make([]AutonomousDatabase, 0, limit)
-	for _, db := range allDatabases[start:end] {
-		databases = append(databases, AutonomousDatabase(db)) // Convert domain.AutonomousDatabase to local AutonomousDatabase
+	pagedResults := allDatabases[start:end]
+
+	var nextPageToken string
+	if end < totalCount {
+		nextPageToken = fmt.Sprintf("%d", pageNum+1)
 	}
 
-	totalCount = len(allDatabases)
-	if end < len(allDatabases) {
-		nextPageToken = "true" // Indicate there's a next page
-	}
-
-	// Calculate if there are more pages after the current page
-	hasNextPage := pageNum*limit < totalCount
-
-	logger.LogWithLevel(s.logger, logger.Trace, "Completed instance listing with pagination",
-		"returnedCount", len(databases),
-		"totalCount", totalCount,
-		"page", pageNum,
-		"limit", limit,
-		"hasNextPage", hasNextPage)
-
-	logger.Logger.V(logger.Info).Info("Autonomous Database list completed.", "returnedCount", len(databases), "totalCount", totalCount)
-	return databases, totalCount, nextPageToken, nil
+	logger.LogWithLevel(s.logger, logger.Info, "completed database listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
+	return pagedResults, totalCount, nextPageToken, nil
 }
 
 // Find performs a fuzzy search to find autonomous databases matching the given search pattern in their Name field.
@@ -111,16 +89,12 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousD
 	var results []AutonomousDatabase
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allDatabases) {
-			results = append(results, AutonomousDatabase(allDatabases[idx]))
+			results = append(results, allDatabases[idx]) // TODO: REDO
 		}
 	}
-	logger.LogWithLevel(s.logger, logger.Trace, "Compartment search complete", "matches", len(results))
-
 	return results, nil
 }
 
-// mapToIndexableDatabase converts an AutonomousDatabase object into an IndexableAutonomousDatabase object.
-// It maps only relevant fields required for indexing, such as the database\'s name.
 func mapToIndexableDatabase(db domain.AutonomousDatabase) IndexableAutonomousDatabase {
 	return IndexableAutonomousDatabase{
 		Name: db.Name,

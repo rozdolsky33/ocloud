@@ -23,7 +23,7 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 	}
 	dbService := adbSvc.NewService(adapter, appCtx)
 
-	dbs, _, _, err := dbService.List(ctx, 1000, 0)
+	dbs, _, _, err := dbService.FetchPaginatedAutonomousDb(ctx, 1000, 0)
 	if err != nil {
 		return fmt.Errorf("list databases: %w", err)
 	}

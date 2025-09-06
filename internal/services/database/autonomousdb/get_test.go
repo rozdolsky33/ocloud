@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestListAutonomousDatabaseSimple is a simplified test for the ListAutonomousDatabase function
+// TestGetAutonomousDatabaseSimple is a simplified test for the GetAutonomousDatabase function
 // that doesn't rely on mocking the OCI SDK interfaces
-func TestListAutonomousDatabaseSimple(t *testing.T) {
+func TestGetAutonomousDatabaseSimple(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase since it requires the OCI SDK")
 
@@ -34,8 +34,8 @@ func TestListAutonomousDatabaseSimple(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestListAutonomousDatabaseOutput tests the output of the ListAutonomousDatabase function
-func TestListAutonomousDatabaseOutput(t *testing.T) {
+// TestGetAutonomousDatabaseOutput tests the output of the GetAutonomousDatabase function
+func TestGetAutonomousDatabaseOutput(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase output since it requires the OCI SDK")
 
@@ -68,8 +68,8 @@ func TestListAutonomousDatabaseOutput(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestListAutonomousDatabasePagination tests the pagination of the ListAutonomousDatabase function
-func TestListAutonomousDatabasePagination(t *testing.T) {
+// TestGetAutonomousDatabasePagination tests the pagination of the GetAutonomousDatabase function
+func TestGetAutonomousDatabasePagination(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase pagination since it requires the OCI SDK")
 
@@ -99,8 +99,8 @@ func TestListAutonomousDatabasePagination(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestListAutonomousDatabaseError tests error handling in the ListAutonomousDatabase function
-func TestListAutonomousDatabaseError(t *testing.T) {
+// TestGetAutonomousDatabaseError tests error handling in the GetAutonomousDatabase function
+func TestGetAutonomousDatabaseError(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase error handling since it requires the OCI SDK")
 
