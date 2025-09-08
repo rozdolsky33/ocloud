@@ -21,6 +21,6 @@ type Subnet struct {
 
 // SubnetRepository defines the port for interacting with subnet storage.
 type SubnetRepository interface {
-	ListSubnets(ctx context.Context, compartmentID string) ([]Subnet, error)
 	GetSubnet(ctx context.Context, ocid string) (*Subnet, error)
+	ListSubnets(ctx context.Context, compartmentID string) ([]Subnet, error)
 }

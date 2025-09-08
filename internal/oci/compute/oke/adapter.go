@@ -13,6 +13,11 @@ type Adapter struct {
 	client containerengine.ContainerEngineClient
 }
 
+// NewAdapter creates a new OKE adapter.
+func NewAdapter(client containerengine.ContainerEngineClient) *Adapter {
+	return &Adapter{client: client}
+}
+
 // GetCluster retrieves a single cluster by its OCID and enriches it with node pools.
 func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.Cluster, error) {
 	resp, err := a.client.GetCluster(ctx, containerengine.GetClusterRequest{
@@ -27,11 +32,6 @@ func (a *Adapter) GetCluster(ctx context.Context, clusterOCID string) (*domain.C
 		return nil, err
 	}
 	return &dc, nil
-}
-
-// NewAdapter creates a new OKE adapter.
-func NewAdapter(client containerengine.ContainerEngineClient) *Adapter {
-	return &Adapter{client: client}
 }
 
 // ListClusters fetches all clusters in a compartment and enriches them with node pools.
@@ -62,32 +62,7 @@ func (a *Adapter) ListClusters(ctx context.Context, compartmentID string) ([]dom
 func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []containerengine.ClusterSummary) ([]domain.Cluster, error) {
 	var domainClusters []domain.Cluster
 	for _, ociCluster := range ociClusters {
-		dc := domain.Cluster{}
-		if ociCluster.Id != nil {
-			dc.OCID = *ociCluster.Id
-		}
-		if ociCluster.Name != nil {
-			dc.DisplayName = *ociCluster.Name
-		}
-		if ociCluster.KubernetesVersion != nil {
-			dc.KubernetesVersion = *ociCluster.KubernetesVersion
-		}
-		if ociCluster.VcnId != nil {
-			dc.VcnOCID = *ociCluster.VcnId
-		}
-		dc.State = string(ociCluster.LifecycleState)
-
-		if ociCluster.Endpoints != nil {
-			if ociCluster.Endpoints.PrivateEndpoint != nil {
-				dc.PrivateEndpoint = *ociCluster.Endpoints.PrivateEndpoint
-			}
-			if ociCluster.Endpoints.Kubernetes != nil {
-				dc.PublicEndpoint = *ociCluster.Endpoints.Kubernetes
-			}
-		}
-		if ociCluster.Metadata != nil && ociCluster.Metadata.TimeCreated != nil {
-			dc.TimeCreated = ociCluster.Metadata.TimeCreated.Time
-		}
+		dc := a.toDomainCluster(ociCluster)
 
 		if ociCluster.CompartmentId == nil || ociCluster.Id == nil {
 			domainClusters = append(domainClusters, dc)
@@ -104,33 +79,9 @@ func (a *Adapter) mapAndEnrichClusters(ctx context.Context, ociClusters []contai
 	return domainClusters, nil
 }
 
-// enrichAndMapCluster maps a single full OCI cluster object to domain model and enriches it with node pools.
+// enrichAndMapCluster maps a single full OCI cluster object to a domain model and enriches it with node pools.
 func (a *Adapter) enrichAndMapCluster(ctx context.Context, c containerengine.Cluster) (domain.Cluster, error) {
-	dc := domain.Cluster{}
-	if c.Id != nil {
-		dc.OCID = *c.Id
-	}
-	if c.Name != nil {
-		dc.DisplayName = *c.Name
-	}
-	if c.KubernetesVersion != nil {
-		dc.KubernetesVersion = *c.KubernetesVersion
-	}
-	if c.VcnId != nil {
-		dc.VcnOCID = *c.VcnId
-	}
-	dc.State = string(c.LifecycleState)
-	if c.Endpoints != nil {
-		if c.Endpoints.PrivateEndpoint != nil {
-			dc.PrivateEndpoint = *c.Endpoints.PrivateEndpoint
-		}
-		if c.Endpoints.Kubernetes != nil {
-			dc.PublicEndpoint = *c.Endpoints.Kubernetes
-		}
-	}
-	if c.Metadata != nil && c.Metadata.TimeCreated != nil {
-		dc.TimeCreated = c.Metadata.TimeCreated.Time
-	}
+	dc := a.toDomainCluster(c)
 	if c.CompartmentId != nil && c.Id != nil {
 		nps, err := a.listNodePools(ctx, *c.CompartmentId, *c.Id)
 		if err != nil {
@@ -157,15 +108,24 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 		}
 
 		for _, ociNodePool := range resp.Items {
-			dnp := domain.NodePool{
-				OCID:              *ociNodePool.Id,
-				DisplayName:       *ociNodePool.Name,
-				KubernetesVersion: *ociNodePool.KubernetesVersion,
-				NodeShape:         *ociNodePool.NodeShape,
+			dnp := domain.NodePool{}
+			if ociNodePool.Id != nil {
+				dnp.OCID = *ociNodePool.Id
+			}
+			if ociNodePool.Name != nil {
+				dnp.DisplayName = *ociNodePool.Name
+			}
+			if ociNodePool.KubernetesVersion != nil {
+				dnp.KubernetesVersion = *ociNodePool.KubernetesVersion
+			}
+			if ociNodePool.NodeShape != nil {
+				dnp.NodeShape = *ociNodePool.NodeShape
 			}
 			if ociNodePool.NodeConfigDetails != nil && ociNodePool.NodeConfigDetails.Size != nil {
 				dnp.NodeCount = *ociNodePool.NodeConfigDetails.Size
 			}
+			dnp.FreeformTags = ociNodePool.FreeformTags
+			dnp.DefinedTags = ociNodePool.DefinedTags
 			domainNodePools = append(domainNodePools, dnp)
 		}
 
@@ -177,13 +137,79 @@ func (a *Adapter) listNodePools(ctx context.Context, compartmentID, clusterID st
 	return domainNodePools, nil
 }
 
-func (a *Adapter) toDomainModel(c containerengine.Cluster) domain.Cluster {
-	return domain.Cluster{
-		OCID:              *c.Id,
-		DisplayName:       *c.Name,
-		KubernetesVersion: *c.KubernetesVersion,
-		VcnOCID:           *c.VcnId,
-		State:             string(c.LifecycleState),
-		TimeCreated:       c.Metadata.TimeCreated.Time,
+// toDomainCluster maps either a full containerengine.Cluster (from Get) or a containerengine.ClusterSummary (from List) into the single domain.Cluster type.
+func (a *Adapter) toDomainCluster(ociCluster interface{}) domain.Cluster {
+	var (
+		clusterID         *string
+		displayName       *string
+		kubernetesVersion *string
+		vcnID             *string
+		lifecycleState    string
+		endpoints         *containerengine.ClusterEndpoints
+		metadata          *containerengine.ClusterMetadata
+		freeformTags      map[string]string
+		definedTags       map[string]map[string]interface{}
+	)
+
+	switch src := ociCluster.(type) {
+	case containerengine.Cluster:
+		clusterID = src.Id
+		displayName = src.Name
+		kubernetesVersion = src.KubernetesVersion
+		vcnID = src.VcnId
+		lifecycleState = string(src.LifecycleState)
+		endpoints = src.Endpoints
+		metadata = src.Metadata
+		freeformTags = src.FreeformTags
+		definedTags = src.DefinedTags
+
+	case containerengine.ClusterSummary:
+		clusterID = src.Id
+		displayName = src.Name
+		kubernetesVersion = src.KubernetesVersion
+		vcnID = src.VcnId
+		lifecycleState = string(src.LifecycleState)
+		endpoints = src.Endpoints
+		metadata = src.Metadata
+		freeformTags = src.FreeformTags
+		definedTags = src.DefinedTags
+
+	default:
+		return domain.Cluster{}
 	}
+
+	domainCluster := domain.Cluster{}
+
+	if clusterID != nil {
+		domainCluster.OCID = *clusterID
+	}
+	if displayName != nil {
+		domainCluster.DisplayName = *displayName
+	}
+	if kubernetesVersion != nil {
+		domainCluster.KubernetesVersion = *kubernetesVersion
+	}
+	if vcnID != nil {
+		domainCluster.VcnOCID = *vcnID
+	}
+
+	domainCluster.State = lifecycleState
+
+	if endpoints != nil {
+		if endpoints.PrivateEndpoint != nil {
+			domainCluster.PrivateEndpoint = *endpoints.PrivateEndpoint
+		}
+		if endpoints.Kubernetes != nil {
+			domainCluster.PublicEndpoint = *endpoints.Kubernetes
+		}
+	}
+
+	if metadata != nil && metadata.TimeCreated != nil {
+		domainCluster.TimeCreated = metadata.TimeCreated.Time
+	}
+
+	domainCluster.FreeformTags = freeformTags
+	domainCluster.DefinedTags = definedTags
+
+	return domainCluster
 }

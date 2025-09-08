@@ -9,12 +9,12 @@ import (
 )
 
 // NewImageListModel builds a TUI list for images.
-func NewImageListModel(instances []domain.Cluster) listx.Model {
-	return listx.NewModel("Oracle Kubernetes Engine", instances, func(oke domain.Cluster) listx.ResourceItemData {
+func NewImageListModel(cluster []domain.Cluster) listx.Model {
+	return listx.NewModel("Oracle Kubernetes Engine", cluster, func(c domain.Cluster) listx.ResourceItemData {
 		return listx.ResourceItemData{
-			ID:          oke.OCID,
-			Title:       oke.DisplayName,
-			Description: description(oke),
+			ID:          c.OCID,
+			Title:       c.DisplayName,
+			Description: description(c),
 		}
 	})
 }

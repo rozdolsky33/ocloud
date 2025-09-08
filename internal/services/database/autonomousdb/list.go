@@ -2,47 +2,42 @@ package autonomousdb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	ocidbadapter "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
+	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
-// ListAutonomousDatabase fetches and lists all autonomous databases within a specified application context.
-// appCtx represents the application context containing configuration and client details.
-// useJSON if true, outputs the list of databases in JSON format; otherwise, uses a plain-text format.
-func ListAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Autonomous Databases")
-
-	adapter, err := ocidbadapter.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
-	if err != nil {
-		return fmt.Errorf("creating database adapter: %w", err)
-	}
-	service := NewService(adapter, appCtx)
-
+// ListAutonomousDatabases lists all Autonomous Databases in the application context.
+func ListAutonomousDatabases(appCtx *app.ApplicationContext, useJSON bool) error {
 	ctx := context.Background()
-	allDatabases, totalCount, nextPageToken, err := service.List(ctx, limit, page)
+	autonomousDatabaseAdapter, err := ociadb.NewAdapter(appCtx.Provider)
+	if err != nil {
+		return fmt.Errorf("creating autonomous database adapter: %w", err)
+	}
+	service := NewService(autonomousDatabaseAdapter, appCtx)
+	allDatabases, err := service.ListAutonomousDb(ctx)
+
 	if err != nil {
 		return fmt.Errorf("listing autonomous databases: %w", err)
 	}
 
-	// Convert to a domain type for printing
-	domainDbs := make([]domain.AutonomousDatabase, 0, len(allDatabases))
-	for _, db := range allDatabases {
-		domainDbs = append(domainDbs, domain.AutonomousDatabase(db))
+	//TUI
+	model := ociadb.NewDatabaseListModel(allDatabases)
+	id, err := listx.Run(model)
+	if err != nil {
+		if errors.Is(err, listx.ErrCancelled) {
+			return nil
+		}
+		return fmt.Errorf("selecting database: %w", err)
 	}
 
-	// Display database information with pagination details
-	if err := PrintAutonomousDbInfo(domainDbs, appCtx, &util.PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON); err != nil {
-		return fmt.Errorf("printing image table: %w", err)
+	database, err := service.repo.GetAutonomousDatabase(ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting database: %w", err)
 	}
-	return nil
+
+	return PrintAutonomousDbInfo(database, appCtx, useJSON, true)
 }

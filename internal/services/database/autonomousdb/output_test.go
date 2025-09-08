@@ -3,6 +3,7 @@ package autonomousdb
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/domain"
@@ -11,193 +12,132 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestPrintAutonomousDbInfo tests the PrintAutonomousDbInfo function
-func TestPrintAutonomousDbInfo(t *testing.T) {
-	// Create test databases
-	databases := []domain.AutonomousDatabase{
-		{
-			Name:              "TestDatabase1",
-			ID:                "ocid1.autonomousdatabase.oc1.phx.test1",
-			PrivateEndpoint:   "test-endpoint-1.example.com",
-			PrivateEndpointIp: "192.168.1.1",
-			ConnectionStrings: map[string]string{
-				"HIGH":   "high-connection-string-1",
-				"MEDIUM": "medium-connection-string-1",
-				"LOW":    "low-connection-string-1",
-			},
+func ptrInt(v int) *int              { return &v }
+func ptrF32(v float32) *float32      { return &v }
+func ptrBool(v bool) *bool           { return &v }
+func ptrTime(t time.Time) *time.Time { return &t }
+
+// Test summary view and JSON output for the list printer
+func TestPrintAutonomousDbsInfo_SummaryAndJSON(t *testing.T) {
+	// Prepare test data: one ECPU-based and one OCPU-based DB
+	db1 := domain.AutonomousDatabase{
+		Name:                 "AuthzSessionManagementDev",
+		ID:                   "ocid1.autonomousdatabase.oc1..aaaa",
+		LifecycleState:       "AVAILABLE",
+		DbVersion:            "19c",
+		DbWorkload:           "OLTP",
+		LicenseModel:         "BRING_YOUR_OWN_LICENSE",
+		ComputeModel:         "ECPU",
+		EcpuCount:            ptrF32(2.0),
+		DataStorageSizeInTBs: ptrInt(1),
+		PrivateEndpointIp:    "10.0.0.10",
+		PrivateEndpoint:      "db1.adb.us-ashburn-1.oraclecloud.com",
+		SubnetId:             "ocid1.subnet.oc1..subnet1",
+		NsgIds:               []string{"ocid1.nsg.oc1..nsg1"},
+		ConnectionStrings: map[string]string{
+			"HIGH":     "high-conn",
+			"MEDIUM":   "medium-conn",
+			"LOW":      "low-conn",
+			"TP":       "tp-conn",
+			"TPURGENT": "tpurgent-conn",
 		},
-		{
-			Name:              "TestDatabase2",
-			ID:                "ocid1.autonomousdatabase.oc1.phx.test2",
-			PrivateEndpoint:   "test-endpoint-2.example.com",
-			PrivateEndpointIp: "192.168.1.2",
-			ConnectionStrings: map[string]string{
-				"HIGH":   "high-connection-string-2",
-				"MEDIUM": "medium-connection-string-2",
-				"LOW":    "low-connection-string-2",
-			},
-		},
+		TimeCreated: ptrTime(time.Date(2023, 6, 27, 20, 30, 46, 0, time.UTC)),
+	}
+	db2 := domain.AutonomousDatabase{
+		Name:                 "BillingDB",
+		ID:                   "ocid1.autonomousdatabase.oc1..bbbb",
+		LifecycleState:       "STOPPED",
+		DbVersion:            "23ai",
+		DbWorkload:           "DW",
+		LicenseModel:         "LICENSE_INCLUDED",
+		ComputeModel:         "OCPU",
+		OcpuCount:            ptrF32(1.0),
+		CpuCoreCount:         ptrInt(2),
+		DataStorageSizeInTBs: ptrInt(2),
+		PrivateEndpointIp:    "10.0.0.20",
+		PrivateEndpoint:      "db2.adb.us-ashburn-1.oraclecloud.com",
 	}
 
-	// Create a buffer to capture output
 	var buf bytes.Buffer
+	appCtx := &app.ApplicationContext{Logger: logger.NewTestLogger(), Stdout: &buf}
 
-	// Create an application context with the buffer as stdout
-	appCtx := &app.ApplicationContext{
-		CompartmentName: "TestCompartment",
-		CompartmentID:   "ocid1.compartment.oc1.phx.test",
-		Logger:          logger.NewTestLogger(),
-		Stdout:          &buf,
-	}
-
-	// Test with table output (useJSON = false)
-	err := PrintAutonomousDbInfo(databases, appCtx, nil, false)
+	// Table output (summary)
+	err := PrintAutonomousDbsInfo([]domain.AutonomousDatabase{db1, db2}, appCtx, nil, false, false)
 	assert.NoError(t, err)
+	out := buf.String()
+	// Validate presence of key fields for both DBs
+	assert.Contains(t, out, "AuthzSessionManagementDev")
+	assert.Contains(t, out, "Lifecycle State")
+	assert.Contains(t, out, "Compute Model")
+	assert.Contains(t, out, "ECPUs")
+	assert.Contains(t, out, "Storage")
+	assert.Contains(t, out, "Private IP")
+	assert.Contains(t, out, "Private Endpoint")
+	// Summary view does not include connection strings; they are shown in detailed view
 
-	// Verify that the output contains the expected information
-	output := buf.String()
-	assert.Contains(t, output, "TestDatabase1")
-	assert.Contains(t, output, "test-endpoint-1.example.com")
-	assert.Contains(t, output, "192.168.1.1")
-	assert.Contains(t, output, "high-connection-string-1")
-	assert.Contains(t, output, "medium-connection-string-1")
-	assert.Contains(t, output, "low-connection-string-1")
-	assert.Contains(t, output, "TestDatabase2")
-	assert.Contains(t, output, "test-endpoint-2.example.com")
-	assert.Contains(t, output, "192.168.1.2")
-	assert.Contains(t, output, "high-connection-string-2")
-	assert.Contains(t, output, "medium-connection-string-2")
-	assert.Contains(t, output, "low-connection-string-2")
-
-	// Reset the buffer
+	// JSON output with pagination
 	buf.Reset()
-
-	// Test with JSON output (useJSON = true)
-	err = PrintAutonomousDbInfo(databases, appCtx, nil, true)
+	pg := &util.PaginationInfo{TotalCount: 2, Limit: 2, CurrentPage: 1, NextPageToken: ""}
+	err = PrintAutonomousDbsInfo([]domain.AutonomousDatabase{db1, db2}, appCtx, pg, true, false)
 	assert.NoError(t, err)
-
-	// Verify that the output is valid JSON and contains the expected information
-	jsonOutput := buf.String()
-	assert.Contains(t, jsonOutput, "TestDatabase1")
-	assert.Contains(t, jsonOutput, "ocid1.autonomousdatabase.oc1.phx.test1")
-	assert.Contains(t, jsonOutput, "test-endpoint-1.example.com")
-	assert.Contains(t, jsonOutput, "192.168.1.1")
-	assert.Contains(t, jsonOutput, "high-connection-string-1")
-	assert.Contains(t, jsonOutput, "medium-connection-string-1")
-	assert.Contains(t, jsonOutput, "low-connection-string-1")
-	assert.Contains(t, jsonOutput, "TestDatabase2")
-	assert.Contains(t, jsonOutput, "ocid1.autonomousdatabase.oc1.phx.test2")
-	assert.Contains(t, jsonOutput, "test-endpoint-2.example.com")
-	assert.Contains(t, jsonOutput, "192.168.1.2")
-	assert.Contains(t, jsonOutput, "high-connection-string-2")
-	assert.Contains(t, jsonOutput, "medium-connection-string-2")
-	assert.Contains(t, jsonOutput, "low-connection-string-2")
+	jsonOut := buf.String()
+	assert.Contains(t, jsonOut, "\"items\"")
+	assert.Contains(t, jsonOut, "AuthzSessionManagementDev")
+	assert.Contains(t, jsonOut, "BillingDB")
+	assert.Contains(t, jsonOut, "\"pagination\"")
 }
 
-// TestPrintAutonomousDbInfoEmpty tests the PrintAutonomousDbInfo function with empty databases
-func TestPrintAutonomousDbInfoEmpty(t *testing.T) {
-	// Create an empty databases slice
-	databases := []domain.AutonomousDatabase{}
-
-	// Create a buffer to capture the output
-	var buf bytes.Buffer
-
-	// Create an application context with the buffer as stdout
-	appCtx := &app.ApplicationContext{
-		CompartmentName: "TestCompartment",
-		CompartmentID:   "ocid1.compartment.oc1.phx.test",
-		Logger:          logger.NewTestLogger(),
-		Stdout:          &buf,
-	}
-
-	// Test with table output (useJSON = false)
-	err := PrintAutonomousDbInfo(databases, appCtx, nil, false)
-	assert.NoError(t, err)
-
-	// Verify that the output indicates no items found
-	output := buf.String()
-	assert.Contains(t, output, "No Items found.")
-
-	// Reset the buffer
-	buf.Reset()
-
-	// Test with JSON output (useJSON = true)
-	err = PrintAutonomousDbInfo(databases, appCtx, nil, true)
-	assert.NoError(t, err)
-
-	// Verify that the output is valid JSON and indicates an empty object
-	jsonOutput := buf.String()
-	assert.Contains(t, jsonOutput, "{}")
-}
-
-// TestPrintAutonomousDbInfoWithPagination tests the PrintAutonomousDbInfo function with pagination
-func TestPrintAutonomousDbInfoWithPagination(t *testing.T) {
-	// Create test databases
-	databases := []domain.AutonomousDatabase{
-		{
-			Name:              "TestDatabase1",
-			ID:                "ocid1.autonomousdatabase.oc1.phx.test1",
-			PrivateEndpoint:   "test-endpoint-1.example.com",
-			PrivateEndpointIp: "192.168.1.1",
-			ConnectionStrings: map[string]string{
-				"HIGH":   "high-connection-string-1",
-				"MEDIUM": "medium-connection-string-1",
-				"LOW":    "low-connection-string-1",
-			},
+// Test detailed view including access type inference and storage TB/GB selection
+func TestPrintAutonomousDbInfo_DetailedAccessTypeStorage(t *testing.T) {
+	db := &domain.AutonomousDatabase{
+		Name:                 "DetailedDB",
+		ID:                   "ocid1.autonomousdatabase.oc1..cccc",
+		LifecycleState:       "AVAILABLE",
+		DbVersion:            "19c",
+		DbWorkload:           "OLTP",
+		LicenseModel:         "BRING_YOUR_OWN_LICENSE",
+		ComputeModel:         "ECPU",
+		EcpuCount:            ptrF32(2.0),
+		DataStorageSizeInGBs: ptrInt(100), // force GB path in Capacity section
+		PrivateEndpoint:      "detailed.adb.us-ashburn-1.oraclecloud.com",
+		PrivateEndpointIp:    "10.0.0.30",
+		PrivateEndpointLabel: "DetailedDB",
+		IsMtlsRequired:       ptrBool(false),
+		ConnectionStrings: map[string]string{
+			"HIGH":   "high-conn",
+			"MEDIUM": "medium-conn",
+			"LOW":    "low-conn",
 		},
 	}
-
-	// Create pagination info
-	pagination := &util.PaginationInfo{
-		TotalCount:    10,
-		Limit:         1,
-		CurrentPage:   1,
-		NextPageToken: "next-page-token",
-	}
-
-	// Create a buffer to capture output
 	var buf bytes.Buffer
+	appCtx := &app.ApplicationContext{Logger: logger.NewTestLogger(), Stdout: &buf}
 
-	// Create an application context with the buffer as stdout
-	appCtx := &app.ApplicationContext{
-		CompartmentName: "TestCompartment",
-		CompartmentID:   "ocid1.compartment.oc1.phx.test",
-		Logger:          logger.NewTestLogger(),
-		Stdout:          &buf,
-	}
-
-	// Test with table output (useJSON = false)
-	err := PrintAutonomousDbInfo(databases, appCtx, pagination, false)
+	err := PrintAutonomousDbInfo(db, appCtx, false, true)
 	assert.NoError(t, err)
+	out := buf.String()
 
-	// Verify that the output contains the expected information
-	output := buf.String()
-	assert.Contains(t, output, "TestDatabase1")
-	assert.Contains(t, output, "test-endpoint-1.example.com")
-	assert.Contains(t, output, "192.168.1.1")
-	assert.Contains(t, output, "high-connection-string-1")
-	assert.Contains(t, output, "medium-connection-string-1")
-	assert.Contains(t, output, "low-connection-string-1")
+	// Access Type should be inferred as Virtual cloud network when private endpoint exists and public flag is nil
+	assert.Contains(t, out, "Access Type")
+	assert.Contains(t, out, "Virtual cloud network")
 
-	// Reset the buffer
-	buf.Reset()
+	// Capacity should show ECPUs and storage in GB
+	assert.Contains(t, out, "ECPUs")
+	assert.Contains(t, out, "2.00")
+	assert.Contains(t, out, "Storage")
+	assert.Contains(t, out, "100 GB")
 
-	// Test with JSON output (useJSON = true)
-	err = PrintAutonomousDbInfo(databases, appCtx, pagination, true)
+	// Connection strings should be present
+	assert.Contains(t, out, "high-conn")
+	assert.Contains(t, out, "medium-conn")
+	assert.Contains(t, out, "low-conn")
+}
+
+// Test empty handling for list printer
+func TestPrintAutonomousDbsInfo_Empty(t *testing.T) {
+	var buf bytes.Buffer
+	appCtx := &app.ApplicationContext{Logger: logger.NewTestLogger(), Stdout: &buf}
+
+	err := PrintAutonomousDbsInfo([]domain.AutonomousDatabase{}, appCtx, nil, false, true)
 	assert.NoError(t, err)
-
-	// Verify that the output is valid JSON and contains the expected information
-	jsonOutput := buf.String()
-	assert.Contains(t, jsonOutput, "TestDatabase1")
-	assert.Contains(t, jsonOutput, "ocid1.autonomousdatabase.oc1.phx.test1")
-	assert.Contains(t, jsonOutput, "test-endpoint-1.example.com")
-	assert.Contains(t, jsonOutput, "192.168.1.1")
-	assert.Contains(t, jsonOutput, "high-connection-string-1")
-	assert.Contains(t, jsonOutput, "medium-connection-string-1")
-	assert.Contains(t, jsonOutput, "low-connection-string-1")
-	assert.Contains(t, jsonOutput, "\"pagination\"")
-	assert.Contains(t, jsonOutput, "\"TotalCount\"")
-	assert.Contains(t, jsonOutput, "\"Limit\"")
-	assert.Contains(t, jsonOutput, "\"CurrentPage\"")
-	assert.Contains(t, jsonOutput, "\"NextPageToken\"")
+	assert.Contains(t, buf.String(), "No Items found.")
 }

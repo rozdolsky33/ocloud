@@ -28,7 +28,7 @@ func TestFindAutonomousDatabaseSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := FindAutonomousDatabases(appCtx, "test", false)
+	err := FindAutonomousDatabases(appCtx, "test", false, false)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestFindAutonomousDatabaseOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := FindAutonomousDatabases(appCtxJSON, "test", true)
+	err := FindAutonomousDatabases(appCtxJSON, "test", true, false)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,7 +64,7 @@ func TestFindAutonomousDatabaseOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = FindAutonomousDatabases(appCtxTable, "test", false)
+	err = FindAutonomousDatabases(appCtxTable, "test", false, false)
 	assert.NoError(t, err)
 }
 
@@ -86,7 +86,7 @@ func TestFindAutonomousDatabaseError(t *testing.T) {
 		Stdout:          io.Discard,
 	}
 
-	err := FindAutonomousDatabases(appCtx, "test", false)
+	err := FindAutonomousDatabases(appCtx, "test", false, false)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

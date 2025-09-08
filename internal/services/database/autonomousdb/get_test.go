@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestListAutonomousDatabaseSimple is a simplified test for the ListAutonomousDatabase function
+// TestGetAutonomousDatabaseSimple is a simplified test for the GetAutonomousDatabase function
 // that doesn't rely on mocking the OCI SDK interfaces
-func TestListAutonomousDatabaseSimple(t *testing.T) {
+func TestGetAutonomousDatabaseSimple(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase since it requires the OCI SDK")
 
@@ -28,14 +28,14 @@ func TestListAutonomousDatabaseSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := ListAutonomousDatabase(appCtx, false, 20, 1)
+	err := GetAutonomousDatabase(appCtx, false, 20, 1, false)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
 }
 
-// TestListAutonomousDatabaseOutput tests the output of the ListAutonomousDatabase function
-func TestListAutonomousDatabaseOutput(t *testing.T) {
+// TestGetAutonomousDatabaseOutput tests the output of the GetAutonomousDatabase function
+func TestGetAutonomousDatabaseOutput(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase output since it requires the OCI SDK")
 
@@ -53,7 +53,7 @@ func TestListAutonomousDatabaseOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := ListAutonomousDatabase(appCtxJSON, true, 20, 1)
+	err := GetAutonomousDatabase(appCtxJSON, true, 20, 1, false)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,12 +64,12 @@ func TestListAutonomousDatabaseOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = ListAutonomousDatabase(appCtxTable, false, 20, 1)
+	err = GetAutonomousDatabase(appCtxTable, false, 20, 1, false)
 	assert.NoError(t, err)
 }
 
-// TestListAutonomousDatabasePagination tests the pagination of the ListAutonomousDatabase function
-func TestListAutonomousDatabasePagination(t *testing.T) {
+// TestGetAutonomousDatabasePagination tests the pagination of the GetAutonomousDatabase function
+func TestGetAutonomousDatabasePagination(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase pagination since it requires the OCI SDK")
 
@@ -87,20 +87,20 @@ func TestListAutonomousDatabasePagination(t *testing.T) {
 	}
 
 	// Test page 1
-	err := ListAutonomousDatabase(appCtx, false, 10, 1)
+	err := GetAutonomousDatabase(appCtx, false, 10, 1, false)
 	assert.NoError(t, err)
 
 	// Test page 2
-	err = ListAutonomousDatabase(appCtx, false, 10, 2)
+	err = GetAutonomousDatabase(appCtx, false, 10, 2, false)
 	assert.NoError(t, err)
 
 	// Test with a large page number (beyond available data)
-	err = ListAutonomousDatabase(appCtx, false, 10, 100)
+	err = GetAutonomousDatabase(appCtx, false, 10, 100, false)
 	assert.NoError(t, err)
 }
 
-// TestListAutonomousDatabaseError tests error handling in the ListAutonomousDatabase function
-func TestListAutonomousDatabaseError(t *testing.T) {
+// TestGetAutonomousDatabaseError tests error handling in the GetAutonomousDatabase function
+func TestGetAutonomousDatabaseError(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListAutonomousDatabase error handling since it requires the OCI SDK")
 
@@ -117,7 +117,7 @@ func TestListAutonomousDatabaseError(t *testing.T) {
 		Stdout:          io.Discard,
 	}
 
-	err := ListAutonomousDatabase(appCtx, false, 20, 1)
+	err := GetAutonomousDatabase(appCtx, false, 20, 1, false)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

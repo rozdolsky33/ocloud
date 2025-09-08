@@ -5,7 +5,7 @@ import (
 )
 
 // AutonomousDatabase represents an autonomous database instance with its attributes and connection details.
-type AutonomousDatabase domain.AutonomousDatabase
+type AutonomousDatabase = domain.AutonomousDatabase
 
 // IndexableAutonomousDatabase represents a simplified autonomous database structure indexed by its name.
 type IndexableAutonomousDatabase struct {

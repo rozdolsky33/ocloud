@@ -13,7 +13,7 @@ import (
 var listLong = `
 Interactively browse and search oke cluster in the specified compartment using a TUI.
 
-This command launches a Bubble Tea-based terminal UI that loads available oke cluster and lets you:
+This command launches terminal UI that loads available oke cluster and lets you:
 - Search/filter oke cluster as you type
 - Navigate the list
 - Select a single oke cluster to view its details
@@ -24,11 +24,10 @@ After you pick an oke cluster, the tool prints detailed information about the se
 var listExamples = `
   # Launch the interactive oke cluster browser
   ocloud compute oke list
-
-  # Use fuzzy search in the UI to quickly find what you need
-  ocloud compute oke list
+  ocloud compute oke list --json
 `
 
+// NewListCmd creates a new command for listing OKE clusters
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
