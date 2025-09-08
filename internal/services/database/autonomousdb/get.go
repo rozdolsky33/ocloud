@@ -26,7 +26,7 @@ func GetAutonomousDatabase(appCtx *app.ApplicationContext, useJSON bool, limit, 
 		return fmt.Errorf("listing autonomous databases: %w", err)
 	}
 
-	return PrintAutonomousDbInfo(allDatabases, appCtx, &util.PaginationInfo{
+	return PrintAutonomousDbsInfo(allDatabases, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,
 		Limit:         limit,

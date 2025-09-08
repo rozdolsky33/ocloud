@@ -20,7 +20,7 @@ type Adapter struct {
 	nsgCache      map[string]*core.NetworkSecurityGroup
 }
 
-// NewAdapter creates a new Adapter instance. The compartmentID parameter is accepted for backward compatibility with service wiring but is not required by the adapter itself.
+// NewAdapter creates a new Adapter instance.
 func NewAdapter(provider oci.ClientProvider) (*Adapter, error) {
 	dbClient, err := oci.NewDatabaseClient(provider)
 	if err != nil {

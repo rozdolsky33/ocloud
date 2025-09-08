@@ -18,6 +18,7 @@ func NewAutonomousDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 
 	// Add subcommands
+	cmd.AddCommand(NewListCmd(appCtx))
 	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewFindCmd(appCtx))
 

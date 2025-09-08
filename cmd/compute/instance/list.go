@@ -13,7 +13,7 @@ import (
 var listLong = `
 Interactively browse and search instances in the specified compartment using a TUI.
 
-This command launches a Bubble Tea-based terminal UI that loads available instances and lets you:
+This command launches terminal UI that loads available instances and lets you:
 - Search/filter instance as you type
 - Navigate the list
 - Select a single instance to view its details
@@ -24,9 +24,7 @@ After you pick an instance, the tool prints detailed information about the selec
 var listExamples = `
   # Launch the interactive instance browser
   ocloud compute instance list
-
-  # Use fuzzy search in the UI to quickly find what you need
-  ocloud compute instance list
+  ocloud compute instance list --json
 `
 
 // NewListCmd creates a new command for listing instances

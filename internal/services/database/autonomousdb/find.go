@@ -26,5 +26,5 @@ func FindAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string,
 		return fmt.Errorf("finding autonomous databases: %w", err)
 	}
 
-	return PrintAutonomousDbInfo(matchedDatabases, appCtx, nil, useJSON, showAll)
+	return PrintAutonomousDbsInfo(matchedDatabases, appCtx, nil, useJSON, showAll)
 }

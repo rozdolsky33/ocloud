@@ -28,6 +28,16 @@ func NewService(repo domain.AutonomousDatabaseRepository, appCtx *app.Applicatio
 	}
 }
 
+// ListAutonomousDb retrieves and returns all databases from the given compartment in the OCI account.
+func (s *Service) ListAutonomousDb(ctx context.Context) ([]AutonomousDatabase, error) {
+	s.logger.V(logger.Debug).Info("listing autonomous databases")
+	databases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list autonomous databases: %w", err)
+	}
+	return databases, nil
+}
+
 // FetchPaginatedAutonomousDb retrieves a paginated list of databases with given limit and page number parameters.
 // It returns the slice of databases, total count, next page token, and an error if encountered.
 func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {

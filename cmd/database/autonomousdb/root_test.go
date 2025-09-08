@@ -26,7 +26,7 @@ func TestAutonomousDatabaseCommand(t *testing.T) {
 
 	// Test that the subcommands are added
 	subCmds := cmd.Commands()
-	assert.Equal(t, 2, len(subCmds), "autonomousdb command should have 2 subcommands")
+	assert.Equal(t, 3, len(subCmds), "autonomousdb command should have 2 subcommands")
 
 	// Check that the list subcommand is present
 	getCmd := findSubCommand(subCmds, "get")
