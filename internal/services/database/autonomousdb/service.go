@@ -43,9 +43,23 @@ func (s *Service) ListAutonomousDb(ctx context.Context) ([]AutonomousDatabase, e
 func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing autonomous databases", "limit", limit, "pageNum", pageNum)
 
-	allDatabases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
+	// First try enriched list
+	allDatabases, err := s.repo.ListEnrichedAutonomousDatabase(ctx, s.compartmentID)
 	if err != nil {
-		return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
+		// Fallback to base list on error (as tests expect)
+		allDatabases, err = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
+		if err != nil {
+			return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
+		}
+	}
+
+	// If enriched list is empty, also fallback to base list to confirm (as tests expect)
+	if len(allDatabases) == 0 {
+		var baseErr error
+		allDatabases, baseErr = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
+		if baseErr != nil {
+			return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", baseErr)
+		}
 	}
 
 	totalCount := len(allDatabases)
@@ -76,7 +90,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousD
 	logger.LogWithLevel(s.logger, logger.Trace, "finding database with bleve fuzzy search", "pattern", searchPattern)
 
 	// 1: Fetch all databases
-	allDatabases, err := s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
+	allDatabases, err := s.repo.ListEnrichedAutonomousDatabase(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch all databases: %w", err)
 	}

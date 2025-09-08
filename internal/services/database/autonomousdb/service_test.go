@@ -17,6 +17,11 @@ type MockAutonomousDatabaseRepository struct {
 	mock.Mock
 }
 
+func (m *MockAutonomousDatabaseRepository) ListEnrichedAutonomousDatabase(ctx context.Context, compartmentID string) ([]domain.AutonomousDatabase, error) {
+	args := m.Called(ctx, compartmentID)
+	return args.Get(0).([]domain.AutonomousDatabase), args.Error(1)
+}
+
 func (m *MockAutonomousDatabaseRepository) GetAutonomousDatabase(ctx context.Context, ocid string) (*domain.AutonomousDatabase, error) {
 	args := m.Called(ctx, ocid)
 	if args.Get(0) == nil {
@@ -86,7 +91,7 @@ func TestList(t *testing.T) {
 		{Name: "db3", ID: "ocid1.autonomousdatabase.oc1..ccccccccn"},
 	}
 
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
 
 	databases, totalCount, nextPageToken, err := service.FetchPaginatedAutonomousDb(ctx, 2, 1)
 
@@ -100,7 +105,7 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test second page
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
 	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 2, 2)
 
 	assert.NoError(t, err)
@@ -112,6 +117,7 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test empty result
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, nil).Once()
 	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, nil).Once()
 	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 10, 1)
 
@@ -123,6 +129,7 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test error case
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
 	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
 	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 10, 1)
 
@@ -152,7 +159,7 @@ func TestFind(t *testing.T) {
 	}
 
 	// Test case: found
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
 	databases, err := service.Find(ctx, "test")
 
 	assert.NoError(t, err)
@@ -161,15 +168,15 @@ func TestFind(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test case: not found
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
 	databases, err = service.Find(ctx, "nonexistent")
 
-	assert.NoError(t, err) // Fuzzy search returns no error if not found, just empty list
+	assert.NoError(t, err) // Fuzzy search returns no error if not found, just an empty list
 	assert.Len(t, databases, 0)
 	mockRepo.AssertExpectations(t)
 
 	// Test case: error from repository
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
 	databases, err = service.Find(ctx, "test")
 
 	assert.Error(t, err)

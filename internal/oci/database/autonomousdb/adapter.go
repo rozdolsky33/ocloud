@@ -47,8 +47,9 @@ func (a *Adapter) GetAutonomousDatabase(ctx context.Context, ocid string) (*doma
 	if err != nil {
 		return nil, fmt.Errorf("failed to get autonomous database: %w", err)
 	}
-	db := a.toDomainAutonomousDB(response.AutonomousDatabase)
-	if err := a.enrichNetworkNames(ctx, &db); err != nil {
+	db, err := a.enrichAndMapAutonomousDatabase(ctx, response.AutonomousDatabase)
+	if err != nil {
+		return nil, err
 	}
 	return &db, nil
 }
@@ -74,6 +75,32 @@ func (a *Adapter) ListAutonomousDatabases(ctx context.Context, compartmentID str
 		page = resp.OpcNextPage
 	}
 	return allDatabases, nil
+}
+
+// ListEnrichedAutonomousDatabase retrieves a list of autonomous databases from OCI and enriches them.
+func (a *Adapter) ListEnrichedAutonomousDatabase(ctx context.Context, compartmentID string) ([]domain.AutonomousDatabase, error) {
+	var results []domain.AutonomousDatabase
+	var page *string
+	for {
+		resp, err := a.dbClient.ListAutonomousDatabases(ctx, database.ListAutonomousDatabasesRequest{
+			CompartmentId: &compartmentID,
+			Page:          page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list autonomous databases: %w", err)
+		}
+		// Map summaries then enrich (network names). Keep it lightweight like instances' batch enrichment.
+		batch, err := a.enrichAndMapAutonomousDatabasesFromSummaries(ctx, resp.Items)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, batch...)
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = resp.OpcNextPage
+	}
+	return results, nil
 }
 
 // enrichNetworkNames resolves display names for subnet, VCN, and NSGs.
@@ -140,6 +167,33 @@ func (a *Adapter) getNsg(ctx context.Context, id string) (*core.NetworkSecurityG
 	}
 	a.nsgCache[id] = &resp.NetworkSecurityGroup
 	return &resp.NetworkSecurityGroup, nil
+}
+
+// enrichDomainAutonomousDB applies additional lookups (e.g., network names) to the mapped domain model.
+func (a *Adapter) enrichDomainAutonomousDB(ctx context.Context, d *domain.AutonomousDatabase) error {
+	return a.enrichNetworkNames(ctx, d)
+}
+
+// enrichAndMapAutonomousDatabase maps a full OCI AutonomousDatabase and enriches it.
+func (a *Adapter) enrichAndMapAutonomousDatabase(ctx context.Context, full database.AutonomousDatabase) (domain.AutonomousDatabase, error) {
+	d := a.toDomainAutonomousDB(full)
+	if err := a.enrichDomainAutonomousDB(ctx, &d); err != nil {
+		return d, fmt.Errorf("enriching autonomous database %s: %w", d.ID, err)
+	}
+	return d, nil
+}
+
+// enrichAndMapAutonomousDatabasesFromSummaries maps summaries and enriches them (best-effort names).
+func (a *Adapter) enrichAndMapAutonomousDatabasesFromSummaries(ctx context.Context, items []database.AutonomousDatabaseSummary) ([]domain.AutonomousDatabase, error) {
+	res := make([]domain.AutonomousDatabase, 0, len(items))
+	for _, it := range items {
+		d := a.toDomainAutonomousDB(it)
+		if err := a.enrichDomainAutonomousDB(ctx, &d); err != nil {
+			return nil, fmt.Errorf("enriching autonomous database %s: %w", d.ID, err)
+		}
+		res = append(res, d)
+	}
+	return res, nil
 }
 
 // toDomainAutonomousDB maps either a full database.AutonomousDatabase (from Get) or a database.AutonomousDatabaseSummary (from List) into the single domain.AutonomousDatabase type.
