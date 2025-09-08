@@ -37,7 +37,7 @@ type Instance struct {
 // InstanceRepository defines the port for interacting with instance storage.
 // Implementations will handle the complexity of fetching and enriching instance data.
 type InstanceRepository interface {
+	GetEnrichedInstance(ctx context.Context, ocid string) (*Instance, error)
 	ListEnrichedInstances(ctx context.Context, compartmentID string) ([]Instance, error)
 	ListInstances(ctx context.Context, compartmentID string) ([]Instance, error)
-	GetEnrichedInstance(ctx context.Context, ocid string) (*Instance, error)
 }

@@ -1,8 +1,7 @@
 package instance
 
 import (
-	instaceFlags "github.com/rozdolsky33/ocloud/cmd/compute/flags"
-	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
+	instaceFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -60,8 +59,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	paginationFlags.LimitFlag.Add(cmd)
-	paginationFlags.PageFlag.Add(cmd)
+	instaceFlags.LimitFlag.Add(cmd)
+	instaceFlags.PageFlag.Add(cmd)
 	instaceFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
@@ -69,8 +68,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunGetCommand handles the execution of the list command
 func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
+	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, instaceFlags.FlagDefaultLimit)
+	page := flags.GetIntFlag(cmd, flags.FlagNamePage, instaceFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance get command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)

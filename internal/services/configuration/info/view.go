@@ -22,6 +22,5 @@ func ViewConfiguration(useJSON bool, realm string) error {
 	if err != nil {
 		return fmt.Errorf("printing tenancy mappings: %w", err)
 	}
-	logger.Logger.V(logger.Info).Info("Configuration viewed successfully.")
 	return nil
 }

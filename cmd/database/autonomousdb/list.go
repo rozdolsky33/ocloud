@@ -1,50 +1,35 @@
 package autonomousdb
 
 import (
-	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	"github.com/spf13/cobra"
 )
 
-// Long description for the list command
 var listLong = `
-FetchPaginatedClusters all Autonomous Databases in the specified compartment with pagination support.
+Interactively browse and search Autonomous Databases in the specified compartment using a TUI.
 
-This command displays information about available Autonomous Databases in the current compartment.
-By default, it shows basic database information such as name, ID, state, and workload type.
+This command launches terminal UI that loads available Autonomous Databases and lets you:
+- Search/filter Autonomous Database as you type
+- Navigate the list
+- Select a single Autonomous Databases to view its details
 
-The output is paginated, with a default limit of 20 databases per page. You can navigate
-through pages using the --page flag and control the number of databases per page with
-the --limit flag.
-
-Additional Information:
-- Use --json (-j) to output the results in JSON format
-- The command shows all available Autonomous Databases in the compartment
+After you pick an Autonomous Database, the tool prints detailed information about the selected Autonomous Database default table view or JSON format if specified with --json.
 `
 
-// Examples for the list command
 var listExamples = `
-  # FetchPaginatedClusters all Autonomous Databases with default pagination (20 per page)
-  ocloud database autonomous list
-
-  # FetchPaginatedClusters Autonomous Databases with custom pagination (10 per page, page 2)
-  ocloud database autonomous list --limit 10 --page 2
-
-  # FetchPaginatedClusters Autonomous Databases and output in JSON format
-  ocloud database autonomous list --json
-
-  # FetchPaginatedClusters Autonomous Databases with custom pagination and JSON output
-  ocloud database autonomous list --limit 5 --page 3 --json
+  # Launch the interactive images browser
+   ocloud database autonomous list
+   ocloud database autonomous list --json
 `
 
-// NewListCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.
+// NewListCmd creates a new command for listing Autonomous Databases
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
-		Aliases:       []string{"l"},
-		Short:         "FetchPaginatedClusters all Databases in the specified compartment",
+		Short:         "List all Autonomous Databases",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,
@@ -53,18 +38,13 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
-
-	paginationFlags.LimitFlag.Add(cmd)
-	paginationFlags.PageFlag.Add(cmd)
-
 	return cmd
 
 }
 
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running autonomous database list command")
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
-	return autonomousdb.ListAutonomousDatabase(appCtx, useJSON, limit, page)
+	return autonomousdb.ListAutonomousDatabases(appCtx, useJSON)
 }

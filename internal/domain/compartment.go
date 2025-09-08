@@ -15,6 +15,6 @@ type Compartment struct {
 // CompartmentRepository defines the port for interacting with compartment storage.
 // The application layer will use this interface to talk to the infrastructure layer.
 type CompartmentRepository interface {
-	ListCompartments(ctx context.Context, parentCompartmentID string) ([]Compartment, error)
 	GetCompartment(ctx context.Context, ocid string) (*Compartment, error)
+	ListCompartments(ctx context.Context, parentCompartmentID string) ([]Compartment, error)
 }

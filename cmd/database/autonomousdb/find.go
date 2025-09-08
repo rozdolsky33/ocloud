@@ -1,6 +1,7 @@
 package autonomousdb
 
 import (
+	databaseFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -47,16 +48,15 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunFindCommand(cmd, args, appCtx)
 		},
 	}
-
+	databaseFlags.AllInfoFlag.Add(cmd)
 	return cmd
 }
-
-//TODO:
 
 // RunFindCommand handles the execution of the find command
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
-	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON)
+	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
+	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON, showAll)
 }

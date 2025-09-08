@@ -26,4 +26,10 @@ var (
 		Default:   "",
 		Usage:     flags.FlagDescSort,
 	}
+	AllInfoFlag = flags.BoolFlag{
+		Name:      flags.FlagNameAllInformation,
+		Shorthand: flags.FlagShortAllInformation,
+		Default:   false,
+		Usage:     flags.FlagDescAllInformation,
+	}
 )

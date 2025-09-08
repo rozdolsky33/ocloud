@@ -17,13 +17,13 @@ import (
 func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType) error {
 
-	adapter, err := ociadb.NewAdapter(appCtx.Provider, appCtx.CompartmentID)
+	adapter, err := ociadb.NewAdapter(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("error creating database adapter: %w", err)
 	}
 	dbService := adbSvc.NewService(adapter, appCtx)
 
-	dbs, _, _, err := dbService.List(ctx, 1000, 0)
+	dbs, _, _, err := dbService.FetchPaginatedAutonomousDb(ctx, 1000, 0)
 	if err != nil {
 		return fmt.Errorf("list databases: %w", err)
 	}

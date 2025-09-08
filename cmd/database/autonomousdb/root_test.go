@@ -19,18 +19,18 @@ func TestAutonomousDatabaseCommand(t *testing.T) {
 
 	// Test that the autonomousdb command is properly configured
 	assert.Equal(t, "autonomous", cmd.Use)
-	assert.Equal(t, "Manage OCI Compartments", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Databases - list all databases or find database by pattern.", cmd.Long)
+	assert.Equal(t, "Manage OCI Databases.", cmd.Short)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure databases: list, get, and search by name or pattern.", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
 	// Test that the subcommands are added
 	subCmds := cmd.Commands()
-	assert.Equal(t, 2, len(subCmds), "autonomousdb command should have 2 subcommands")
+	assert.Equal(t, 3, len(subCmds), "autonomousdb command should have 2 subcommands")
 
 	// Check that the list subcommand is present
-	listCmd := findSubCommand(subCmds, "list")
-	assert.NotNil(t, listCmd, "autonomousdb command should have list subcommand")
+	getCmd := findSubCommand(subCmds, "get")
+	assert.NotNil(t, getCmd, "autonomousdb command should have list subcommand")
 
 	// Check that the find subcommand is present
 	findCmd := findSubCommand(subCmds, "find")

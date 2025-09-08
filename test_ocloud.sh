@@ -76,14 +76,12 @@ run_command ./bin/ocloud comp inst --help
 # Test compute instance list command
 print_header "Testing compute instance list command"
 run_command ./bin/ocloud compute instance get
-run_command ./bin/ocloud compute instance get
 run_command ./bin/ocloud compute instance get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute instance get -m 10 -p 1 -j
 run_command ./bin/ocloud comp inst get
 
 # Test compute instance find command
 print_header "Testing compute instance find command"
-run_command ./bin/ocloud compute instance find "roster"
 run_command ./bin/ocloud compute instance find "roster"
 run_command ./bin/ocloud compute instance find "roster" --all --json
 run_command ./bin/ocloud compute instance find "roster" -A -j
@@ -97,14 +95,12 @@ run_command ./bin/ocloud comp img --help
 # Test compute image get command
 print_header "Testing compute image get command"
 run_command ./bin/ocloud compute image get
-run_command ./bin/ocloud compute image get
 run_command ./bin/ocloud compute image get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute image get -m 10 -p 1 -j
 run_command ./bin/ocloud comp img get
 
 # Test compute image find command
 print_header "Testing compute image find command"
-run_command ./bin/ocloud compute image find "ubuntu"
 run_command ./bin/ocloud compute image find "ubuntu"
 run_command ./bin/ocloud compute image find "ubuntu" --json
 run_command ./bin/ocloud compute image find "ubuntu" -j
@@ -118,14 +114,12 @@ run_command ./bin/ocloud comp oke --help
 # Test compute oke get command
 print_header "Testing compute oke list command"
 run_command ./bin/ocloud compute oke get
-run_command ./bin/ocloud compute oke get
 run_command ./bin/ocloud compute oke get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute oke get -m 10 -p 1 -j
 run_command ./bin/ocloud comp oke get
 
 # Test compute oke find command
 print_header "Testing compute oke find command"
-run_command ./bin/ocloud compute oke find "orion"
 run_command ./bin/ocloud compute oke find "orion"
 run_command ./bin/ocloud compute oke find "orion" --json
 run_command ./bin/ocloud compute oke find "orion" -j
@@ -155,14 +149,12 @@ run_command ./bin/ocloud ident compart --help
 # Test identity compartment list command
 print_header "Testing identity compartment list command"
 run_command ./bin/ocloud identity compartment list
-run_command ./bin/ocloud identity compartment list
 run_command ./bin/ocloud identity compartment list --limit 10 --page 1 --json
 run_command ./bin/ocloud identity compartment list -m 10 -p 1 -j
 run_command ./bin/ocloud ident compart l
 
 # Test identity compartment find command
 print_header "Testing identity compartment find command"
-run_command ./bin/ocloud identity compartment find "sand"
 run_command ./bin/ocloud identity compartment find "sand"
 run_command ./bin/ocloud identity compartment find "sand" --json
 run_command ./bin/ocloud identity compartment find "sand" -j
@@ -185,7 +177,6 @@ run_command ./bin/ocloud ident pol l
 # Test identity policy find command
 print_header "Testing identity policy find command"
 run_command ./bin/ocloud identity policy find "monitor"
-run_command ./bin/ocloud identity policy find "monitor"
 run_command ./bin/ocloud identity policy find "monitor" --json
 run_command ./bin/ocloud identity policy find "monitor" -j
 run_command ./bin/ocloud ident pol f "monitor"
@@ -204,14 +195,12 @@ run_command ./bin/ocloud net sub --help
 # Test network subnet list command
 print_header "Testing network subnet list command"
 run_command ./bin/ocloud network subnet list
-run_command ./bin/ocloud network subnet list
 run_command ./bin/ocloud network subnet list --limit 10 --page 1 --json
 run_command ./bin/ocloud network subnet list -m 10 -p 1 -j
 run_command ./bin/ocloud net sub l
 
 # Test network subnet find command
 print_header "Testing network subnet find command"
-run_command ./bin/ocloud network subnet find "pub"
 run_command ./bin/ocloud network subnet find "pub"
 run_command ./bin/ocloud network subnet find "pub" --json
 run_command ./bin/ocloud network subnet find "pub" -j
@@ -230,15 +219,12 @@ run_command ./bin/ocloud db adb --help
 
 # Test database autonomousdb list command
 print_header "Testing database autonomousdb list command"
-run_command ./bin/ocloud database autonomous list
-run_command ./bin/ocloud database autonomous list
-run_command ./bin/ocloud database autonomous list --limit 10 --page 1 --json
-run_command ./bin/ocloud database autonomous list -m 10 -p 1 -j
-run_command ./bin/ocloud db adb l
+run_command ./bin/ocloud database autonomous get
+run_command ./bin/ocloud database autonomous get --limit 10 --page 1 --json
+run_command ./bin/ocloud database autonomous get -m 10 -p 1 -j
 
 # Test database autonomousdb find command
 print_header "Testing database autonomousdb find command"
-run_command ./bin/ocloud database autonomous find "test"
 run_command ./bin/ocloud database autonomous find "test"
 run_command ./bin/ocloud database autonomous find "test" --json
 run_command ./bin/ocloud database autonomous find "test" -j
