@@ -12,7 +12,7 @@ func NewPoliciesListModel(p []domain.Policy) listx.Model {
 		return listx.ResourceItemData{
 			ID:          p.ID,
 			Title:       p.Name,
-			Description: fmt.Sprintf("Description: %s  •  Created: %s", p.Description, p.TimeCreated.Format("2006-01-02")),
+			Description: fmt.Sprint(p.Description, "  •  ", p.TimeCreated.Format("2006-01-02")),
 		}
 	})
 }

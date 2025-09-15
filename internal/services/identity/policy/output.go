@@ -50,9 +50,7 @@ func PrintPolicyInfo(policies []domain.Policy, appCtx *app.ApplicationContext, p
 	return nil
 }
 
-// PrintPolicyTable prints detailed information about the provided policy in a human-readable or JSON format.
-// It uses the given ApplicationContext for output configuration and supports formatting the output as JSON if requested.
-// Returns an error if JSON marshaling or data rendering fails.
+// PrintPolicyTable prints a detailed view of a policy.
 func PrintPolicyTable(policy *domain.Policy, appCtx *app.ApplicationContext, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 	// If JSON output is requested, use the printer to marshal the response.
@@ -64,7 +62,7 @@ func PrintPolicyTable(policy *domain.Policy, appCtx *app.ApplicationContext, use
 		"Name":        policy.Name,
 		"ID":          policy.ID,
 		"Description": policy.Description,
-		"TimeCreated": policy.TimeCreated.String(),
+		"TimeCreated": policy.TimeCreated.Format("2006-01-02"),
 	}
 
 	orderedKeys := []string{
