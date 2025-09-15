@@ -5,31 +5,19 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/oci/identity/policy"
 )
 
-// FindPolicies retrieves and processes policies matching the provided name pattern within the application context.
-// appCtx represents the application context with the necessary clients and configurations.
-// namePattern specifies the pattern to filter policy names.
-// useJSON determines whether the output should be formatted as JSON.
+// FindPolicies searches for policies matching the given name pattern and prints their details in the specified format.
+// It utilizes the application context for service initialization and handles output formatting via JSON or plain text.
 func FindPolicies(appCtx *app.ApplicationContext, namePattern string, useJSON bool) error {
-	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Policies", "pattern", namePattern)
-
-	service, err := NewService(appCtx)
-	if err != nil {
-		return fmt.Errorf("creating policies service: %w", err)
-	}
-
+	policyAdapter := policy.NewAdapter(appCtx.IdentityClient)
+	service := NewService(policyAdapter, appCtx.Logger, appCtx.CompartmentID)
 	ctx := context.Background()
 	matchedPolicies, err := service.Find(ctx, namePattern)
 	if err != nil {
 		return fmt.Errorf("finding matched policies: %w", err)
 	}
 
-	err = PrintPolicyInfo(matchedPolicies, appCtx, nil, useJSON)
-	if err != nil {
-		return fmt.Errorf("printing matched policies: %w", err)
-	}
-	logger.Logger.V(logger.Info).Info("Policy find operation completed successfully.")
-	return nil
+	return PrintPolicyInfo(matchedPolicies, appCtx, nil, useJSON)
 }
