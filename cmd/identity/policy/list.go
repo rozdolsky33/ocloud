@@ -4,6 +4,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/identity/policy"
 	"github.com/spf13/cobra"
 )
 
@@ -46,6 +47,5 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	//policy.ListPolicies(appCtx, useJSON)
-	return nil
+	return policy.ListPolicies(appCtx, useJSON)
 }
