@@ -29,6 +29,7 @@ var listExamples = `
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
+		Aliases:       []string{"l"},
 		Short:         "List all Autonomous Databases",
 		Long:          listLong,
 		Example:       listExamples,

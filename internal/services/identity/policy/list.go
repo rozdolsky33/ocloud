@@ -2,39 +2,39 @@ package policy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
+	"github.com/rozdolsky33/ocloud/internal/oci/identity/policy"
+	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
-// ListPolicies retrieves and displays the policies for a given application context, supporting pagination and JSON output format.
-func ListPolicies(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Policies", "limit", limit, "page", page)
-
-	service, err := NewService(appCtx)
-	if err != nil {
-		return fmt.Errorf("creating policy service: %w", err)
-	}
-
+// ListPolicies lists all policies in the specified compartment and prints their details in the specified format.
+// It utilizes the application context for service initialization and handles output formatting via JSON or plain text.
+func ListPolicies(appCtx *app.ApplicationContext, useJSON bool) error {
 	ctx := context.Background()
-	policies, totalCount, nextPageToken, err := service.List(ctx, limit, page)
+	policyAdapter := policy.NewAdapter(appCtx.IdentityClient)
+	service := NewService(policyAdapter, appCtx.Logger, appCtx.CompartmentID)
+	policies, err := service.ListPolicies(ctx)
+
 	if err != nil {
 		return fmt.Errorf("listing policies: %w", err)
 	}
 
-	// Display policies information with pagination details
-	err = PrintPolicyInfo(policies, appCtx, &util.PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON)
-
+	//TUI
+	model := policy.NewPoliciesListModel(policies)
+	id, err := listx.Run(model)
 	if err != nil {
-		return fmt.Errorf("printing policies: %w", err)
+		if errors.Is(err, listx.ErrCancelled) {
+			return nil
+		}
+		return fmt.Errorf("selecting policy: %w", err)
 	}
-	logger.Logger.V(logger.Info).Info("Policy list operation completed successfully.")
-	return nil
+	p, err := service.policyRepo.GetPolicy(ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting policy: %w", err)
+	}
+
+	return PrintPolicyTable(p, appCtx, useJSON)
 }

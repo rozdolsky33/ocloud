@@ -11,13 +11,14 @@ func NewPolicyCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "policy",
 		Aliases:       []string{"pol"},
 		Short:         "Manage OCI Policies",
-		Long:          "Manage Oracle Cloud Infrastructure Policies - list all policies or find policy by pattern.",
-		Example:       "  ocloud identity policy list \n  ocloud identity policy find mypolicy",
+		Long:          "Manage Oracle Cloud Infrastructure Policies: list, get, and search by name or pattern.",
+		Example:       "  ocloud identity policy get \n  ocloud identity policy list \n  ocloud identity policy find mypolicy",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
 	cmd.AddCommand(NewListCmd(appCtx))
+	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewFindCmd(appCtx))
 
 	return cmd

@@ -2,13 +2,14 @@ package policy
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // PrintPolicyInfo prints the details of policies to the standard output or in JSON format.
 // If pagination info is provided, it adjusts and logs it.
-func PrintPolicyInfo(policies []Policy, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+func PrintPolicyInfo(policies []domain.Policy, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 
 	p := printer.New(appCtx.Stdout)
 
@@ -18,7 +19,7 @@ func PrintPolicyInfo(policies []Policy, appCtx *app.ApplicationContext, paginati
 
 	// If JSON output is requested, use the printer to marshal the response.
 	if useJSON {
-		return util.MarshalDataToJSONResponse[Policy](p, policies, pagination)
+		return util.MarshalDataToJSONResponse[domain.Policy](p, policies, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(policies, pagination, appCtx.Stdout) {
@@ -46,5 +47,31 @@ func PrintPolicyInfo(policies []Policy, appCtx *app.ApplicationContext, paginati
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
+	return nil
+}
+
+// PrintPolicyTable prints a detailed view of a policy.
+func PrintPolicyTable(policy *domain.Policy, appCtx *app.ApplicationContext, useJSON bool) error {
+	p := printer.New(appCtx.Stdout)
+	// If JSON output is requested, use the printer to marshal the response.
+	if useJSON {
+		return p.MarshalToJSON(policy)
+	}
+
+	policyData := map[string]string{
+		"Name":        policy.Name,
+		"ID":          policy.ID,
+		"Description": policy.Description,
+		"TimeCreated": policy.TimeCreated.Format("2006-01-02"),
+	}
+
+	orderedKeys := []string{
+		"Name", "ID", "Description", "TimeCreated",
+	}
+
+	title := util.FormatColoredTitle(appCtx, policy.Name)
+
+	p.PrintKeyValues(title, policyData, orderedKeys)
+
 	return nil
 }

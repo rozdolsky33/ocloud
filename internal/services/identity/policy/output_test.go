@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/stretchr/testify/assert"
@@ -13,21 +14,19 @@ import (
 // TestPrintPolicyInfo tests the PrintPolicyInfo function
 func TestPrintPolicyInfo(t *testing.T) {
 	// Create test policies
-	policies := []Policy{
+	policies := []domain.Policy{
 		{
 			Name:        "TestPolicy1",
 			ID:          "ocid1.policy.oc1.phx.test1",
 			Description: "Test policy 1 description",
 			Statement:   []string{"Allow group Administrators to manage all-resources in tenancy"},
-			PolicyTags: util.ResourceTags{
-				DefinedTags: map[string]map[string]interface{}{
-					"Operations": {
-						"Environment": "Production",
-					},
+			DefinedTags: map[string]map[string]interface{}{
+				"Operations": {
+					"Environment": "Production",
 				},
-				FreeformTags: map[string]string{
-					"Department": "IT",
-				},
+			},
+			FreeformTags: map[string]string{
+				"Department": "IT",
 			},
 		},
 		{
@@ -35,20 +34,18 @@ func TestPrintPolicyInfo(t *testing.T) {
 			ID:          "ocid1.policy.oc1.phx.test2",
 			Description: "Test policy 2 description",
 			Statement:   []string{"Allow group NetworkAdmins to manage virtual-network-family in tenancy"},
-			PolicyTags: util.ResourceTags{
-				DefinedTags: map[string]map[string]interface{}{
-					"Operations": {
-						"Environment": "Development",
-					},
+			DefinedTags: map[string]map[string]interface{}{
+				"Operations": {
+					"Environment": "Production",
 				},
-				FreeformTags: map[string]string{
-					"Department": "Network",
-				},
+			},
+			FreeformTags: map[string]string{
+				"Department": "IT",
 			},
 		},
 	}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -92,9 +89,9 @@ func TestPrintPolicyInfo(t *testing.T) {
 // TestPrintPolicyInfoEmpty tests the PrintPolicyInfo function with empty policies
 func TestPrintPolicyInfoEmpty(t *testing.T) {
 	// Create an empty policies slice
-	policies := []Policy{}
+	policies := []domain.Policy{}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
@@ -128,7 +125,7 @@ func TestPrintPolicyInfoEmpty(t *testing.T) {
 // TestPrintPolicyInfoWithPagination tests the PrintPolicyInfo function with pagination
 func TestPrintPolicyInfoWithPagination(t *testing.T) {
 	// Create test policies
-	policies := []Policy{
+	policies := []domain.Policy{
 		{
 			Name:        "TestPolicy1",
 			ID:          "ocid1.policy.oc1.phx.test1",
@@ -143,7 +140,7 @@ func TestPrintPolicyInfoWithPagination(t *testing.T) {
 		},
 	}
 
-	// Create a buffer to capture output
+	// Create a buffer to capture the output
 	var buf bytes.Buffer
 
 	// Create an application context with the buffer as stdout
