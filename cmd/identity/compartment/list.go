@@ -1,7 +1,6 @@
 package compartment
 
 import (
-	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -9,44 +8,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the list command
 var listLong = `
-FetchPaginatedClusters all Compartments in the specified tenancy or compartment with pagination support.
+Interactively browse and search Compartments in the specified tenancy or parent compartment using a TUI.
 
-This command displays information about compartments in the current tenancy.
-By default, it shows basic compartment information such as name, ID, and description.
+This command launches terminal UI that loads available Compartments and lets you:
+- Search/filter Compartment as you type
+- Navigate the list
+- Select a single Compartment to view its details
 
-The output is paginated, with a default limit of 20 compartments per page. You can navigate
-through pages using the --page flag and control the number of compartments per page with
-the --limit flag.
-
-Additional Information:
-- Use --json (-j) to output the results in JSON format
-- The command shows all available compartments in the tenancy
+After you pick an Compartment, the tool prints detailed information about the selected Compartment default table view or JSON format if specified with --json.
 `
 
-// Examples for the list command
 var listExamples = `
-  # FetchPaginatedClusters all compartments with default pagination (20 per page)
-  ocloud identity compartment list
-
-  # FetchPaginatedClusters compartments with custom pagination (10 per page, page 2)
-  ocloud identity compartment list --limit 10 --page 2
-
-  # FetchPaginatedClusters compartments and output in JSON format
-  ocloud identity compartment list --json
-
-  # FetchPaginatedClusters compartments with custom pagination and JSON output
-  ocloud identity compartment list --limit 5 --page 3 --json
+  # Launch the interactive images browser
+   ocloud database compartment list
+   ocloud database compartment list --json
 `
 
-// NewListCmd creates a new Cobra command for listing compartments in a specified tenancy or compartment.
+// NewListCmd creates a new Cobra command for getting compartments in a specified tenancy or compartment.
 // It supports pagination and optional JSON output.
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
 		Aliases:       []string{"l"},
-		Short:         "FetchPaginatedClusters all Compartments in the specified tenancy or compartment",
+		Short:         "List all Compartments in the specified tenancy or compartment",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,
@@ -55,19 +40,14 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
-	// Add flags specific to the list command
-	paginationFlags.LimitFlag.Add(cmd)
-	paginationFlags.PageFlag.Add(cmd)
 
 	return cmd
 
 }
 
-// RunListCommand handles the execution of the list command
+// RunListCommand handles the execution of the get command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
-	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running compartment list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return compartment.ListCompartments(appCtx, useJSON, limit, page)
+	return compartment.ListCompartments(appCtx, useJSON)
 }

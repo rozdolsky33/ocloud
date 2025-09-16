@@ -26,10 +26,25 @@ var (
 		Default:   "",
 		Usage:     flags.FlagDescSort,
 	}
+
 	AllInfoFlag = flags.BoolFlag{
 		Name:      flags.FlagNameAllInformation,
 		Shorthand: flags.FlagShortAllInformation,
 		Default:   false,
 		Usage:     flags.FlagDescAllInformation,
+	}
+
+	ScopeFlag = flags.StringFlag{
+		Name:      flags.FlagNameScope,
+		Shorthand: "",
+		Default:   "compartment",
+		Usage:     flags.FlagDescScope,
+	}
+
+	TenancyScopeFlag = flags.BoolFlag{
+		Name:      flags.FlagNameTenancyScope,
+		Shorthand: flags.FlagShortTenancyScope,
+		Default:   false,
+		Usage:     flags.FlagDescTenancyScope,
 	}
 )

@@ -11,15 +11,15 @@ import (
 
 // CompartmentAdapter is an infrastructure-layer adapter that implements the domain.CompartmentRepository interface.
 type CompartmentAdapter struct {
-	client    identity.IdentityClient
-	tenancyID string
+	client          identity.IdentityClient
+	compartmentOCID string
 }
 
 // NewCompartmentAdapter creates a new adapter for interacting with OCI compartments.
-func NewCompartmentAdapter(client identity.IdentityClient, tenancyID string) *CompartmentAdapter {
+func NewCompartmentAdapter(client identity.IdentityClient, compartmentID string) *CompartmentAdapter {
 	return &CompartmentAdapter{
-		client:    client,
-		tenancyID: tenancyID,
+		client:          client,
+		compartmentOCID: compartmentID,
 	}
 }
 
@@ -38,18 +38,13 @@ func (a *CompartmentAdapter) GetCompartment(ctx context.Context, ocid string) (*
 
 // ListCompartments retrieves all active compartments under a given parent compartment.
 // It handles pagination to fetch all results from OCI.
-func (a *CompartmentAdapter) ListCompartments(ctx context.Context, parentCompartmentID string) ([]domain.Compartment, error) {
+func (a *CompartmentAdapter) ListCompartments(ctx context.Context, compartmentID string) ([]domain.Compartment, error) {
 	var compartments []domain.Compartment
 	page := ""
 
-	// If no parent is specified, use the tenancy root.
-	if parentCompartmentID == "" {
-		parentCompartmentID = a.tenancyID
-	}
-
 	for {
 		resp, err := a.client.ListCompartments(ctx, identity.ListCompartmentsRequest{
-			CompartmentId:          &parentCompartmentID,
+			CompartmentId:          &compartmentID,
 			Page:                   &page,
 			AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
 			LifecycleState:         identity.CompartmentLifecycleStateActive,
@@ -74,21 +69,15 @@ func (a *CompartmentAdapter) ListCompartments(ctx context.Context, parentCompart
 
 // toDomainModel converts an OCI SDK compartment object to our application's domain model.
 func (a *CompartmentAdapter) toDomainModel(c identity.Compartment) domain.Compartment {
-	var parentID string
-	if c.CompartmentId != nil {
-		parentID = *c.CompartmentId
-	}
-
 	var state string
 	if c.LifecycleState != "" {
 		state = string(c.LifecycleState)
 	}
 
 	return domain.Compartment{
-		OCID:                *c.Id,
-		DisplayName:         *c.Name,
-		Description:         *c.Description,
-		LifecycleState:      state,
-		ParentCompartmentID: parentID,
+		OCID:           *c.Id,
+		DisplayName:    *c.Name,
+		Description:    *c.Description,
+		LifecycleState: state,
 	}
 }

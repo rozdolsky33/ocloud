@@ -16,16 +16,16 @@ import (
 type Service struct {
 	compartmentRepo domain.CompartmentRepository
 	logger          logr.Logger
-	tenancyID       string
+	compartmentID   string
 }
 
 // NewService initializes and returns a new Service instance.
 // It injects the domain repository, decoupling the service from the infrastructure layer.
-func NewService(repo domain.CompartmentRepository, logger logr.Logger, tenancyID string) *Service {
+func NewService(repo domain.CompartmentRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		compartmentRepo: repo,
 		logger:          logger,
-		tenancyID:       tenancyID,
+		compartmentID:   ocid,
 	}
 }
 
@@ -36,7 +36,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]domain.Compar
 
 	// Fetch all compartments from the repository.
 	// The underlying adapter handles the complexity of OCI pagination.
-	allCompartments, err := s.compartmentRepo.ListCompartments(ctx, s.tenancyID)
+	allCompartments, err := s.compartmentRepo.ListCompartments(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing compartments from repository: %w", err)
 	}
@@ -71,7 +71,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Comp
 	s.logger.V(logger.Debug).Info("finding compartments with fuzzy search", "pattern", searchPattern)
 
 	// Step 1: Fetch all compartments from the repository.
-	allCompartments, err := s.compartmentRepo.ListCompartments(ctx, s.tenancyID)
+	allCompartments, err := s.compartmentRepo.ListCompartments(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching all compartments for search: %w", err)
 	}
