@@ -5,11 +5,12 @@ import "context"
 // Compartment represents a logical container for cloud resources.
 // This is our application's internal representation, decoupled from the OCI SDK.
 type Compartment struct {
-	OCID                string
-	DisplayName         string
-	Description         string
-	LifecycleState      string
-	ParentCompartmentID string
+	OCID           string
+	DisplayName    string
+	Description    string
+	LifecycleState string
+	FreeformTags   map[string]string
+	DefinedTags    map[string]map[string]interface{}
 }
 
 // CompartmentRepository defines the port for interacting with compartment storage.

@@ -3,6 +3,7 @@ package compartment
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
@@ -37,18 +38,18 @@ func (a *CompartmentAdapter) GetCompartment(ctx context.Context, ocid string) (*
 }
 
 // ListCompartments retrieves all active compartments under a given parent compartment.
-// It handles pagination to fetch all results from OCI.
 func (a *CompartmentAdapter) ListCompartments(ctx context.Context, compartmentID string) ([]domain.Compartment, error) {
 	var compartments []domain.Compartment
 	page := ""
 
 	for {
+		includeSubtree := strings.HasPrefix(compartmentID, "ocid1.tenancy.")
 		resp, err := a.client.ListCompartments(ctx, identity.ListCompartmentsRequest{
 			CompartmentId:          &compartmentID,
 			Page:                   &page,
 			AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
 			LifecycleState:         identity.CompartmentLifecycleStateActive,
-			CompartmentIdInSubtree: common.Bool(true),
+			CompartmentIdInSubtree: common.Bool(includeSubtree),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing compartments from OCI: %w", err)
@@ -79,5 +80,7 @@ func (a *CompartmentAdapter) toDomainModel(c identity.Compartment) domain.Compar
 		DisplayName:    *c.Name,
 		Description:    *c.Description,
 		LifecycleState: state,
+		FreeformTags:   c.FreeformTags,
+		DefinedTags:    c.DefinedTags,
 	}
 }
