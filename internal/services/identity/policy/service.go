@@ -18,11 +18,11 @@ type Service struct {
 }
 
 // NewService initializes a new Service instance with the provided application context.
-func NewService(repo domain.PolicyRepository, logger logr.Logger, CompartmentID string) *Service {
+func NewService(repo domain.PolicyRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		policyRepo:    repo,
 		logger:        logger,
-		CompartmentID: CompartmentID,
+		CompartmentID: ocid,
 	}
 }
 
