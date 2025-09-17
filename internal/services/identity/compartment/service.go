@@ -29,25 +29,21 @@ func NewService(repo domain.CompartmentRepository, logger logr.Logger, ocid stri
 	}
 }
 
-// List retrieves a paginated list of compartments.
-// Note: The pagination logic here is simplified. A real implementation might need more robust cursor handling.
-func (s *Service) List(ctx context.Context, limit, pageNum int) ([]domain.Compartment, int, string, error) {
+// FetchPaginateCompartments fetches a page of compartments from the repository.
+func (s *Service) FetchPaginateCompartments(ctx context.Context, limit, pageNum int) ([]Compartment, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing compartments", "limit", limit, "pageNum", pageNum)
 
-	// Fetch all compartments from the repository.
-	// The underlying adapter handles the complexity of OCI pagination.
 	allCompartments, err := s.compartmentRepo.ListCompartments(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing compartments from repository: %w", err)
 	}
 
-	// Manual pagination over the full list.
 	totalCount := len(allCompartments)
 	start := (pageNum - 1) * limit
 	end := start + limit
 
 	if start >= totalCount {
-		return []domain.Compartment{}, totalCount, "", nil // Page number is out of bounds
+		return []Compartment{}, totalCount, "", nil
 	}
 
 	if end > totalCount {
@@ -56,7 +52,6 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]domain.Compar
 
 	pagedResults := allCompartments[start:end]
 
-	// Determine if there is a next page.
 	var nextPageToken string
 	if end < totalCount {
 		nextPageToken = fmt.Sprintf("%d", pageNum+1)
@@ -67,7 +62,7 @@ func (s *Service) List(ctx context.Context, limit, pageNum int) ([]domain.Compar
 }
 
 // Find performs a fuzzy search for compartments based on the provided searchPattern.
-func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Compartment, error) {
+func (s *Service) Find(ctx context.Context, searchPattern string) ([]Compartment, error) {
 	s.logger.V(logger.Debug).Info("finding compartments with fuzzy search", "pattern", searchPattern)
 
 	// Step 1: Fetch all compartments from the repository.
@@ -77,7 +72,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Comp
 	}
 
 	// Step 2: Build the search index from the domain models.
-	index, err := util.BuildIndex(allCompartments, func(c domain.Compartment) any {
+	index, err := util.BuildIndex(allCompartments, func(c Compartment) any {
 		return mapToIndexableCompartment(c)
 	})
 	if err != nil {
@@ -92,7 +87,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Comp
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
 	}
 	logger.Logger.V(logger.Debug).Info("Fuzzy search completed.", "numMatches", len(matchedIdxs))
-	var results []domain.Compartment
+	var results []Compartment
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allCompartments) {
 			results = append(results, allCompartments[idx])
@@ -104,7 +99,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Comp
 }
 
 // mapToIndexableCompartment converts a domain.Compartment to a struct suitable for indexing.
-func mapToIndexableCompartment(compartment domain.Compartment) any {
+func mapToIndexableCompartment(compartment Compartment) any {
 	return struct {
 		Name        string
 		Description string

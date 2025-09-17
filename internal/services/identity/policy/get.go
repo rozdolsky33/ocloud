@@ -18,7 +18,6 @@ func GetPolicies(appCtx *app.ApplicationContext, useJSON bool, limit, page int) 
 	if err != nil {
 		return fmt.Errorf("getting policies: %w", err)
 	}
-
 	return PrintPolicyInfo(policies, appCtx, &util.PaginationInfo{
 		CurrentPage:   page,
 		TotalCount:    totalCount,

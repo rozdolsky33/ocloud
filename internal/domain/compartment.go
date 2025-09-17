@@ -17,5 +17,5 @@ type Compartment struct {
 // The application layer will use this interface to talk to the infrastructure layer.
 type CompartmentRepository interface {
 	GetCompartment(ctx context.Context, ocid string) (*Compartment, error)
-	ListCompartments(ctx context.Context, parentCompartmentID string) ([]Compartment, error)
+	ListCompartments(ctx context.Context, ocid string) ([]Compartment, error)
 }

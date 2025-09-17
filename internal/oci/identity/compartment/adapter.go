@@ -17,10 +17,10 @@ type Adapter struct {
 }
 
 // NewCompartmentAdapter creates a new adapter for interacting with OCI compartments.
-func NewCompartmentAdapter(client identity.IdentityClient, compartmentID string) *Adapter {
+func NewCompartmentAdapter(client identity.IdentityClient, ocid string) *Adapter {
 	return &Adapter{
 		client:          client,
-		compartmentOCID: compartmentID,
+		compartmentOCID: ocid,
 	}
 }
 
@@ -38,14 +38,14 @@ func (a *Adapter) GetCompartment(ctx context.Context, ocid string) (*domain.Comp
 }
 
 // ListCompartments retrieves all active compartments under a given parent compartment.
-func (a *Adapter) ListCompartments(ctx context.Context, compartmentID string) ([]domain.Compartment, error) {
+func (a *Adapter) ListCompartments(ctx context.Context, ocid string) ([]domain.Compartment, error) {
 	var compartments []domain.Compartment
 	page := ""
 
 	for {
-		includeSubtree := strings.HasPrefix(compartmentID, "ocid1.tenancy.")
+		includeSubtree := strings.HasPrefix(ocid, "ocid1.tenancy.")
 		resp, err := a.client.ListCompartments(ctx, identity.ListCompartmentsRequest{
-			CompartmentId:          &compartmentID,
+			CompartmentId:          &ocid,
 			Page:                   &page,
 			AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
 			LifecycleState:         identity.CompartmentLifecycleStateActive,

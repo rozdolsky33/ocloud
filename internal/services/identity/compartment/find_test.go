@@ -28,7 +28,7 @@ func TestFindCompartmentsSimple(t *testing.T) {
 		Stdout:      io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := FindCompartments(appCtx, "test", false)
+	err := FindCompartments(appCtx, "test", false, appCtx.CompartmentID)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestFindCompartmentsOutput(t *testing.T) {
 		Stdout:      io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := FindCompartments(appCtxJSON, "test", true)
+	err := FindCompartments(appCtxJSON, "test", true, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,7 +64,7 @@ func TestFindCompartmentsOutput(t *testing.T) {
 		Stdout:      io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = FindCompartments(appCtxTable, "test", false)
+	err = FindCompartments(appCtxTable, "test", false, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 }
 
@@ -86,7 +86,7 @@ func TestFindCompartmentsError(t *testing.T) {
 		Stdout:      io.Discard,
 	}
 
-	err := FindCompartments(appCtx, "test", false)
+	err := FindCompartments(appCtx, "test", false, appCtx.CompartmentID)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

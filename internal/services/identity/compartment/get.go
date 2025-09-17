@@ -15,7 +15,7 @@ func GetCompartments(appCtx *app.ApplicationContext, useJSON bool, limit, page i
 	compartmentAdapter := compartment.NewCompartmentAdapter(appCtx.IdentityClient, ocid)
 	service := NewService(compartmentAdapter, appCtx.Logger, ocid)
 
-	compartments, totalCount, nextPageToken, err := service.List(ctx, limit, page)
+	compartments, totalCount, nextPageToken, err := service.FetchPaginateCompartments(ctx, limit, page)
 	if err != nil {
 		return fmt.Errorf("listing compartments: %w", err)
 	}

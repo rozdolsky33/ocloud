@@ -147,11 +147,11 @@ run_command ./bin/ocloud identity compart --help
 run_command ./bin/ocloud ident compart --help
 
 # Test identity compartment list command
-print_header "Testing identity compartment list command"
-run_command ./bin/ocloud identity compartment list
-run_command ./bin/ocloud identity compartment list --limit 10 --page 1 --json
-run_command ./bin/ocloud identity compartment list -m 10 -p 1 -j
-run_command ./bin/ocloud ident compart l
+print_header "Testing identity compartment get command"
+run_command ./bin/ocloud identity compartment get
+run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json
+run_command ./bin/ocloud identity compartment get -m 10 -p 1 -j
+
 
 # Test identity compartment find command
 print_header "Testing identity compartment find command"

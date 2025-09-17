@@ -60,7 +60,7 @@ func TestService_List(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-tenancy")
 
-	results, _, _, err := service.List(context.Background(), 10, 1)
+	results, _, _, err := service.FetchPaginateCompartments(context.Background(), 10, 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, results, 2)
@@ -73,7 +73,7 @@ func TestService_List_Error(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-tenancy")
 
-	_, _, _, err := service.List(context.Background(), 10, 1)
+	_, _, _, err := service.FetchPaginateCompartments(context.Background(), 10, 1)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), expectedErr.Error())
