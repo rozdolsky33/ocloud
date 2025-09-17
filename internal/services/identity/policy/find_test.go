@@ -28,7 +28,7 @@ func TestFindPoliciesSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := FindPolicies(appCtx, "test", false)
+	err := FindPolicies(appCtx, "test", false, appCtx.CompartmentID)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestFindPoliciesOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := FindPolicies(appCtxJSON, "test", true)
+	err := FindPolicies(appCtxJSON, "test", true, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,7 +64,7 @@ func TestFindPoliciesOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = FindPolicies(appCtxTable, "test", false)
+	err = FindPolicies(appCtxTable, "test", false, appCtxTable.CompartmentID)
 	assert.NoError(t, err)
 }
 
@@ -86,7 +86,7 @@ func TestFindPoliciesError(t *testing.T) {
 		Stdout:          io.Discard,
 	}
 
-	err := FindPolicies(appCtx, "test", false)
+	err := FindPolicies(appCtx, "test", false, appCtx.CompartmentID)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

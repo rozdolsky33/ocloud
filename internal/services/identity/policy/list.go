@@ -12,10 +12,10 @@ import (
 
 // ListPolicies lists all policies in the specified compartment and prints their details in the specified format.
 // It utilizes the application context for service initialization and handles output formatting via JSON or plain text.
-func ListPolicies(appCtx *app.ApplicationContext, useJSON bool) error {
+func ListPolicies(appCtx *app.ApplicationContext, useJSON bool, ocid string) error {
 	ctx := context.Background()
 	policyAdapter := policy.NewAdapter(appCtx.IdentityClient)
-	service := NewService(policyAdapter, appCtx.Logger, appCtx.CompartmentID)
+	service := NewService(policyAdapter, appCtx.Logger, ocid)
 	policies, err := service.ListPolicies(ctx)
 
 	if err != nil {

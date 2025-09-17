@@ -195,7 +195,6 @@ func resolveCompartmentID(ctx context.Context, appCtx *ApplicationContext) (stri
 		return tenancyOCID, nil
 	}
 
-	// prepare the base request
 	req := identity.ListCompartmentsRequest{
 		CompartmentId:          &tenancyOCID,
 		AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
@@ -214,14 +213,11 @@ func resolveCompartmentID(ctx context.Context, appCtx *ApplicationContext) (stri
 			return "", fmt.Errorf("listing compartments: %w", err)
 		}
 
-		// scan each compartment summary for a name match
 		for _, comp := range resp.Items {
 			if comp.Name != nil && *comp.Name == compartmentName {
 				return *comp.Id, nil
 			}
 		}
-
-		// if there's no next page, we're done searching
 		if resp.OpcNextPage == nil {
 			break
 		}

@@ -2,42 +2,37 @@ package compartment
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci/identity/compartment"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
+	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
-// ListCompartments retrieves and displays a paginated list of compartments.
-func ListCompartments(appCtx *app.ApplicationContext, useJSON bool, limit, page int) error {
-	appCtx.Logger.V(logger.Debug).Info("listing compartments", "limit", limit, "page", page)
-
-	// Create the infrastructure adapter.
-	compartmentAdapter := compartment.NewCompartmentAdapter(appCtx.IdentityClient, appCtx.TenancyID)
-
-	// Create the application service, injecting the adapter.
-	// The service is now decoupled from the OCI SDK.
-	service := NewService(compartmentAdapter, appCtx.Logger, appCtx.TenancyID)
-
+func ListCompartments(appCtx *app.ApplicationContext, ocid string, useJSON bool) error {
 	ctx := context.Background()
-	compartments, totalCount, nextPageToken, err := service.List(ctx, limit, page)
+	compartmentAdapter := compartment.NewCompartmentAdapter(appCtx.IdentityClient, ocid)
+	service := NewService(compartmentAdapter, appCtx.Logger, ocid)
+
+	compartments, err := service.compartmentRepo.ListCompartments(ctx, ocid)
 	if err != nil {
-		return fmt.Errorf("listing compartments: %w", err)
+		return fmt.Errorf("getting compartment: %w", err)
 	}
 
-	// Display compartment information with pagination details.
-	err = PrintCompartmentsTable(compartments, appCtx, &util.PaginationInfo{
-		CurrentPage:   page,
-		TotalCount:    totalCount,
-		Limit:         limit,
-		NextPageToken: nextPageToken,
-	}, useJSON)
-
+	//TUI
+	model := compartment.NewPoliciesListModel(compartments)
+	id, err := listx.Run(model)
 	if err != nil {
-		return fmt.Errorf("printing compartments: %w", err)
+		if errors.Is(err, listx.ErrCancelled) {
+			return nil
+		}
+		return fmt.Errorf("selecting compartment: %w", err)
 	}
-	logger.Logger.V(logger.Info).Info("Compartment list operation completed successfully.")
-	return nil
+	c, err := service.compartmentRepo.GetCompartment(ctx, id)
+	if err != nil {
+		return fmt.Errorf("getting compartment: %w", err)
+	}
+
+	return PrintCompartmentInfo(c, appCtx, useJSON)
 }
