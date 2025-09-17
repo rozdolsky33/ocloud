@@ -12,10 +12,12 @@ type Adapter struct {
 	identityClient identity.IdentityClient
 }
 
+// NewAdapter creates a new adapter instance.
 func NewAdapter(identityClient identity.IdentityClient) *Adapter {
 	return &Adapter{identityClient: identityClient}
 }
 
+// GetPolicy retrieves a single policy by its OCID.
 func (a *Adapter) GetPolicy(ctx context.Context, ocid string) (*domain.Policy, error) {
 	resp, err := a.identityClient.GetPolicy(ctx, identity.GetPolicyRequest{
 		PolicyId: &ocid,
@@ -23,11 +25,11 @@ func (a *Adapter) GetPolicy(ctx context.Context, ocid string) (*domain.Policy, e
 	if err != nil {
 
 	}
-
 	policy := a.toDomainModel(resp.Policy)
 	return &policy, nil
 }
 
+// ListPolicies retrieves all policies in a given compartment.
 func (a *Adapter) ListPolicies(ctx context.Context, compartmentID string) ([]domain.Policy, error) {
 	var policies []domain.Policy
 	page := ""
@@ -51,6 +53,7 @@ func (a *Adapter) ListPolicies(ctx context.Context, compartmentID string) ([]dom
 	return policies, nil
 }
 
+// toDomainModel converts an OCI SDK policy object to our application's domain model.'
 func (a *Adapter) toDomainModel(p identity.Policy) domain.Policy {
 	return domain.Policy{
 		Name:         *p.Name,

@@ -3,28 +3,29 @@ package compartment
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/rozdolsky33/ocloud/internal/domain"
 )
 
-// CompartmentAdapter is an infrastructure-layer adapter that implements the domain.CompartmentRepository interface.
-type CompartmentAdapter struct {
-	client    identity.IdentityClient
-	tenancyID string
+// Adapter is an infrastructure-layer adapter that implements the domain.CompartmentRepository interface.
+type Adapter struct {
+	client          identity.IdentityClient
+	compartmentOCID string
 }
 
 // NewCompartmentAdapter creates a new adapter for interacting with OCI compartments.
-func NewCompartmentAdapter(client identity.IdentityClient, tenancyID string) *CompartmentAdapter {
-	return &CompartmentAdapter{
-		client:    client,
-		tenancyID: tenancyID,
+func NewCompartmentAdapter(client identity.IdentityClient, ocid string) *Adapter {
+	return &Adapter{
+		client:          client,
+		compartmentOCID: ocid,
 	}
 }
 
 // GetCompartment retrieves a single compartment by its OCID.
-func (a *CompartmentAdapter) GetCompartment(ctx context.Context, ocid string) (*domain.Compartment, error) {
+func (a *Adapter) GetCompartment(ctx context.Context, ocid string) (*domain.Compartment, error) {
 	resp, err := a.client.GetCompartment(ctx, identity.GetCompartmentRequest{
 		CompartmentId: &ocid,
 	})
@@ -37,23 +38,18 @@ func (a *CompartmentAdapter) GetCompartment(ctx context.Context, ocid string) (*
 }
 
 // ListCompartments retrieves all active compartments under a given parent compartment.
-// It handles pagination to fetch all results from OCI.
-func (a *CompartmentAdapter) ListCompartments(ctx context.Context, parentCompartmentID string) ([]domain.Compartment, error) {
+func (a *Adapter) ListCompartments(ctx context.Context, ocid string) ([]domain.Compartment, error) {
 	var compartments []domain.Compartment
 	page := ""
 
-	// If no parent is specified, use the tenancy root.
-	if parentCompartmentID == "" {
-		parentCompartmentID = a.tenancyID
-	}
-
 	for {
+		includeSubtree := strings.HasPrefix(ocid, "ocid1.tenancy.")
 		resp, err := a.client.ListCompartments(ctx, identity.ListCompartmentsRequest{
-			CompartmentId:          &parentCompartmentID,
+			CompartmentId:          &ocid,
 			Page:                   &page,
 			AccessLevel:            identity.ListCompartmentsAccessLevelAccessible,
 			LifecycleState:         identity.CompartmentLifecycleStateActive,
-			CompartmentIdInSubtree: common.Bool(true),
+			CompartmentIdInSubtree: common.Bool(includeSubtree),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing compartments from OCI: %w", err)
@@ -73,22 +69,17 @@ func (a *CompartmentAdapter) ListCompartments(ctx context.Context, parentCompart
 }
 
 // toDomainModel converts an OCI SDK compartment object to our application's domain model.
-func (a *CompartmentAdapter) toDomainModel(c identity.Compartment) domain.Compartment {
-	var parentID string
-	if c.CompartmentId != nil {
-		parentID = *c.CompartmentId
-	}
-
+func (a *Adapter) toDomainModel(c identity.Compartment) domain.Compartment {
 	var state string
 	if c.LifecycleState != "" {
 		state = string(c.LifecycleState)
 	}
-
 	return domain.Compartment{
-		OCID:                *c.Id,
-		DisplayName:         *c.Name,
-		Description:         *c.Description,
-		LifecycleState:      state,
-		ParentCompartmentID: parentID,
+		OCID:           *c.Id,
+		DisplayName:    *c.Name,
+		Description:    *c.Description,
+		LifecycleState: state,
+		FreeformTags:   c.FreeformTags,
+		DefinedTags:    c.DefinedTags,
 	}
 }

@@ -18,6 +18,8 @@ const (
 	FlagNameSort           = "sort"
 	FlagNameRealm          = "realm"
 	FlagNameFilter         = "filter"
+	FlagNameScope          = "scope"
+	FlagNameTenancyScope   = "tenancy-scope"
 )
 
 // FlagShorthands defines single-character aliases for flags
@@ -30,10 +32,11 @@ const (
 	FlagShortPage           = "p"
 	FlagShortJSON           = "j"
 	FlagShortVersion        = "v"
-	FlagShortAllInformation = "A"
 	FlagShortSort           = "s"
 	FlagShortRealm          = "r"
 	FlagShortFilter         = "f"
+	FlagShortAllInformation = "A"
+	FlagShortTenancyScope   = "T"
 )
 
 // FlagDescriptions contains help text for flags
@@ -48,10 +51,12 @@ const (
 	FlagDescPage           = "Page number to display"
 	FlagDescJSON           = "Output information in JSON format"
 	FlagDescVersion        = "Print the version number of ocloud CLI"
-	FlagDescAllInformation = "Show all information"
 	FlagDescSort           = "Sort results by field (name or cidr)"
 	FlagDescRealm          = "Filter by realm (e.g., OC1, OC2, OC2)"
 	FlagDescFilter         = "Filter regions by prefix (e.g., us, eu, ap)"
+	FlagDescAllInformation = "Show all information"
+	FlagDescScope          = "Listing scope: compartment or tenancy"
+	FlagDescTenancyScope   = "Shortcut: list at tenancy level (overrides --scope)"
 )
 
 // Flag values and defaults

@@ -1,6 +1,8 @@
 package policy
 
 import (
+	scopeFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
+	scopeUtil "github.com/rozdolsky33/ocloud/cmd/shared/scope"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -10,25 +12,38 @@ import (
 
 // Long description for the find command
 var findLong = `
-Find Policies in the specified compartment that match the given pattern.
+Find Policies in the specified tenancy or parent compartment that match the given pattern.
 
-The search is performed using a fuzzy matching algorithm that searches across multiple fields:
+This command searches for policies whose names or statements match the specified pattern within
+the chosen scope. By default, it searches within the configured parent compartment.
 
-Searchable Fields:
-- Name: Policy name
-- Description: Description of the policy
-- Statement: Policy statements
+Search behavior:
+- Uses a fuzzy/contains-style match; partial and case-insensitive matches are supported.
+- Searchable fields include Name, Description, and Statements.
 
-The search pattern is automatically wrapped with wildcards, so partial matches are supported.
-For example, searching for "admin" will match "administrators" etc.
+Scope control:
+- Use --scope to choose where to search: "compartment" (default) or "tenancy".
+- Use -T/--tenancy-scope as a shortcut to force tenancy-level search; it overrides --scope.
+- When scope is tenancy, the command searches across all compartments in the tenancy (including subtree).
+- When scope is compartment, the command searches only the direct children of the configured compartment.
+
+Additional Information:
+- Use --json (-j) to output the results in JSON format
 `
 
 // Examples for the find command
 var findExamples = `
-  # Find Policies with "admin" in their name
+  # Find policies with names containing "admin" (default scope: compartment)
   ocloud identity policy find admin
 
-  # Find Policies with "network" in their name and output in JSON format
+  # Search at tenancy level (equivalent ways)
+  ocloud identity policy find admin -T
+  ocloud identity policy find admin --scope tenancy
+
+  # Search only direct children of the configured compartment (explicit)
+  ocloud identity policy find admin --scope compartment
+
+  # Find policies with names containing "network" and output in JSON format
   ocloud identity policy find network --json
 `
 
@@ -48,6 +63,9 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
+	scopeFlags.ScopeFlag.Add(cmd)
+	scopeFlags.TenancyScopeFlag.Add(cmd)
+
 	return cmd
 }
 
@@ -55,6 +73,14 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
+	scope := scopeUtil.ResolveScope(cmd)
+	parentID := scopeUtil.ResolveParentID(scope, appCtx)
+
+	logger.LogWithLevel(
+		logger.CmdLogger, logger.Debug, "Running policy find",
+		"scope", scope, "parentID", parentID, "json", useJSON,
+	)
+
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy find command", "pattern", namePattern, "json", useJSON)
-	return policy.FindPolicies(appCtx, namePattern, useJSON)
+	return policy.FindPolicies(appCtx, namePattern, useJSON, parentID)
 }

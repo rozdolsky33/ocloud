@@ -18,11 +18,11 @@ type Service struct {
 }
 
 // NewService initializes a new Service instance with the provided application context.
-func NewService(repo domain.PolicyRepository, logger logr.Logger, CompartmentID string) *Service {
+func NewService(repo domain.PolicyRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		policyRepo:    repo,
 		logger:        logger,
-		CompartmentID: CompartmentID,
+		CompartmentID: ocid,
 	}
 }
 
@@ -87,7 +87,6 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Poli
 		return nil, fmt.Errorf("failed to fuzzy search index: %w", err)
 	}
 
-	// Return matched policies
 	var matchedPolicies []domain.Policy
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allPolicies) {

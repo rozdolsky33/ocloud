@@ -21,17 +21,21 @@ func TestCompartmentCommand(t *testing.T) {
 	assert.Equal(t, "compartment", cmd.Use)
 	assert.Equal(t, []string{"compart"}, cmd.Aliases)
 	assert.Equal(t, "Manage OCI Compartments", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Compartments - list all compartments or find compartment by pattern.", cmd.Long)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure Compartments: list, get, and search by name or pattern.", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
 	// Test that the subcommands are added
 	subCmds := cmd.Commands()
-	assert.Equal(t, 2, len(subCmds), "compartment command should have 2 subcommands")
+	assert.Equal(t, 3, len(subCmds), "compartment command should have 3 subcommands")
 
 	// Check that the list subcommand is present
 	listCmd := findSubCommand(subCmds, "list")
 	assert.NotNil(t, listCmd, "compartment command should have list subcommand")
+
+	// Check that the get subcommand is present
+	getCmd := findSubCommand(subCmds, "get")
+	assert.NotNil(t, getCmd, "compartment command should have get subcommand")
 
 	// Check that the find subcommand is present
 	findCmd := findSubCommand(subCmds, "find")

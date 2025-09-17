@@ -7,6 +7,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
+// NewPoliciesListModel builds a TUI list for policies.
 func NewPoliciesListModel(p []domain.Policy) listx.Model {
 	return listx.NewModel("Policies", p, func(p domain.Policy) listx.ResourceItemData {
 		return listx.ResourceItemData{

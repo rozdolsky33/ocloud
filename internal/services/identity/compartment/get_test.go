@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestListCompartmentsSimple is a simplified test for the ListCompartments function
+// TestGetCompartmentsSimple is a simplified test for the GetCompartments function
 // that doesn't rely on mocking the OCI SDK interfaces
-func TestListCompartmentsSimple(t *testing.T) {
+func TestGetCompartmentsSimple(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for ListCompartments since it requires the OCI SDK")
 
@@ -28,7 +28,7 @@ func TestListCompartmentsSimple(t *testing.T) {
 		Stdout:      io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := ListCompartments(appCtx, false, 20, 1)
+	err := GetCompartments(appCtx, false, 20, 1, appCtx.TenancyID)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestListCompartmentsOutput(t *testing.T) {
 		Stdout:      io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := ListCompartments(appCtxJSON, true, 20, 1)
+	err := GetCompartments(appCtxJSON, true, 20, 1, appCtxJSON.TenancyID)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,7 +64,7 @@ func TestListCompartmentsOutput(t *testing.T) {
 		Stdout:      io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = ListCompartments(appCtxTable, false, 20, 1)
+	err = GetCompartments(appCtxTable, false, 20, 1, appCtxTable.TenancyID)
 	assert.NoError(t, err)
 }
 
@@ -87,15 +87,15 @@ func TestListCompartmentsPagination(t *testing.T) {
 	}
 
 	// Test page 1
-	err := ListCompartments(appCtx, false, 10, 1)
+	err := GetCompartments(appCtx, false, 10, 1, appCtx.TenancyID)
 	assert.NoError(t, err)
 
 	// Test page 2
-	err = ListCompartments(appCtx, false, 10, 2)
+	err = GetCompartments(appCtx, false, 10, 2, appCtx.TenancyID)
 	assert.NoError(t, err)
 
 	// Test with a large page number (beyond available data)
-	err = ListCompartments(appCtx, false, 10, 100)
+	err = GetCompartments(appCtx, false, 10, 100, appCtx.TenancyID)
 	assert.NoError(t, err)
 }
 
@@ -117,7 +117,7 @@ func TestListCompartmentsError(t *testing.T) {
 		Stdout:      io.Discard,
 	}
 
-	err := ListCompartments(appCtx, false, 20, 1)
+	err := GetCompartments(appCtx, false, 20, 1, appCtx.TenancyID)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

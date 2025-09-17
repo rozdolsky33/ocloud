@@ -1,7 +1,9 @@
 package policy
 
 import (
-	paginationFlags "github.com/rozdolsky33/ocloud/cmd/flags"
+	paginationFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
+	scopeFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
+	scopeUtil "github.com/rozdolsky33/ocloud/cmd/shared/scope"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -10,31 +12,43 @@ import (
 )
 
 var getLong = `
-Get all Policies in the specified compartment with pagination support.
+Get all Policies in the specified tenancy or compartment with pagination support.
 
-This command displays information about available Policies in the current compartment.
-By default, it shows basic policy information such as name, ID, and description.
+This command displays information about policies either in the current tenancy or within
+a specific parent compartment (depending on scope). By default, it shows basic policy
+information such as name, ID, and description.
 
-The output is paginated, with a default limit of 20 policies per page. You can navigate
-through pages using the --page flag and control the number of policies per page with
-the --limit flag.
+Pagination:
+- The output is paginated, with a default limit of 20 policies per page.
+- Navigate through pages using the --page flag and control items per page with --limit.
 
-Additional Information:
-- Use --json (-j) to output the results in JSON format
-- The command shows all available Policies in the compartment
-`
+Output formats:
+- Use --json (-j) to output the results in JSON format; otherwise a table is shown.
+
+Scope control:
+- Use --scope to choose where to list from: "compartment" (default) or "tenancy".
+- Use -T/--tenancy-scope as a shortcut to force tenancy-level listing; it overrides --scope.
+- When scope is tenancy, the command lists all policies in the tenancy (including subtree, if applicable).
+- When scope is compartment, the command lists only the direct children of the configured compartment.`
 
 var getExamples = `
-  # Get all Policies with default pagination (20 per page)
+  # Get all policies with default pagination (20 per page)
   ocloud identity policy get
 
-  # Get Policies with custom pagination (10 per page, page 2)
+  # List at tenancy level (equivalent ways)
+  ocloud identity policy get -T
+  ocloud identity policy get --scope tenancy
+
+  # List direct children of the configured compartment (explicit)
+  ocloud identity policy get --scope compartment
+
+  # Get policies with custom pagination (10 per page, page 2)
   ocloud identity policy get --limit 10 --page 2
 
-  # Get Policies and output in JSON format
+  # Get policies and output in JSON format
   ocloud identity policy get --json
 
-  # Get Policies with custom pagination and JSON output
+  # Get policies with custom pagination and JSON output
   ocloud identity policy get --limit 5 --page 3 --json
 `
 
@@ -56,6 +70,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 	paginationFlags.LimitFlag.Add(cmd)
 	paginationFlags.PageFlag.Add(cmd)
+	scopeFlags.ScopeFlag.Add(cmd)
+	scopeFlags.TenancyScopeFlag.Add(cmd)
 
 	return cmd
 
@@ -66,6 +82,13 @@ func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, paginationFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, paginationFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy get command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return policy.GetPolicies(appCtx, useJSON, limit, page)
+
+	scope := scopeUtil.ResolveScope(cmd)
+	parentID := scopeUtil.ResolveParentID(scope, appCtx)
+
+	logger.LogWithLevel(
+		logger.CmdLogger, logger.Debug, "Running policy get",
+		"scope", scope, "parentID", parentID, "json", useJSON,
+	)
+	return policy.GetPolicies(appCtx, useJSON, limit, page, parentID)
 }

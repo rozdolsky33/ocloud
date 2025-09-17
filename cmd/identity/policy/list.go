@@ -1,6 +1,8 @@
 package policy
 
 import (
+	scopeFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
+	scopeUtil "github.com/rozdolsky33/ocloud/cmd/shared/scope"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -9,20 +11,35 @@ import (
 )
 
 var listLong = `
-Interactively browse and search Policies in the specified compartment using a TUI.
+Interactively browse and search Policies in the specified tenancy or parent compartment using a TUI.
 
-This command launches terminal UI that loads available Policies and lets you:
-- Search/filter Policy as you type
+This command launches a terminal UI that loads available policies and lets you:
+- Search/filter policies as you type
 - Navigate the list
-- Select a single Policies to view its details
+- Select a single policy to view its details
 
-After you pick an Policies, the tool prints detailed information about the selected Policies default table view or JSON format if specified with --json.
+After you pick a policy, the tool prints detailed information about the selected policy in a default table view or JSON format if specified with --json.
+
+Scope control:
+- Use --scope to choose where to list from: "compartment" (default) or "tenancy".
+- Use -T/--tenancy-scope as a shortcut to force tenancy-level listing; it overrides --scope.
+- When scope is tenancy, the TUI lists all policies in the tenancy (including subtree).
+- When scope is compartment, the TUI lists only the direct children of the configured compartment.
 `
 
 var listExamples = `
-  # Launch the interactive images browser
-   ocloud identity policy list
-   ocloud identity policy list --json
+  # Launch the interactive policies browser (default scope: compartment)
+  ocloud identity policy list
+
+  # List at tenancy level (equivalent ways)
+  ocloud identity policy list -T
+  ocloud identity policy list --scope tenancy
+
+  # List only direct children of the configured compartment (explicit)
+  ocloud identity policy list --scope compartment
+
+  # Output selection in JSON format
+  ocloud identity policy list --json
 `
 
 // NewListCmd returns "policy list".
@@ -39,6 +56,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunListCommand(cmd, appCtx)
 		},
 	}
+	scopeFlags.ScopeFlag.Add(cmd)
+	scopeFlags.TenancyScopeFlag.Add(cmd)
 	return cmd
 
 }
@@ -46,6 +65,13 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 // RunListCommand handles the execution of the list command
 func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy list command in", "compartment", appCtx.CompartmentName, "json", useJSON)
-	return policy.ListPolicies(appCtx, useJSON)
+	scope := scopeUtil.ResolveScope(cmd)
+	parentID := scopeUtil.ResolveParentID(scope, appCtx)
+
+	logger.LogWithLevel(
+		logger.CmdLogger, logger.Debug, "Running policy list",
+		"scope", scope, "parentID", parentID, "json", useJSON,
+	)
+
+	return policy.ListPolicies(appCtx, useJSON, parentID)
 }

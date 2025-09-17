@@ -28,7 +28,7 @@ func TestGetPoliciesSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := GetPolicies(appCtx, false, 20, 1)
+	err := GetPolicies(appCtx, false, 20, 1, appCtx.CompartmentID)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestGetPoliciesOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := GetPolicies(appCtxJSON, true, 20, 1)
+	err := GetPolicies(appCtxJSON, true, 20, 1, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,7 +64,7 @@ func TestGetPoliciesOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = GetPolicies(appCtxTable, false, 20, 1)
+	err = GetPolicies(appCtxTable, false, 20, 1, appCtxTable.CompartmentID)
 	assert.NoError(t, err)
 }
 
@@ -87,15 +87,15 @@ func TestGetPoliciesPagination(t *testing.T) {
 	}
 
 	// Test page 1
-	err := GetPolicies(appCtx, false, 10, 1)
+	err := GetPolicies(appCtx, false, 10, 1, appCtx.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test page 2
-	err = GetPolicies(appCtx, false, 10, 2)
+	err = GetPolicies(appCtx, false, 10, 2, appCtx.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test with a large page number (beyond available data)
-	err = GetPolicies(appCtx, false, 10, 100)
+	err = GetPolicies(appCtx, false, 10, 100, appCtx.CompartmentID)
 	assert.NoError(t, err)
 }
 
@@ -117,7 +117,7 @@ func TestGetPoliciesError(t *testing.T) {
 		Stdout:          io.Discard,
 	}
 
-	err := GetPolicies(appCtx, false, 20, 1)
+	err := GetPolicies(appCtx, false, 20, 1, appCtx.CompartmentID)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)
