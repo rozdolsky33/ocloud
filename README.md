@@ -85,7 +85,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: <current version>
+	      Version: 36
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -221,14 +221,36 @@ ocloud config info map-file --realm OC1
 
 #### Command Flags
 
-| Flag      | Short | Description |
-|-----------|-------|-------------|
-| `--json`  | `-j`  | Output information in JSON format |
-| `--all`   | `-A`  | Show all information |
-| `--limit` | `-m`  | Maximum number of records per page (default: 20) |
-| `--page`  | `-p`  | Page number to display (default: 1) |
-| `--filter` | `-f` | Filter regions by prefix (e.g., us, eu, ap) |
-| `--realm` | `-r` | Filter by realm (e.g., OC1, OC2) |
+| Flag            | Short | Description |
+|-----------------|-------|-------------|
+| `--json`        | `-j`  | Output information in JSON format |
+| `--all`         | `-A`  | Show all information |
+| `--limit`       | `-m`  | Maximum number of records per page (default: 20) |
+| `--page`        | `-p`  | Page number to display (default: 1) |
+| `--scope`       |       | Listing/search scope for applicable commands: `compartment` (default) or `tenancy` |
+| `--tenancy-scope` | `-T`  | Shortcut to force tenancy-level scope; overrides `--scope` |
+| `--filter`      | `-f`  | Filter regions by prefix (e.g., us, eu, ap) |
+| `--realm`       | `-r`  | Filter by realm (e.g., OC1, OC2) |
+
+### Scope Control (Identity commands)
+
+Some identity subcommands support scoping their operations to either the configured parent compartment or the whole tenancy.
+
+- --scope: Choose where to operate: "compartment" (default) or "tenancy".
+- -T/--tenancy-scope: Shortcut to force tenancy-level scope; it overrides --scope.
+
+Examples:
+
+```bash
+# Compartments
+ocloud identity compartment get                 # children of configured compartment (default)
+ocloud identity compartment get --scope tenancy # whole tenancy (includes subtree)
+ocloud identity compartment get -T              # same as above
+
+# Policies
+ocloud identity policy list --scope compartment # explicit compartment-level listing
+ocloud identity policy find prod -T             # tenancy-level search
+```
 
 ### Development Commands
 
