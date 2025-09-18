@@ -20,18 +20,21 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }
 
-// GetVcn fetches VCN details by OCID.
+// GetVcn retrieves a single VCN by its OCID.
 func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error) {
 	resp, err := a.client.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
 	if err != nil {
 		return nil, fmt.Errorf("getting VCN from OCI: %w", err)
 	}
-	return toVCNModel(&resp.Vcn), nil
+	//toDomainVCNModel(resp)
+	fmt.Println(resp)
+
+	return nil, nil
 }
 
 // ListVcns lists all VCNs in a compartment.
-func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]*domain.VCN, error) {
-	var vcns []*domain.VCN
+func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
+	var vcns []domain.VCN
 	req := core.ListVcnsRequest{
 		CompartmentId: &compartmentID,
 	}
@@ -43,7 +46,7 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]*domain
 		}
 
 		for _, v := range resp.Items {
-			vcns = append(vcns, toVCNModel(&v))
+			vcns = append(vcns, toDomainVCNModel(v))
 		}
 
 		if resp.OpcNextPage == nil {
@@ -56,69 +59,45 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]*domain
 }
 
 // GetDhcpOptions fetches DHCP options resource by OCID.
-func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (*domain.DhcpOptions, error) {
+func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.DhcpOptions, error) {
 	resp, err := a.client.GetDhcpOptions(ctx, core.GetDhcpOptionsRequest{DhcpId: &dhcpID})
 	if err != nil {
-		return nil, fmt.Errorf("getting DHCP options from OCI: %w", err)
+		return domain.DhcpOptions{}, fmt.Errorf("getting DHCP options from OCI: %w", err)
 	}
-	return toDHCPOptionsModel(&resp.DhcpOptions), nil
+	return toDomainDHCPOptionsModel(&resp.DhcpOptions), nil
 }
 
-func toVCNModel(v *core.Vcn) *domain.VCN {
-	m := &domain.VCN{}
-	if v == nil {
-		return m
+// Map a *core.Vcn -> domain.VCN safely.
+func toDomainVCNModel(v core.Vcn) domain.VCN {
+	return domain.VCN{
+		OCID:           *v.Id,
+		DisplayName:    *v.DisplayName,
+		LifecycleState: string(v.LifecycleState),
+		CompartmentID:  *v.CompartmentId,
+		DnsLabel:       *v.DnsLabel,
+		DomainName:     *v.VcnDomainName,
+		CidrBlocks:     cloneStrings(v.CidrBlocks),
+		Ipv6Enabled:    len(v.Ipv6CidrBlocks) > 0,
+		DhcpOptionsID:  *v.DefaultDhcpOptionsId,
+		TimeCreated:    v.TimeCreated.Time,
+		FreeformTags:   v.FreeformTags,
+		DefinedTags:    v.DefinedTags,
 	}
-	if v.Id != nil {
-		m.OCID = *v.Id
-	}
-	if v.DisplayName != nil {
-		m.DisplayName = *v.DisplayName
-	}
-	if v.LifecycleState != "" {
-		m.LifecycleState = string(v.LifecycleState)
-	}
-	if v.CompartmentId != nil {
-		m.CompartmentID = *v.CompartmentId
-	}
-	if v.DnsLabel != nil {
-		m.DnsLabel = *v.DnsLabel
-	}
-	if v.VcnDomainName != nil {
-		m.DomainName = *v.VcnDomainName
-	}
-	if v.CidrBlocks != nil {
-		m.CidrBlocks = make([]string, len(v.CidrBlocks))
-		copy(m.CidrBlocks, v.CidrBlocks)
-	}
-	if v.Ipv6CidrBlocks != nil && len(v.Ipv6CidrBlocks) > 0 {
-		m.Ipv6Enabled = true
-	}
-	if v.DefaultDhcpOptionsId != nil {
-		m.DhcpOptionsID = *v.DefaultDhcpOptionsId
-	}
-	if v.TimeCreated != nil {
-		m.TimeCreated = v.TimeCreated.Time
-	}
-	if v.FreeformTags != nil {
-		m.FreeformTags = v.FreeformTags
-	}
-	return m
 }
 
-func toDHCPOptionsModel(d *core.DhcpOptions) *domain.DhcpOptions {
-	m := &domain.DhcpOptions{}
-	if d == nil {
-		return m
+func toDomainDHCPOptionsModel(d *core.DhcpOptions) domain.DhcpOptions {
+	return domain.DhcpOptions{
+		OCID:           *d.Id,
+		DisplayName:    *d.DisplayName,
+		LifecycleState: string(d.LifecycleState),
 	}
-	if d.Id != nil {
-		m.OCID = *d.Id
+}
+
+func cloneStrings(in []string) []string {
+	if in == nil {
+		return nil
 	}
-	if d.DisplayName != nil {
-		m.DisplayName = *d.DisplayName
-	}
-	if d.LifecycleState != "" {
-		m.LifecycleState = string(d.LifecycleState)
-	}
-	return m
+	out := make([]string, len(in))
+	copy(out, in)
+	return out
 }

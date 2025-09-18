@@ -1,8 +1,9 @@
 package vcn
 
 import (
+	vcnFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
-	cfgflags "github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	netvcn "github.com/rozdolsky33/ocloud/internal/services/network/vcn"
 	"github.com/spf13/cobra"
@@ -18,37 +19,34 @@ and tags. Use --json to get the raw JSON output instead of the formatted summary
 
 // Examples for the get command
 var getExamples = `
-  # Show VCN summary
-  ocloud network vcn get ocid1.vcn.oc1..aaaaaaaa...
-
-  # Show VCN summary in JSON
-  ocloud network vcn get ocid1.vcn.oc1..aaaaaaaa... --json
-`
+ `
 
 // NewGetCmd returns "vcn get" command.
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "get <vcn-ocid>",
+		Use:           "get",
 		Short:         "Get VCN summary by OCID",
 		Long:          getLong,
 		Example:       getExamples,
-		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunGetCommand(cmd, args, appCtx)
+			return RunGetCommand(cmd, appCtx)
 		},
 	}
+	vcnFlags.LimitFlag.Add(cmd)
+	vcnFlags.PageFlag.Add(cmd)
 
 	return cmd
 }
 
 // RunGetCommand executes the get logic
-func RunGetCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
-	vcnID := args[0]
-	useJSON := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameJSON, false)
+func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, vcnFlags.FlagDefaultLimit)
+	page := flags.GetIntFlag(cmd, flags.FlagNamePage, vcnFlags.FlagDefaultPage)
+	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn get", "vcnID", vcnID, "json", useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn get", "json", useJSON)
 
-	return netvcn.GetVCN(appCtx, vcnID, useJSON)
+	return netvcn.GetVCNs(appCtx, limit, page, useJSON)
 }

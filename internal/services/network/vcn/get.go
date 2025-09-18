@@ -7,25 +7,29 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociVcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// GetVCN retrieves a VCN by OCID and prints its summary or JSON.
-func GetVCN(appCtx *app.ApplicationContext, vcnID string, useJSON bool) error {
-	if vcnID == "" {
-		return fmt.Errorf("vcn OCID is required")
-	}
-
-	client, err := oci.NewNetworkClient(appCtx.Provider)
+// GetVCNs retrieves a VCN by OCID and prints its summary or JSON.
+func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON bool) error {
+	ctx := context.Background()
+	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating network client: %w", err)
 	}
-	adapter := ociVcn.NewAdapter(client)
+
+	adapter := ociVcn.NewAdapter(networkClient)
 	service := NewService(adapter, appCtx.Logger, appCtx.CompartmentID)
 
-	v, err := service.GetVcn(context.Background(), vcnID)
+	vcns, totalCount, nextPageToken, err := service.FetchPaginatedVCNs(ctx, limit, page)
 	if err != nil {
 		return fmt.Errorf("getting vcn: %w", err)
 	}
 
-	return PrintVCNSummary(ToDTO(v), appCtx, useJSON)
+	return PrintVCNsInfo(vcns, appCtx, &util.PaginationInfo{
+		CurrentPage:   page,
+		TotalCount:    totalCount,
+		Limit:         limit,
+		NextPageToken: nextPageToken,
+	}, useJSON)
 }

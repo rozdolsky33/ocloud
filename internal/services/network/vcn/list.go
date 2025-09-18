@@ -23,10 +23,5 @@ func ListVCNs(appCtx *app.ApplicationContext, useJSON bool) error {
 		return fmt.Errorf("listing vcns: %w", err)
 	}
 
-	var dtos []*VCNDTO
-	for _, v := range vcns {
-		dtos = append(dtos, ToDTO(v))
-	}
-
-	return PrintVCNsTable(dtos, appCtx, useJSON)
+	return PrintVCNsTable(vcns, appCtx, useJSON)
 }

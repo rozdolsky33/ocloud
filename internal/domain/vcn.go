@@ -23,5 +23,5 @@ type VCN struct {
 
 type VCNRepository interface {
 	GetVcn(ctx context.Context, ocid string) (*VCN, error)
-	ListVcns(ctx context.Context, compartmentID string) ([]*VCN, error)
+	ListVcns(ctx context.Context, compartmentID string) ([]VCN, error)
 }

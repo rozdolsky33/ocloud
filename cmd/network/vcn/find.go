@@ -4,7 +4,6 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	cfgflags "github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	netvcn "github.com/rozdolsky33/ocloud/internal/services/network/vcn"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +26,6 @@ func runFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	useJSON := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameJSON, false)
 
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn find", "pattern", pattern, "json", useJSON)
-
-	return netvcn.FindVCNs(appCtx, pattern, useJSON)
+	//netvcn.FindVCNs(appCtx, pattern, useJSON)
+	return nil
 }
