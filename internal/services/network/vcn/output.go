@@ -66,10 +66,8 @@ func PrintVCNsInfo(vcns []VCN, appCtx *app.ApplicationContext, pagination *util.
 		}
 
 		data := map[string]string{
-			"Name":               v.DisplayName,
 			"OCID":               v.OCID,
 			"State":              strings.ToUpper(v.LifecycleState),
-			"Compartment":        appCtx.CompartmentName,
 			"CIDR Blocks":        cidrs,
 			"IPv6":               ipv6,
 			"DNS Label / Domain": strings.TrimSpace(strings.Join([]string{v.DnsLabel, v.DomainName}, " / ")),
@@ -77,10 +75,10 @@ func PrintVCNsInfo(vcns []VCN, appCtx *app.ApplicationContext, pagination *util.
 			"Created":            v.TimeCreated.Format("2006-01-02"),
 		}
 
-		order := []string{"Name", "OCID", "State", "Compartment", "CIDR Blocks", "IPv6", "DNS Label / Domain", "DHCP Options", "Created"}
+		order := []string{"OCID", "State", "CIDR Blocks", "IPv6", "DNS Label / Domain", "DHCP Options", "Created"}
 		p.PrintKeyValues(title, data, order)
 	}
-	util.LogPaginationInfo(nil, appCtx)
+	util.LogPaginationInfo(pagination, appCtx)
 	return nil
 }
 

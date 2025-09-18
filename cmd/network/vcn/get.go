@@ -24,7 +24,7 @@ var getExamples = `
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
-		Short:         "Get VCN summary by OCID",
+		Short:         "Get VCNs",
 		Long:          getLong,
 		Example:       getExamples,
 		SilenceUsage:  true,
@@ -33,6 +33,7 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return RunGetCommand(cmd, appCtx)
 		},
 	}
+
 	vcnFlags.LimitFlag.Add(cmd)
 	vcnFlags.PageFlag.Add(cmd)
 
@@ -44,6 +45,5 @@ func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, vcnFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, vcnFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
 	return netvcn.GetVCNs(appCtx, limit, page, useJSON)
 }
