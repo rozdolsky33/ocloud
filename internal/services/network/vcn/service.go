@@ -40,11 +40,20 @@ func (s *Service) FetchPaginatedVCNs(ctx context.Context, limit, pageNum int) ([
 	}
 
 	totalCount := len(allVcn)
+
+	if pageNum <= 0 {
+		pageNum = 1
+	}
+
 	start := (pageNum - 1) * limit
 	end := start + limit
 
 	if start >= totalCount {
-		return []VCN{}, totalCount, "", nil //TODO: return empty list
+		return []VCN{}, totalCount, "", nil
+	}
+
+	if end > totalCount {
+		end = totalCount
 	}
 
 	pagedResults := allVcn[start:end]

@@ -4,7 +4,6 @@ import (
 	vcnFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
-	"github.com/rozdolsky33/ocloud/internal/logger"
 	netvcn "github.com/rozdolsky33/ocloud/internal/services/network/vcn"
 	"github.com/spf13/cobra"
 )
@@ -45,8 +44,6 @@ func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, vcnFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, vcnFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn get", "json", useJSON)
 
 	return netvcn.GetVCNs(appCtx, limit, page, useJSON)
 }
