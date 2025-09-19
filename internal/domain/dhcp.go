@@ -6,4 +6,5 @@ type DhcpOptions struct {
 	DisplayName    string
 	CustomDNS      string
 	LifecycleState string
+	DomainNameType string
 }

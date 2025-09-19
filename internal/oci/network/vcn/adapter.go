@@ -140,6 +140,7 @@ func toDomainDHCPOptionsModel(d core.DhcpOptions) (domain.DhcpOptions, error) {
 		OCID:           *d.Id,
 		DisplayName:    *d.DisplayName,
 		LifecycleState: string(d.LifecycleState),
+		DomainNameType: string(d.DomainNameType),
 	}, nil
 }
 
