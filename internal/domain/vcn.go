@@ -16,6 +16,7 @@ type VCN struct {
 	DnsLabel       string
 	DomainName     string
 	DhcpOptionsID  string
+	DhcpOptions    DhcpOptions
 	TimeCreated    time.Time
 	FreeformTags   map[string]string
 	DefinedTags    map[string]map[string]interface{}
@@ -24,4 +25,5 @@ type VCN struct {
 type VCNRepository interface {
 	GetVcn(ctx context.Context, ocid string) (*VCN, error)
 	ListVcns(ctx context.Context, compartmentID string) ([]VCN, error)
+	ListEnrichedVcns(ctx context.Context, compartmentID string) ([]VCN, error)
 }

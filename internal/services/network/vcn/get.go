@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociVcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -12,6 +13,7 @@ import (
 
 // GetVCNs retrieves a VCN by OCID and prints its summary or JSON.
 func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON bool) error {
+	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Getting VCNs-----------------------------------------------")
 	ctx := context.Background()
 	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {

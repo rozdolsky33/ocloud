@@ -3,10 +3,10 @@ package vcn
 import (
 	"context"
 	"fmt"
-
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"sync"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/rozdolsky33/ocloud/internal/domain"
 )
 
 // Adapter provides access to VCN-related OCI APIs.
@@ -26,35 +26,82 @@ func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error)
 	if err != nil {
 		return nil, fmt.Errorf("getting VCN from OCI: %w", err)
 	}
-	//toDomainVCNModel(resp)
-	fmt.Println(resp)
-
-	return nil, nil
+	m := toDomainVCNModel(resp.Vcn)
+	return &m, nil
 }
 
-// ListVcns lists all VCNs in a compartment.
 func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
-	var vcns []domain.VCN
-	req := core.ListVcnsRequest{
-		CompartmentId: &compartmentID,
-	}
-
+	req := core.ListVcnsRequest{CompartmentId: &compartmentID}
+	var out []domain.VCN
 	for {
 		resp, err := a.client.ListVcns(ctx, req)
 		if err != nil {
 			return nil, fmt.Errorf("listing VCNs from OCI: %w", err)
 		}
-
 		for _, v := range resp.Items {
-			vcns = append(vcns, toDomainVCNModel(v))
+			out = append(out, toDomainVCNModel(v))
 		}
-
 		if resp.OpcNextPage == nil {
 			break
 		}
 		req.Page = resp.OpcNextPage
 	}
+	return out, nil
+}
 
+// ListEnrichedVcns lists VCNs and enriches them with DHCP options in parallel.
+func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
+	// First, list base VCNs
+	vcns, err := a.ListVcns(ctx, compartmentID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect unique DHCP Option IDs
+	ids := make(map[string]struct{})
+	for _, v := range vcns {
+		if v.DhcpOptionsID != "" {
+			ids[v.DhcpOptionsID] = struct{}{}
+		}
+	}
+	if len(ids) == 0 {
+		return vcns, nil
+	}
+
+	// Fetch DHCP options in parallel (stdlib concurrency)
+	dhcpMap := make(map[string]domain.DhcpOptions, len(ids))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(ids))
+	for id := range ids {
+		id := id
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			obj, err := a.GetDhcpOptions(ctx, id)
+			if err != nil {
+				errCh <- fmt.Errorf("get dhcp options %s: %w", id, err)
+				return
+			}
+			mu.Lock()
+			dhcpMap[id] = obj
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			return vcns, err
+		}
+	}
+
+	// Attach DHCP options to VCNs
+	for i := range vcns {
+		if obj, ok := dhcpMap[vcns[i].DhcpOptionsID]; ok {
+			vcns[i].DhcpOptions = obj
+		}
+	}
 	return vcns, nil
 }
 
@@ -64,7 +111,7 @@ func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.Dhc
 	if err != nil {
 		return domain.DhcpOptions{}, fmt.Errorf("getting DHCP options from OCI: %w", err)
 	}
-	return toDomainDHCPOptionsModel(&resp.DhcpOptions), nil
+	return toDomainDHCPOptionsModel(resp.DhcpOptions)
 }
 
 // Map a *core.Vcn -> domain.VCN safely.
@@ -85,12 +132,15 @@ func toDomainVCNModel(v core.Vcn) domain.VCN {
 	}
 }
 
-func toDomainDHCPOptionsModel(d *core.DhcpOptions) domain.DhcpOptions {
+func toDomainDHCPOptionsModel(d core.DhcpOptions) (domain.DhcpOptions, error) {
+	if d.Id == nil {
+		return domain.DhcpOptions{}, fmt.Errorf("dhcp options missing id")
+	}
 	return domain.DhcpOptions{
 		OCID:           *d.Id,
 		DisplayName:    *d.DisplayName,
 		LifecycleState: string(d.LifecycleState),
-	}
+	}, nil
 }
 
 func cloneStrings(in []string) []string {

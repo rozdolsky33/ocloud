@@ -1,6 +1,7 @@
 package vcn
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -25,6 +26,13 @@ func PrintVCNSummary(v *VCN, appCtx *app.ApplicationContext, useJSON bool) error
 		ipv6 = "Enabled"
 	}
 
+	dhcp := v.DhcpOptionsID
+	if v.DhcpOptions.DisplayName != "" {
+		dhcp = fmt.Sprintf("%s (%s)", v.DhcpOptions.DisplayName, v.DhcpOptions.OCID)
+	}
+	fmt.Println(dhcp)
+	fmt.Println("HERE")
+
 	data := map[string]string{
 		"Name":               v.DisplayName,
 		"OCID":               v.OCID,
@@ -33,7 +41,7 @@ func PrintVCNSummary(v *VCN, appCtx *app.ApplicationContext, useJSON bool) error
 		"CIDR Blocks":        cidrs,
 		"IPv6":               ipv6,
 		"DNS Label / Domain": strings.TrimSpace(strings.Join([]string{v.DnsLabel, v.DomainName}, " / ")),
-		"DHCP Options":       v.DhcpOptionsID,
+		"DHCP Options":       dhcp,
 		"Created":            v.TimeCreated.Format("2006-01-02"),
 	}
 
@@ -45,6 +53,7 @@ func PrintVCNSummary(v *VCN, appCtx *app.ApplicationContext, useJSON bool) error
 
 // PrintVCNsInfo prints the VCN summary view or JSON if requested.
 func PrintVCNsInfo(vcns []VCN, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+	fmt.Println("==================HERE============================")
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -64,14 +73,13 @@ func PrintVCNsInfo(vcns []VCN, appCtx *app.ApplicationContext, pagination *util.
 		if v.Ipv6Enabled {
 			ipv6 = "Enabled"
 		}
-
 		data := map[string]string{
 			"OCID":               v.OCID,
 			"State":              strings.ToUpper(v.LifecycleState),
 			"CIDR Blocks":        cidrs,
 			"IPv6":               ipv6,
 			"DNS Label / Domain": strings.TrimSpace(strings.Join([]string{v.DnsLabel, v.DomainName}, " / ")),
-			"DHCP Options":       v.DhcpOptionsID,
+			"DHCP Options":       v.DhcpOptions.DisplayName,
 			"Created":            v.TimeCreated.Format("2006-01-02"),
 		}
 

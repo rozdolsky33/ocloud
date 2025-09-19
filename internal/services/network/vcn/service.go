@@ -34,7 +34,7 @@ func (s *Service) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error)
 // FetchPaginatedVCNs retrieves a paginated list of vcns.
 func (s *Service) FetchPaginatedVCNs(ctx context.Context, limit, pageNum int) ([]VCN, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing vcns", "limit", limit, "pageNum", pageNum)
-	allVcn, err := s.vcnRepo.ListVcns(ctx, s.compartmentID)
+	allVcn, err := s.vcnRepo.ListEnrichedVcns(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing vcns from repository: %w", err)
 	}
