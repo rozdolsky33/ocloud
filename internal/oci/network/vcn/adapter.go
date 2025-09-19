@@ -51,13 +51,10 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.
 
 // ListEnrichedVcns lists VCNs and enriches them with DHCP options in parallel.
 func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
-	// First, list base VCNs
 	vcns, err := a.ListVcns(ctx, compartmentID)
 	if err != nil {
 		return nil, err
 	}
-
-	// Collect unique DHCP Option IDs
 	ids := make(map[string]struct{})
 	for _, v := range vcns {
 		if v.DhcpOptionsID != "" {
@@ -67,8 +64,6 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 	if len(ids) == 0 {
 		return vcns, nil
 	}
-
-	// Fetch DHCP options in parallel (stdlib concurrency)
 	dhcpMap := make(map[string]domain.DhcpOptions, len(ids))
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -95,8 +90,6 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 			return vcns, err
 		}
 	}
-
-	// Attach DHCP options to VCNs
 	for i := range vcns {
 		if obj, ok := dhcpMap[vcns[i].DhcpOptionsID]; ok {
 			vcns[i].DhcpOptions = obj
@@ -114,7 +107,6 @@ func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.Dhc
 	return toDomainDHCPOptionsModel(resp.DhcpOptions)
 }
 
-// Map a *core.Vcn -> domain.VCN safely.
 func toDomainVCNModel(v core.Vcn) domain.VCN {
 	return domain.VCN{
 		OCID:           *v.Id,

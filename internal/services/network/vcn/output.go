@@ -30,8 +30,6 @@ func PrintVCNSummary(v *VCN, appCtx *app.ApplicationContext, useJSON bool) error
 	if v.DhcpOptions.DisplayName != "" {
 		dhcp = fmt.Sprintf("%s (%s)", v.DhcpOptions.DisplayName, v.DhcpOptions.OCID)
 	}
-	fmt.Println(dhcp)
-	fmt.Println("HERE")
 
 	data := map[string]string{
 		"Name":               v.DisplayName,
@@ -53,7 +51,6 @@ func PrintVCNSummary(v *VCN, appCtx *app.ApplicationContext, useJSON bool) error
 
 // PrintVCNsInfo prints the VCN summary view or JSON if requested.
 func PrintVCNsInfo(vcns []VCN, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
-	fmt.Println("==================HERE============================")
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -65,9 +62,7 @@ func PrintVCNsInfo(vcns []VCN, appCtx *app.ApplicationContext, pagination *util.
 	}
 
 	for _, v := range vcns {
-		// Build title: <tenancy>: <compartment>: <vcn-name> (<region if known>)
 		title := util.FormatColoredTitle(appCtx, v.DisplayName)
-
 		cidrs := strings.Join(v.CidrBlocks, ", ")
 		ipv6 := "Disabled"
 		if v.Ipv6Enabled {

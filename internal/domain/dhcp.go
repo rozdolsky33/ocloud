@@ -4,7 +4,6 @@ package domain
 type DhcpOptions struct {
 	OCID           string
 	DisplayName    string
-	CustomDNS      string
 	LifecycleState string
 	DomainNameType string
 }
