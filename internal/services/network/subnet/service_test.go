@@ -7,17 +7,17 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
-	"github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
+	domainsubnet "github.com/rozdolsky33/ocloud/internal/domain/network/subnet"
 	"github.com/stretchr/testify/assert"
 )
 
 // mockSubnetRepository is a mock implementation of the SubnetRepository for testing.
 type mockSubnetRepository struct {
-	subnets []vcn.Subnet
+	subnets []domainsubnet.Subnet
 	err     error
 }
 
-func (m *mockSubnetRepository) GetSubnet(ctx context.Context, ocid string) (*vcn.Subnet, error) {
+func (m *mockSubnetRepository) GetSubnet(ctx context.Context, ocid string) (*domainsubnet.Subnet, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -29,7 +29,7 @@ func (m *mockSubnetRepository) GetSubnet(ctx context.Context, ocid string) (*vcn
 	return nil, domain.ErrNotFound
 }
 
-func (m *mockSubnetRepository) ListSubnets(ctx context.Context, compartmentID string) ([]vcn.Subnet, error) {
+func (m *mockSubnetRepository) ListSubnets(ctx context.Context, compartmentID string) ([]domainsubnet.Subnet, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -38,9 +38,9 @@ func (m *mockSubnetRepository) ListSubnets(ctx context.Context, compartmentID st
 
 func TestService_Find(t *testing.T) {
 	mockRepo := &mockSubnetRepository{
-		subnets: []vcn.Subnet{
-			{DisplayName: "Test Subnet", CIDRBlock: "10.0.0.0/24"},
-			{DisplayName: "Another Subnet", CIDRBlock: "10.0.1.0/24"},
+		subnets: []domainsubnet.Subnet{
+			{DisplayName: "Test Subnet", CidrBlock: "10.0.0.0/24"},
+			{DisplayName: "Another Subnet", CidrBlock: "10.0.1.0/24"},
 		},
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-compartment")
@@ -54,7 +54,7 @@ func TestService_Find(t *testing.T) {
 
 func TestService_List(t *testing.T) {
 	mockRepo := &mockSubnetRepository{
-		subnets: []vcn.Subnet{
+		subnets: []domainsubnet.Subnet{
 			{DisplayName: "Test Subnet"},
 			{DisplayName: "Another Subnet"},
 		},

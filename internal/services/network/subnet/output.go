@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/domain/network/subnet"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // PrintSubnetTable displays a table of subnets with details such as name, CIDR, and DNS info.
-func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, sortBy string) error {
+func PrintSubnetTable(subnets []subnet.Subnet, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, sortBy string) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -18,7 +19,7 @@ func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, paginati
 	}
 
 	if useJSON {
-		return util.MarshalDataToJSONResponse[Subnet](p, subnets, pagination)
+		return util.MarshalDataToJSONResponse[subnet.Subnet](p, subnets, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(subnets, pagination, appCtx.Stdout) {
@@ -35,30 +36,22 @@ func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, paginati
 			})
 		case "cidr":
 			sort.Slice(subnets, func(i, j int) bool {
-				return subnets[i].CIDRBlock < subnets[j].CIDRBlock
+				return subnets[i].CidrBlock < subnets[j].CidrBlock
 			})
 		}
 	}
 
 	// Define table headers
-	headers := []string{"Name", "CIDR", "Public IP", "DNS Label", "Subnet Domain"}
+	headers := []string{"Name", "CIDR", "Public"}
 
 	// Create rows for the table
 	rows := make([][]string, len(subnets))
-	for i, subnet := range subnets {
-		// Determine if public IP is allowed
-		publicIPAllowed := "No"
-		if !subnet.ProhibitPublicIPOnVnic {
-			publicIPAllowed = "Yes"
-		}
-
+	for i, s := range subnets {
 		// Create a row for this subnet
 		rows[i] = []string{
-			subnet.DisplayName,
-			subnet.CIDRBlock,
-			publicIPAllowed,
-			subnet.DNSLabel,
-			subnet.SubnetDomainName,
+			s.DisplayName,
+			s.CidrBlock,
+			util.FormatBool(s.Public),
 		}
 	}
 
@@ -71,7 +64,7 @@ func PrintSubnetTable(subnets []Subnet, appCtx *app.ApplicationContext, paginati
 }
 
 // PrintSubnetInfo displays information about a list of subnets in either JSON format or a formatted table view.
-func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON bool) error {
+func PrintSubnetInfo(subnets []subnet.Subnet, appCtx *app.ApplicationContext, useJSON bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
 
@@ -81,7 +74,7 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 			_, err := appCtx.Stdout.Write([]byte("{\"items\": []}\n"))
 			return err
 		}
-		return util.MarshalDataToJSONResponse[Subnet](p, subnets, nil)
+		return util.MarshalDataToJSONResponse[subnet.Subnet](p, subnets, nil)
 	}
 
 	if util.ValidateAndReportEmpty(subnets, nil, appCtx.Stdout) {
@@ -89,25 +82,19 @@ func PrintSubnetInfo(subnets []Subnet, appCtx *app.ApplicationContext, useJSON b
 	}
 
 	// Print each policy as a separate key-value.
-	for _, subnet := range subnets {
-		publicIPAllowed := "No"
-		if !subnet.ProhibitPublicIPOnVnic {
-			publicIPAllowed = "Yes"
-		}
+	for _, s := range subnets {
 		subnetData := map[string]string{
-			"Name":          subnet.DisplayName,
-			"Public IP":     publicIPAllowed,
-			"CIDR":          subnet.CIDRBlock,
-			"DNS Label":     subnet.DNSLabel,
-			"Subnet Domain": subnet.SubnetDomainName,
+			"Name":   s.DisplayName,
+			"Public": util.FormatBool(s.Public),
+			"CIDR":   s.CidrBlock,
 		}
 
 		orderedKeys := []string{
-			"Name", "Public IP", "CIDR", "DNS Label", "Subnet Domain",
+			"Name", "Public", "CIDR",
 		}
 
 		// Create the colored title using components from the app context
-		title := util.FormatColoredTitle(appCtx, subnet.DisplayName)
+		title := util.FormatColoredTitle(appCtx, s.DisplayName)
 
 		p.PrintKeyValues(title, subnetData, orderedKeys)
 	}

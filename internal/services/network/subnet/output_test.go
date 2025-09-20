@@ -14,20 +14,16 @@ func TestPrintSubnetTable(t *testing.T) {
 	// Create test subnets
 	subnets := []Subnet{
 		{
-			DisplayName:            "TestSubnet1",
-			OCID:                   "ocid1.subnet.oc1.phx.test1",
-			CIDRBlock:              "10.0.0.0/24",
-			ProhibitPublicIPOnVnic: false,
-			DNSLabel:               "subnet1",
-			SubnetDomainName:       "subnet1.vcn1.oraclevcn.com",
+			DisplayName: "TestSubnet1",
+			OCID:        "ocid1.subnet.oc1.phx.test1",
+			CidrBlock:   "10.0.0.0/24",
+			Public:      true,
 		},
 		{
-			DisplayName:            "TestSubnet2",
-			OCID:                   "ocid1.subnet.oc1.phx.test2",
-			CIDRBlock:              "10.0.1.0/24",
-			ProhibitPublicIPOnVnic: true,
-			DNSLabel:               "subnet2",
-			SubnetDomainName:       "subnet2.vcn1.oraclevcn.com",
+			DisplayName: "TestSubnet2",
+			OCID:        "ocid1.subnet.oc1.phx.test2",
+			CidrBlock:   "10.0.1.0/24",
+			Public:      false,
 		},
 	}
 
@@ -49,13 +45,9 @@ func TestPrintSubnetTable(t *testing.T) {
 	assert.Contains(t, output, "TestSubnet1")
 	assert.Contains(t, output, "10.0.0.0/24")
 	assert.Contains(t, output, "Yes")
-	assert.Contains(t, output, "subnet1")
-	assert.Contains(t, output, "subnet1.vcn1.oraclevcn.com")
 	assert.Contains(t, output, "TestSubnet2")
 	assert.Contains(t, output, "No")
 	assert.Contains(t, output, "10.0.1.0/24")
-	assert.Contains(t, output, "subnet2")
-	assert.Contains(t, output, "subnet2.vcn1.oraclevcn.com")
 
 	// Test sorting by name
 	buf.Reset()
@@ -88,12 +80,10 @@ func TestPrintSubnetInfo(t *testing.T) {
 	// Create test subnets
 	subnets := []Subnet{
 		{
-			DisplayName:            "TestSubnet1",
-			OCID:                   "ocid1.subnet.oc1.phx.test1",
-			CIDRBlock:              "10.0.0.0/24",
-			ProhibitPublicIPOnVnic: false,
-			DNSLabel:               "subnet1",
-			SubnetDomainName:       "subnet1.vcn1.oraclevcn.com",
+			DisplayName: "TestSubnet1",
+			OCID:        "ocid1.subnet.oc1.phx.test1",
+			CidrBlock:   "10.0.0.0/24",
+			Public:      true,
 		},
 	}
 

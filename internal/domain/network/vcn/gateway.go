@@ -1,9 +1,9 @@
 package vcn
 
-type Gateways struct {
-	InternetGateway   string
-	NatGateway        string
-	ServiceGateway    string
-	Drg               string
-	LocalPeeringPeers []string
+// Gateway represents a gateway in the domain layer.
+type Gateway struct {
+	OCID           string
+	DisplayName    string
+	LifecycleState string
+	Type           string
 }

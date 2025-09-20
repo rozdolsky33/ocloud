@@ -34,6 +34,9 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().Bool("gateways", false, "Display gateways")
+	cmd.Flags().Bool("subnets", false, "Display subnets")
+
 	vcnFlags.LimitFlag.Add(cmd)
 	vcnFlags.PageFlag.Add(cmd)
 
@@ -45,5 +48,9 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, vcnFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, vcnFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	return netvcn.GetVCNs(appCtx, limit, page, useJSON)
+
+	gateways, _ := cmd.Flags().GetBool("gateways")
+	subnets, _ := cmd.Flags().GetBool("subnets")
+
+	return netvcn.GetVCNs(appCtx, limit, page, useJSON, gateways, subnets)
 }

@@ -50,62 +50,88 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]vcn2.VC
 	return out, nil
 }
 
-// ListEnrichedVcns lists VCNs and enriches them with DHCP options in parallel.
+// ListEnrichedVcns lists VCNs and enriches them with all related resources in parallel.
 func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]vcn2.VCN, error) {
 	vcns, err := a.ListVcns(ctx, compartmentID)
 	if err != nil {
 		return nil, err
 	}
-	ids := make(map[string]struct{})
-	for _, v := range vcns {
-		if v.DhcpOptionsID != "" {
-			ids[v.DhcpOptionsID] = struct{}{}
-		}
-	}
-	if len(ids) == 0 {
-		return vcns, nil
-	}
-	dhcpMap := make(map[string]vcn2.DhcpOptions, len(ids))
-	var mu sync.Mutex
+
 	var wg sync.WaitGroup
-	errCh := make(chan error, len(ids))
-	for id := range ids {
-		id := id
+	errCh := make(chan error, len(vcns)*4)
+
+	for i := range vcns {
 		wg.Add(1)
-		go func() {
+		go func(i int) {
 			defer wg.Done()
-			obj, err := a.GetDhcpOptions(ctx, id)
+			// Gateways
+			vcns[i].Gateways, err = a.ListInternetGateways(ctx, compartmentID, vcns[i].OCID)
 			if err != nil {
-				errCh <- fmt.Errorf("get dhcp options %s: %w", id, err)
-				return
+				errCh <- err
 			}
-			mu.Lock()
-			dhcpMap[id] = obj
-			mu.Unlock()
-		}()
+			nats, err := a.ListNatGateways(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+			vcns[i].Gateways = append(vcns[i].Gateways, nats...)
+			sgws, err := a.ListServiceGateways(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+			vcns[i].Gateways = append(vcns[i].Gateways, sgws...)
+			lpgs, err := a.ListLocalPeeringGateways(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+			vcns[i].Gateways = append(vcns[i].Gateways, lpgs...)
+			drg, err := a.ListDrgAttachments(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+			vcns[i].Gateways = append(vcns[i].Gateways, drg...)
+
+			// Subnets
+			vcns[i].Subnets, err = a.ListSubnets(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+
+			// Route tables, Security lists, NSGs
+			vcns[i].RouteTables, err = a.ListRouteTables(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+			vcns[i].SecurityLists, err = a.ListSecurityLists(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+			vcns[i].NSGs, err = a.ListNetworkSecurityGroups(ctx, compartmentID, vcns[i].OCID)
+			if err != nil {
+				errCh <- err
+			}
+
+			// DHCP options (default for the VCN)
+			if vcns[i].DhcpOptionsID != "" {
+				dhcp, derr := a.GetDhcpOptions(ctx, vcns[i].DhcpOptionsID)
+				if derr != nil {
+					errCh <- derr
+				} else {
+					vcns[i].DhcpOptions = dhcp
+				}
+			}
+		}(i)
 	}
+
 	wg.Wait()
 	close(errCh)
+
 	for err := range errCh {
 		if err != nil {
-			return vcns, err
+			return nil, err
 		}
 	}
-	for i := range vcns {
-		if obj, ok := dhcpMap[vcns[i].DhcpOptionsID]; ok {
-			vcns[i].DhcpOptions = obj
-		}
-	}
-	return vcns, nil
-}
 
-// GetDhcpOptions fetches DHCP options resource by OCID.
-func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (vcn2.DhcpOptions, error) {
-	resp, err := a.client.GetDhcpOptions(ctx, core.GetDhcpOptionsRequest{DhcpId: &dhcpID})
-	if err != nil {
-		return vcn2.DhcpOptions{}, fmt.Errorf("getting DHCP options from OCI: %w", err)
-	}
-	return toDomainDHCPOptionsModel(resp.DhcpOptions)
+	return vcns, nil
 }
 
 func toDomainVCNModel(v core.Vcn) vcn2.VCN {
@@ -125,18 +151,6 @@ func toDomainVCNModel(v core.Vcn) vcn2.VCN {
 	}
 }
 
-func toDomainDHCPOptionsModel(d core.DhcpOptions) (vcn2.DhcpOptions, error) {
-	if d.Id == nil {
-		return vcn2.DhcpOptions{}, fmt.Errorf("dhcp options missing id")
-	}
-	return vcn2.DhcpOptions{
-		OCID:           *d.Id,
-		DisplayName:    *d.DisplayName,
-		LifecycleState: string(d.LifecycleState),
-		DomainNameType: string(d.DomainNameType),
-	}, nil
-}
-
 func cloneStrings(in []string) []string {
 	if in == nil {
 		return nil
@@ -144,4 +158,149 @@ func cloneStrings(in []string) []string {
 	out := make([]string, len(in))
 	copy(out, in)
 	return out
+}
+
+func (a *Adapter) ListInternetGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+	req := core.ListInternetGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListInternetGateways(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var gateways []vcn2.Gateway
+	for _, item := range resp.Items {
+		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Internet"})
+	}
+	return gateways, nil
+}
+
+func (a *Adapter) ListNatGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+	req := core.ListNatGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListNatGateways(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var gateways []vcn2.Gateway
+	for _, item := range resp.Items {
+		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "NAT"})
+	}
+	return gateways, nil
+}
+
+func (a *Adapter) ListServiceGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+	req := core.ListServiceGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListServiceGateways(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var gateways []vcn2.Gateway
+	for _, item := range resp.Items {
+		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Service"})
+	}
+	return gateways, nil
+}
+
+func (a *Adapter) ListLocalPeeringGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+	req := core.ListLocalPeeringGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListLocalPeeringGateways(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var gateways []vcn2.Gateway
+	for _, item := range resp.Items {
+		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Local Peering"})
+	}
+	return gateways, nil
+}
+
+func (a *Adapter) ListDrgAttachments(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+	req := core.ListDrgAttachmentsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListDrgAttachments(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var gateways []vcn2.Gateway
+	for _, item := range resp.Items {
+		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "DRG"})
+	}
+	return gateways, nil
+}
+
+func (a *Adapter) ListRouteTables(ctx context.Context, compartmentID, vcnID string) ([]vcn2.RouteTable, error) {
+	req := core.ListRouteTablesRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListRouteTables(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var rts []vcn2.RouteTable
+	for _, item := range resp.Items {
+		rts = append(rts, vcn2.RouteTable{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+	}
+	return rts, nil
+}
+
+func (a *Adapter) ListSecurityLists(ctx context.Context, compartmentID, vcnID string) ([]vcn2.SecurityList, error) {
+	req := core.ListSecurityListsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListSecurityLists(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var sls []vcn2.SecurityList
+	for _, item := range resp.Items {
+		sls = append(sls, vcn2.SecurityList{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+	}
+	return sls, nil
+}
+
+func (a *Adapter) ListNetworkSecurityGroups(ctx context.Context, compartmentID, vcnID string) ([]vcn2.NSG, error) {
+	req := core.ListNetworkSecurityGroupsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListNetworkSecurityGroups(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var nsgs []vcn2.NSG
+	for _, item := range resp.Items {
+		nsgs = append(nsgs, vcn2.NSG{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+	}
+	return nsgs, nil
+}
+
+func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (vcn2.DhcpOptions, error) {
+	req := core.GetDhcpOptionsRequest{DhcpId: &dhcpID}
+	resp, err := a.client.GetDhcpOptions(ctx, req)
+	if err != nil {
+		return vcn2.DhcpOptions{}, err
+	}
+	return vcn2.DhcpOptions{OCID: *resp.Id, DisplayName: *resp.DisplayName, LifecycleState: string(resp.LifecycleState), DomainNameType: ""}, nil
+}
+
+func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Subnet, error) {
+	req := core.ListSubnetsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
+	resp, err := a.client.ListSubnets(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	var subnets []vcn2.Subnet
+	for _, item := range resp.Items {
+		var id, name, cidr, rtID string
+		if item.Id != nil {
+			id = *item.Id
+		}
+		if item.DisplayName != nil {
+			name = *item.DisplayName
+		}
+		if item.CidrBlock != nil {
+			cidr = *item.CidrBlock
+		}
+		if item.RouteTableId != nil {
+			rtID = *item.RouteTableId
+		}
+		public := item.ProhibitPublicIpOnVnic == nil || !*item.ProhibitPublicIpOnVnic
+		var slIDs []string
+		if item.SecurityListIds != nil {
+			slIDs = item.SecurityListIds
+		}
+		// Note: NSG IDs may not be present in some SDK versions; omit if unavailable
+		subnets = append(subnets, vcn2.Subnet{OCID: id, DisplayName: name, LifecycleState: string(item.LifecycleState), CidrBlock: cidr, Public: public, RouteTableID: rtID, SecurityListIDs: slIDs})
+	}
+	return subnets, nil
 }

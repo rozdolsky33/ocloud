@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // Service is the application-layer service for vcn operations.
@@ -71,52 +72,34 @@ func (s *Service) ListVcns(ctx context.Context) ([]VCN, error) {
 	return allVcn, nil
 }
 
-//// Find performs a fuzzy search for vcns.
-//func (s *Service) Find(ctx context.Context, searchPattern string) ([]*domain.VCN, error) {
-//	all, err := s.vcnRepo.ListVcns(ctx, s.compartmentID)
-//	if err != nil {
-//		return nil, fmt.Errorf("fetching all vcns for search: %w", err)
-//	}
-//
-//	index, err := util.BuildIndex(all, func(vcn *domain.VCN) any {
-//		return mapToIndexableVCN(vcn)
-//	})
-//	if err != nil {
-//		return nil, fmt.Errorf("building search index: %w", err)
-//	}
-//
-//	fields := []string{"Name", "OCID"}
-//	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
-//	if err != nil {
-//		return nil, fmt.Errorf("performing fuzzy search: %w", err)
-//	}
-//	var results []*domain.VCN
-//	for _, idx := range matchedIdxs {
-//		if idx >= 0 && idx < len(all) {
-//			results = append(results, all[idx])
-//		}
-//	}
-//
-//	return results, nil
-//}
+// Find performs a fuzzy search for vcns.
+func (s *Service) Find(ctx context.Context, searchPattern string) ([]VCN, error) {
+	all, err := s.vcnRepo.ListVcns(ctx, s.compartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching all vcns for search: %w", err)
+	}
 
-//func ToDTO(v *domain.VCN) *VCNDTO {
-//	dto := &VCNDTO{}
-//	if v == nil {
-//		return dto
-//	}
-//	dto.OCID = v.OCID
-//	dto.DisplayName = v.DisplayName
-//	dto.LifecycleState = v.LifecycleState
-//	dto.CompartmentID = v.CompartmentID
-//	dto.DnsLabel = v.DnsLabel
-//	dto.DomainName = v.DomainName
-//	dto.CidrBlocks = v.CidrBlocks
-//	dto.Ipv6Enabled = v.Ipv6Enabled
-//	dto.DhcpOptionsID = v.DhcpOptionsID
-//	dto.TimeCreated = v.TimeCreated.UTC().Format(time.RFC3339)
-//	return dto
-//}
+	index, err := util.BuildIndex(all, func(vcn VCN) any {
+		return mapToIndexableVCN(&vcn)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("building search index: %w", err)
+	}
+
+	fields := []string{"Name", "OCID"}
+	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
+	if err != nil {
+		return nil, fmt.Errorf("performing fuzzy search: %w", err)
+	}
+	var results []VCN
+	for _, idx := range matchedIdxs {
+		if idx >= 0 && idx < len(all) {
+			results = append(results, all[idx])
+		}
+	}
+
+	return results, nil
+}
 
 // mapToIndexableVCN converts a domain.VCN to a struct suitable for indexing.
 func mapToIndexableVCN(v *VCN) any {

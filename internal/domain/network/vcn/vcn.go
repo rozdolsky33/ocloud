@@ -20,6 +20,11 @@ type VCN struct {
 	TimeCreated    time.Time
 	FreeformTags   map[string]string
 	DefinedTags    map[string]map[string]interface{}
+	Gateways       []Gateway
+	Subnets        []Subnet
+	RouteTables    []RouteTable
+	SecurityLists  []SecurityList
+	NSGs           []NSG
 }
 
 type VCNRepository interface {

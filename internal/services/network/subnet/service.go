@@ -6,20 +6,20 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
+	"github.com/rozdolsky33/ocloud/internal/domain/network/subnet"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // Service is the application-layer service for subnet operations.
 type Service struct {
-	subnetRepo    vcn.SubnetRepository
+	subnetRepo    subnet.SubnetRepository
 	logger        logr.Logger
 	compartmentID string
 }
 
 // NewService creates and initializes a new Service instance.
-func NewService(repo vcn.SubnetRepository, logger logr.Logger, compartmentID string) *Service {
+func NewService(repo subnet.SubnetRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		subnetRepo:    repo,
 		logger:        logger,
@@ -28,7 +28,7 @@ func NewService(repo vcn.SubnetRepository, logger logr.Logger, compartmentID str
 }
 
 // List retrieves a paginated list of subnets.
-func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, int, string, error) {
+func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]subnet.Subnet, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing subnets", "limit", limit, "pageNum", pageNum)
 
 	allSubnets, err := s.subnetRepo.ListSubnets(ctx, s.compartmentID)
@@ -42,7 +42,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 	end := start + limit
 
 	if start >= totalCount {
-		return []Subnet{}, totalCount, "", nil
+		return []subnet.Subnet{}, totalCount, "", nil
 	}
 
 	if end > totalCount {
@@ -61,7 +61,7 @@ func (s *Service) List(ctx context.Context, limit int, pageNum int) ([]Subnet, i
 }
 
 // Find retrieves a slice of subnets whose attributes match the provided name pattern using fuzzy search.
-func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error) {
+func (s *Service) Find(ctx context.Context, namePattern string) ([]subnet.Subnet, error) {
 	s.logger.V(logger.Debug).Info("finding subnet with fuzzy search", "pattern", namePattern)
 
 	allSubnets, err := s.subnetRepo.ListSubnets(ctx, s.compartmentID)
@@ -69,7 +69,7 @@ func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error
 		return nil, fmt.Errorf("fetching all subnets for search: %w", err)
 	}
 
-	index, err := util.BuildIndex(allSubnets, func(s Subnet) any {
+	index, err := util.BuildIndex(allSubnets, func(s subnet.Subnet) any {
 		return mapToIndexableSubnets(s)
 	})
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
 	}
 	logger.Logger.V(logger.Debug).Info("Fuzzy search completed.", "numMatches", len(matchedIdxs))
-	var matchedSubnets []Subnet
+	var matchedSubnets []subnet.Subnet
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allSubnets) {
 			matchedSubnets = append(matchedSubnets, allSubnets[idx])
@@ -95,12 +95,12 @@ func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error
 }
 
 // mapToIndexableSubnets converts a domain.Subnet to a struct suitable for indexing.
-func mapToIndexableSubnets(s vcn.Subnet) any {
+func mapToIndexableSubnets(s subnet.Subnet) any {
 	return struct {
 		Name string
 		CIDR string
 	}{
 		Name: strings.ToLower(s.DisplayName),
-		CIDR: s.CIDRBlock,
+		CIDR: s.CidrBlock,
 	}
 }
