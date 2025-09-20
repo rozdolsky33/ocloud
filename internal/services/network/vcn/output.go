@@ -10,7 +10,7 @@ import (
 )
 
 // PrintVCNsInfo prints the VCN summary view or JSON if requested.
-func PrintVCNsInfo(vcns []vcn.VCN, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON, gateways, subnets bool) error {
+func PrintVCNsInfo(vcns []vcn.VCN, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -59,6 +59,15 @@ func PrintVCNsInfo(vcns []vcn.VCN, appCtx *app.ApplicationContext, pagination *u
 		if subnets {
 			printSubnets(p, v)
 		}
+		if nsgs {
+			printNSGs(p, v.NSGs)
+		}
+		if routes {
+			printRouteTables(p, v.RouteTables)
+		}
+		if securityLists {
+			printSecurityLists(p, v.SecurityLists)
+		}
 	}
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
@@ -79,6 +88,30 @@ func printSubnets(p *printer.Printer, v vcn.VCN) {
 	headers := []string{"Name", "CIDR", "Publicity", "Route Table", "SecLists"}
 	// Use non-truncating table to ensure full information is visible
 	p.PrintTableNoTruncate("Subnets", headers, toSubnetRows(v))
+}
+
+func printNSGs(p *printer.Printer, nsgs []vcn.NSG) {
+	if len(nsgs) == 0 {
+		return
+	}
+	headers := []string{"Name", "State"}
+	p.PrintTableNoTruncate("Network Security Groups", headers, toNSGRows(nsgs))
+}
+
+func printRouteTables(p *printer.Printer, rts []vcn.RouteTable) {
+	if len(rts) == 0 {
+		return
+	}
+	headers := []string{"Name", "State"}
+	p.PrintTableNoTruncate("Route Tables", headers, toRouteTableRows(rts))
+}
+
+func printSecurityLists(p *printer.Printer, sls []vcn.SecurityList) {
+	if len(sls) == 0 {
+		return
+	}
+	headers := []string{"Name", "State"}
+	p.PrintTableNoTruncate("Security Lists", headers, toSecurityListRows(sls))
 }
 
 func toGatewayRows(gateways []vcn.Gateway) [][]string {
@@ -228,4 +261,29 @@ func estimateEgressPath(v vcn.VCN, routeTableID string) string {
 		return "DRG"
 	}
 	return "-"
+}
+
+// Row builders for additional tables
+func toNSGRows(nsgs []vcn.NSG) [][]string {
+	rows := make([][]string, len(nsgs))
+	for i, n := range nsgs {
+		rows[i] = []string{n.DisplayName, strings.ToUpper(n.LifecycleState)}
+	}
+	return rows
+}
+
+func toRouteTableRows(rts []vcn.RouteTable) [][]string {
+	rows := make([][]string, len(rts))
+	for i, r := range rts {
+		rows[i] = []string{r.DisplayName, strings.ToUpper(r.LifecycleState)}
+	}
+	return rows
+}
+
+func toSecurityListRows(sls []vcn.SecurityList) [][]string {
+	rows := make([][]string, len(sls))
+	for i, s := range sls {
+		rows[i] = []string{s.DisplayName, strings.ToUpper(s.LifecycleState)}
+	}
+	return rows
 }

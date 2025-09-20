@@ -21,6 +21,9 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 	cmd.Flags().Bool("gateways", false, "Display gateways")
 	cmd.Flags().Bool("subnets", false, "Display subnets")
+	cmd.Flags().Bool("nsg", false, "Display network security groups")
+	cmd.Flags().Bool("route", false, "Display route tables")
+	cmd.Flags().Bool("security-list", false, "Display security lists")
 	return cmd
 }
 
@@ -29,8 +32,11 @@ func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 
 	gateways, _ := cmd.Flags().GetBool("gateways")
 	subnets, _ := cmd.Flags().GetBool("subnets")
+	nsgs, _ := cmd.Flags().GetBool("nsg")
+	routes, _ := cmd.Flags().GetBool("route")
+	securityLists, _ := cmd.Flags().GetBool("security-list")
 
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn list", "json", useJSON)
 
-	return netvcn.ListVCNs(appCtx, useJSON, gateways, subnets)
+	return netvcn.ListVCNs(appCtx, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }

@@ -9,7 +9,7 @@ import (
 	ociVcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
 )
 
-func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets bool) error {
+func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
 	ctx := context.Background()
 	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {
@@ -24,5 +24,5 @@ func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets bool) e
 		return fmt.Errorf("getting vcn: %w", err)
 	}
 
-	return PrintVCNsInfo(vcns, appCtx, nil, useJSON, gateways, subnets)
+	return PrintVCNsInfo(vcns, appCtx, nil, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }

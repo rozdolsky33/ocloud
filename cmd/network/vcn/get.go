@@ -36,6 +36,9 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	cmd.Flags().Bool("gateways", false, "Display gateways")
 	cmd.Flags().Bool("subnets", false, "Display subnets")
+	cmd.Flags().Bool("nsg", false, "Display network security groups")
+	cmd.Flags().Bool("route", false, "Display route tables")
+	cmd.Flags().Bool("security-list", false, "Display security lists")
 
 	vcnFlags.LimitFlag.Add(cmd)
 	vcnFlags.PageFlag.Add(cmd)
@@ -51,6 +54,9 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 
 	gateways, _ := cmd.Flags().GetBool("gateways")
 	subnets, _ := cmd.Flags().GetBool("subnets")
+	nsgs, _ := cmd.Flags().GetBool("nsg")
+	routes, _ := cmd.Flags().GetBool("route")
+	securityLists, _ := cmd.Flags().GetBool("security-list")
 
-	return netvcn.GetVCNs(appCtx, limit, page, useJSON, gateways, subnets)
+	return netvcn.GetVCNs(appCtx, limit, page, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }

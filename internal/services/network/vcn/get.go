@@ -11,7 +11,7 @@ import (
 )
 
 // GetVCNs retrieves a VCN by OCID and prints its summary or JSON.
-func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON, gateways, subnets bool) error {
+func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
 	ctx := context.Background()
 	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {
@@ -31,5 +31,5 @@ func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON, gateways,
 		TotalCount:    totalCount,
 		Limit:         limit,
 		NextPageToken: nextPageToken,
-	}, useJSON, gateways, subnets)
+	}, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }

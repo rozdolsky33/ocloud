@@ -9,6 +9,13 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/domain/network/subnet"
 )
 
+// Client is a minimal legacy wrapper retained for backward compatibility with older code paths.
+// Newer code should prefer the adapter in internal/oci/network/subnet/adapter.go.
+// This struct is only here to keep the package compiling during tests/builds.
+type Client struct {
+	vnClient core.VirtualNetworkClient
+}
+
 // SubnetRepository implements the domain SubnetRepository interface.
 
 func (c *Client) GetSubnet(ctx context.Context, ocid string) (*subnet.Subnet, error) {

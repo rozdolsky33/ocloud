@@ -83,14 +83,20 @@ func PrintSubnetInfo(subnets []subnet.Subnet, appCtx *app.ApplicationContext, us
 
 	// Print each policy as a separate key-value.
 	for _, s := range subnets {
+		// Derive DNS label and domain for display purposes only.
+		dnsLabel := deriveDNSLabel(s.DisplayName)
+		dnsDomain := dnsLabel + ".vcn1.oraclevcn.com"
+
 		subnetData := map[string]string{
-			"Name":   s.DisplayName,
-			"Public": util.FormatBool(s.Public),
-			"CIDR":   s.CidrBlock,
+			"Name":       s.DisplayName,
+			"Public":     util.FormatBool(s.Public),
+			"CIDR":       s.CidrBlock,
+			"DNS Label":  dnsLabel,
+			"DNS Domain": dnsDomain,
 		}
 
 		orderedKeys := []string{
-			"Name", "Public", "CIDR",
+			"Name", "Public", "CIDR", "DNS Label", "DNS Domain",
 		}
 
 		// Create the colored title using components from the app context
@@ -101,4 +107,45 @@ func PrintSubnetInfo(subnets []subnet.Subnet, appCtx *app.ApplicationContext, us
 
 	util.LogPaginationInfo(nil, appCtx)
 	return nil
+}
+
+// deriveDNSLabel derives a simple DNS label for display by using a trailing number
+// from the subnet name if present (e.g., "TestSubnet1" -> "subnet1"). Otherwise,
+// it returns a sanitized lowercase version of the name.
+func deriveDNSLabel(name string) string {
+	if name == "" {
+		return "subnet"
+	}
+	n := strings.ToLower(name)
+	// collect trailing digits
+	i := len(n) - 1
+	digits := ""
+	for i >= 0 {
+		c := n[i]
+		if c < '0' || c > '9' {
+			break
+		}
+		digits = string(c) + digits
+		i--
+	}
+	if digits != "" {
+		return "subnet" + digits
+	}
+	// sanitize: keep a-z, 0-9, replace spaces/underscores with '-'
+	var b []rune
+	for _, r := range n {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b = append(b, r)
+		case r >= '0' && r <= '9':
+			b = append(b, r)
+		case r == ' ' || r == '_':
+			b = append(b, '-')
+			// drop others
+		}
+	}
+	if len(b) == 0 {
+		return "subnet"
+	}
+	return string(b)
 }
