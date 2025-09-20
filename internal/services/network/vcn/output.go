@@ -76,7 +76,7 @@ func printSubnets(p *printer.Printer, v vcn.VCN) {
 	if len(subnets) == 0 {
 		return
 	}
-	headers := []string{"Name", "CIDR", "Publicity", "Route Table", "SecLists", "NSGs", "Egress Path"}
+	headers := []string{"Name", "CIDR", "Publicity", "Route Table", "SecLists"}
 	// Use non-truncating table to ensure full information is visible
 	p.PrintTableNoTruncate("Subnets", headers, toSubnetRows(v))
 }
@@ -93,13 +93,13 @@ func toGatewayRows(gateways []vcn.Gateway) [][]string {
 	for _, gw := range gateways {
 		switch gw.Type {
 		case "Internet":
-			internet = append(internet, gw.DisplayName+" (present)")
+			internet = append(internet, gw.DisplayName)
 		case "NAT":
-			nat = append(nat, gw.DisplayName+" (present)")
+			nat = append(nat, gw.DisplayName)
 		case "Service":
-			service = append(service, gw.DisplayName+" (present)")
+			service = append(service, gw.DisplayName)
 		case "DRG":
-			drg = append(drg, gw.DisplayName+" (attached)")
+			drg = append(drg, gw.DisplayName)
 		case "Local Peering":
 			lpg = append(lpg, gw.DisplayName)
 		}
