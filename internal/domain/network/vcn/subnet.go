@@ -9,5 +9,4 @@ type Subnet struct {
 	Public          bool
 	RouteTableID    string
 	SecurityListIDs []string
-	NSGIDs          []string
 }
