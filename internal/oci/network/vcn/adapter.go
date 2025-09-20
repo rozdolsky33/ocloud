@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/vcn"
 )
 
 // Adapter provides access to VCN-related OCI APIs.
@@ -15,7 +15,7 @@ type Adapter struct {
 	client core.VirtualNetworkClient
 }
 
-// NewAdapter creates a new VCN adapter using the provided configuration provider.
+// NewAdapter creates a new adapter instance.
 func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }
@@ -30,6 +30,7 @@ func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error)
 	return &m, nil
 }
 
+// ListVcns lists all VCNs in a given compartment.
 func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
 	req := core.ListVcnsRequest{CompartmentId: &compartmentID}
 	var out []domain.VCN

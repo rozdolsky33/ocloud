@@ -1,0 +1,19 @@
+package vcn
+
+import (
+	"fmt"
+
+	domain "github.com/rozdolsky33/ocloud/internal/domain/vcn"
+	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+)
+
+// NewVCNListModel builds a TUI list for VCNs.
+func NewVCNListModel(v []domain.VCN) listx.Model {
+	return listx.NewModel("VCNs", v, func(v domain.VCN) listx.ResourceItemData {
+		return listx.ResourceItemData{
+			ID:          v.OCID,
+			Title:       v.DisplayName,
+			Description: fmt.Sprint(v.LifecycleState, " • ", v.DomainName, " • ", v.TimeCreated.Format("2006-01-02")),
+		}
+	})
+}

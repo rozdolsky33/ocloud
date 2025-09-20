@@ -6,29 +6,24 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	domainVCN "github.com/rozdolsky33/ocloud/internal/domain/vcn"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
 // Service is the application-layer service for vcn operations.
 type Service struct {
-	vcnRepo       domain.VCNRepository
+	vcnRepo       domainVCN.VCNRepository
 	logger        logr.Logger
 	compartmentID string
 }
 
 // NewService initializes a new Service instance.
-func NewService(repo domain.VCNRepository, logger logr.Logger, compartmentID string) *Service {
+func NewService(repo domainVCN.VCNRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		vcnRepo:       repo,
 		logger:        logger,
 		compartmentID: compartmentID,
 	}
-}
-
-// GetVcn fetches a VCN by ID and prints its summary (or JSON).
-func (s *Service) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error) {
-	return s.vcnRepo.GetVcn(ctx, vcnID)
 }
 
 // FetchPaginatedVCNs retrieves a paginated list of vcns.
@@ -66,8 +61,14 @@ func (s *Service) FetchPaginatedVCNs(ctx context.Context, limit, pageNum int) ([
 	return pagedResults, totalCount, nextPageToken, nil
 }
 
-func (s *Service) ListVcns(ctx context.Context) ([]*VCN, error) {
-	return nil, nil
+// ListVcns retrieves a list of vcns.
+func (s *Service) ListVcns(ctx context.Context) ([]VCN, error) {
+	s.logger.V(logger.Debug).Info("listing vcns")
+	allVcn, err := s.vcnRepo.ListEnrichedVcns(ctx, s.compartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("listing vcns from repository: %w", err)
+	}
+	return allVcn, nil
 }
 
 //// Find performs a fuzzy search for vcns.
@@ -118,7 +119,7 @@ func (s *Service) ListVcns(ctx context.Context) ([]*VCN, error) {
 //}
 
 // mapToIndexableVCN converts a domain.VCN to a struct suitable for indexing.
-func mapToIndexableVCN(v *domain.VCN) any {
+func mapToIndexableVCN(v *domainVCN.VCN) any {
 	return struct {
 		Name string
 		OCID string

@@ -3,7 +3,7 @@ package image
 import (
 	"fmt"
 
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/compute"
 	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/identity"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
@@ -14,14 +14,14 @@ import (
 // Service is the application-layer service for compartment operations.
 // It depends on the domain repository for data access.
 type Service struct {
-	compartmentRepo domain.CompartmentRepository
+	compartmentRepo identity.CompartmentRepository
 	logger          logr.Logger
 	compartmentID   string
 }
 
 // NewService initializes and returns a new Service instance.
 // It injects the domain repository, decoupling the service from the infrastructure layer.
-func NewService(repo domain.CompartmentRepository, logger logr.Logger, ocid string) *Service {
+func NewService(repo identity.CompartmentRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		compartmentRepo: repo,
 		logger:          logger,

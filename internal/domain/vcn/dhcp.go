@@ -1,4 +1,4 @@
-package domain
+package vcn
 
 // DhcpOptions represents a DHCP options in the domain layer.
 type DhcpOptions struct {

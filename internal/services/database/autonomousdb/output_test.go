@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/database"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +20,7 @@ func ptrTime(t time.Time) *time.Time { return &t }
 // Test summary view and JSON output for the list printer
 func TestPrintAutonomousDbsInfo_SummaryAndJSON(t *testing.T) {
 	// Prepare test data: one ECPU-based and one OCPU-based DB
-	db1 := domain.AutonomousDatabase{
+	db1 := database.AutonomousDatabase{
 		Name:                 "AuthzSessionManagementDev",
 		ID:                   "ocid1.autonomousdatabase.oc1..aaaa",
 		LifecycleState:       "AVAILABLE",
@@ -43,7 +43,7 @@ func TestPrintAutonomousDbsInfo_SummaryAndJSON(t *testing.T) {
 		},
 		TimeCreated: ptrTime(time.Date(2023, 6, 27, 20, 30, 46, 0, time.UTC)),
 	}
-	db2 := domain.AutonomousDatabase{
+	db2 := database.AutonomousDatabase{
 		Name:                 "BillingDB",
 		ID:                   "ocid1.autonomousdatabase.oc1..bbbb",
 		LifecycleState:       "STOPPED",
@@ -62,7 +62,7 @@ func TestPrintAutonomousDbsInfo_SummaryAndJSON(t *testing.T) {
 	appCtx := &app.ApplicationContext{Logger: logger.NewTestLogger(), Stdout: &buf}
 
 	// Table output (summary)
-	err := PrintAutonomousDbsInfo([]domain.AutonomousDatabase{db1, db2}, appCtx, nil, false, false)
+	err := PrintAutonomousDbsInfo([]database.AutonomousDatabase{db1, db2}, appCtx, nil, false, false)
 	assert.NoError(t, err)
 	out := buf.String()
 	// Validate presence of key fields for both DBs
@@ -78,7 +78,7 @@ func TestPrintAutonomousDbsInfo_SummaryAndJSON(t *testing.T) {
 	// JSON output with pagination
 	buf.Reset()
 	pg := &util.PaginationInfo{TotalCount: 2, Limit: 2, CurrentPage: 1, NextPageToken: ""}
-	err = PrintAutonomousDbsInfo([]domain.AutonomousDatabase{db1, db2}, appCtx, pg, true, false)
+	err = PrintAutonomousDbsInfo([]database.AutonomousDatabase{db1, db2}, appCtx, pg, true, false)
 	assert.NoError(t, err)
 	jsonOut := buf.String()
 	assert.Contains(t, jsonOut, "\"items\"")
@@ -89,7 +89,7 @@ func TestPrintAutonomousDbsInfo_SummaryAndJSON(t *testing.T) {
 
 // Test detailed view including access type inference and storage TB/GB selection
 func TestPrintAutonomousDbInfo_DetailedAccessTypeStorage(t *testing.T) {
-	db := &domain.AutonomousDatabase{
+	db := &database.AutonomousDatabase{
 		Name:                 "DetailedDB",
 		ID:                   "ocid1.autonomousdatabase.oc1..cccc",
 		LifecycleState:       "AVAILABLE",
@@ -137,7 +137,7 @@ func TestPrintAutonomousDbsInfo_Empty(t *testing.T) {
 	var buf bytes.Buffer
 	appCtx := &app.ApplicationContext{Logger: logger.NewTestLogger(), Stdout: &buf}
 
-	err := PrintAutonomousDbsInfo([]domain.AutonomousDatabase{}, appCtx, nil, false, true)
+	err := PrintAutonomousDbsInfo([]database.AutonomousDatabase{}, appCtx, nil, false, true)
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "No Items found.")
 }

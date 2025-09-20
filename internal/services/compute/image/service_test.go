@@ -7,16 +7,17 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/compute"
 	"github.com/stretchr/testify/assert"
 )
 
 // mockImageRepository is a mock implementation of the ImageRepository for testing.
 type mockImageRepository struct {
-	images []domain.Image
+	images []compute.Image
 	err    error
 }
 
-func (m *mockImageRepository) GetImage(ctx context.Context, ocid string) (*domain.Image, error) {
+func (m *mockImageRepository) GetImage(ctx context.Context, ocid string) (*compute.Image, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -28,7 +29,7 @@ func (m *mockImageRepository) GetImage(ctx context.Context, ocid string) (*domai
 	return nil, domain.ErrNotFound
 }
 
-func (m *mockImageRepository) ListImages(ctx context.Context, compartmentID string) ([]domain.Image, error) {
+func (m *mockImageRepository) ListImages(ctx context.Context, compartmentID string) ([]compute.Image, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -37,7 +38,7 @@ func (m *mockImageRepository) ListImages(ctx context.Context, compartmentID stri
 
 func TestService_Find(t *testing.T) {
 	mockRepo := &mockImageRepository{
-		images: []domain.Image{
+		images: []compute.Image{
 			{DisplayName: "Test Image", OperatingSystem: "Linux"},
 			{DisplayName: "Another Image", OperatingSystem: "Windows"},
 		},
@@ -53,7 +54,7 @@ func TestService_Find(t *testing.T) {
 
 func TestService_Get(t *testing.T) {
 	mockRepo := &mockImageRepository{
-		images: []domain.Image{
+		images: []compute.Image{
 			{DisplayName: "Test Image"},
 			{DisplayName: "Another Image"},
 		},
