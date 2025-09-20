@@ -1,4 +1,4 @@
-package geteway
+package gateway
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }
 
-func (a *Adapter) gatewaysSummary(ctx context.Context, compartmentID, vcnID string) (vcn.Gateways, error) {
+func (a *Adapter) GatewaysSummary(ctx context.Context, compartmentID, vcnID string) (vcn.Gateways, error) {
 	var out vcn.Gateways
 
 	// Service ID -> Name cache for SGW services

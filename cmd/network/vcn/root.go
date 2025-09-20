@@ -15,10 +15,9 @@ func NewVcnCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	cmd.AddCommand(
-		NewGetCmd(appCtx),
-		NewListCmd(appCtx),
-		NewFindCmd(appCtx),
-	)
+	cmd.AddCommand(NewGetCmd(appCtx))
+	cmd.AddCommand(NewListCmd(appCtx))
+	cmd.AddCommand(NewFindCmd(appCtx))
+	cmd.AddCommand(NewGetGatewayCmd(appCtx))
 	return cmd
 }

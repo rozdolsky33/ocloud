@@ -24,7 +24,6 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func runFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	pattern := args[0]
 	useJSON := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameJSON, false)
-
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn find", "pattern", pattern, "json", useJSON)
 	//netvcn.FindVCNs(appCtx, pattern, useJSON)
 	return nil
