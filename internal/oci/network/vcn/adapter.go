@@ -299,7 +299,7 @@ func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) 
 		if item.SecurityListIds != nil {
 			slIDs = item.SecurityListIds
 		}
-		// Note: NSG IDs may not be present in some SDK versions; omit if unavailable
+		// NSG IDs per subnet are not available in this SDK version; will rely on VCN-level NSG list for display fallback
 		subnets = append(subnets, vcn2.Subnet{OCID: id, DisplayName: name, LifecycleState: string(item.LifecycleState), CidrBlock: cidr, Public: public, RouteTableID: rtID, SecurityListIDs: slIDs})
 	}
 	return subnets, nil

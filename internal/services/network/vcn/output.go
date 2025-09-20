@@ -28,14 +28,17 @@ func PrintVCNsInfo(vcns []vcn.VCN, appCtx *app.ApplicationContext, pagination *u
 		if v.Ipv6Enabled {
 			ipv6 = "Enabled"
 		}
-		// Determine DHCP Options label with fallback to ID
-		dhcp := v.DhcpOptions.DisplayName
-		if strings.TrimSpace(dhcp) == "" {
+		// Determine DHCP Options label with fallback to ID and optional domain type
+		dhcp := strings.TrimSpace(v.DhcpOptions.DisplayName)
+		if dhcp == "" {
 			if strings.TrimSpace(v.DhcpOptionsID) != "" {
 				dhcp = v.DhcpOptionsID
 			} else {
 				dhcp = "-"
 			}
+		} else if strings.TrimSpace(v.DhcpOptions.DomainNameType) != "" {
+			// Show the domain name type if we have it
+			dhcp = dhcp + " (" + v.DhcpOptions.DomainNameType + ")"
 		}
 		data := map[string]string{
 			"OCID":               v.OCID,
@@ -180,8 +183,20 @@ func lookupSecurityListNames(v vcn.VCN, ids []string) string {
 }
 
 func lookupNSGNames(v vcn.VCN, ids []string) string {
+	// If subnet doesn't explicitly list NSG IDs, fall back to showing all NSGs present in the VCN
 	if len(ids) == 0 {
-		return "-"
+		if len(v.NSGs) == 0 {
+			return "-"
+		}
+		var all []string
+		for _, n := range v.NSGs {
+			label := strings.TrimSpace(n.DisplayName)
+			if label == "" {
+				label = n.OCID
+			}
+			all = append(all, label)
+		}
+		return strings.Join(all, ", ")
 	}
 	nameByID := make(map[string]string, len(v.NSGs))
 	for _, n := range v.NSGs {
