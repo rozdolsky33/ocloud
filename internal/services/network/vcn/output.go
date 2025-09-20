@@ -77,7 +77,8 @@ func printSubnets(p *printer.Printer, v vcn.VCN) {
 		return
 	}
 	headers := []string{"Name", "CIDR", "Publicity", "Route Table", "SecLists", "NSGs", "Egress Path"}
-	p.PrintTable("Subnets", headers, toSubnetRows(v))
+	// Use non-truncating table to ensure full information is visible
+	p.PrintTableNoTruncate("Subnets", headers, toSubnetRows(v))
 }
 
 func toGatewayRows(gateways []vcn.Gateway) [][]string {
@@ -126,13 +127,19 @@ func toSubnetRows(v vcn.VCN) [][]string {
 	subnets := v.Subnets
 	rows := make([][]string, len(subnets))
 	for i, s := range subnets {
+		rt := lookupRouteTableName(v, s.RouteTableID)
+		rt = strings.Join(util.SplitTextByMaxWidth(rt), "\n")
+		sl := lookupSecurityListNames(v, s.SecurityListIDs)
+		sl = strings.Join(util.SplitTextByMaxWidth(sl), "\n")
+		nsg := lookupNSGNames(v, s.NSGIDs)
+		nsg = strings.Join(util.SplitTextByMaxWidth(nsg), "\n")
 		rows[i] = []string{
 			s.DisplayName,
 			s.CidrBlock,
 			formatPublicity(s.Public),
-			lookupRouteTableName(v, s.RouteTableID),
-			lookupSecurityListNames(v, s.SecurityListIDs),
-			lookupNSGNames(v, s.NSGIDs),
+			rt,
+			sl,
+			nsg,
 			estimateEgressPath(v, s.RouteTableID),
 		}
 	}
