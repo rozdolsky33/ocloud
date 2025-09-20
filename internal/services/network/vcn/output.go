@@ -131,16 +131,12 @@ func toSubnetRows(v vcn.VCN) [][]string {
 		rt = strings.Join(util.SplitTextByMaxWidth(rt), "\n")
 		sl := lookupSecurityListNames(v, s.SecurityListIDs)
 		sl = strings.Join(util.SplitTextByMaxWidth(sl), "\n")
-		nsg := lookupNSGNames(v, s.NSGIDs)
-		nsg = strings.Join(util.SplitTextByMaxWidth(nsg), "\n")
 		rows[i] = []string{
 			s.DisplayName,
 			s.CidrBlock,
 			formatPublicity(s.Public),
 			rt,
 			sl,
-			nsg,
-			estimateEgressPath(v, s.RouteTableID),
 		}
 	}
 	return rows
