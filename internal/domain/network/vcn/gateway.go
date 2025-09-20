@@ -1,6 +1,6 @@
 package vcn
 
-type VcnsGateways struct {
+type Gateways struct {
 	InternetGateway   string
 	NatGateway        string
 	ServiceGateway    string

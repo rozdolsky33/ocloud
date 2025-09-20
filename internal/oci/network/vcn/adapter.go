@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
-	domain "github.com/rozdolsky33/ocloud/internal/domain/vcn"
+	vcn2 "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 )
 
 // Adapter provides access to VCN-related OCI APIs.
@@ -21,7 +21,7 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 }
 
 // GetVcn retrieves a single VCN by its OCID.
-func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error) {
+func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*vcn2.VCN, error) {
 	resp, err := a.client.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
 	if err != nil {
 		return nil, fmt.Errorf("getting VCN from OCI: %w", err)
@@ -31,9 +31,9 @@ func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*domain.VCN, error)
 }
 
 // ListVcns lists all VCNs in a given compartment.
-func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
+func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]vcn2.VCN, error) {
 	req := core.ListVcnsRequest{CompartmentId: &compartmentID}
-	var out []domain.VCN
+	var out []vcn2.VCN
 	for {
 		resp, err := a.client.ListVcns(ctx, req)
 		if err != nil {
@@ -51,7 +51,7 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.
 }
 
 // ListEnrichedVcns lists VCNs and enriches them with DHCP options in parallel.
-func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
+func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]vcn2.VCN, error) {
 	vcns, err := a.ListVcns(ctx, compartmentID)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 	if len(ids) == 0 {
 		return vcns, nil
 	}
-	dhcpMap := make(map[string]domain.DhcpOptions, len(ids))
+	dhcpMap := make(map[string]vcn2.DhcpOptions, len(ids))
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(ids))
@@ -100,16 +100,16 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 }
 
 // GetDhcpOptions fetches DHCP options resource by OCID.
-func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.DhcpOptions, error) {
+func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (vcn2.DhcpOptions, error) {
 	resp, err := a.client.GetDhcpOptions(ctx, core.GetDhcpOptionsRequest{DhcpId: &dhcpID})
 	if err != nil {
-		return domain.DhcpOptions{}, fmt.Errorf("getting DHCP options from OCI: %w", err)
+		return vcn2.DhcpOptions{}, fmt.Errorf("getting DHCP options from OCI: %w", err)
 	}
 	return toDomainDHCPOptionsModel(resp.DhcpOptions)
 }
 
-func toDomainVCNModel(v core.Vcn) domain.VCN {
-	return domain.VCN{
+func toDomainVCNModel(v core.Vcn) vcn2.VCN {
+	return vcn2.VCN{
 		OCID:           *v.Id,
 		DisplayName:    *v.DisplayName,
 		LifecycleState: string(v.LifecycleState),
@@ -125,11 +125,11 @@ func toDomainVCNModel(v core.Vcn) domain.VCN {
 	}
 }
 
-func toDomainDHCPOptionsModel(d core.DhcpOptions) (domain.DhcpOptions, error) {
+func toDomainDHCPOptionsModel(d core.DhcpOptions) (vcn2.DhcpOptions, error) {
 	if d.Id == nil {
-		return domain.DhcpOptions{}, fmt.Errorf("dhcp options missing id")
+		return vcn2.DhcpOptions{}, fmt.Errorf("dhcp options missing id")
 	}
-	return domain.DhcpOptions{
+	return vcn2.DhcpOptions{
 		OCID:           *d.Id,
 		DisplayName:    *d.DisplayName,
 		LifecycleState: string(d.LifecycleState),

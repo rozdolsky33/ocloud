@@ -208,7 +208,7 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 		dbWorkloadStr   string
 		licenseModelStr string
 
-		// networking
+		// network
 		whitelistedIps       []string
 		privateEndpoint      *string
 		privateEndpointIp    *string
@@ -343,7 +343,7 @@ func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousData
 	d.DbWorkload = dbWorkloadStr
 	d.LicenseModel = licenseModelStr
 
-	// networking
+	// network
 	d.WhitelistedIps = whitelistedIps
 	if privateEndpoint != nil {
 		d.PrivateEndpoint = *privateEndpoint

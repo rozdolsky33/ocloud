@@ -6,19 +6,19 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	domainVCN "github.com/rozdolsky33/ocloud/internal/domain/vcn"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
 // Service is the application-layer service for vcn operations.
 type Service struct {
-	vcnRepo       domainVCN.VCNRepository
+	vcnRepo       domain.VCNRepository
 	logger        logr.Logger
 	compartmentID string
 }
 
 // NewService initializes a new Service instance.
-func NewService(repo domainVCN.VCNRepository, logger logr.Logger, compartmentID string) *Service {
+func NewService(repo domain.VCNRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		vcnRepo:       repo,
 		logger:        logger,
@@ -119,7 +119,7 @@ func (s *Service) ListVcns(ctx context.Context) ([]VCN, error) {
 //}
 
 // mapToIndexableVCN converts a domain.VCN to a struct suitable for indexing.
-func mapToIndexableVCN(v *domainVCN.VCN) any {
+func mapToIndexableVCN(v *VCN) any {
 	return struct {
 		Name string
 		OCID string

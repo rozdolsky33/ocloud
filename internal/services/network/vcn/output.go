@@ -17,7 +17,6 @@ func PrintVCNSummary(v *VCN, appCtx *app.ApplicationContext, useJSON bool) error
 		return p.MarshalToJSON(v)
 	}
 
-	// Build title: <tenancy>: <compartment>: <vcn-name> (<region if known>)
 	title := util.FormatColoredTitle(appCtx, v.DisplayName)
 
 	cidrs := strings.Join(v.CidrBlocks, ", ")

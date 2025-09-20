@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
-	"github.com/rozdolsky33/ocloud/internal/domain/vcn"
+	"github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -19,8 +19,8 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }
 
-func (a *Adapter) gatewaysSummary(ctx context.Context, compartmentID, vcnID string) (vcn.VcnsGateways, error) {
-	var out vcn.VcnsGateways
+func (a *Adapter) gatewaysSummary(ctx context.Context, compartmentID, vcnID string) (vcn.Gateways, error) {
+	var out vcn.Gateways
 
 	// Service ID -> Name cache for SGW services
 	svcNames := make(map[string]string)
@@ -207,7 +207,7 @@ func (a *Adapter) gatewaysSummary(ctx context.Context, compartmentID, vcnID stri
 	})
 
 	if err := eg.Wait(); err != nil {
-		return vcn.VcnsGateways{}, err
+		return vcn.Gateways{}, err
 	}
 	return out, nil
 }

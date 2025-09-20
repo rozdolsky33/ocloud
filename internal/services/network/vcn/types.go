@@ -1,7 +1,7 @@
 package vcn
 
 import (
-	"github.com/rozdolsky33/ocloud/internal/domain/vcn"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 )
 
-type VCN = vcn.VCN
+type VCN = domain.VCN

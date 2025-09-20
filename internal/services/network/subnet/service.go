@@ -6,20 +6,20 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // Service is the application-layer service for subnet operations.
 type Service struct {
-	subnetRepo    domain.SubnetRepository
+	subnetRepo    vcn.SubnetRepository
 	logger        logr.Logger
 	compartmentID string
 }
 
 // NewService creates and initializes a new Service instance.
-func NewService(repo domain.SubnetRepository, logger logr.Logger, compartmentID string) *Service {
+func NewService(repo vcn.SubnetRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		subnetRepo:    repo,
 		logger:        logger,
@@ -95,7 +95,7 @@ func (s *Service) Find(ctx context.Context, namePattern string) ([]Subnet, error
 }
 
 // mapToIndexableSubnets converts a domain.Subnet to a struct suitable for indexing.
-func mapToIndexableSubnets(s domain.Subnet) any {
+func mapToIndexableSubnets(s vcn.Subnet) any {
 	return struct {
 		Name string
 		CIDR string

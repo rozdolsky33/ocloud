@@ -3,7 +3,7 @@ package vcn
 import (
 	"fmt"
 
-	domain "github.com/rozdolsky33/ocloud/internal/domain/vcn"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 )
 
 // Adapter is an infrastructure-layer adapter for network subnets.
@@ -19,7 +19,7 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 }
 
 // GetSubnet retrieves a single subnet by its OCID.
-func (a *Adapter) GetSubnet(ctx context.Context, ocid string) (*domain.Subnet, error) {
+func (a *Adapter) GetSubnet(ctx context.Context, ocid string) (*vcn.Subnet, error) {
 	resp, err := a.client.GetSubnet(ctx, core.GetSubnetRequest{
 		SubnetId: &ocid,
 	})
@@ -33,8 +33,8 @@ func (a *Adapter) GetSubnet(ctx context.Context, ocid string) (*domain.Subnet, e
 }
 
 // ListSubnets fetches all subnets in a compartment.
-func (a *Adapter) ListSubnets(ctx context.Context, compartmentID string) ([]domain.Subnet, error) {
-	var subnets []domain.Subnet
+func (a *Adapter) ListSubnets(ctx context.Context, compartmentID string) ([]vcn.Subnet, error) {
+	var subnets []vcn.Subnet
 	var page *string
 
 	for {
@@ -60,8 +60,8 @@ func (a *Adapter) ListSubnets(ctx context.Context, compartmentID string) ([]doma
 }
 
 // toDomainModel converts an OCI SDK subnet object to our application's domain model.
-func (a *Adapter) toDomainModel(s core.Subnet) domain.Subnet {
-	return domain.Subnet{
+func (a *Adapter) toDomainModel(s core.Subnet) vcn.Subnet {
+	return vcn.Subnet{
 		OCID:                    *s.Id,
 		DisplayName:             *s.DisplayName,
 		CIDRBlock:               *s.CidrBlock,

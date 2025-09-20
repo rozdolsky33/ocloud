@@ -1,6 +1,8 @@
 package subnet
 
-import "github.com/rozdolsky33/ocloud/internal/domain"
+import (
+	"github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
+)
 
 // Subnet is an alias to the domain model.
-type Subnet = domain.Subnet
+type Subnet = vcn.Subnet
