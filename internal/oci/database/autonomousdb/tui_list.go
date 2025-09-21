@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	domain "github.com/rozdolsky33/ocloud/internal/domain/database"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 // NewDatabaseListModel builds a TUI list for ADBs.
-func NewDatabaseListModel(adbs []domain.AutonomousDatabase) listx.Model {
-	return listx.NewModel("Autonomous Databases", adbs, func(adb domain.AutonomousDatabase) listx.ResourceItemData {
-		return listx.ResourceItemData{
+func NewDatabaseListModel(adbs []domain.AutonomousDatabase) tui.Model {
+	return tui.NewModel("Autonomous Databases", adbs, func(adb domain.AutonomousDatabase) tui.ResourceItemData {
+		return tui.ResourceItemData{
 			ID:          adb.ID,
 			Title:       adb.Name,
 			Description: describeAutonomousDatabase(adb),

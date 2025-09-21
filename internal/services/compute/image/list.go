@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociImage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 // ListImages lists all images in the given compartment, allowing the user to select one via a TUI and display its details.
@@ -28,9 +28,9 @@ func ListImages(ctx context.Context, appCtx *app.ApplicationContext, useJSON boo
 
 	// TUI
 	model := ociImage.NewImageListModel(images)
-	id, err := listx.Run(model)
+	id, err := tui.Run(model)
 	if err != nil {
-		if errors.Is(err, listx.ErrCancelled) {
+		if errors.Is(err, tui.ErrCancelled) {
 			return nil
 		}
 		return fmt.Errorf("selecting image: %w", err)

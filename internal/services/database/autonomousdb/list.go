@@ -7,7 +7,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 // ListAutonomousDatabases lists all Autonomous Databases in the application context.
@@ -26,9 +26,9 @@ func ListAutonomousDatabases(appCtx *app.ApplicationContext, useJSON bool) error
 
 	//TUI
 	model := ociadb.NewDatabaseListModel(allDatabases)
-	id, err := listx.Run(model)
+	id, err := tui.Run(model)
 	if err != nil {
-		if errors.Is(err, listx.ErrCancelled) {
+		if errors.Is(err, tui.ErrCancelled) {
 			return nil
 		}
 		return fmt.Errorf("selecting database: %w", err)

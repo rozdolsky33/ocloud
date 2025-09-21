@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ocivcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
@@ -27,9 +27,9 @@ func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets, nsgs, 
 	}
 
 	model := ocivcn.NewVCNListModel(vcns)
-	id, err := listx.Run(model)
+	id, err := tui.Run(model)
 	if err != nil {
-		if errors.Is(err, listx.ErrCancelled) {
+		if errors.Is(err, tui.ErrCancelled) {
 			return nil
 		}
 		return fmt.Errorf("listing vcn: %w", err)

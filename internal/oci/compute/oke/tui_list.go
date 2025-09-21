@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	domain "github.com/rozdolsky33/ocloud/internal/domain/compute"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 // NewImageListModel builds a TUI list for images.
-func NewImageListModel(cluster []domain.Cluster) listx.Model {
-	return listx.NewModel("Oracle Kubernetes Engine", cluster, func(c domain.Cluster) listx.ResourceItemData {
-		return listx.ResourceItemData{
+func NewImageListModel(cluster []domain.Cluster) tui.Model {
+	return tui.NewModel("Oracle Kubernetes Engine", cluster, func(c domain.Cluster) tui.ResourceItemData {
+		return tui.ResourceItemData{
 			ID:          c.OCID,
 			Title:       c.DisplayName,
 			Description: description(c),

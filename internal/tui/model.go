@@ -1,4 +1,4 @@
-package listx
+package tui
 
 import (
 	"github.com/charmbracelet/bubbles/key"
