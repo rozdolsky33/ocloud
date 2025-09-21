@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
-	vcn2 "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 )
 
 // Adapter provides access to VCN-related OCI APIs.
@@ -20,20 +20,19 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }
 
-// GetVcn retrieves a single VCN by its OCID.
-func (a *Adapter) GetVcn(ctx context.Context, vcnID string) (*vcn2.VCN, error) {
+func (a *Adapter) GetEnrichedVcn(ctx context.Context, vcnID string) (domain.VCN, error) {
 	resp, err := a.client.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
 	if err != nil {
-		return nil, fmt.Errorf("getting VCN from OCI: %w", err)
+		return domain.VCN{}, fmt.Errorf("getting VCN from OCI: %w", err)
 	}
 	m := toDomainVCNModel(resp.Vcn)
-	return &m, nil
+	return m, nil
 }
 
 // ListVcns lists all VCNs in a given compartment.
-func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]vcn2.VCN, error) {
+func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
 	req := core.ListVcnsRequest{CompartmentId: &compartmentID}
-	var out []vcn2.VCN
+	var out []domain.VCN
 	for {
 		resp, err := a.client.ListVcns(ctx, req)
 		if err != nil {
@@ -51,7 +50,7 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]vcn2.VC
 }
 
 // ListEnrichedVcns lists VCNs and enriches them with all related resources in parallel.
-func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]vcn2.VCN, error) {
+func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([]domain.VCN, error) {
 	vcns, err := a.ListVcns(ctx, compartmentID)
 	if err != nil {
 		return nil, err
@@ -134,8 +133,8 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 	return vcns, nil
 }
 
-func toDomainVCNModel(v core.Vcn) vcn2.VCN {
-	return vcn2.VCN{
+func toDomainVCNModel(v core.Vcn) domain.VCN {
+	return domain.VCN{
 		OCID:           *v.Id,
 		DisplayName:    *v.DisplayName,
 		LifecycleState: string(v.LifecycleState),
@@ -160,126 +159,126 @@ func cloneStrings(in []string) []string {
 	return out
 }
 
-func (a *Adapter) ListInternetGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+func (a *Adapter) ListInternetGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListInternetGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListInternetGateways(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var gateways []vcn2.Gateway
+	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Internet"})
+		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Internet"})
 	}
 	return gateways, nil
 }
 
-func (a *Adapter) ListNatGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+func (a *Adapter) ListNatGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListNatGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListNatGateways(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var gateways []vcn2.Gateway
+	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "NAT"})
+		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "NAT"})
 	}
 	return gateways, nil
 }
 
-func (a *Adapter) ListServiceGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+func (a *Adapter) ListServiceGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListServiceGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListServiceGateways(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var gateways []vcn2.Gateway
+	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Service"})
+		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Service"})
 	}
 	return gateways, nil
 }
 
-func (a *Adapter) ListLocalPeeringGateways(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+func (a *Adapter) ListLocalPeeringGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListLocalPeeringGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListLocalPeeringGateways(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var gateways []vcn2.Gateway
+	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Local Peering"})
+		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Local Peering"})
 	}
 	return gateways, nil
 }
 
-func (a *Adapter) ListDrgAttachments(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Gateway, error) {
+func (a *Adapter) ListDrgAttachments(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListDrgAttachmentsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListDrgAttachments(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var gateways []vcn2.Gateway
+	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, vcn2.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "DRG"})
+		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "DRG"})
 	}
 	return gateways, nil
 }
 
-func (a *Adapter) ListRouteTables(ctx context.Context, compartmentID, vcnID string) ([]vcn2.RouteTable, error) {
+func (a *Adapter) ListRouteTables(ctx context.Context, compartmentID, vcnID string) ([]domain.RouteTable, error) {
 	req := core.ListRouteTablesRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListRouteTables(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var rts []vcn2.RouteTable
+	var rts []domain.RouteTable
 	for _, item := range resp.Items {
-		rts = append(rts, vcn2.RouteTable{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+		rts = append(rts, domain.RouteTable{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
 	}
 	return rts, nil
 }
 
-func (a *Adapter) ListSecurityLists(ctx context.Context, compartmentID, vcnID string) ([]vcn2.SecurityList, error) {
+func (a *Adapter) ListSecurityLists(ctx context.Context, compartmentID, vcnID string) ([]domain.SecurityList, error) {
 	req := core.ListSecurityListsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListSecurityLists(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var sls []vcn2.SecurityList
+	var sls []domain.SecurityList
 	for _, item := range resp.Items {
-		sls = append(sls, vcn2.SecurityList{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+		sls = append(sls, domain.SecurityList{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
 	}
 	return sls, nil
 }
 
-func (a *Adapter) ListNetworkSecurityGroups(ctx context.Context, compartmentID, vcnID string) ([]vcn2.NSG, error) {
+func (a *Adapter) ListNetworkSecurityGroups(ctx context.Context, compartmentID, vcnID string) ([]domain.NSG, error) {
 	req := core.ListNetworkSecurityGroupsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListNetworkSecurityGroups(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var nsgs []vcn2.NSG
+	var nsgs []domain.NSG
 	for _, item := range resp.Items {
-		nsgs = append(nsgs, vcn2.NSG{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+		nsgs = append(nsgs, domain.NSG{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
 	}
 	return nsgs, nil
 }
 
-func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (vcn2.DhcpOptions, error) {
+func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.DhcpOptions, error) {
 	req := core.GetDhcpOptionsRequest{DhcpId: &dhcpID}
 	resp, err := a.client.GetDhcpOptions(ctx, req)
 	if err != nil {
-		return vcn2.DhcpOptions{}, err
+		return domain.DhcpOptions{}, err
 	}
-	return vcn2.DhcpOptions{OCID: *resp.Id, DisplayName: *resp.DisplayName, LifecycleState: string(resp.LifecycleState), DomainNameType: ""}, nil
+	return domain.DhcpOptions{OCID: *resp.Id, DisplayName: *resp.DisplayName, LifecycleState: string(resp.LifecycleState), DomainNameType: ""}, nil
 }
 
-func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) ([]vcn2.Subnet, error) {
+func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) ([]domain.Subnet, error) {
 	req := core.ListSubnetsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
 	resp, err := a.client.ListSubnets(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	var subnets []vcn2.Subnet
+	var subnets []domain.Subnet
 	for _, item := range resp.Items {
 		var id, name, cidr, rtID string
 		if item.Id != nil {
@@ -299,8 +298,7 @@ func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) 
 		if item.SecurityListIds != nil {
 			slIDs = item.SecurityListIds
 		}
-		// NSG IDs per subnet are not available in this SDK version; will rely on VCN-level NSG list for display fallback
-		subnets = append(subnets, vcn2.Subnet{OCID: id, DisplayName: name, LifecycleState: string(item.LifecycleState), CidrBlock: cidr, Public: public, RouteTableID: rtID, SecurityListIDs: slIDs})
+		subnets = append(subnets, domain.Subnet{OCID: id, DisplayName: name, LifecycleState: string(item.LifecycleState), CidrBlock: cidr, Public: public, RouteTableID: rtID, SecurityListIDs: slIDs})
 	}
 	return subnets, nil
 }

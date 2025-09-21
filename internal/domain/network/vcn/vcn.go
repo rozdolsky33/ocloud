@@ -28,7 +28,7 @@ type VCN struct {
 }
 
 type VCNRepository interface {
-	GetVcn(ctx context.Context, ocid string) (*VCN, error)
+	GetEnrichedVcn(ctx context.Context, ocid string) (VCN, error)
 	ListVcns(ctx context.Context, compartmentID string) ([]VCN, error)
 	ListEnrichedVcns(ctx context.Context, compartmentID string) ([]VCN, error)
 }
