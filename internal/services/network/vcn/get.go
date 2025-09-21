@@ -6,7 +6,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ociVcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
+	ocivcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -18,7 +18,7 @@ func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON, gateways,
 		return fmt.Errorf("creating network client: %w", err)
 	}
 
-	adapter := ociVcn.NewAdapter(networkClient)
+	adapter := ocivcn.NewAdapter(networkClient)
 	service := NewService(adapter, appCtx.Logger, appCtx.CompartmentID)
 
 	vcns, totalCount, nextPageToken, err := service.FetchPaginatedVCNs(ctx, limit, page)

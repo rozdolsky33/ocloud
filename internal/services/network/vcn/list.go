@@ -7,7 +7,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
-	ociVcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
+	ocivcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/tui/listx"
 )
 
@@ -18,7 +18,7 @@ func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets, nsgs, 
 		return fmt.Errorf("creating network client: %w", err)
 	}
 
-	adapter := ociVcn.NewAdapter(networkClient)
+	adapter := ocivcn.NewAdapter(networkClient)
 	service := NewService(adapter, appCtx.Logger, appCtx.CompartmentID)
 
 	vcns, err := service.ListVcns(ctx)
@@ -26,7 +26,7 @@ func ListVCNs(appCtx *app.ApplicationContext, useJSON, gateways, subnets, nsgs, 
 		return fmt.Errorf("getting vcn: %w", err)
 	}
 
-	model := ociVcn.NewVCNListModel(vcns)
+	model := ocivcn.NewVCNListModel(vcns)
 	id, err := listx.Run(model)
 	if err != nil {
 		if errors.Is(err, listx.ErrCancelled) {
