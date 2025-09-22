@@ -144,7 +144,6 @@ func printSubnets(p *printer.Printer, v domain.VCN) {
 		return
 	}
 	headers := []string{"Name", "CIDR", "Publicity", "Route Table", "SecLists"}
-	// Use non-truncating table to ensure full information is visible
 	p.PrintTableNoTruncate("Subnets", headers, toSubnetRows(v))
 }
 
@@ -173,7 +172,6 @@ func printSecurityLists(p *printer.Printer, sls []domain.SecurityList) {
 }
 
 func toGatewayRows(gateways []domain.Gateway) [][]string {
-	// Group gateways by type and format details without OCIDs
 	var (
 		internet []string
 		nat      []string

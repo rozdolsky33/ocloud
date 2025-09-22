@@ -102,10 +102,10 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 
 func (a *Adapter) enrichVCN(ctx context.Context, vcn *domain.VCN) error {
 	var wg sync.WaitGroup
-	errCh := make(chan error, 9)
+	errCh := make(chan error, 10)
 	var mutex sync.Mutex
 
-	wg.Add(9)
+	wg.Add(10)
 	go func() {
 		defer wg.Done()
 		gateways, err := a.listInternetGateways(ctx, vcn.CompartmentID, vcn.OCID)
@@ -215,32 +215,6 @@ func (a *Adapter) enrichVCN(ctx context.Context, vcn *domain.VCN) error {
 	}
 
 	return nil
-}
-
-func toDomainVCNModel(v core.Vcn) domain.VCN {
-	return domain.VCN{
-		OCID:           *v.Id,
-		DisplayName:    *v.DisplayName,
-		LifecycleState: string(v.LifecycleState),
-		CompartmentID:  *v.CompartmentId,
-		DnsLabel:       *v.DnsLabel,
-		DomainName:     *v.VcnDomainName,
-		CidrBlocks:     cloneStrings(v.CidrBlocks),
-		Ipv6Enabled:    len(v.Ipv6CidrBlocks) > 0,
-		DhcpOptionsID:  *v.DefaultDhcpOptionsId,
-		TimeCreated:    v.TimeCreated.Time,
-		FreeformTags:   v.FreeformTags,
-		DefinedTags:    v.DefinedTags,
-	}
-}
-
-func cloneStrings(in []string) []string {
-	if in == nil {
-		return nil
-	}
-	out := make([]string, len(in))
-	copy(out, in)
-	return out
 }
 
 func (a *Adapter) listInternetGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
@@ -461,4 +435,30 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 		return err
 	}
 	return nil
+}
+
+func toDomainVCNModel(v core.Vcn) domain.VCN {
+	return domain.VCN{
+		OCID:           *v.Id,
+		DisplayName:    *v.DisplayName,
+		LifecycleState: string(v.LifecycleState),
+		CompartmentID:  *v.CompartmentId,
+		DnsLabel:       *v.DnsLabel,
+		DomainName:     *v.VcnDomainName,
+		CidrBlocks:     cloneStrings(v.CidrBlocks),
+		Ipv6Enabled:    len(v.Ipv6CidrBlocks) > 0,
+		DhcpOptionsID:  *v.DefaultDhcpOptionsId,
+		TimeCreated:    v.TimeCreated.Time,
+		FreeformTags:   v.FreeformTags,
+		DefinedTags:    v.DefinedTags,
+	}
+}
+
+func cloneStrings(in []string) []string {
+	if in == nil {
+		return nil
+	}
+	out := make([]string, len(in))
+	copy(out, in)
+	return out
 }
