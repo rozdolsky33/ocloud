@@ -3,10 +3,19 @@ package vcn
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
+	"time"
 
+	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
+)
+
+const (
+	defaultMaxRetries     = 5
+	defaultInitialBackoff = 1 * time.Second
+	defaultMaxBackoff     = 32 * time.Second
 )
 
 // Adapter provides access to VCN-related OCI APIs.
@@ -21,7 +30,12 @@ func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 }
 
 func (a *Adapter) GetEnrichedVcn(ctx context.Context, vcnID string) (domain.VCN, error) {
-	resp, err := a.client.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
+	var resp core.GetVcnResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.GetVcn(ctx, core.GetVcnRequest{VcnId: &vcnID})
+		return e
+	})
 	if err != nil {
 		return domain.VCN{}, fmt.Errorf("getting VCN from OCI: %w", err)
 	}
@@ -34,7 +48,12 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.
 	req := core.ListVcnsRequest{CompartmentId: &compartmentID}
 	var out []domain.VCN
 	for {
-		resp, err := a.client.ListVcns(ctx, req)
+		var resp core.ListVcnsResponse
+		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			resp, e = a.client.ListVcns(ctx, req)
+			return e
+		})
 		if err != nil {
 			return nil, fmt.Errorf("listing VCNs from OCI: %w", err)
 		}
@@ -57,66 +76,14 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 	}
 
 	var wg sync.WaitGroup
-	errCh := make(chan error, len(vcns)*4)
+	errCh := make(chan error, len(vcns))
 
 	for i := range vcns {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			// Gateways
-			vcns[i].Gateways, err = a.ListInternetGateways(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
+			if err := a.enrichVCN(ctx, &vcns[i]); err != nil {
 				errCh <- err
-			}
-			nats, err := a.ListNatGateways(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-			vcns[i].Gateways = append(vcns[i].Gateways, nats...)
-			sgws, err := a.ListServiceGateways(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-			vcns[i].Gateways = append(vcns[i].Gateways, sgws...)
-			lpgs, err := a.ListLocalPeeringGateways(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-			vcns[i].Gateways = append(vcns[i].Gateways, lpgs...)
-			drg, err := a.ListDrgAttachments(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-			vcns[i].Gateways = append(vcns[i].Gateways, drg...)
-
-			// Subnets
-			vcns[i].Subnets, err = a.ListSubnets(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-
-			// Route tables, Security lists, NSGs
-			vcns[i].RouteTables, err = a.ListRouteTables(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-			vcns[i].SecurityLists, err = a.ListSecurityLists(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-			vcns[i].NSGs, err = a.ListNetworkSecurityGroups(ctx, compartmentID, vcns[i].OCID)
-			if err != nil {
-				errCh <- err
-			}
-
-			// DHCP options (default for the VCN)
-			if vcns[i].DhcpOptionsID != "" {
-				dhcp, derr := a.GetDhcpOptions(ctx, vcns[i].DhcpOptionsID)
-				if derr != nil {
-					errCh <- derr
-				} else {
-					vcns[i].DhcpOptions = dhcp
-				}
 			}
 		}(i)
 	}
@@ -131,6 +98,123 @@ func (a *Adapter) ListEnrichedVcns(ctx context.Context, compartmentID string) ([
 	}
 
 	return vcns, nil
+}
+
+func (a *Adapter) enrichVCN(ctx context.Context, vcn *domain.VCN) error {
+	var wg sync.WaitGroup
+	errCh := make(chan error, 9)
+	var mutex sync.Mutex
+
+	wg.Add(9)
+	go func() {
+		defer wg.Done()
+		gateways, err := a.listInternetGateways(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		mutex.Lock()
+		vcn.Gateways = append(vcn.Gateways, gateways...)
+		mutex.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		nats, err := a.listNatGateways(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		mutex.Lock()
+		vcn.Gateways = append(vcn.Gateways, nats...)
+		mutex.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		sgws, err := a.listServiceGateways(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		mutex.Lock()
+		vcn.Gateways = append(vcn.Gateways, sgws...)
+		mutex.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		lpgs, err := a.listLocalPeeringGateways(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		mutex.Lock()
+		vcn.Gateways = append(vcn.Gateways, lpgs...)
+		mutex.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		drg, err := a.listDrgAttachments(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		mutex.Lock()
+		vcn.Gateways = append(vcn.Gateways, drg...)
+		mutex.Unlock()
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		vcn.Subnets, err = a.listSubnets(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		vcn.RouteTables, err = a.listRouteTables(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		vcn.SecurityLists, err = a.listSecurityLists(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		var err error
+		vcn.NSGs, err = a.listNetworkSecurityGroups(ctx, vcn.CompartmentID, vcn.OCID)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if vcn.DhcpOptionsID != "" {
+			dhcp, err := a.GetDhcpOptions(ctx, vcn.DhcpOptionsID)
+			if err != nil {
+				errCh <- err
+			} else {
+				vcn.DhcpOptions = dhcp
+			}
+		}
+	}()
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func toDomainVCNModel(v core.Vcn) domain.VCN {
@@ -159,9 +243,14 @@ func cloneStrings(in []string) []string {
 	return out
 }
 
-func (a *Adapter) ListInternetGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
+func (a *Adapter) listInternetGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListInternetGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListInternetGateways(ctx, req)
+	var resp core.ListInternetGatewaysResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListInternetGateways(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +261,14 @@ func (a *Adapter) ListInternetGateways(ctx context.Context, compartmentID, vcnID
 	return gateways, nil
 }
 
-func (a *Adapter) ListNatGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
+func (a *Adapter) listNatGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListNatGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListNatGateways(ctx, req)
+	var resp core.ListNatGatewaysResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListNatGateways(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -185,9 +279,14 @@ func (a *Adapter) ListNatGateways(ctx context.Context, compartmentID, vcnID stri
 	return gateways, nil
 }
 
-func (a *Adapter) ListServiceGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
+func (a *Adapter) listServiceGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListServiceGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListServiceGateways(ctx, req)
+	var resp core.ListServiceGatewaysResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListServiceGateways(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -198,9 +297,14 @@ func (a *Adapter) ListServiceGateways(ctx context.Context, compartmentID, vcnID 
 	return gateways, nil
 }
 
-func (a *Adapter) ListLocalPeeringGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
+func (a *Adapter) listLocalPeeringGateways(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListLocalPeeringGatewaysRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListLocalPeeringGateways(ctx, req)
+	var resp core.ListLocalPeeringGatewaysResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListLocalPeeringGateways(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -211,9 +315,14 @@ func (a *Adapter) ListLocalPeeringGateways(ctx context.Context, compartmentID, v
 	return gateways, nil
 }
 
-func (a *Adapter) ListDrgAttachments(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
+func (a *Adapter) listDrgAttachments(ctx context.Context, compartmentID, vcnID string) ([]domain.Gateway, error) {
 	req := core.ListDrgAttachmentsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListDrgAttachments(ctx, req)
+	var resp core.ListDrgAttachmentsResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListDrgAttachments(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -224,9 +333,14 @@ func (a *Adapter) ListDrgAttachments(ctx context.Context, compartmentID, vcnID s
 	return gateways, nil
 }
 
-func (a *Adapter) ListRouteTables(ctx context.Context, compartmentID, vcnID string) ([]domain.RouteTable, error) {
+func (a *Adapter) listRouteTables(ctx context.Context, compartmentID, vcnID string) ([]domain.RouteTable, error) {
 	req := core.ListRouteTablesRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListRouteTables(ctx, req)
+	var resp core.ListRouteTablesResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListRouteTables(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +351,14 @@ func (a *Adapter) ListRouteTables(ctx context.Context, compartmentID, vcnID stri
 	return rts, nil
 }
 
-func (a *Adapter) ListSecurityLists(ctx context.Context, compartmentID, vcnID string) ([]domain.SecurityList, error) {
+func (a *Adapter) listSecurityLists(ctx context.Context, compartmentID, vcnID string) ([]domain.SecurityList, error) {
 	req := core.ListSecurityListsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListSecurityLists(ctx, req)
+	var resp core.ListSecurityListsResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListSecurityLists(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -250,9 +369,14 @@ func (a *Adapter) ListSecurityLists(ctx context.Context, compartmentID, vcnID st
 	return sls, nil
 }
 
-func (a *Adapter) ListNetworkSecurityGroups(ctx context.Context, compartmentID, vcnID string) ([]domain.NSG, error) {
+func (a *Adapter) listNetworkSecurityGroups(ctx context.Context, compartmentID, vcnID string) ([]domain.NSG, error) {
 	req := core.ListNetworkSecurityGroupsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListNetworkSecurityGroups(ctx, req)
+	var resp core.ListNetworkSecurityGroupsResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListNetworkSecurityGroups(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -264,17 +388,26 @@ func (a *Adapter) ListNetworkSecurityGroups(ctx context.Context, compartmentID, 
 }
 
 func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.DhcpOptions, error) {
-	req := core.GetDhcpOptionsRequest{DhcpId: &dhcpID}
-	resp, err := a.client.GetDhcpOptions(ctx, req)
+	var resp core.GetDhcpOptionsResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.GetDhcpOptions(ctx, core.GetDhcpOptionsRequest{DhcpId: &dhcpID})
+		return e
+	})
 	if err != nil {
 		return domain.DhcpOptions{}, err
 	}
 	return domain.DhcpOptions{OCID: *resp.Id, DisplayName: *resp.DisplayName, LifecycleState: string(resp.LifecycleState), DomainNameType: ""}, nil
 }
 
-func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) ([]domain.Subnet, error) {
+func (a *Adapter) listSubnets(ctx context.Context, compartmentID, vcnID string) ([]domain.Subnet, error) {
 	req := core.ListSubnetsRequest{CompartmentId: &compartmentID, VcnId: &vcnID}
-	resp, err := a.client.ListSubnets(ctx, req)
+	var resp core.ListSubnetsResponse
+	err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.client.ListSubnets(ctx, req)
+		return e
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -301,4 +434,31 @@ func (a *Adapter) ListSubnets(ctx context.Context, compartmentID, vcnID string) 
 		subnets = append(subnets, domain.Subnet{OCID: id, DisplayName: name, LifecycleState: string(item.LifecycleState), CidrBlock: cidr, Public: public, RouteTableID: rtID, SecurityListIDs: slIDs})
 	}
 	return subnets, nil
+}
+
+// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.
+// It applies exponential backoff between retries and preserves the original behavior and error messages.
+func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
+	backoff := initialBackoff
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := op()
+		if err == nil {
+			return nil
+		}
+
+		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		return err
+	}
+	return nil
 }
