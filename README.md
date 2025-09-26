@@ -20,10 +20,6 @@ Whether you're managing instances, working with images, or need to quickly find 
 - Tenancy mapping for friendly tenancy and compartment names
 - Bastion session management: start/attach/terminate OCI Bastion sessions with reachability checks and an interactive SSH key picker (TUI)
 
-### What's New
-
-- Added bastion session management capabilities and interactive SSH key selection to the Identity > Bastion commands
-
 ## Installation
 
 OCloud can be installed in several ways:
@@ -85,7 +81,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: 36
+	      Version: v0.0.37
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -212,7 +208,7 @@ ocloud config info map-file --realm OC1
 |------|-------|-------------|
 | `--tenancy-id` | `-t` | OCI tenancy OCID |
 | `--tenancy-name` |  | Tenancy name |
-| `--log-level` |  | Set the log verbosity (debug, info, warn, error) |
+| `--log-level` |  | Set the log verbosity (e.g., info, debug) |
 | `--debug` | `-d` | Enable debug logging |
 | `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
@@ -231,6 +227,16 @@ ocloud config info map-file --realm OC1
 | `--tenancy-scope` | `-T`  | Shortcut to force tenancy-level scope; overrides `--scope` |
 | `--filter`      | `-f`  | Filter regions by prefix (e.g., us, eu, ap) |
 | `--realm`       | `-r`  | Filter by realm (e.g., OC1, OC2) |
+
+#### Network resource toggles (used by networking commands)
+
+| Flag                | Short | Description                                 |
+|---------------------|-------|---------------------------------------------|
+| `--gateway`         | `-G`  | Include/display internet/NAT gateways       |
+| `--subnet`          | `-S`  | Include/display subnets                     |
+| `--nsg`             | `-N`  | Include/display network security groups     |
+| `--route-table`     | `-R`  | Include/display route tables                |
+| `--security-list`   | `-L`  | Include/display security lists              |
 
 ### Scope Control (Identity commands)
 
@@ -251,6 +257,29 @@ ocloud identity compartment get -T              # same as above
 ocloud identity policy list --scope compartment # explicit compartment-level listing
 ocloud identity policy find prod -T             # tenancy-level search
 ```
+
+### Networking: VCN commands
+
+The network VCN group provides commands to get, find, and interactively list Virtual Cloud Networks in the configured compartment. You can include related networking resources using the network toggles shown above.
+
+Examples:
+
+- Get VCNs with pagination
+  - ocloud network vcn get
+  - ocloud network vcn get --limit 10 --page 2
+  - ocloud network vcn get -m 5 -p 3 -G -S -N -R -L -j
+
+- Find VCNs by name pattern
+  - ocloud network vcn find prod
+  - ocloud network vcn find prod --gateway --subnet --nsg --route-table --security-list
+  - ocloud network vcn find prod -G -S -N -R -L -j
+
+- Interactively list VCNs (TUI)
+  - ocloud network vcn list
+  - ocloud network vcn list -G -S -N -R -L
+  - Add --json (-j) to print the selected VCN as JSON after exiting the TUI
+
+Note: The list command launches an interactive terminal UI. If you quit without selecting an item, the command exits without error.
 
 ### Development Commands
 
@@ -279,7 +308,7 @@ The project includes a comprehensive test script `test_ocloud.sh` that tests all
 - Configuration commands (info, map-file, session)
 - Compute commands (instance, image, oke)
 - Identity commands (bastion, compartment, policy)
-- Network commands (subnet)
+- Network commands (subnet, vcn)
 - Database commands (autonomousdb)
 
 The script tests various flags and abbreviations for each command, following a consistent pattern throughout.
@@ -292,7 +321,7 @@ To run the test script:
 
 ## Tips
 
-- Interactive TUI lists (e.g., compute image list) support quitting with q/Esc/Ctrl+C. If you exit without selecting an item, the command will exit gracefully without an error.
+- Interactive TUI lists (e.g., network vcn list, database autonomous list, compute image list) support quitting with q/Esc/Ctrl+C. If you exit without selecting an item, the command will exit gracefully without an error.
 
 ## Error Handling
 
@@ -308,13 +337,3 @@ Tip: You can also enable colored log messages with `--color`.
 ## License
 
 This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
