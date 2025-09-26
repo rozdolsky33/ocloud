@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/compute"
 	"github.com/stretchr/testify/assert"
 )
 
 // mockClusterRepository is a mock implementation of the ClusterRepository for testing.
 type mockClusterRepository struct {
-	clusters []domain.Cluster
+	clusters []compute.Cluster
 	err      error
 }
 
@@ -21,7 +21,7 @@ func (m *mockClusterRepository) GetCluster(ctx context.Context, ocid string) (*C
 	panic("implement me")
 }
 
-func (m *mockClusterRepository) ListClusters(ctx context.Context, compartmentID string) ([]domain.Cluster, error) {
+func (m *mockClusterRepository) ListClusters(ctx context.Context, compartmentID string) ([]compute.Cluster, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -29,7 +29,7 @@ func (m *mockClusterRepository) ListClusters(ctx context.Context, compartmentID 
 }
 
 // GetClusters is required to satisfy the domain.ClusterRepository interface.
-func (m *mockClusterRepository) GetClusters(ctx context.Context, ocid string) ([]domain.Cluster, error) {
+func (m *mockClusterRepository) GetClusters(ctx context.Context, ocid string) ([]compute.Cluster, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -38,7 +38,7 @@ func (m *mockClusterRepository) GetClusters(ctx context.Context, ocid string) ([
 
 func TestService_Find(t *testing.T) {
 	mockRepo := &mockClusterRepository{
-		clusters: []domain.Cluster{
+		clusters: []compute.Cluster{
 			{DisplayName: "Test Cluster", KubernetesVersion: "v1.25.4"},
 			{DisplayName: "Another Cluster", KubernetesVersion: "v1.24.8"},
 		},
@@ -54,7 +54,7 @@ func TestService_Find(t *testing.T) {
 
 func TestService_List(t *testing.T) {
 	mockRepo := &mockClusterRepository{
-		clusters: []domain.Cluster{
+		clusters: []compute.Cluster{
 			{DisplayName: "Test Cluster"},
 			{DisplayName: "Another Cluster"},
 		},

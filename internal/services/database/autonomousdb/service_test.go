@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/database"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -17,32 +17,32 @@ type MockAutonomousDatabaseRepository struct {
 	mock.Mock
 }
 
-func (m *MockAutonomousDatabaseRepository) ListEnrichedAutonomousDatabase(ctx context.Context, compartmentID string) ([]domain.AutonomousDatabase, error) {
+func (m *MockAutonomousDatabaseRepository) ListEnrichedAutonomousDatabase(ctx context.Context, compartmentID string) ([]database.AutonomousDatabase, error) {
 	args := m.Called(ctx, compartmentID)
-	return args.Get(0).([]domain.AutonomousDatabase), args.Error(1)
+	return args.Get(0).([]database.AutonomousDatabase), args.Error(1)
 }
 
-func (m *MockAutonomousDatabaseRepository) GetAutonomousDatabase(ctx context.Context, ocid string) (*domain.AutonomousDatabase, error) {
+func (m *MockAutonomousDatabaseRepository) GetAutonomousDatabase(ctx context.Context, ocid string) (*database.AutonomousDatabase, error) {
 	args := m.Called(ctx, ocid)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.AutonomousDatabase), args.Error(1)
+	return args.Get(0).(*database.AutonomousDatabase), args.Error(1)
 }
 
 // ListAutonomousDatabases mocks the ListAutonomousDatabases method of domain.AutonomousDatabaseRepository
-func (m *MockAutonomousDatabaseRepository) ListAutonomousDatabases(ctx context.Context, compartmentID string) ([]domain.AutonomousDatabase, error) {
+func (m *MockAutonomousDatabaseRepository) ListAutonomousDatabases(ctx context.Context, compartmentID string) ([]database.AutonomousDatabase, error) {
 	args := m.Called(ctx, compartmentID)
-	return args.Get(0).([]domain.AutonomousDatabase), args.Error(1)
+	return args.Get(0).([]database.AutonomousDatabase), args.Error(1)
 }
 
 // FindAutonomousDatabase mocks the FindAutonomousDatabase method of domain.AutonomousDatabaseRepository
-func (m *MockAutonomousDatabaseRepository) FindAutonomousDatabase(ctx context.Context, compartmentID, name string) (*domain.AutonomousDatabase, error) {
+func (m *MockAutonomousDatabaseRepository) FindAutonomousDatabase(ctx context.Context, compartmentID, name string) (*database.AutonomousDatabase, error) {
 	args := m.Called(ctx, compartmentID, name)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*domain.AutonomousDatabase), args.Error(1)
+	return args.Get(0).(*database.AutonomousDatabase), args.Error(1)
 }
 
 // TestServiceStruct tests the basic structure of the Service struct
@@ -85,7 +85,7 @@ func TestList(t *testing.T) {
 	service := NewService(mockRepo, appCtx)
 	ctx := context.Background()
 
-	expectedDBs := []domain.AutonomousDatabase{
+	expectedDBs := []database.AutonomousDatabase{
 		{Name: "db1", ID: "ocid1.autonomousdatabase.oc1..aaaaaaaan"},
 		{Name: "db2", ID: "ocid1.autonomousdatabase.oc1..bbbbbbbbn"},
 		{Name: "db3", ID: "ocid1.autonomousdatabase.oc1..ccccccccn"},
@@ -117,8 +117,8 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test empty result
-	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, nil).Once()
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, nil).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]database.AutonomousDatabase{}, nil).Once()
+	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]database.AutonomousDatabase{}, nil).Once()
 	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 10, 1)
 
 	assert.NoError(t, err)
@@ -129,8 +129,8 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test error case
-	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
-	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]database.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
+	mockRepo.On("ListAutonomousDatabases", ctx, appCtx.CompartmentID).Return([]database.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
 	databases, totalCount, nextPageToken, err = service.FetchPaginatedAutonomousDb(ctx, 10, 1)
 
 	assert.Error(t, err)
@@ -152,7 +152,7 @@ func TestFind(t *testing.T) {
 	service := NewService(mockRepo, appCtx)
 	ctx := context.Background()
 
-	expectedDBs := []domain.AutonomousDatabase{
+	expectedDBs := []database.AutonomousDatabase{
 		{Name: "prod-db", ID: "ocid1.autonomousdatabase.oc1..aaaaaaaan"},
 		{Name: "test-db", ID: "ocid1.autonomousdatabase.oc1..bbbbbbbbn"},
 		{Name: "dev-db", ID: "ocid1.autonomousdatabase.oc1..ccccccccn"},
@@ -176,7 +176,7 @@ func TestFind(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 
 	// Test case: error from repository
-	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]domain.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
+	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]database.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
 	databases, err = service.Find(ctx, "test")
 
 	assert.Error(t, err)
@@ -188,7 +188,7 @@ func TestFind(t *testing.T) {
 // TestMapToIndexableDatabase tests the mapToIndexableDatabase function
 func TestMapToIndexableDatabase(t *testing.T) {
 	// Create a test database
-	db := domain.AutonomousDatabase{
+	db := database.AutonomousDatabase{
 		Name: "TestDatabase",
 		ID:   "ocid1.autonomousdatabase.oc1.phx.test",
 	}

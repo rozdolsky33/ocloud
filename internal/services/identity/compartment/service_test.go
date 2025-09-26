@@ -7,16 +7,17 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/identity"
 	"github.com/stretchr/testify/assert"
 )
 
 // mockCompartmentRepository is a mock implementation of the CompartmentRepository for testing.
 type mockCompartmentRepository struct {
-	compartments []domain.Compartment
+	compartments []identity.Compartment
 	err          error
 }
 
-func (m *mockCompartmentRepository) GetCompartment(ctx context.Context, ocid string) (*domain.Compartment, error) {
+func (m *mockCompartmentRepository) GetCompartment(ctx context.Context, ocid string) (*identity.Compartment, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -28,7 +29,7 @@ func (m *mockCompartmentRepository) GetCompartment(ctx context.Context, ocid str
 	return nil, domain.ErrNotFound
 }
 
-func (m *mockCompartmentRepository) ListCompartments(ctx context.Context, parentCompartmentID string) ([]domain.Compartment, error) {
+func (m *mockCompartmentRepository) ListCompartments(ctx context.Context, parentCompartmentID string) ([]identity.Compartment, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -37,7 +38,7 @@ func (m *mockCompartmentRepository) ListCompartments(ctx context.Context, parent
 
 func TestService_Find(t *testing.T) {
 	mockRepo := &mockCompartmentRepository{
-		compartments: []domain.Compartment{
+		compartments: []identity.Compartment{
 			{DisplayName: "Test Compartment", Description: "A test compartment"},
 			{DisplayName: "Another", Description: "Another one"},
 		},
@@ -53,7 +54,7 @@ func TestService_Find(t *testing.T) {
 
 func TestService_List(t *testing.T) {
 	mockRepo := &mockCompartmentRepository{
-		compartments: []domain.Compartment{
+		compartments: []identity.Compartment{
 			{DisplayName: "Test Compartment"},
 			{DisplayName: "Another"},
 		},

@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociOke "github.com/rozdolsky33/ocloud/internal/oci/compute/oke"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 // ListClusters lists all OKE clusters in the tenancy.
@@ -29,9 +29,9 @@ func ListClusters(appCtx *app.ApplicationContext, useJSON bool) error {
 
 	// TUI
 	model := ociOke.NewImageListModel(clusters)
-	id, err := listx.Run(model)
+	id, err := tui.Run(model)
 	if err != nil {
-		if errors.Is(err, listx.ErrCancelled) {
+		if errors.Is(err, tui.ErrCancelled) {
 			return nil
 		}
 		return fmt.Errorf("selecting image: %w", err)

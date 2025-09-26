@@ -57,6 +57,6 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running find command", "pattern", namePattern, "json", useJSON)
-	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
+	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)
 	return autonomousdb.FindAutonomousDatabases(appCtx, namePattern, useJSON, showAll)
 }

@@ -41,6 +41,6 @@ func TestListCommand(t *testing.T) {
 	assert.Equal(t, "sort", sortFlag.Name)
 	assert.Equal(t, "s", sortFlag.Shorthand)
 
-	// Note: The JSON flag is a global flag and is not directly added to the command in the get.go file.
+	// Note: The JSON flag is a global flag and is not directly added to the command in the gateway.go file.
 	// It's added at a higher level in the command hierarchy.
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/oci/identity/policy"
-	"github.com/rozdolsky33/ocloud/internal/tui/listx"
+	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
 // ListPolicies lists all policies in the specified compartment and prints their details in the specified format.
@@ -24,9 +24,9 @@ func ListPolicies(appCtx *app.ApplicationContext, useJSON bool, ocid string) err
 
 	//TUI
 	model := policy.NewPoliciesListModel(policies)
-	id, err := listx.Run(model)
+	id, err := tui.Run(model)
 	if err != nil {
-		if errors.Is(err, listx.ErrCancelled) {
+		if errors.Is(err, tui.ErrCancelled) {
 			return nil
 		}
 		return fmt.Errorf("selecting policy: %w", err)

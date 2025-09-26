@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/database"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
@@ -12,7 +12,7 @@ import (
 // PrintAutonomousDbInfo prints a single Autonomous DB.
 // - useJSON: if true, prints the single DB as JSON (no pagination envelope)
 // - showAll: if true, prints the detailed view; otherwise, prints the summary view
-func PrintAutonomousDbInfo(db *domain.AutonomousDatabase, appCtx *app.ApplicationContext, useJSON bool, showAll bool) error {
+func PrintAutonomousDbInfo(db *database.AutonomousDatabase, appCtx *app.ApplicationContext, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 	if useJSON {
 		return p.MarshalToJSON(db)
@@ -25,7 +25,7 @@ func PrintAutonomousDbInfo(db *domain.AutonomousDatabase, appCtx *app.Applicatio
 // - pagination: optional, will be adjusted and logged if provided
 // - useJSON: if true, prints databases with util.MarshalDataToJSONResponse
 // - showAll: if true, prints detailed view; otherwise summary view
-func PrintAutonomousDbsInfo(databases []domain.AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showAll bool) error {
+func PrintAutonomousDbsInfo(databases []database.AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -36,7 +36,7 @@ func PrintAutonomousDbsInfo(databases []domain.AutonomousDatabase, appCtx *app.A
 		if len(databases) == 0 && pagination == nil {
 			return p.MarshalToJSON(struct{}{})
 		}
-		return util.MarshalDataToJSONResponse[domain.AutonomousDatabase](p, databases, pagination)
+		return util.MarshalDataToJSONResponse[database.AutonomousDatabase](p, databases, pagination)
 	}
 
 	if util.ValidateAndReportEmpty(databases, pagination, appCtx.Stdout) {
@@ -53,7 +53,7 @@ func PrintAutonomousDbsInfo(databases []domain.AutonomousDatabase, appCtx *app.A
 	return nil
 }
 
-func printOneAutonomousDb(p *printer.Printer, appCtx *app.ApplicationContext, db *domain.AutonomousDatabase, showAll bool) error {
+func printOneAutonomousDb(p *printer.Printer, appCtx *app.ApplicationContext, db *database.AutonomousDatabase, showAll bool) error {
 	title := util.FormatColoredTitle(appCtx, db.Name)
 
 	// Prefer names to IDs when available

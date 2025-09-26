@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/identity"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -124,7 +124,7 @@ func TestFetchAllPolicies(t *testing.T) {
 // TestMapToIndexablePolicy tests the mapToIndexablePolicy function
 func TestMapToIndexablePolicy(t *testing.T) {
 	// Create a test policy
-	policy := domain.Policy{
+	policy := identity.Policy{
 		Name:        "TestPolicy",
 		ID:          "ocid1.policy.oc1.phx.test",
 		Description: "Test policy description",

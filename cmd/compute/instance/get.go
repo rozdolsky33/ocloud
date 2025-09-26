@@ -71,7 +71,7 @@ func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, instaceFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, instaceFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAllInformation, false)
+	imageDetails := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance get command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "imageDetails", imageDetails)
 	return instance.GetInstances(appCtx, useJSON, limit, page, imageDetails)
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/identity"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +14,7 @@ import (
 // TestPrintPolicyInfo tests the PrintPolicyInfo function
 func TestPrintPolicyInfo(t *testing.T) {
 	// Create test policies
-	policies := []domain.Policy{
+	policies := []identity.Policy{
 		{
 			Name:        "TestPolicy1",
 			ID:          "ocid1.policy.oc1.phx.test1",
@@ -89,7 +89,7 @@ func TestPrintPolicyInfo(t *testing.T) {
 // TestPrintPolicyInfoEmpty tests the PrintPolicyInfo function with empty policies
 func TestPrintPolicyInfoEmpty(t *testing.T) {
 	// Create an empty policies slice
-	policies := []domain.Policy{}
+	policies := []identity.Policy{}
 
 	// Create a buffer to capture the output
 	var buf bytes.Buffer
@@ -125,7 +125,7 @@ func TestPrintPolicyInfoEmpty(t *testing.T) {
 // TestPrintPolicyInfoWithPagination tests the PrintPolicyInfo function with pagination
 func TestPrintPolicyInfoWithPagination(t *testing.T) {
 	// Create test policies
-	policies := []domain.Policy{
+	policies := []identity.Policy{
 		{
 			Name:        "TestPolicy1",
 			ID:          "ocid1.policy.oc1.phx.test1",

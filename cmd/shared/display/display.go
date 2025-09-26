@@ -77,7 +77,7 @@ func CheckOCIAuthRefresherStatus() RefresherStatus {
 		}
 	}
 
-	pidFilePath := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, flags.OCIRefresherPIDFileName)
+	pidFilePath := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, flags.OCIRefresherPIDFile)
 
 	pidBytes, err := os.ReadFile(pidFilePath)
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/identity"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/identity"
 )
 
 // Adapter is an infrastructure-layer adapter that implements the domain.CompartmentRepository interface.

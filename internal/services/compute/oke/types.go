@@ -1,9 +1,11 @@
 package oke
 
-import "github.com/rozdolsky33/ocloud/internal/domain"
+import (
+	"github.com/rozdolsky33/ocloud/internal/domain/compute"
+)
 
 // Cluster is an alias to the domain model.
-type Cluster = domain.Cluster
+type Cluster = compute.Cluster
 
 // NodePool is an alias to the domain model.
-type NodePool = domain.NodePool
+type NodePool = compute.NodePool
