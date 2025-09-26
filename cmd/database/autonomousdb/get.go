@@ -27,16 +27,16 @@ Additional Information:
 
 // Examples for the list command
 var getExamples = `
-  # FetchPaginatedClusters all Autonomous Databases with default pagination (20 per page)
+  # Get all Autonomous Databases with default pagination (20 per page)
   ocloud database autonomous get
 
-  # FetchPaginatedClusters Autonomous Databases with custom pagination (10 per page, page 2)
+  # Get Autonomous Databases with custom pagination (10 per page, page 2)
   ocloud database autonomous get --limit 10 --page 2
 
-  # FetchPaginatedClusters Autonomous Databases and output in JSON format
+  # Get Autonomous Databases and output in JSON format
   ocloud database autonomous get --json
 
-  # FetchPaginatedClusters Autonomous Databases with custom pagination and JSON output
+  # Get Autonomous Databases with custom pagination and JSON output
   ocloud database autonomous get --limit 5 --page 3 --json
 `
 

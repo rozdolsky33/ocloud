@@ -1,24 +1,44 @@
 package vcn
 
 import (
+	networkFlags "github.com/rozdolsky33/ocloud/cmd/network/flags"
 	vcnFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	netvcn "github.com/rozdolsky33/ocloud/internal/services/network/vcn"
 	"github.com/spf13/cobra"
 )
 
 // Long description for the get command
 var getLong = `
-Display a VCN summary by OCID.
+Fetch VCNs in the specified compartment with pagination support.
 
-This command fetches a Virtual Cloud Network (VCN) by its OCID and prints a concise summary
-including name, state, compartment, CIDR blocks, DNS label/domain, DHCP options, creation time,
-and tags. Use --json to get the raw JSON output instead of the formatted summary.`
+This command retrieves Virtual Cloud Networks (VCNs) in the current compartment.
+By default, it shows basic information such as name, OCID, state, compartment, and CIDR blocks.
+
+The output is paginated. Control the number of VCNs per page with --limit (-m) and
+navigate pages using --page (-p).
+
+Additional Information:
+- Use --json (-j) to output the results in JSON format
+- Use flags to include related resources: gateways, subnets, NSGs, route tables, security lists
+`
 
 // Examples for the get command
 var getExamples = `
- `
+  # Get VCNs with default pagination
+  ocloud network vcn get
+
+  # Get VCNs with custom pagination (10 per page, page 2)
+  ocloud network vcn get --limit 10 --page 2
+
+  # Include related resources
+  ocloud network vcn get --gateway --subnet --nsg --route-table --security-list
+
+  # JSON output with short aliases
+  ocloud network vcn get -m 5 -p 3 -G -S -N -R -L -j
+`
 
 // NewGetCmd returns "vcn get" command.
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
@@ -34,12 +54,11 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().Bool("gateways", false, "Display gateways")
-	cmd.Flags().Bool("subnets", false, "Display subnets")
-	cmd.Flags().Bool("nsg", false, "Display network security groups")
-	cmd.Flags().Bool("route", false, "Display route tables")
-	cmd.Flags().Bool("security-list", false, "Display security lists")
-
+	networkFlags.Gateway.Add(cmd)
+	networkFlags.Subnet.Add(cmd)
+	networkFlags.Nsg.Add(cmd)
+	networkFlags.RouteTable.Add(cmd)
+	networkFlags.SecurityList.Add(cmd)
 	vcnFlags.LimitFlag.Add(cmd)
 	vcnFlags.PageFlag.Add(cmd)
 
@@ -51,12 +70,11 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, vcnFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, vcnFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-
-	gateways, _ := cmd.Flags().GetBool("gateways")
-	subnets, _ := cmd.Flags().GetBool("subnets")
-	nsgs, _ := cmd.Flags().GetBool("nsg")
-	routes, _ := cmd.Flags().GetBool("route")
-	securityLists, _ := cmd.Flags().GetBool("security-list")
-
+	gateways := flags.GetBoolFlag(cmd, flags.FlagNameGateway, false)
+	subnets := flags.GetBoolFlag(cmd, flags.FlagNameSubnet, false)
+	nsgs := flags.GetBoolFlag(cmd, flags.FlagNameNsg, false)
+	routes := flags.GetBoolFlag(cmd, flags.FlagNameRoute, false)
+	securityLists := flags.GetBoolFlag(cmd, flags.FlagNameSecurity, false)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn get", "json", useJSON)
 	return netvcn.GetVCNs(appCtx, limit, page, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }

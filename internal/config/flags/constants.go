@@ -22,6 +22,22 @@ const (
 	FlagNameTenancyScope   = "tenancy-scope"
 )
 
+const (
+	FlagNameGateway  = "gateway"
+	FlagNameSubnet   = "subnet"
+	FlagNameNsg      = "nsg"
+	FlagNameRoute    = "route-table"
+	FlagNameSecurity = "security-list"
+)
+
+const (
+	FlagDescGateway  = "Display gateway information"
+	FlagDescSubnet   = "Display subnet information"
+	FlagDescNsg      = "Display network security group information"
+	FlagDescRoute    = "Display route table information"
+	FlagDescSecurity = "Display security list information"
+)
+
 // FlagShorthands defines single-character aliases for flags
 const (
 	FlagShortTenancyID      = "t"
@@ -37,6 +53,12 @@ const (
 	FlagShortFilter         = "f"
 	FlagShortAllInformation = "A"
 	FlagShortTenancyScope   = "T"
+	// Network feature toggles (avoid conflicts with common flags)
+	FlagShortGateway  = "G"
+	FlagShortSubnet   = "S"
+	FlagShortNsg      = "N"
+	FlagShortRoute    = "R"
+	FlagShortSecurity = "L"
 )
 
 // FlagDescriptions contains help text for flags
