@@ -40,6 +40,10 @@ func (a *Adapter) GetEnrichedVcn(ctx context.Context, vcnID string) (domain.VCN,
 		return domain.VCN{}, fmt.Errorf("getting VCN from OCI: %w", err)
 	}
 	m := toDomainVCNModel(resp.Vcn)
+
+	if e := a.enrichVCN(ctx, &m); e != nil {
+		return domain.VCN{}, e
+	}
 	return m, nil
 }
 

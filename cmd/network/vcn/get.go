@@ -36,8 +36,11 @@ var getExamples = `
   # Include related resources
   ocloud network vcn get --gateway --subnet --nsg --route-table --security-list
 
+  # Include all related resources at once
+  ocloud network vcn get --all
+
   # JSON output with short aliases
-  ocloud network vcn get -m 5 -p 3 -G -S -N -R -L -j
+  ocloud network vcn get -m 5 -p 3 -A -j
 `
 
 // NewGetCmd returns "vcn get" command.
@@ -59,6 +62,7 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	networkFlags.Nsg.Add(cmd)
 	networkFlags.RouteTable.Add(cmd)
 	networkFlags.SecurityList.Add(cmd)
+	vcnFlags.AllInfoFlag.Add(cmd)
 	vcnFlags.LimitFlag.Add(cmd)
 	vcnFlags.PageFlag.Add(cmd)
 
@@ -75,6 +79,10 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	nsgs := flags.GetBoolFlag(cmd, flags.FlagNameNsg, false)
 	routes := flags.GetBoolFlag(cmd, flags.FlagNameRoute, false)
 	securityLists := flags.GetBoolFlag(cmd, flags.FlagNameSecurity, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn get", "json", useJSON)
+	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)
+	if showAll {
+		gateways, subnets, nsgs, routes, securityLists = true, true, true, true, true
+	}
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn get", "json", useJSON, "all", showAll)
 	return netvcn.GetVCNs(appCtx, limit, page, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }

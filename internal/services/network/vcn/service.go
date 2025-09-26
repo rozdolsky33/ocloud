@@ -86,7 +86,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]VCN, error)
 		return nil, fmt.Errorf("building search index: %w", err)
 	}
 
-	fields := []string{"Name", "OCID"}
+	fields := []string{"Name", "OCID", "DNSLabel", "DomainName", "CidrBlocks", "TagText", "TagValues"}
 	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
 	if err != nil {
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
@@ -103,11 +103,22 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]VCN, error)
 
 // mapToIndexableVCN converts a domain.VCN to a struct suitable for indexing.
 func mapToIndexableVCN(v *VCN) any {
+	// Flatten tags for better search coverage
+	tagText, _ := util.FlattenTags(v.FreeformTags, v.DefinedTags)
+	tagValues, _ := util.ExtractTagValues(v.FreeformTags, v.DefinedTags)
 	return struct {
-		Name string
-		OCID string
+		Name       string
+		OCID       string
+		DNSLabel   string
+		DomainName string
+		TagText    string
+		TagValues  string
 	}{
-		Name: strings.ToLower(v.DisplayName),
-		OCID: strings.ToLower(v.OCID),
+		Name:       strings.ToLower(v.DisplayName),
+		OCID:       strings.ToLower(v.OCID),
+		DNSLabel:   strings.ToLower(v.DnsLabel),
+		DomainName: strings.ToLower(v.DomainName),
+		TagText:    tagText,
+		TagValues:  tagValues,
 	}
 }

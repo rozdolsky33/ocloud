@@ -220,7 +220,7 @@ ocloud config info map-file --realm OC1
 | Flag            | Short | Description |
 |-----------------|-------|-------------|
 | `--json`        | `-j`  | Output information in JSON format |
-| `--all`         | `-A`  | Show all information |
+| `--all`         | `-A`  | Include all related info sections where applicable (e.g., for VCNs: gateways, subnets, NSGs, route tables, security lists) |
 | `--limit`       | `-m`  | Maximum number of records per page (default: 20) |
 | `--page`        | `-p`  | Page number to display (default: 1) |
 | `--scope`       |       | Listing/search scope for applicable commands: `compartment` (default) or `tenancy` |
@@ -260,26 +260,24 @@ ocloud identity policy find prod -T             # tenancy-level search
 
 ### Networking: VCN commands
 
-The network VCN group provides commands to get, find, and interactively list Virtual Cloud Networks in the configured compartment. You can include related networking resources using the network toggles shown above.
+The network VCN group provides commands to get and find Virtual Cloud Networks in the configured compartment. You can include related networking resources using the network toggles shown above or the --all (-A) flag to include everything at once.
 
 Examples:
 
 - Get VCNs with pagination
   - ocloud network vcn get
   - ocloud network vcn get --limit 10 --page 2
-  - ocloud network vcn get -m 5 -p 3 -G -S -N -R -L -j
+  - ocloud network vcn get -m 5 -p 3 --all
+  - ocloud network vcn get -m 5 -p 3 -A -j
 
 - Find VCNs by name pattern
   - ocloud network vcn find prod
-  - ocloud network vcn find prod --gateway --subnet --nsg --route-table --security-list
-  - ocloud network vcn find prod -G -S -N -R -L -j
+  - ocloud network vcn find prod --all
+  - ocloud network vcn find prod -A -j
 
-- Interactively list VCNs (TUI)
-  - ocloud network vcn list
-  - ocloud network vcn list -G -S -N -R -L
-  - Add --json (-j) to print the selected VCN as JSON after exiting the TUI
-
-Note: The list command launches an interactive terminal UI. If you quit without selecting an item, the command exits without error.
+Interactive list (TUI):
+- ocloud network vcn list
+  Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
 
 ### Development Commands
 

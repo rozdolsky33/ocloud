@@ -2,6 +2,7 @@ package vcn
 
 import (
 	networkFlags "github.com/rozdolsky33/ocloud/cmd/network/flags"
+	vcnFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	cfgflags "github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -28,11 +29,14 @@ var listExamples = `
   # Launch and include related network resources
   ocloud network vcn list --gateway --subnet --nsg --route-table --security-list
 
+  # Include all related resources at once
+  ocloud network vcn list --all
+
   # Output in JSON
   ocloud network vcn list --json
 
   # Using short aliases
-  ocloud network vcn list -G -S -N -R -L -j
+  ocloud network vcn list -A -j
 `
 
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
@@ -53,6 +57,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	networkFlags.Nsg.Add(cmd)
 	networkFlags.RouteTable.Add(cmd)
 	networkFlags.SecurityList.Add(cmd)
+	vcnFlags.AllInfoFlag.Add(cmd)
 
 	return cmd
 }
@@ -64,8 +69,13 @@ func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	nsgs := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameNsg, false)
 	routes := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameRoute, false)
 	securityLists := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameSecurity, false)
+	showAll := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameAll, false)
 
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn list", "json", useJSON)
+	if showAll {
+		gateways, subnets, nsgs, routes, securityLists = true, true, true, true, true
+	}
+
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running network vcn list", "json", useJSON, "all", showAll)
 
 	return netvcn.ListVCNs(appCtx, useJSON, gateways, subnets, nsgs, routes, securityLists)
 }
