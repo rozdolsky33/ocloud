@@ -1,27 +1,30 @@
-// Package flags define flag types and domain-specific flag collections for the CLI.
+// Package flags provide names, shorthands, descriptions, env keys, and defaults for the CLI.
 package flags
 
-// FlagNames defines the string constants for flag names
+// ============================================================================
+// Flag Names (common)
+// ============================================================================
 const (
-	FlagNameLogLevel       = "log-level"
-	FlagNameDebug          = "debug"
-	FlagNameTenancyID      = "tenancy-id"
-	FlagNameTenancyName    = "tenancy-name"
-	FlagNameCompartment    = "compartment"
-	FlagNameHelp           = "help"
-	FlagNameColor          = "color"
-	FlagNameLimit          = "limit"
-	FlagNamePage           = "page"
-	FlagNameJSON           = "json"
-	FlagNameVersion        = "version"
-	FlagNameAllInformation = "all"
-	FlagNameSort           = "sort"
-	FlagNameRealm          = "realm"
-	FlagNameFilter         = "filter"
-	FlagNameScope          = "scope"
-	FlagNameTenancyScope   = "tenancy-scope"
+	FlagNameLogLevel     = "log-level"
+	FlagNameDebug        = "debug"
+	FlagNameTenancyID    = "tenancy-id"
+	FlagNameTenancyName  = "tenancy-name"
+	FlagNameCompartment  = "compartment"
+	FlagNameHelp         = "help"
+	FlagNameColor        = "color"
+	FlagNameLimit        = "limit"
+	FlagNamePage         = "page"
+	FlagNameJSON         = "json"
+	FlagNameVersion      = "version"
+	FlagNameAll          = "all"
+	FlagNameSort         = "sort"
+	FlagNameRealm        = "realm"
+	FlagNameFilter       = "filter"
+	FlagNameScope        = "scope"
+	FlagNameTenancyScope = "tenancy-scope"
 )
 
+// Flag Names (network toggles)
 const (
 	FlagNameGateway  = "gateway"
 	FlagNameSubnet   = "subnet"
@@ -30,30 +33,26 @@ const (
 	FlagNameSecurity = "security-list"
 )
 
+// ============================================================================
+// Flag Shorthands
+// ============================================================================
 const (
-	FlagDescGateway  = "Display gateway information"
-	FlagDescSubnet   = "Display subnet information"
-	FlagDescNsg      = "Display network security group information"
-	FlagDescRoute    = "Display route table information"
-	FlagDescSecurity = "Display security list information"
-)
+	// Common
+	FlagShortTenancyID    = "t"
+	FlagShortCompartment  = "c"
+	FlagShortHelp         = "h"
+	FlagShortDebug        = "d"
+	FlagShortLimit        = "m"
+	FlagShortPage         = "p"
+	FlagShortJSON         = "j"
+	FlagShortVersion      = "v"
+	FlagShortSort         = "s"
+	FlagShortRealm        = "r"
+	FlagShortFilter       = "f"
+	FlagShortAll          = "A"
+	FlagShortTenancyScope = "T"
 
-// FlagShorthands defines single-character aliases for flags
-const (
-	FlagShortTenancyID      = "t"
-	FlagShortCompartment    = "c"
-	FlagShortHelp           = "h"
-	FlagShortDebug          = "d"
-	FlagShortLimit          = "m"
-	FlagShortPage           = "p"
-	FlagShortJSON           = "j"
-	FlagShortVersion        = "v"
-	FlagShortSort           = "s"
-	FlagShortRealm          = "r"
-	FlagShortFilter         = "f"
-	FlagShortAllInformation = "A"
-	FlagShortTenancyScope   = "T"
-	// Network feature toggles (avoid conflicts with common flags)
+	// Network toggles (avoid collisions with common flags)
 	FlagShortGateway  = "G"
 	FlagShortSubnet   = "S"
 	FlagShortNsg      = "N"
@@ -61,34 +60,48 @@ const (
 	FlagShortSecurity = "L"
 )
 
-// FlagDescriptions contains help text for flags
+// ============================================================================
+// Flag Descriptions
+// ============================================================================
 const (
-	FlagDescLogLevel       = "Set the log verbosity debug,"
-	FlagDescDebug          = "Enable debug logging"
-	FlagDescTenancyID      = "OCI tenancy OCID"
-	FlagDescTenancyName    = "Tenancy name"
-	FlagDescCompartment    = "OCI compartment name"
-	FlagDescHelp           = "help for ocloud (shorthand: -h)"
-	FlagDescLimit          = "Maximum number of records to display per page"
-	FlagDescPage           = "Page number to display"
-	FlagDescJSON           = "Output information in JSON format"
-	FlagDescVersion        = "Print the version number of ocloud CLI"
-	FlagDescSort           = "Sort results by field (name or cidr)"
-	FlagDescRealm          = "Filter by realm (e.g., OC1, OC2, OC2)"
-	FlagDescFilter         = "Filter regions by prefix (e.g., us, eu, ap)"
-	FlagDescAllInformation = "Show all information"
-	FlagDescScope          = "Listing scope: compartment or tenancy"
-	FlagDescTenancyScope   = "Shortcut: list at tenancy level (overrides --scope)"
+	// Common
+	FlagDescLogLevel     = "Set the log verbosity (e.g., info, debug)"
+	FlagDescDebug        = "Enable debug logging"
+	FlagDescTenancyID    = "OCI tenancy OCID"
+	FlagDescTenancyName  = "Tenancy name"
+	FlagDescCompartment  = "OCI compartment name or OCID"
+	FlagDescHelp         = "Show help"
+	FlagDescLimit        = "Maximum number of records to display per page"
+	FlagDescPage         = "Page number to display"
+	FlagDescJSON         = "Output information in JSON format"
+	FlagDescVersion      = "Print the ocloud CLI version"
+	FlagDescSort         = "Sort results by field (e.g., name, cidr)"
+	FlagDescRealm        = "Filter by realm (e.g., OC1, OC2, OC3)"
+	FlagDescFilter       = "Filter regions by prefix (e.g., us, eu, ap)"
+	FlagDescAll          = "Show all information"
+	FlagDescScope        = "Listing scope: compartment or tenancy"
+	FlagDescTenancyScope = "Shortcut: list at tenancy level (overrides --scope)"
+
+	// Network
+	FlagDescGateway  = "Display gateway information"
+	FlagDescSubnet   = "Display subnet information"
+	FlagDescNsg      = "Display network security group information"
+	FlagDescRoute    = "Display route table information"
+	FlagDescSecurity = "Display security list information"
 )
 
-// Flag values and defaults
+// ============================================================================
+// Flag Values / Special
+// ============================================================================
 const (
 	FlagValueTrue     = "true"
 	FlagValueInfo     = "info"
 	FlagValueHelpMode = "help-mode"
 )
 
-// Flag prefixes and special strings
+// ============================================================================
+// CLI Prefixes / Annotations (for parsing/help)
+// ============================================================================
 const (
 	FlagPrefixShortHelp    = "-h"
 	FlagPrefixLongHelp     = "--help"
@@ -97,10 +110,13 @@ const (
 	FlagPrefixShortDebug   = "-d"
 	FlagPrefixVersion      = "--version"
 	FlagPrefixShortVersion = "-v"
-	CobraAnnotationKey     = "cobra_annotation_flag_set_by_cobra"
+
+	CobraAnnotationKey = "cobra_annotation_flag_set_by_cobra"
 )
 
-// Environment variable keys
+// ============================================================================
+// Environment Keys
+// ============================================================================
 const (
 	EnvKeyProfile        = "OCI_CLI_PROFILE"
 	EnvKeyCLITenancy     = "OCI_CLI_TENANCY"
@@ -111,15 +127,17 @@ const (
 	EnvKeyTenancyMapPath = "OCI_TENANCY_MAP_PATH"
 )
 
-// File/system names & defaults
+// ============================================================================
+// Filenames / Defaults
+// ============================================================================
 const (
 	DefaultProfileName = "DEFAULT"
 
-	OCIConfigDirName        = ".oci"
-	OCIConfigFileName       = "config"
-	OCloudDefaultDirName    = ".ocloud"
-	OCloudScriptsDirName    = "scripts"
-	OCISessionsDirName      = "sessions"
-	TenancyMapFileName      = "tenancy-map.yaml"
-	OCIRefresherPIDFileName = "refresher.pid"
+	OCIConfigDirName     = ".oci"
+	OCIConfigFileName    = "config"
+	OCloudDefaultDirName = ".ocloud"
+	OCloudScriptsDirName = "scripts"
+	OCISessionsDirName   = "sessions"
+	TenancyMapFileName   = "tenancy-map.yaml"
+	OCIRefresherPIDFile  = "refresher.pid"
 )

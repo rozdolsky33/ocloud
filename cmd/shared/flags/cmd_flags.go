@@ -28,10 +28,10 @@ var (
 	}
 
 	AllInfoFlag = flags.BoolFlag{
-		Name:      flags.FlagNameAllInformation,
-		Shorthand: flags.FlagShortAllInformation,
+		Name:      flags.FlagNameAll,
+		Shorthand: flags.FlagShortAll,
 		Default:   false,
-		Usage:     flags.FlagDescAllInformation,
+		Usage:     flags.FlagDescAll,
 	}
 
 	ScopeFlag = flags.StringFlag{

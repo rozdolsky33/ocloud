@@ -205,6 +205,28 @@ run_command ./bin/ocloud network subnet find "pub" --json
 run_command ./bin/ocloud network subnet find "pub" -j
 run_command ./bin/ocloud net sub f "pub"
 
+# Test network vcn command
+print_header "Testing network vcn command"
+run_command ./bin/ocloud network vcn --help
+run_command ./bin/ocloud net vcn --help
+
+# Test network vcn get command (no interactive list)
+print_header "Testing network vcn get command"
+run_command ./bin/ocloud network vcn get
+run_command ./bin/ocloud network vcn get --limit 10 --page 1 --json
+run_command ./bin/ocloud network vcn get -m 10 -p 1 -j
+# with network-related flags
+run_command ./bin/ocloud network vcn get --gateway --subnet --nsg --route-table --security-list
+# with short aliases for flags
+run_command ./bin/ocloud network vcn get -G -S -N -R -L -j
+
+# Test network vcn find command
+print_header "Testing network vcn find command"
+run_command ./bin/ocloud network vcn find "prod"
+run_command ./bin/ocloud network vcn find "prod" --json
+run_command ./bin/ocloud network vcn find "prod" --gateway --subnet --nsg --route-table --security-list
+run_command ./bin/ocloud network vcn find "prod" -G -S -N -R -L -j
+
 # Test database command
 print_header "Testing database command"
 run_command ./bin/ocloud database --help

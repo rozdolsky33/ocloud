@@ -424,7 +424,7 @@ func (s *Service) runOCIAuthRefresher(profile string) error {
 	logger.LogWithLevel(logger.Logger, logger.Debug, "OCI auth refresher script started", "profile", profile, "pid", pid)
 	// Write refresher PID to a profile session
 	profileDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile)
-	pidFile := filepath.Join(profileDir, flags.OCIRefresherPIDFileName)
+	pidFile := filepath.Join(profileDir, flags.OCIRefresherPIDFile)
 	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(pid)), 0o644); err != nil {
 		return fmt.Errorf("failed to write OCI auth refresher script pid to file: %w", err)
 	}
