@@ -20,10 +20,6 @@ Whether you're managing instances, working with images, or need to quickly find 
 - Tenancy mapping for friendly tenancy and compartment names
 - Bastion session management: start/attach/terminate OCI Bastion sessions with reachability checks and an interactive SSH key picker (TUI)
 
-### What's New
-
-- Added bastion session management capabilities and interactive SSH key selection to the Identity > Bastion commands
-
 ## Installation
 
 OCloud can be installed in several ways:
@@ -85,7 +81,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: <current version>
+	      Version: v0.0.37
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -212,7 +208,7 @@ ocloud config info map-file --realm OC1
 |------|-------|-------------|
 | `--tenancy-id` | `-t` | OCI tenancy OCID |
 | `--tenancy-name` |  | Tenancy name |
-| `--log-level` |  | Set the log verbosity (debug, info, warn, error) |
+| `--log-level` |  | Set the log verbosity (e.g., info, debug) |
 | `--debug` | `-d` | Enable debug logging |
 | `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
@@ -221,14 +217,67 @@ ocloud config info map-file --realm OC1
 
 #### Command Flags
 
-| Flag      | Short | Description |
-|-----------|-------|-------------|
-| `--json`  | `-j`  | Output information in JSON format |
-| `--all`   | `-A`  | Show all information |
-| `--limit` | `-m`  | Maximum number of records per page (default: 20) |
-| `--page`  | `-p`  | Page number to display (default: 1) |
-| `--filter` | `-f` | Filter regions by prefix (e.g., us, eu, ap) |
-| `--realm` | `-r` | Filter by realm (e.g., OC1, OC2) |
+| Flag            | Short | Description |
+|-----------------|-------|-------------|
+| `--json`        | `-j`  | Output information in JSON format |
+| `--all`         | `-A`  | Include all related info sections where applicable (e.g., for VCNs: gateways, subnets, NSGs, route tables, security lists) |
+| `--limit`       | `-m`  | Maximum number of records per page (default: 20) |
+| `--page`        | `-p`  | Page number to display (default: 1) |
+| `--scope`       |       | Listing/search scope for applicable commands: `compartment` (default) or `tenancy` |
+| `--tenancy-scope` | `-T`  | Shortcut to force tenancy-level scope; overrides `--scope` |
+| `--filter`      | `-f`  | Filter regions by prefix (e.g., us, eu, ap) |
+| `--realm`       | `-r`  | Filter by realm (e.g., OC1, OC2) |
+
+#### Network resource toggles (used by networking commands)
+
+| Flag                | Short | Description                                 |
+|---------------------|-------|---------------------------------------------|
+| `--gateway`         | `-G`  | Include/display internet/NAT gateways       |
+| `--subnet`          | `-S`  | Include/display subnets                     |
+| `--nsg`             | `-N`  | Include/display network security groups     |
+| `--route-table`     | `-R`  | Include/display route tables                |
+| `--security-list`   | `-L`  | Include/display security lists              |
+
+### Scope Control (Identity commands)
+
+Some identity subcommands support scoping their operations to either the configured parent compartment or the whole tenancy.
+
+- --scope: Choose where to operate: "compartment" (default) or "tenancy".
+- -T/--tenancy-scope: Shortcut to force tenancy-level scope; it overrides --scope.
+
+Examples:
+
+```bash
+# Compartments
+ocloud identity compartment get                 # children of configured compartment (default)
+ocloud identity compartment get --scope tenancy # whole tenancy (includes subtree)
+ocloud identity compartment get -T              # same as above
+
+# Policies
+ocloud identity policy list --scope compartment # explicit compartment-level listing
+ocloud identity policy find prod -T             # tenancy-level search
+```
+
+### Networking: VCN commands
+
+The network VCN group provides commands to get and find Virtual Cloud Networks in the configured compartment. You can include related networking resources using the network toggles shown above or the --all (-A) flag to include everything at once.
+
+Examples:
+
+- Get VCNs with pagination
+  - ocloud network vcn get
+  - ocloud network vcn get --limit 10 --page 2
+  - ocloud network vcn get -m 5 -p 3 --all
+  - ocloud network vcn get -m 5 -p 3 -A -j
+
+- Find VCNs by name pattern
+  - ocloud network vcn find prod
+  - ocloud network vcn find prod --all
+  - ocloud network vcn find prod -A -j
+
+Interactive list (TUI):
+- ocloud network vcn list
+  Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
 
 ### Development Commands
 
@@ -257,7 +306,7 @@ The project includes a comprehensive test script `test_ocloud.sh` that tests all
 - Configuration commands (info, map-file, session)
 - Compute commands (instance, image, oke)
 - Identity commands (bastion, compartment, policy)
-- Network commands (subnet)
+- Network commands (subnet, vcn)
 - Database commands (autonomousdb)
 
 The script tests various flags and abbreviations for each command, following a consistent pattern throughout.
@@ -270,7 +319,7 @@ To run the test script:
 
 ## Tips
 
-- Interactive TUI lists (e.g., compute image list) support quitting with q/Esc/Ctrl+C. If you exit without selecting an item, the command will exit gracefully without an error.
+- Interactive TUI lists (e.g., network vcn list, database autonomous list, compute image list) support quitting with q/Esc/Ctrl+C. If you exit without selecting an item, the command will exit gracefully without an error.
 
 ## Error Handling
 
@@ -286,13 +335,3 @@ Tip: You can also enable colored log messages with `--color`.
 ## License
 
 This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request

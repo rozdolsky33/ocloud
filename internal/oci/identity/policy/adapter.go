@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v65/identity"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/identity"
 )
 
 type Adapter struct {

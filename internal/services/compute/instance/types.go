@@ -1,6 +1,8 @@
 package instance
 
-import "github.com/rozdolsky33/ocloud/internal/domain"
+import (
+	"github.com/rozdolsky33/ocloud/internal/domain/compute"
+)
 
 // Instance is an alias to the domain model.
-type Instance = domain.Instance
+type Instance = compute.Instance

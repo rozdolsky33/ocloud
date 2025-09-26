@@ -58,3 +58,12 @@ func SplitTextByMaxWidth(text string) []string {
 
 	return result
 }
+
+// FormatBool returns a consistent string representation for booleans used in table outputs.
+// It mirrors the style used elsewhere in the codebase (e.g., fmt with %t), yielding "true"/"false".
+func FormatBool(b bool) string {
+	if b {
+		return "Yes"
+	}
+	return "No"
+}

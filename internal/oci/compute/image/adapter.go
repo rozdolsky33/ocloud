@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/compute"
 )
 
 // Adapter is an infrastructure-layer adapter that implements the domain.ImageRepository interface.

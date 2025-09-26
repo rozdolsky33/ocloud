@@ -6,19 +6,19 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/compute"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
 // Service is the application-layer service for OKE operations.
 type Service struct {
-	clusterRepo   domain.ClusterRepository
+	clusterRepo   compute.ClusterRepository
 	logger        logr.Logger
 	compartmentID string
 }
 
 // NewService initializes a new Service instance.
-func NewService(repo domain.ClusterRepository, logger logr.Logger, compartmentID string) *Service {
+func NewService(repo compute.ClusterRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		clusterRepo:   repo,
 		logger:        logger,

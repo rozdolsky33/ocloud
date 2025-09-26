@@ -69,7 +69,7 @@ func addPlaceholderCommands(rootCmd *cobra.Command) {
 		{"compute", "Manage OCI compute services"},
 		{"identity", "Manage OCI identity services"},
 		{"database", "Manage OCI Database services"},
-		{"network", "Manage OCI networking services"},
+		{"network", "Manage OCI network services"},
 	}
 
 	for _, cmdType := range commandTypes {

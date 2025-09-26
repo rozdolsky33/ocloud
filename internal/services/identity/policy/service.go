@@ -6,19 +6,19 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"github.com/rozdolsky33/ocloud/internal/domain"
+	"github.com/rozdolsky33/ocloud/internal/domain/identity"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 type Service struct {
-	policyRepo    domain.PolicyRepository
+	policyRepo    identity.PolicyRepository
 	logger        logr.Logger
 	CompartmentID string
 }
 
 // NewService initializes a new Service instance with the provided application context.
-func NewService(repo domain.PolicyRepository, logger logr.Logger, ocid string) *Service {
+func NewService(repo identity.PolicyRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		policyRepo:    repo,
 		logger:        logger,
@@ -26,7 +26,7 @@ func NewService(repo domain.PolicyRepository, logger logr.Logger, ocid string) *
 	}
 }
 
-func (s *Service) FetchPaginatedPolies(ctx context.Context, limit, pageNum int) ([]domain.Policy, int, string, error) {
+func (s *Service) FetchPaginatedPolies(ctx context.Context, limit, pageNum int) ([]identity.Policy, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing policies", "limit", limit, "pageNum", pageNum)
 
 	allPolicies, err := s.policyRepo.ListPolicies(ctx, s.CompartmentID)
@@ -37,7 +37,7 @@ func (s *Service) FetchPaginatedPolies(ctx context.Context, limit, pageNum int) 
 	start := (pageNum - 1) * limit
 	end := start + limit
 	if start >= totalCount {
-		return []domain.Policy{}, totalCount, "", nil
+		return []identity.Policy{}, totalCount, "", nil
 	}
 	if end > totalCount {
 		end = totalCount
@@ -51,7 +51,7 @@ func (s *Service) FetchPaginatedPolies(ctx context.Context, limit, pageNum int) 
 	return pagedResults, totalCount, nextPageToken, nil
 }
 
-func (s *Service) ListPolicies(ctx context.Context) ([]domain.Policy, error) {
+func (s *Service) ListPolicies(ctx context.Context) ([]identity.Policy, error) {
 	s.logger.V(logger.Debug).Info("listing policies")
 	policies, err := s.policyRepo.ListPolicies(ctx, s.CompartmentID)
 	if err != nil {
@@ -61,9 +61,9 @@ func (s *Service) ListPolicies(ctx context.Context) ([]domain.Policy, error) {
 }
 
 // Find performs a fuzzy search for policies based on the provided searchPattern and returns matching policy.
-func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Policy, error) {
+func (s *Service) Find(ctx context.Context, searchPattern string) ([]identity.Policy, error) {
 	logger.LogWithLevel(s.logger, logger.Debug, "Finding Policies", "pattern", searchPattern)
-	var allPolicies []domain.Policy
+	var allPolicies []identity.Policy
 
 	// 1. Fetch all policies in the compartment
 	allPolicies, err := s.policyRepo.ListPolicies(ctx, s.CompartmentID)
@@ -72,7 +72,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Poli
 	}
 
 	// 2. Build index
-	index, err := util.BuildIndex(allPolicies, func(p domain.Policy) any {
+	index, err := util.BuildIndex(allPolicies, func(p identity.Policy) any {
 		return mapToIndexablePolicy(p)
 	})
 
@@ -87,7 +87,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Poli
 		return nil, fmt.Errorf("failed to fuzzy search index: %w", err)
 	}
 
-	var matchedPolicies []domain.Policy
+	var matchedPolicies []identity.Policy
 	for _, idx := range matchedIdxs {
 		if idx >= 0 && idx < len(allPolicies) {
 			matchedPolicies = append(matchedPolicies, allPolicies[idx])
@@ -99,7 +99,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]domain.Poli
 }
 
 // mapToIndexablePolicy transforms a Policy object into an IndexablePolicy object with indexed and searchable fields.
-func mapToIndexablePolicy(p domain.Policy) IndexablePolicy {
+func mapToIndexablePolicy(p identity.Policy) IndexablePolicy {
 	flattenedTags, _ := util.FlattenTags(p.FreeformTags, p.DefinedTags)
 	tagValues, _ := util.ExtractTagValues(p.FreeformTags, p.DefinedTags)
 	joinedStatements := strings.Join(p.Statement, " ") // Concatenate all the statements into one string for fuzzy search/indexing.
