@@ -11,7 +11,8 @@ import (
 )
 
 // ListPolicies lists all policies in the specified compartment and prints their details in the specified format.
-// It utilizes the application context for service initialization and handles output formatting via JSON or plain text.
+// ListPolicies lists available policies, presents them in an interactive TUI for selection, retrieves the selected policy, and prints it in either JSON or table form.
+// It uses appCtx to initialize service clients and logging. If the user cancels the TUI flow the function returns nil; on failures to list, select, or fetch a policy it returns a wrapped error.
 func ListPolicies(appCtx *app.ApplicationContext, useJSON bool, ocid string) error {
 	ctx := context.Background()
 	policyAdapter := policy.NewAdapter(appCtx.IdentityClient)

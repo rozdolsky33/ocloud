@@ -13,7 +13,7 @@ type Adapter struct {
 	client core.VirtualNetworkClient
 }
 
-// NewAdapter creates a new subnet adapter.
+// NewAdapter creates an Adapter that wraps the provided OCI VirtualNetworkClient for subnet operations.
 func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }

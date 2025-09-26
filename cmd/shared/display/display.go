@@ -57,7 +57,11 @@ type RefresherStatus struct {
 	Display   string
 }
 
-// CheckOCIAuthRefresherStatus checks if the OCI auth refresher script is running for the current profile
+// CheckOCIAuthRefresherStatus reports whether the OCI auth refresher process for the current profile is running and returns a RefresherStatus describing that state.
+// 
+// If the OCI profile environment variable is unset or the user's home directory cannot be determined, it returns an "OFF" status.
+// It inspects the refresher PID file located at ~/.oci/sessions/<profile>/<OCIRefresherPIDFile>, verifies the process exists and that it corresponds to the refresher for the profile, and removes the PID file if it is stale.
+// The returned RefresherStatus contains IsRunning, the PID when running, and a Display string formatted for output.
 func CheckOCIAuthRefresherStatus() RefresherStatus {
 	profile := os.Getenv(flags.EnvKeyProfile)
 	if profile == "" {

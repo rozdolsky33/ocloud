@@ -11,7 +11,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// ListImages lists all images in the given compartment, allowing the user to select one via a TUI and display its details.
+// ListImages lists images in the application's compartment, presents a TUI for the user to select an image, and prints the selected image's details.
+// It returns nil if the user cancels selection or after successfully printing the selected image; it returns a wrapped error when creating the compute client,
+// listing images, selecting an image, or retrieving the chosen image fails.
 func ListImages(ctx context.Context, appCtx *app.ApplicationContext, useJSON bool) error {
 	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {

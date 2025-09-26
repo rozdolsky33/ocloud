@@ -52,7 +52,8 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunFindCommand handles the execution of the find command
+// RunFindCommand runs the "find" command using the provided Cobra command and application context.
+// It triggers a search for Autonomous Databases matching the given pattern and returns any error encountered.
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)

@@ -17,7 +17,8 @@ type Service struct {
 	compartmentID string
 }
 
-// NewService initializes a new Service instance.
+// NewService creates a Service configured with the provided compute repository, logger, and compartment ID.
+// The returned Service uses the repository to access cluster data, the logger for structured logging, and the compartment ID to scope operations.
 func NewService(repo compute.ClusterRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		clusterRepo:   repo,

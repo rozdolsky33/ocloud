@@ -10,7 +10,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// ListAutonomousDatabases lists all Autonomous Databases in the application context.
+// ListAutonomousDatabases lists all Autonomous Databases and presents an interactive TUI for the user to select one.
+// It retrieves the selected database and prints its details; if the user cancels the selection the function returns nil.
+// It returns an error if listing databases, selecting (except cancellation), retrieving, or printing the database fails.
 func ListAutonomousDatabases(appCtx *app.ApplicationContext, useJSON bool) error {
 	ctx := context.Background()
 	autonomousDatabaseAdapter, err := ociadb.NewAdapter(appCtx.Provider)

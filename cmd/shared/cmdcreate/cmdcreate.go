@@ -60,7 +60,9 @@ func CreateRootCmdWithoutContext() *cobra.Command {
 }
 
 // addPlaceholderCommands adds placeholder commands that will be displayed in help
-// but will show a message about needing to initialize if they're actually run
+// addPlaceholderCommands adds placeholder subcommands to the provided root command.
+// Each placeholder (compute, identity, database, network) appears in help output but
+// returns an error stating the command requires application initialization if executed.
 func addPlaceholderCommands(rootCmd *cobra.Command) {
 	commandTypes := []struct {
 		use   string

@@ -19,7 +19,8 @@ type Service struct {
 	compartmentID string
 }
 
-// NewService initializes a new Service instance with the provided application context.
+// NewService creates a Service configured with the provided repository and application context.
+// The returned Service uses the application context's Logger and CompartmentID.
 func NewService(repo database.AutonomousDatabaseRepository, appCtx *app.ApplicationContext) *Service {
 	return &Service{
 		repo:          repo,
@@ -119,6 +120,8 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousD
 	return results, nil
 }
 
+// mapToIndexableDatabase converts a database.AutonomousDatabase into an IndexableAutonomousDatabase.
+// The returned value contains only the `Name` field, suitable for building search/index structures.
 func mapToIndexableDatabase(db database.AutonomousDatabase) IndexableAutonomousDatabase {
 	return IndexableAutonomousDatabase{
 		Name: db.Name,

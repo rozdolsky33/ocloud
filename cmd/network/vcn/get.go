@@ -43,7 +43,11 @@ var getExamples = `
   ocloud network vcn get -m 5 -p 3 -A -j
 `
 
-// NewGetCmd returns "vcn get" command.
+// NewGetCmd creates the "vcn get" Cobra command for fetching Virtual Cloud Networks (VCNs).
+// The command supports pagination and optional inclusion of related resources (gateways, subnets,
+// NSGs, route tables, security lists) and registers flags for those options as well as `--all`,
+// `--limit`, and `--page`. The command's execution is delegated to runGetCommand with the
+// provided application context.
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
@@ -69,7 +73,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunGetCommand executes the get logic
+// runGetCommand runs the "vcn get" command, reading flags for pagination, JSON output, and related-resource inclusion (or enabling all with --all), then invokes netvcn.GetVCNs.
+// It returns any error produced while retrieving or printing VCNs.
 func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, vcnFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, vcnFlags.FlagDefaultPage)

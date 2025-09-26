@@ -8,7 +8,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// NewDatabaseListModel builds a TUI list for ADBs.
+// NewDatabaseListModel creates a TUI model titled "Autonomous Databases" populated from the provided AutonomousDatabase slice.
+// The model maps each AutonomousDatabase to a tui.ResourceItemData containing the database ID, the Name as the title, and a human-readable description produced by describeAutonomousDatabase.
 func NewDatabaseListModel(adbs []domain.AutonomousDatabase) tui.Model {
 	return tui.NewModel("Autonomous Databases", adbs, func(adb domain.AutonomousDatabase) tui.ResourceItemData {
 		return tui.ResourceItemData{

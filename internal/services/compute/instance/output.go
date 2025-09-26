@@ -47,7 +47,11 @@ type Resources struct {
 	MemoryGB float32 `json:"MemoryGB"`
 }
 
-// PrintInstancesInfo displays instances in a formatted table or JSON format.
+// PrintInstancesInfo prints information about the provided compute instances to the application's stdout
+// either as a JSON array or as formatted key-value tables depending on the useJSON flag.
+// When useJSON is true, it emits a JSON array of InstanceOutput objects (pagination, if provided, is applied).
+// When useJSON is false, it prints each instance as an ordered set of key-value pairs and includes additional
+// image and network details when showImageDetails is true.
 func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showImageDetails bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -139,6 +143,10 @@ func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationCon
 	return nil
 }
 
+// PrintInstanceInfo prints details for a single compute instance to the application's stdout.
+// When useJSON is true it outputs a JSON representation; otherwise it prints ordered key/value fields.
+// If showDetails is true, additional image, placement, and networking fields are included.
+// Returns an error if the provided instance is nil or if JSON marshaling/printing fails.
 func PrintInstanceInfo(instance *compute.Instance, appCtx *app.ApplicationContext, useJSON bool, showDetails bool) error {
 	p := printer.New(appCtx.Stdout)
 

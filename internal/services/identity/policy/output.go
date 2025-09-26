@@ -8,7 +8,9 @@ import (
 )
 
 // PrintPolicyInfo prints the details of policies to the standard output or in JSON format.
-// If pagination info is provided, it adjusts and logs it.
+// PrintPolicyInfo prints a list of policies either as a JSON response or as colored key-value tables and logs pagination details.
+//
+// If pagination info is provided, it is adjusted before output. When `useJSON` is true, the function marshals the policies to JSON and returns any error from that operation. When not using JSON, it validates and reports empty results (returning early if empty), then prints each policy's Name, ID, and Description as a separate keyed table. Pagination information is logged before returning nil.
 func PrintPolicyInfo(policies []identity.Policy, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 
 	p := printer.New(appCtx.Stdout)
@@ -50,7 +52,8 @@ func PrintPolicyInfo(policies []identity.Policy, appCtx *app.ApplicationContext,
 	return nil
 }
 
-// PrintPolicyTable prints a detailed view of a policy.
+// PrintPolicyTable prints a detailed view of the given policy to the application's stdout.
+// If useJSON is true, it writes the policy as JSON and returns any marshalling error.
 func PrintPolicyTable(policy *identity.Policy, appCtx *app.ApplicationContext, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 	// If JSON output is requested, use the printer to marshal the response.

@@ -17,7 +17,8 @@ type Service struct {
 	CompartmentID string
 }
 
-// NewService initializes a new Service instance with the provided application context.
+// NewService creates a Service configured with the provided policy repository, logger, and compartment OCID.
+// The ocid parameter is the compartment OCID used for policy operations.
 func NewService(repo identity.PolicyRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		policyRepo:    repo,
@@ -98,7 +99,9 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]identity.Po
 	return matchedPolicies, nil
 }
 
-// mapToIndexablePolicy transforms a Policy object into an IndexablePolicy object with indexed and searchable fields.
+// mapToIndexablePolicy converts an identity.Policy into an IndexablePolicy suitable for indexing and fuzzy search.
+// It preserves the policy's Name and Description, concatenates the Statement slice into a single string, and
+// flattens/extracts tags into the Tags and TagValues fields.
 func mapToIndexablePolicy(p identity.Policy) IndexablePolicy {
 	flattenedTags, _ := util.FlattenTags(p.FreeformTags, p.DefinedTags)
 	tagValues, _ := util.ExtractTagValues(p.FreeformTags, p.DefinedTags)

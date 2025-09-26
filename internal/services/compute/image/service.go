@@ -18,7 +18,7 @@ type Service struct {
 	compartmentID string
 }
 
-// NewService initializes a new Service instance.
+// NewService creates a Service that orchestrates image-related operations using the provided image repository, logger, and compartment ID.
 func NewService(repo compute.ImageRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		imageRepo:     repo,
@@ -93,7 +93,9 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Image, erro
 	return results, nil
 }
 
-// mapToIndexableImage converts a domain.Image to a struct suitable for indexing.
+// mapToIndexableImage converts a compute.Image into an indexable representation.
+// The returned value is an anonymous struct with fields `Name`, `OperatingSystem`,
+// and `OperatingSystemVersion`, each lowercased for case-insensitive indexing.
 func mapToIndexableImage(img compute.Image) any {
 	return struct {
 		Name                   string

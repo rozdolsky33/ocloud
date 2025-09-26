@@ -18,7 +18,8 @@ type Service struct {
 	compartmentID string
 }
 
-// NewService initializes a new Service instance.
+// NewService creates a Service configured to manage instances using the provided repository and logger for the given compartment.
+// The compartmentID identifies the target compartment for instance operations.
 func NewService(repo compute.InstanceRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		instanceRepo:  repo,
@@ -110,7 +111,7 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Instance, e
 	return results, nil
 }
 
-// mapToIndexableInstance converts a domain.Instance to a struct suitable for indexing.
+// mapToIndexableInstance converts a compute.Instance into an anonymous struct containing Name, PrimaryIP, ImageName, and ImageOS; textual fields are lowercased for use in search indexing.
 func mapToIndexableInstance(inst compute.Instance) any {
 	return struct {
 		Name      string

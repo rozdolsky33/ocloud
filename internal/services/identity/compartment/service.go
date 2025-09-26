@@ -20,7 +20,7 @@ type Service struct {
 }
 
 // NewService initializes and returns a new Service instance.
-// It injects the domain repository, decoupling the service from the infrastructure layer.
+// NewService creates a Service configured with the given identity.CompartmentRepository, logger, and compartment OCID.
 func NewService(repo identity.CompartmentRepository, logger logr.Logger, ocid string) *Service {
 	return &Service{
 		compartmentRepo: repo,

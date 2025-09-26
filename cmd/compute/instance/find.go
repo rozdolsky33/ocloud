@@ -62,7 +62,9 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunFindCommand handles the execution of the find command
+// RunFindCommand executes the "find" CLI command using the provided Cobra command, arguments, and application context.
+// It reads the search pattern from args[0], obtains the --all and --json flag values, logs the invocation, and delegates the search to instance.FindInstances.
+// It returns any error produced by instance.FindInstances.
 func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	showDetails := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)

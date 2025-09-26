@@ -7,7 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewNetworkCmd creates a new cobra.Command for managing OCI network services such as vcn, subnets, load balancers and more
+// NewNetworkCmd creates a Cobra command for managing OCI network services such as VCNs, subnets, and related resources.
+// It configures the command (use "network", alias "net") and attaches the subnet and VCN subcommands before returning the constructed *cobra.Command.
 func NewNetworkCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "network",

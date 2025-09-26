@@ -101,7 +101,10 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]VCN, error)
 	return results, nil
 }
 
-// mapToIndexableVCN converts a domain.VCN to a struct suitable for indexing.
+// mapToIndexableVCN converts a VCN into a lowercased, flattened representation used for building a text search index.
+// The returned anonymous struct contains searchable fields: Name (lowercased DisplayName), OCID (lowercased OCID),
+// DNSLabel (lowercased DnsLabel), DomainName (lowercased DomainName), TagText (flattened tag text) and TagValues (flattened tag values).
+// Errors produced while flattening or extracting tag values are ignored.
 func mapToIndexableVCN(v *VCN) any {
 	// Flatten tags for better search coverage
 	tagText, _ := util.FlattenTags(v.FreeformTags, v.DefinedTags)

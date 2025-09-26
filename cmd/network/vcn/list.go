@@ -39,6 +39,8 @@ var listExamples = `
   ocloud network vcn list -A -j
 `
 
+// NewListCmd creates a Cobra command named "list" that lists VCNs in a compartment.
+// The returned command registers flags to include related network resources (gateway, subnet, NSG, route table, security list) and an all-info flag, silences usage/errors, and supports filtering and JSON output when executed.
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
@@ -62,6 +64,9 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
+// runListCommand reads VCN-related flags from the provided command to determine output format and which related resources
+// (gateways, subnets, NSGs, route tables, security lists) to include. If the `--all` flag is set, all related resources
+// are included. It performs the VCN listing operation and returns any error encountered.
 func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameJSON, false)
 	gateways := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameGateway, false)

@@ -10,6 +10,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
+// ListCompartments retrieves compartments for the given ocid, displays them in a TUI for user selection, and prints the selected compartment's details.
+// If the user cancels the selection, it returns nil. It returns an error if listing compartments, selecting a compartment (other than cancellation), or fetching the selected compartment fails.
 func ListCompartments(appCtx *app.ApplicationContext, ocid string, useJSON bool) error {
 	ctx := context.Background()
 	compartmentAdapter := compartment.NewCompartmentAdapter(appCtx.IdentityClient, ocid)

@@ -24,7 +24,7 @@ type Adapter struct {
 	client core.VirtualNetworkClient
 }
 
-// NewAdapter creates a new adapter instance.
+// NewAdapter creates a new Adapter that wraps the provided OCI VirtualNetworkClient.
 func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }
@@ -415,7 +415,12 @@ func (a *Adapter) listSubnets(ctx context.Context, compartmentID, vcnID string) 
 }
 
 // retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.
-// It applies exponential backoff between retries and preserves the original behavior and error messages.
+// retryOnRateLimit executes the provided operation and retries it on OCI HTTP 429 (Too Many Requests) responses.
+// 
+// On rate-limit errors the function will sleep with exponential backoff (starting at initialBackoff, doubling
+// each retry and capped by maxBackoff) and retry up to maxRetries attempts. If a non-rate-limit error occurs it
+// is returned immediately. If the operation still fails with rate-limit errors after maxRetries, the final error
+// is returned wrapped with a message indicating that the rate limit was exceeded.
 func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
 	backoff := initialBackoff
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -441,6 +446,10 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 	return nil
 }
 
+// toDomainVCNModel converts an OCI core.Vcn into a domain.VCN model.
+// It maps OCID, DisplayName, LifecycleState, CompartmentID, DnsLabel,
+// DomainName, CidrBlocks (copied), Ipv6Enabled (true when Ipv6CidrBlocks are present),
+// DhcpOptionsID, TimeCreated, FreeformTags, and DefinedTags.
 func toDomainVCNModel(v core.Vcn) domain.VCN {
 	return domain.VCN{
 		OCID:           *v.Id,
@@ -458,6 +467,8 @@ func toDomainVCNModel(v core.Vcn) domain.VCN {
 	}
 }
 
+// cloneStrings returns a shallow copy of the input string slice, or nil if the input is nil.
+// Modifying the returned slice does not affect the original slice.
 func cloneStrings(in []string) []string {
 	if in == nil {
 		return nil

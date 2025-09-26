@@ -33,6 +33,7 @@ var findExamples = `
   ocloud network vcn find prod -A -j
 `
 
+// The command requires exactly one positional pattern, registers flags for gateways, subnets, NSGs, route tables, security lists and an all-info option, and delegates execution to runFindCommand using the provided application context.
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find <pattern>",
@@ -55,6 +56,9 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
+// runFindCommand executes the VCN "find" command using the provided Cobra command, CLI arguments, and application context.
+// It reads the positional pattern and related flags (JSON output and which related resources to include; `--all` enables all),
+// logs the search parameters, and performs the VCN search, returning any error encountered.
 func runFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	pattern := args[0]
 	useJSON := cfgflags.GetBoolFlag(cmd, cfgflags.FlagNameJSON, false)

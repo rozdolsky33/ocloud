@@ -18,7 +18,7 @@ type Service struct {
 	compartmentID string
 }
 
-// NewService creates and initializes a new Service instance.
+// NewService creates a Service configured with the provided subnet repository, logger, and compartment ID.
 func NewService(repo subnet.SubnetRepository, logger logr.Logger, compartmentID string) *Service {
 	return &Service{
 		subnetRepo:    repo,
@@ -94,7 +94,8 @@ func (s *Service) Find(ctx context.Context, namePattern string) ([]subnet.Subnet
 	return matchedSubnets, nil
 }
 
-// mapToIndexableSubnets converts a domain.Subnet to a struct suitable for indexing.
+// mapToIndexableSubnets converts a subnet.Subnet into a plain struct used for indexing.
+// The returned struct has Name set to the subnet's DisplayName lowercased and CIDR set to the subnet's CidrBlock.
 func mapToIndexableSubnets(s subnet.Subnet) any {
 	return struct {
 		Name string

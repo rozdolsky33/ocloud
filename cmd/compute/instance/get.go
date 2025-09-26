@@ -66,7 +66,9 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunGetCommand handles the execution of the list command
+// RunGetCommand executes the instance "get" command using the provided Cobra command and application context.
+// cmd provides flag values for pagination, output format, and detail inclusion; appCtx supplies runtime context for the request.
+// It returns an error if fetching the instances fails.
 func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, instaceFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, instaceFlags.FlagDefaultPage)

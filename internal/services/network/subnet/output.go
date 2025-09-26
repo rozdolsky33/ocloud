@@ -10,7 +10,11 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// PrintSubnetTable displays a table of subnets with details such as name, CIDR, and DNS info.
+// PrintSubnetTable prints subnet information to the application stdout as either a JSON response or a formatted table.
+// When useJSON is true, the subnets (optionally paginated) are marshaled to JSON and written to stdout; when false, a table with the columns Name, CIDR, and Public is rendered.
+// If pagination is provided it will be adjusted and pagination info will be logged after output.
+// The sortBy parameter accepts "name" (case-insensitive sort by DisplayName) or "cidr" (lexicographic sort by CidrBlock) to order the table rows.
+// Returns an error if JSON marshaling fails.
 func PrintSubnetTable(subnets []subnet.Subnet, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, sortBy string) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -63,7 +67,12 @@ func PrintSubnetTable(subnets []subnet.Subnet, appCtx *app.ApplicationContext, p
 	return nil
 }
 
-// PrintSubnetInfo displays information about a list of subnets in either JSON format or a formatted table view.
+// PrintSubnetInfo displays information for the provided subnets either as JSON or as formatted key-value blocks.
+//
+// When useJSON is true, writes a compact JSON response for the subnet slice; if the slice is empty it writes {"items": []}\n.
+// When useJSON is false, prints a key-value view for each subnet containing the keys Name, Public, CIDR, DNS Label, and DNS Domain.
+// The DNS Label is derived from the subnet's DisplayName and the DNS Domain is the label suffixed with ".vcn1.oraclevcn.com".
+// Returns any error encountered while marshaling JSON output; otherwise returns nil.
 func PrintSubnetInfo(subnets []subnet.Subnet, appCtx *app.ApplicationContext, useJSON bool) error {
 	// Create a new printer that writes to the application's standard output.
 	p := printer.New(appCtx.Stdout)
@@ -111,7 +120,11 @@ func PrintSubnetInfo(subnets []subnet.Subnet, appCtx *app.ApplicationContext, us
 
 // deriveDNSLabel derives a simple DNS label for display by using a trailing number
 // from the subnet name if present (e.g., "TestSubnet1" -> "subnet1"). Otherwise,
-// it returns a sanitized lowercase version of the name.
+// deriveDNSLabel derives a DNS-safe, lowercase label for a subnet name.
+// If name is empty or sanitization yields no allowed characters, it returns "subnet".
+// If name ends with digits, it returns "subnet" followed by those trailing digits.
+// Otherwise it returns a lowercase string that preserves letters and digits and
+// converts spaces/underscores to hyphens, dropping all other characters.
 func deriveDNSLabel(name string) string {
 	if name == "" {
 		return "subnet"

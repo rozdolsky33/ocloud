@@ -5,7 +5,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewVcnCmd creates a new command group for VCN-related operations
+// NewVcnCmd creates and returns a Cobra command group for managing Oracle Cloud Infrastructure Virtual Cloud Networks (VCNs).
+// The command is configured with usage "vcn", descriptive short and long help text, silenced usage and errors, and it registers
+// the get, list, and find subcommands using the provided application context.
 func NewVcnCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "vcn",

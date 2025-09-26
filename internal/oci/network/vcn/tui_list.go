@@ -8,7 +8,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// NewVCNListModel builds a TUI list for VCNs.
+// NewVCNListModel constructs a tui.Model titled "VCNs" from the provided VCN slice, mapping each VCN to a ResourceItemData with ID, Title, and Description.
 func NewVCNListModel(v []domain.VCN) tui.Model {
 	return tui.NewModel("VCNs", v, func(v domain.VCN) tui.ResourceItemData {
 		return tui.ResourceItemData{
@@ -19,7 +19,8 @@ func NewVCNListModel(v []domain.VCN) tui.Model {
 	})
 }
 
-// describeVCN constructs a concise description of a VCN, including CIDR blocks, domain name, subnets, gateways, and creation date.
+// describeVCN builds a short, human-readable summary of the given VCN.
+// The summary includes CIDR blocks, domain name, counts of subnets and gateways, and the creation date formatted as YYYY-MM-DD, joined with " • " as a separator.
 func describeVCN(v domain.VCN) string {
 	parts := []string{}
 

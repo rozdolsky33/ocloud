@@ -8,7 +8,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// NewImageListModel builds a TUI list for images.
+// NewImageListModel creates a TUI model for the provided instances with the title "Instances".
+// Each instance is represented as a tui.ResourceItemData with ID from OCID, Title from DisplayName,
+// and Description produced by description(inst).
 func NewImageListModel(instances []domain.Instance) tui.Model {
 	return tui.NewModel("Instances", instances, func(inst domain.Instance) tui.ResourceItemData {
 		return tui.ResourceItemData{

@@ -62,7 +62,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 }
 
-// RunGetCommand handles the execution of the list command
+// RunGetCommand executes the "get" command for Autonomous Databases, reading relevant CLI flags from cmd and invoking the retrieval using appCtx.
+// It returns any error encountered during the retrieval.
 func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running autonomous database Get command")
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)

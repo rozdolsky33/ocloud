@@ -11,7 +11,9 @@ import (
 
 // PrintAutonomousDbInfo prints a single Autonomous DB.
 // - useJSON: if true, prints the single DB as JSON (no pagination envelope)
-// - showAll: if true, prints the detailed view; otherwise, prints the summary view
+// PrintAutonomousDbInfo prints information for a single AutonomousDatabase either as JSON or as formatted key/value output.
+// If useJSON is true, the database is marshaled to JSON and written to the application stdout; otherwise a summary view is printed unless showAll is true, in which case a detailed view is printed.
+// It returns any error encountered during marshaling or printing.
 func PrintAutonomousDbInfo(db *database.AutonomousDatabase, appCtx *app.ApplicationContext, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 	if useJSON {
@@ -24,7 +26,11 @@ func PrintAutonomousDbInfo(db *database.AutonomousDatabase, appCtx *app.Applicat
 // PrintAutonomousDbsInfo prints a list of Autonomous DBs.
 // - pagination: optional, will be adjusted and logged if provided
 // - useJSON: if true, prints databases with util.MarshalDataToJSONResponse
-// - showAll: if true, prints detailed view; otherwise summary view
+// PrintAutonomousDbsInfo prints information about a slice of AutonomousDatabase objects to the application's stdout.
+// If useJSON is true, it writes JSON output (prints an empty JSON object when the slice is empty and pagination is nil);
+// otherwise it prints human-readable entries. When pagination is provided it is adjusted and included in the JSON response
+// or its info is logged after plain output. The showAll flag controls whether each database is rendered in summary or
+// detailed form. Returns any error encountered while marshalling or printing.
 func PrintAutonomousDbsInfo(databases []database.AutonomousDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -53,6 +59,16 @@ func PrintAutonomousDbsInfo(databases []database.AutonomousDatabase, appCtx *app
 	return nil
 }
 
+// printOneAutonomousDb prints a single AutonomousDatabase either as a compact summary or a detailed view using the provided printer.
+// 
+// For the summary view (showAll == false) it prints a small set of key values (lifecycle, version, workload, compute model,
+// CPU count, storage, private endpoints, subnet/VCN/NSGs, and time created when present).
+// For the detailed view it includes organized sections for General, Capacity, Network, and available connection strings.
+// Display prefers human-readable names over IDs when available (subnet, VCN, NSGs), formats storage preferring TB over GB,
+// and chooses CPU label/value based on the compute model (ECPUs vs OCPUs). Network access type is derived from public/private
+// accessibility and private endpoint presence. Connection strings are appended when present.
+//
+// It returns any error produced by the printer while rendering the output.
 func printOneAutonomousDb(p *printer.Printer, appCtx *app.ApplicationContext, db *database.AutonomousDatabase, showAll bool) error {
 	title := util.FormatColoredTitle(appCtx, db.Name)
 

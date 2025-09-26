@@ -15,6 +15,8 @@ type Adapter struct {
 	client core.VirtualNetworkClient
 }
 
+// NewAdapter creates an Adapter that wraps the provided core.VirtualNetworkClient.
+// The returned Adapter uses the client to perform OCI virtual network operations.
 func NewAdapter(client core.VirtualNetworkClient) *Adapter {
 	return &Adapter{client: client}
 }

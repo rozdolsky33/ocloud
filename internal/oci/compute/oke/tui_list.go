@@ -8,7 +8,8 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// NewImageListModel builds a TUI list for images.
+// NewImageListModel creates a TUI model titled "Oracle Kubernetes Engine" that lists the provided OCI Kubernetes clusters.
+// Each list item uses the cluster OCID as the item ID, the cluster DisplayName as the title, and a composed description containing state, Kubernetes version, node pool count, and creation date.
 func NewImageListModel(cluster []domain.Cluster) tui.Model {
 	return tui.NewModel("Oracle Kubernetes Engine", cluster, func(c domain.Cluster) tui.ResourceItemData {
 		return tui.ResourceItemData{

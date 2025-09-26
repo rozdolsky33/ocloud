@@ -11,7 +11,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// ListInstances lists instances in a formatted table or JSON format.
+// ListInstances lists compute instances in the configured compartment, presents an interactive TUI to select one, and prints the selected instance's information.
+// If useJSON is true the instance information is printed in JSON; otherwise it is formatted for human-readable output.
+// It returns an error if creating the OCI clients, listing instances, selecting an instance via the TUI, or retrieving the selected instance fails; returning nil when the user cancels the selection.
 func ListInstances(appCtx *app.ApplicationContext, useJSON bool) error {
 
 	ctx := context.Background()

@@ -10,7 +10,12 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-// GetVCNs retrieves a VCN by OCID and prints its summary or JSON.
+// GetVCNs retrieves VCNs for the application's compartment, fetches a paginated
+// list, and prints their information according to the requested output flags.
+// It initializes an OCI network client from the application context, obtains
+// paginated VCN results, and delegates formatting/printing (summary or JSON and
+// optional details: gateways, subnets, NSGs, routes, security lists).
+// It returns an error if client initialization, VCN retrieval, or printing fails.
 func GetVCNs(appCtx *app.ApplicationContext, limit, page int, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
 	ctx := context.Background()
 	networkClient, err := oci.NewNetworkClient(appCtx.Provider)

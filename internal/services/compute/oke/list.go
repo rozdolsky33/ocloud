@@ -11,7 +11,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-// ListClusters lists all OKE clusters in the tenancy.
+// ListClusters lists OKE clusters in the tenancy, presents an interactive UI to select a cluster,
+// and prints the selected cluster's details. If the user cancels the selection, it returns nil.
+// The useJSON flag controls whether the cluster details are printed in JSON format.
 func ListClusters(appCtx *app.ApplicationContext, useJSON bool) error {
 	ctx := context.Background()
 	containerEngineClient, err := oci.NewContainerEngineClient(appCtx.Provider)
