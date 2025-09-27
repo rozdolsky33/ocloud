@@ -34,7 +34,7 @@ func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		"Type":           lb.Type,
 		"IP Addresses":   strings.Join(lb.IPAddresses, ", "),
 		"Shape":          lb.Shape,
-		"Listeners":      formatListeners(lb.Listeners),
+		"Listeners":      formatListeners(lb.Listeners, false),
 		"Backend Health": formatBackendHealth(lb.BackendHealth),
 	}
 	order := []string{"Name", "State", "Type", "IP Addresses", "Shape", "Listeners", "Backend Health"}
@@ -56,7 +56,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		"Subnets":      strings.Join(lb.Subnets, ", "),
 		"NSGs":         strings.Join(lb.NSGs, ", "),
 		"Created":      created,
-		"Listeners":    formatListeners(lb.Listeners),
+		"Listeners":    formatListeners(lb.Listeners, true),
 	}
 	order := []string{"Name", "OCID", "State", "Type", "Shape", "IP Addresses", "Subnets", "NSGs", "Created", "Listeners"}
 	p.PrintKeyValues(title, data, order)
@@ -87,10 +87,17 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	}
 }
 
-func formatListeners(listeners map[string]string) string {
+func formatListeners(listeners map[string]string, includeNames bool) string {
 	var parts []string
-	for name, backend := range listeners {
-		parts = append(parts, fmt.Sprintf("%s → %s", name, backend))
+	if includeNames {
+		for name, backend := range listeners {
+			parts = append(parts, fmt.Sprintf("%s → %s", name, backend))
+		}
+	} else {
+		// Default view: omit listener names, show only protocol:port → backendset
+		for _, backend := range listeners {
+			parts = append(parts, backend)
+		}
 	}
 	return strings.Join(parts, "\n")
 }
@@ -119,27 +126,14 @@ func PrintLoadBalancersInfo(lbs []network.LoadBalancer, appCtx *app.ApplicationC
 		return nil
 	}
 
-	headers := []string{"Name", "State", "Type", "IPs", "Shape", "Created"}
-	if showAll {
-		headers = append(headers, "Subnets", "NSGs")
-	}
-
-	rows := make([][]string, 0, len(lbs))
-	for _, lb := range lbs {
-		created := ""
-		if lb.Created != nil {
-			created = lb.Created.Format("2006-01-02")
+	// Print each load balancer as a key-value block similar to instance output
+	for i := range lbs {
+		lb := lbs[i]
+		// Reuse single-resource printer to ensure consistent formatting
+		if err := PrintLoadBalancerInfo(&lb, appCtx, false, showAll); err != nil {
+			return err
 		}
-		ips := strings.Join(lb.IPAddresses, ", ")
-		row := []string{lb.Name, lb.State, lb.Type, ips, lb.Shape, created}
-		if showAll {
-			row = append(row, strings.Join(lb.Subnets, ", "), strings.Join(lb.NSGs, ", "))
-		}
-		rows = append(rows, row)
 	}
-
-	title := util.FormatColoredTitle(appCtx, "Load Balancers")
-	p.PrintTable(title, headers, rows)
 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
