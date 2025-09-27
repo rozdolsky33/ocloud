@@ -16,7 +16,7 @@ func PrintLoadBalancerInfo(lb *network.LoadBalancer, appCtx *app.ApplicationCont
 		return p.MarshalToJSON(lb)
 	}
 
-	title := fmt.Sprintf("%s: %s: %s", appCtx.TenancyName, appCtx.CompartmentName, lb.Name)
+	title := util.FormatColoredTitle(appCtx, lb.Name)
 
 	if showAll {
 		printAll(p, title, lb)
@@ -28,63 +28,58 @@ func PrintLoadBalancerInfo(lb *network.LoadBalancer, appCtx *app.ApplicationCont
 }
 
 func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
-	data := map[string]string{
-		"Name":           lb.Name,
-		"State":          lb.State,
-		"Type":           lb.Type,
-		"IP Addresses":   strings.Join(lb.IPAddresses, ", "),
-		"Shape":          lb.Shape,
-		"Listeners":      formatListeners(lb.Listeners, false),
-		"Backend Health": formatBackendHealth(lb.BackendHealth),
+	created := ""
+	if lb.Created != nil {
+		created = lb.Created.String()
 	}
-	order := []string{"Name", "State", "Type", "IP Addresses", "Shape", "Listeners", "Backend Health"}
+	data := map[string]string{
+		"Name":         lb.Name,
+		"Shape":        lb.Shape,
+		"Created":      created,
+		"IP Addresses": strings.Join(lb.IPAddresses, ", "),
+		"State":        lb.State,
+	}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State"}
 	p.PrintKeyValues(title, data, order)
 }
 
 func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	created := ""
 	if lb.Created != nil {
-		created = lb.Created.Format("2006-01-02")
+		created = lb.Created.String()
 	}
 	data := map[string]string{
-		"Name":         lb.Name,
-		"OCID":         lb.OCID,
-		"State":        lb.State,
-		"Type":         lb.Type,
-		"Shape":        lb.Shape,
-		"IP Addresses": strings.Join(lb.IPAddresses, ", "),
-		"Subnets":      strings.Join(lb.Subnets, ", "),
-		"NSGs":         strings.Join(lb.NSGs, ", "),
-		"Created":      created,
-		"Listeners":    formatListeners(lb.Listeners, true),
+		"Name":             lb.Name,
+		"Shape":            lb.Shape,
+		"Created":          created,
+		"IP Addresses":     strings.Join(lb.IPAddresses, ", "),
+		"State":            lb.State,
+		"OCID":             lb.OCID,
+		"Type":             lb.Type,
+		"Subnets":          strings.Join(lb.Subnets, ", "),
+		"NSGs":             strings.Join(lb.NSGs, ", "),
+		"Listeners":        formatListeners(lb.Listeners, true),
+		"Backend Health":   formatBackendHealth(lb.BackendHealth),
+		"SSL Certificates": strings.Join(lb.SSLCertificates, ", "),
 	}
-	order := []string{"Name", "OCID", "State", "Type", "Shape", "IP Addresses", "Subnets", "NSGs", "Created", "Listeners"}
-	p.PrintKeyValues(title, data, order)
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "SSL Certificates"}
 
-	// Backend Sets
-	if len(lb.BackendSets) > 0 {
-		for name, bs := range lb.BackendSets {
-			bsTitle := fmt.Sprintf("Backend Set: %s", name)
-			rows := [][]string{}
-			// the header row will be provided to PrintTable
+	// Include backend set summaries as additional key-value entries (no separate tables)
+	for name, bs := range lb.BackendSets {
+		key := fmt.Sprintf("Backend Set: %s", name)
+		val := fmt.Sprintf("Policy: %s, HC: %s", bs.Policy, bs.Health)
+		if len(bs.Backends) > 0 {
+			parts := make([]string, 0, len(bs.Backends))
 			for _, b := range bs.Backends {
-				rows = append(rows, []string{b.Name, fmt.Sprintf("%d", b.Port), b.Status})
+				parts = append(parts, fmt.Sprintf("%s:%d (%s)", b.Name, b.Port, b.Status))
 			}
-			// Print policy and health as a preface rowless table by including them in the title
-			preface := fmt.Sprintf("Policy: %s, HC: %s", bs.Policy, bs.Health)
-			p.PrintTable(bsTitle+"\n"+preface, []string{"Backend", "Port", "Status"}, rows)
+			val = val + "\nBackends: " + strings.Join(parts, ", ")
 		}
+		data[key] = val
+		order = append(order, key)
 	}
 
-	// SSL Certificates
-	if len(lb.SSLCertificates) > 0 {
-		rows := make([][]string, 0, len(lb.SSLCertificates))
-		for _, c := range lb.SSLCertificates {
-			// We expect pre-formatted strings like "name (Expires: YYYY-MM-DD)" in the domain layer
-			rows = append(rows, []string{c})
-		}
-		p.PrintTable("SSL Certificates", []string{"Certificate"}, rows)
-	}
+	p.PrintKeyValues(title, data, order)
 }
 
 func formatListeners(listeners map[string]string, includeNames bool) string {
@@ -107,7 +102,8 @@ func formatBackendHealth(health map[string]string) string {
 	for backend, status := range health {
 		parts = append(parts, fmt.Sprintf("%s: %s", backend, status))
 	}
-	return strings.Join(parts, ", ")
+	// Use newline to match Listeners formatting and avoid overly wide tables
+	return strings.Join(parts, "\n")
 }
 
 // PrintLoadBalancersInfo displays a list of load balancers in a table or JSON with pagination support.

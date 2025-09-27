@@ -321,7 +321,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		mu.Unlock()
 	}()
 
-	// SSL Certificates: parse PEM and extract expiry date
+	// SSL Certificates: parse PEM and extract expiry date from the embedded certificate map
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
