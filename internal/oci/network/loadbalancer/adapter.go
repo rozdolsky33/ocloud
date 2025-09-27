@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
@@ -18,8 +19,9 @@ import (
 
 // Adapter implements the domain.LoadBalancerRepository interface for OCI.
 type Adapter struct {
-	lbClient loadbalancer.LoadBalancerClient
-	nwClient core.VirtualNetworkClient
+	lbClient    loadbalancer.LoadBalancerClient
+	nwClient    core.VirtualNetworkClient
+	certsClient certificatesmanagement.CertificatesManagementClient
 }
 
 // NewAdapter creates a new Adapter instance.
@@ -32,9 +34,14 @@ func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create network client: %w", err)
 	}
+	certsClient, err := certificatesmanagement.NewCertificatesManagementClientWithConfigurationProvider(provider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create certificates management client: %w", err)
+	}
 	return &Adapter{
-		lbClient: lbClient,
-		nwClient: nwClient,
+		lbClient:    lbClient,
+		nwClient:    nwClient,
+		certsClient: certsClient,
 	}, nil
 }
 
@@ -169,7 +176,7 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		if l.RoutingPolicyName != nil && *l.RoutingPolicyName != "" {
 			routingPolicySet[*l.RoutingPolicyName] = struct{}{}
 		}
-		// Infer protocol label based on port and SSL usage.
+		// Infer a protocol label based on port and SSL usage.
 		// Rules:
 		// - If SSL enabled or port==443 => https
 		// - Else if protocol is TCP (and not SSL/443) => tcp
@@ -420,8 +427,9 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 			return
 		}
 
-		// 1) Collect names from listeners' SSL configurations
+		// 1) Collect names and IDs from listeners' SSL configurations
 		nameSet := make(map[string]struct{})
+		idSet := make(map[string]struct{})
 		for _, l := range lb.Listeners {
 			if l.SslConfiguration != nil {
 				if l.SslConfiguration.CertificateName != nil {
@@ -429,7 +437,13 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 						nameSet[n] = struct{}{}
 					}
 				}
-				// Also support OCI Certificates service IDs (we cannot resolve expiry from IDs here, but keep the name if provided later)
+				// Capture certificate OCIDs when integrated with OCI Certificates service
+				for _, cid := range l.SslConfiguration.CertificateIds {
+					c := strings.TrimSpace(cid)
+					if c != "" {
+						idSet[c] = struct{}{}
+					}
+				}
 			}
 		}
 
@@ -471,6 +485,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		// 4) Build output concurrently with expiry parsing
 		var outMu sync.Mutex
 		var wg2 sync.WaitGroup
+		// From LB-managed certificate names
 		for n := range nameSet {
 			name := n
 			wg2.Add(1)
@@ -483,13 +498,48 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 							expires = t.Format("2006-01-02")
 						}
 					}
-				} else {
-					// As a last resort, try GetLoadBalancer Certificate map not previously cached
-					// (avoid extra API if not needed)
 				}
 				display := name
 				if expires != "" {
 					display = fmt.Sprintf("%s (Expires: %s)", name, expires)
+				}
+				outMu.Lock()
+				out = append(out, display)
+				outMu.Unlock()
+			}()
+		}
+		// From OCI Certificates service via CertificateIds
+		for cid := range idSet {
+			id := cid
+			wg2.Add(1)
+			go func() {
+				defer wg2.Done()
+				// Get certificate metadata to find current version
+				certResp, err := a.certsClient.GetCertificate(ctx, certificatesmanagement.GetCertificateRequest{CertificateId: &id})
+				if err != nil {
+					// fallback: show OCID if no permission
+					outMu.Lock()
+					out = append(out, id)
+					outMu.Unlock()
+					return
+				}
+				name := id
+				if certResp.Certificate.Name != nil && *certResp.Certificate.Name != "" {
+					name = *certResp.Certificate.Name
+				}
+				var expiresStr string
+				if certResp.Certificate.CurrentVersion != nil && certResp.Certificate.CurrentVersion.VersionNumber != nil {
+					ver := *certResp.Certificate.CurrentVersion.VersionNumber
+					verResp, err2 := a.certsClient.GetCertificateVersion(ctx, certificatesmanagement.GetCertificateVersionRequest{CertificateId: &id, CertificateVersionNumber: &ver})
+					if err2 == nil {
+						if verResp.CertificateVersion.Validity != nil && verResp.CertificateVersion.Validity.TimeOfValidityNotAfter != nil {
+							expiresStr = verResp.CertificateVersion.Validity.TimeOfValidityNotAfter.Time.Format("2006-01-02")
+						}
+					}
+				}
+				display := name
+				if expiresStr != "" {
+					display = fmt.Sprintf("%s (Expires: %s)", name, expiresStr)
 				}
 				outMu.Lock()
 				out = append(out, display)
