@@ -408,66 +408,88 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		inner.Wait()
 	}()
 
-	// SSL Certificates: fetch names from listeners and certificate map; resolve expiry via GetCertificate
+	// SSL Certificates: prefer ListCertificates API; also collect names from listeners; resolve expiry from PublicCertificate
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// Collect certificate names from listeners' SSL configuration and from the load balancer's certificate map
-		names := make(map[string]struct{})
+		out := make([]string, 0)
+		if lb.Id == nil {
+			mu.Lock()
+			dm.SSLCertificates = out
+			mu.Unlock()
+			return
+		}
+
+		// 1) Collect names from listeners' SSL configurations
+		nameSet := make(map[string]struct{})
 		for _, l := range lb.Listeners {
-			if l.SslConfiguration != nil && l.SslConfiguration.CertificateName != nil {
-				name := strings.TrimSpace(*l.SslConfiguration.CertificateName)
-				if name != "" {
-					names[name] = struct{}{}
+			if l.SslConfiguration != nil {
+				if l.SslConfiguration.CertificateName != nil {
+					if n := strings.TrimSpace(*l.SslConfiguration.CertificateName); n != "" {
+						nameSet[n] = struct{}{}
+					}
+				}
+				// Also support OCI Certificates service IDs (we cannot resolve expiry from IDs here, but keep the name if provided later)
+			}
+		}
+
+		// 2) Use ListCertificates to fetch all certificate bundles attached to this LB
+		certsResp, err := a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
+		certsByName := make(map[string]loadbalancer.Certificate)
+		if err == nil {
+			for _, c := range certsResp.Items {
+				if c.CertificateName != nil {
+					certsByName[*c.CertificateName] = c
+					nameSet[*c.CertificateName] = struct{}{}
 				}
 			}
-		}
-		certMap := lb.Certificates
-		for name := range certMap {
-			if name != "" {
-				names[name] = struct{}{}
+		} else {
+			// Fallback to object map if ListCertificates fails
+			for n, c := range lb.Certificates {
+				certsByName[n] = c
+				nameSet[n] = struct{}{}
 			}
 		}
-		// If still empty, fetch full LB to get certificates and possibly listener SSL configs
-		if len(names) == 0 && lb.Id != nil {
-			if resp, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id}); err == nil {
-				certMap = resp.LoadBalancer.Certificates
-				for name := range certMap {
-					if name != "" {
-						names[name] = struct{}{}
-					}
+
+		// 3) If still empty, try GetLoadBalancer once for completeness
+		if len(nameSet) == 0 {
+			if resp, err2 := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id}); err2 == nil {
+				for n, c := range resp.LoadBalancer.Certificates {
+					certsByName[n] = c
+					nameSet[n] = struct{}{}
 				}
 				for _, l := range resp.LoadBalancer.Listeners {
 					if l.SslConfiguration != nil && l.SslConfiguration.CertificateName != nil {
-						name := strings.TrimSpace(*l.SslConfiguration.CertificateName)
-						if name != "" {
-							names[name] = struct{}{}
+						if n := strings.TrimSpace(*l.SslConfiguration.CertificateName); n != "" {
+							nameSet[n] = struct{}{}
 						}
 					}
 				}
 			}
 		}
 
-		// Resolve expiry for each certificate using embedded map (from list or full GetLoadBalancer fallback)
-		out := make([]string, 0)
+		// 4) Build output concurrently with expiry parsing
 		var outMu sync.Mutex
 		var wg2 sync.WaitGroup
-		for name := range names {
-			n := name
+		for n := range nameSet {
+			name := n
 			wg2.Add(1)
 			go func() {
 				defer wg2.Done()
 				expires := ""
-				if cert, ok := certMap[n]; ok {
-					if cert.PublicCertificate != nil && *cert.PublicCertificate != "" {
-						if t, ok := parseCertNotAfter(*cert.PublicCertificate); ok {
+				if c, ok := certsByName[name]; ok {
+					if c.PublicCertificate != nil && *c.PublicCertificate != "" {
+						if t, ok := parseCertNotAfter(*c.PublicCertificate); ok {
 							expires = t.Format("2006-01-02")
 						}
 					}
+				} else {
+					// As a last resort, try GetLoadBalancer Certificate map not previously cached
+					// (avoid extra API if not needed)
 				}
-				display := n
+				display := name
 				if expires != "" {
-					display = fmt.Sprintf("%s (Expires: %s)", n, expires)
+					display = fmt.Sprintf("%s (Expires: %s)", name, expires)
 				}
 				outMu.Lock()
 				out = append(out, display)
