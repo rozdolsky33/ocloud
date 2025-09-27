@@ -2,8 +2,11 @@ package loadbalancer
 
 import (
 	"context"
+	x509std "crypto/x509"
+	pemenc "encoding/pem"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -62,13 +65,35 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 		if err != nil {
 			return nil, fmt.Errorf("listing load balancers: %w", err)
 		}
-		for _, item := range resp.Items {
-			mapped, err := a.enrichAndMapLoadBalancer(ctx, item)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, mapped)
+
+		items := resp.Items
+		mappedCh := make(chan domain.LoadBalancer, len(items))
+		errCh := make(chan error, len(items))
+		var wg sync.WaitGroup
+		for i := range items {
+			wg.Add(1)
+			go func(it loadbalancer.LoadBalancer) {
+				defer wg.Done()
+				mapped, err := a.enrichAndMapLoadBalancer(ctx, it)
+				if err != nil {
+					errCh <- err
+					return
+				}
+				mappedCh <- mapped
+			}(items[i])
 		}
+		wg.Wait()
+		close(errCh)
+		for e := range errCh {
+			if e != nil {
+				return nil, e
+			}
+		}
+		close(mappedCh)
+		for m := range mappedCh {
+			result = append(result, m)
+		}
+
 		if resp.OpcNextPage == nil {
 			break
 		}
@@ -188,76 +213,163 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 	}
 }
 
-// enrichAndMapLoadBalancer builds the domain model and enriches it with names & health
+// enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, and SSL certificate info using concurrency
 func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.LoadBalancer) (domain.LoadBalancer, error) {
 	dm := toBaseDomainLoadBalancer(lb)
 
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+	var mu sync.Mutex
+
 	// Resolve Subnet names and CIDRs
-	resolvedSubnets := make([]string, 0, len(dm.Subnets))
-	for _, sid := range dm.Subnets {
-		id := sid
-		if id == "" {
-			continue
-		}
-		resp, err := a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
-		if err == nil {
-			name := ""
-			if resp.Subnet.DisplayName != nil {
-				name = *resp.Subnet.DisplayName
-			}
-			cidr := ""
-			if resp.Subnet.CidrBlock != nil {
-				cidr = *resp.Subnet.CidrBlock
-			}
-			if name != "" && cidr != "" {
-				resolvedSubnets = append(resolvedSubnets, fmt.Sprintf("%s (%s)", name, cidr))
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		resolved := make([]string, 0, len(dm.Subnets))
+		for _, sid := range dm.Subnets {
+			id := sid
+			if id == "" {
 				continue
 			}
+			resp, err := a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
+			if err == nil {
+				name := ""
+				if resp.Subnet.DisplayName != nil {
+					name = *resp.Subnet.DisplayName
+				}
+				cidr := ""
+				if resp.Subnet.CidrBlock != nil {
+					cidr = *resp.Subnet.CidrBlock
+				}
+				if name != "" && cidr != "" {
+					resolved = append(resolved, fmt.Sprintf("%s (%s)", name, cidr))
+					continue
+				}
+			}
+			// Fallback to ID when resolution fails
+			resolved = append(resolved, sid)
 		}
-		// Fallback to ID when resolution fails
-		resolvedSubnets = append(resolvedSubnets, sid)
-	}
-	dm.Subnets = resolvedSubnets
+		mu.Lock()
+		dm.Subnets = resolved
+		mu.Unlock()
+	}()
 
 	// Resolve NSG names
-	resolvedNSGs := make([]string, 0, len(dm.NSGs))
-	for _, nid := range dm.NSGs {
-		id := nid
-		if id == "" {
-			continue
-		}
-		resp, err := a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
-		if err == nil {
-			name := ""
-			if resp.NetworkSecurityGroup.DisplayName != nil {
-				name = *resp.NetworkSecurityGroup.DisplayName
-			}
-			if name != "" {
-				resolvedNSGs = append(resolvedNSGs, name)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		resolved := make([]string, 0, len(dm.NSGs))
+		for _, nid := range dm.NSGs {
+			id := nid
+			if id == "" {
 				continue
 			}
+			resp, err := a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
+			if err == nil {
+				name := ""
+				if resp.NetworkSecurityGroup.DisplayName != nil {
+					name = *resp.NetworkSecurityGroup.DisplayName
+				}
+				if name != "" {
+					resolved = append(resolved, name)
+					continue
+				}
+			}
+			resolved = append(resolved, nid)
 		}
-		resolvedNSGs = append(resolvedNSGs, nid)
-	}
-	dm.NSGs = resolvedNSGs
+		mu.Lock()
+		dm.NSGs = resolved
+		mu.Unlock()
+	}()
 
-	// Backend set health summaries
-	if lb.Id != nil {
+	// Backend set health summaries (concurrent per backend set)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if lb.Id == nil {
+			return
+		}
+		var inner sync.WaitGroup
+		healthLocal := make(map[string]string)
+		var hmu sync.Mutex
 		for bsName := range lb.BackendSets {
 			name := bsName
-			hResp, err := a.lbClient.GetBackendSetHealth(ctx, loadbalancer.GetBackendSetHealthRequest{
-				LoadBalancerId: lb.Id,
-				BackendSetName: &name,
-			})
-			if err == nil {
-				status := string(hResp.BackendSetHealth.Status)
-				if dm.BackendHealth == nil {
-					dm.BackendHealth = map[string]string{}
+			inner.Add(1)
+			go func(n string) {
+				defer inner.Done()
+				hResp, err := a.lbClient.GetBackendSetHealth(ctx, loadbalancer.GetBackendSetHealthRequest{
+					LoadBalancerId: lb.Id,
+					BackendSetName: &n,
+				})
+				if err != nil {
+					return
 				}
-				dm.BackendHealth[name] = status
+				status := string(hResp.BackendSetHealth.Status)
+				hmu.Lock()
+				healthLocal[n] = status
+				hmu.Unlock()
+			}(name)
+		}
+		inner.Wait()
+		mu.Lock()
+		if dm.BackendHealth == nil {
+			dm.BackendHealth = map[string]string{}
+		}
+		for k, v := range healthLocal {
+			dm.BackendHealth[k] = v
+		}
+		mu.Unlock()
+	}()
+
+	// SSL Certificates: parse PEM and extract expiry date
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		certs := make([]string, 0, len(lb.Certificates))
+		for name, cert := range lb.Certificates {
+			expires := ""
+			if cert.PublicCertificate != nil && *cert.PublicCertificate != "" {
+				if t, ok := parseCertNotAfter(*cert.PublicCertificate); ok {
+					expires = t.Format("2006-01-02")
+				}
 			}
+			if expires != "" {
+				certs = append(certs, fmt.Sprintf("%s (Expires: %s)", name, expires))
+			} else {
+				certs = append(certs, name)
+			}
+		}
+		mu.Lock()
+		dm.SSLCertificates = certs
+		mu.Unlock()
+	}()
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			return dm, err
 		}
 	}
 
 	return dm, nil
+}
+
+// parseCertNotAfter attempts to parse the first certificate in a PEM bundle and returns NotAfter
+func parseCertNotAfter(pemData string) (time.Time, bool) {
+	data := []byte(pemData)
+	for {
+		var block *pemenc.Block
+		block, data = pemenc.Decode(data)
+		if block == nil {
+			break
+		}
+		if block.Type == "CERTIFICATE" {
+			c, err := x509std.ParseCertificate(block.Bytes)
+			if err == nil {
+				return c.NotAfter, true
+			}
+		}
+	}
+	return time.Time{}, false
 }
