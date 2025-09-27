@@ -321,12 +321,64 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		mu.Unlock()
 	}()
 
+	// Backend set members (populate Backends slice) fetched concurrently per backend set
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if lb.Id == nil {
+			return
+		}
+		var inner sync.WaitGroup
+		for bsName := range lb.BackendSets {
+			name := bsName
+			inner.Add(1)
+			go func(n string) {
+				defer inner.Done()
+				bsResp, err := a.lbClient.GetBackendSet(ctx, loadbalancer.GetBackendSetRequest{
+					LoadBalancerId: lb.Id,
+					BackendSetName: &n,
+				})
+				if err != nil {
+					return
+				}
+				// Build domain backends with UNKNOWN status by default
+				backends := make([]domain.Backend, 0, len(bsResp.BackendSet.Backends))
+				for _, b := range bsResp.BackendSet.Backends {
+					ip := ""
+					if b.IpAddress != nil {
+						ip = *b.IpAddress
+					}
+					port := 0
+					if b.Port != nil {
+						port = int(*b.Port)
+					}
+					backends = append(backends, domain.Backend{Name: ip, Port: port, Status: "UNKNOWN"})
+				}
+				mu.Lock()
+				bs := dm.BackendSets[n]
+				bs.Backends = backends
+				dm.BackendSets[n] = bs
+				mu.Unlock()
+			}(name)
+		}
+		inner.Wait()
+	}()
+
 	// SSL Certificates: parse PEM and extract expiry date from the embedded certificate map
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		certs := make([]string, 0, len(lb.Certificates))
-		for name, cert := range lb.Certificates {
+		// Prefer certificates present on the object; if missing (common with List responses),
+		// fetch the full load balancer to retrieve the certificates map.
+		certMap := lb.Certificates
+		if len(certMap) == 0 && lb.Id != nil {
+			resp, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id})
+			if err == nil {
+				certMap = resp.LoadBalancer.Certificates
+			}
+		}
+		certs := make([]string, 0, len(certMap))
+		for name, cert := range certMap {
 			expires := ""
 			if cert.PublicCertificate != nil && *cert.PublicCertificate != "" {
 				if t, ok := parseCertNotAfter(*cert.PublicCertificate); ok {

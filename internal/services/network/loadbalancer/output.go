@@ -2,6 +2,7 @@ package loadbalancer
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -33,13 +34,15 @@ func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		created = lb.Created.String()
 	}
 	data := map[string]string{
-		"Name":         lb.Name,
-		"Shape":        lb.Shape,
-		"Created":      created,
-		"IP Addresses": strings.Join(lb.IPAddresses, ", "),
-		"State":        lb.State,
+		"Name":           lb.Name,
+		"Shape":          lb.Shape,
+		"Created":        created,
+		"IP":             strings.Join(lb.IPAddresses, ", "),
+		"State":          lb.State,
+		"Listeners":      formatListeners(lb.Listeners, false),
+		"Backend Health": formatBackendHealth(lb.BackendHealth),
 	}
-	order := []string{"Name", "Shape", "Created", "IP Addresses", "State"}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "Listeners", "Backend Health"}
 	p.PrintKeyValues(title, data, order)
 }
 
@@ -52,7 +55,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		"Name":             lb.Name,
 		"Shape":            lb.Shape,
 		"Created":          created,
-		"IP Addresses":     strings.Join(lb.IPAddresses, ", "),
+		"IP":               strings.Join(lb.IPAddresses, ", "),
 		"State":            lb.State,
 		"OCID":             lb.OCID,
 		"Type":             lb.Type,
@@ -65,9 +68,18 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "SSL Certificates"}
 
 	// Include backend set summaries as additional key-value entries (no separate tables)
-	for name, bs := range lb.BackendSets {
-		key := fmt.Sprintf("Backend Set: %s", name)
-		val := fmt.Sprintf("Policy: %s, HC: %s", bs.Policy, bs.Health)
+	// To avoid truncating long backend set names in the Key column, we print a short key
+	// like "Backend Set 1" and include the full backend set name as the first line of the value.
+	// Also, sort backend set names for a stable output order.
+	bsNames := make([]string, 0, len(lb.BackendSets))
+	for name := range lb.BackendSets {
+		bsNames = append(bsNames, name)
+	}
+	sort.Strings(bsNames)
+	for i, name := range bsNames {
+		bs := lb.BackendSets[name]
+		key := fmt.Sprintf("Backend Set %d", i+1)
+		val := fmt.Sprintf("%s\nPolicy: %s, HC: %s", name, bs.Policy, bs.Health)
 		if len(bs.Backends) > 0 {
 			parts := make([]string, 0, len(bs.Backends))
 			for _, b := range bs.Backends {
