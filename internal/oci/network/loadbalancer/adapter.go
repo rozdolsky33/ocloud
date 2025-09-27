@@ -151,14 +151,12 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 	useSSL := false
 	routingPolicySet := make(map[string]struct{})
 	for name, l := range lb.Listeners {
-		proto := ""
-		if l.Protocol != nil {
-			proto = strings.ToLower(*l.Protocol)
-		}
+		// Determine port
 		port := 0
 		if l.Port != nil {
 			port = int(*l.Port)
 		}
+		// Determine backend set name
 		backend := ""
 		if l.DefaultBackendSetName != nil {
 			backend = *l.DefaultBackendSetName
@@ -171,7 +169,26 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		if l.RoutingPolicyName != nil && *l.RoutingPolicyName != "" {
 			routingPolicySet[*l.RoutingPolicyName] = struct{}{}
 		}
-		listeners[name] = fmt.Sprintf("%s:%d → %s", proto, port, backend)
+		// Infer protocol label based on port and SSL usage.
+		// Rules:
+		// - If SSL enabled or port==443 => https
+		// - Else if protocol is TCP (and not SSL/443) => tcp
+		// - Else if port==80 => http
+		// - Else default to http for HTTP listeners
+		protoLabel := "http"
+		protoUpper := ""
+		if l.Protocol != nil {
+			protoUpper = strings.ToUpper(*l.Protocol)
+		}
+		if l.SslConfiguration != nil || port == 443 {
+			protoLabel = "https"
+		} else if strings.EqualFold(protoUpper, "TCP") {
+			// Keep TCP for non-SSL, non-443 listeners
+			protoLabel = "tcp"
+		} else if port == 80 {
+			protoLabel = "http"
+		}
+		listeners[name] = fmt.Sprintf("%s:%d → %s", protoLabel, port, backend)
 	}
 	// If no routing policies captured from listeners, fall back to keys of the load balancer's routing policies map
 	if len(routingPolicySet) == 0 {
@@ -330,22 +347,8 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 				if err != nil {
 					return
 				}
-				// Compute detailed counts from health response
-				w := len(hResp.BackendSetHealth.WarningStateBackendNames)
-				c := len(hResp.BackendSetHealth.CriticalStateBackendNames)
-				u := len(hResp.BackendSetHealth.UnknownStateBackendNames)
-				total := 0
-				if hResp.BackendSetHealth.TotalBackendCount != nil {
-					total = *hResp.BackendSetHealth.TotalBackendCount
-				}
-				ok := total - (w + c + u)
-				if ok < 0 {
-					ok = 0
-				}
-				// Pending and Incomplete are not exposed by the API; set to 0 for accuracy
-				pending := 0
-				incomplete := 0
-				status := fmt.Sprintf("Critical%d Warning%d Unknown%d Incomplete%d Pending%d OK%d", c, w, u, incomplete, pending, ok)
+				// Use overall backend set health status from OCI SDK (OK, WARNING, CRITICAL, UNKNOWN)
+				status := strings.ToUpper(string(hResp.BackendSetHealth.Status))
 				hmu.Lock()
 				healthLocal[n] = status
 				hmu.Unlock()
@@ -446,7 +449,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		}
 
 		// Resolve expiry for each certificate using embedded map (from list or full GetLoadBalancer fallback)
-		var out []string
+		out := make([]string, 0)
 		var outMu sync.Mutex
 		var wg2 sync.WaitGroup
 		for name := range names {
