@@ -33,16 +33,26 @@ func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	if lb.Created != nil {
 		created = lb.Created.String()
 	}
+	rp := strings.Join(lb.RoutingPolicies, ", ")
+	if rp == "" {
+		rp = "-"
+	}
+	useSSL := "No"
+	if lb.UseSSL {
+		useSSL = "Yes"
+	}
 	data := map[string]string{
 		"Name":           lb.Name,
 		"Shape":          lb.Shape,
 		"Created":        created,
-		"IP":             strings.Join(lb.IPAddresses, ", "),
+		"IP Addresses":   strings.Join(lb.IPAddresses, ", "),
 		"State":          lb.State,
 		"Listeners":      formatListeners(lb.Listeners, false),
 		"Backend Health": formatBackendHealth(lb.BackendHealth),
+		"Routing Policy": rp,
+		"Use SSL":        useSSL,
 	}
-	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "Listeners", "Backend Health"}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "Listeners", "Backend Health", "Routing Policy", "Use SSL"}
 	p.PrintKeyValues(title, data, order)
 }
 
@@ -52,20 +62,32 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		created = lb.Created.String()
 	}
 	data := map[string]string{
-		"Name":             lb.Name,
-		"Shape":            lb.Shape,
-		"Created":          created,
-		"IP":               strings.Join(lb.IPAddresses, ", "),
-		"State":            lb.State,
-		"OCID":             lb.OCID,
-		"Type":             lb.Type,
-		"Subnets":          strings.Join(lb.Subnets, ", "),
-		"NSGs":             strings.Join(lb.NSGs, ", "),
-		"Listeners":        formatListeners(lb.Listeners, true),
-		"Backend Health":   formatBackendHealth(lb.BackendHealth),
+		"Name":           lb.Name,
+		"Shape":          lb.Shape,
+		"Created":        created,
+		"IP Addresses":   strings.Join(lb.IPAddresses, ", "),
+		"State":          lb.State,
+		"OCID":           lb.OCID,
+		"Type":           lb.Type,
+		"Subnets":        strings.Join(lb.Subnets, ", "),
+		"NSGs":           strings.Join(lb.NSGs, ", "),
+		"Listeners":      formatListeners(lb.Listeners, true),
+		"Backend Health": formatBackendHealth(lb.BackendHealth),
+		"Routing Policy": func() string {
+			if len(lb.RoutingPolicies) == 0 {
+				return "-"
+			}
+			return strings.Join(lb.RoutingPolicies, ", ")
+		}(),
+		"Use SSL": func() string {
+			if lb.UseSSL {
+				return "Yes"
+			}
+			return "No"
+		}(),
 		"SSL Certificates": strings.Join(lb.SSLCertificates, ", "),
 	}
-	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "SSL Certificates"}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "Routing Policy", "Use SSL", "SSL Certificates"}
 
 	// Include backend set summaries as additional key-value entries (no separate tables)
 	// To avoid truncating long backend set names in the Key column, we print a short key
@@ -110,11 +132,28 @@ func formatListeners(listeners map[string]string, includeNames bool) string {
 }
 
 func formatBackendHealth(health map[string]string) string {
-	var parts []string
-	for backend, status := range health {
-		parts = append(parts, fmt.Sprintf("%s: %s", backend, status))
+	if len(health) == 0 {
+		return ""
 	}
-	// Use newline to match Listeners formatting and avoid overly wide tables
+	// Sort backend set names for deterministic output, then limit lines to keep table compact
+	keys := make([]string, 0, len(health))
+	for k := range health {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	const maxLines = 6 // show up to 6 entries, then summarize the rest
+	var parts []string
+	limit := len(keys)
+	if limit > maxLines {
+		limit = maxLines
+	}
+	for i := 0; i < limit; i++ {
+		k := keys[i]
+		parts = append(parts, fmt.Sprintf("%s: %s", k, health[k]))
+	}
+	if len(keys) > maxLines {
+		parts = append(parts, fmt.Sprintf("… (+%d more)", len(keys)-maxLines))
+	}
 	return strings.Join(parts, "\n")
 }
 

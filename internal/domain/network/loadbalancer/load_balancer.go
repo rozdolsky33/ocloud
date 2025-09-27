@@ -20,6 +20,8 @@ type LoadBalancer struct {
 	Created         *time.Time
 	BackendSets     map[string]BackendSet
 	SSLCertificates []string
+	RoutingPolicies []string
+	UseSSL          bool
 }
 
 type BackendSet struct {

@@ -5,6 +5,7 @@ import (
 	x509std "crypto/x509"
 	pemenc "encoding/pem"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -147,6 +148,8 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 
 	// Listeners: name -> "proto:port → backendset"
 	listeners := make(map[string]string)
+	useSSL := false
+	routingPolicySet := make(map[string]struct{})
 	for name, l := range lb.Listeners {
 		proto := ""
 		if l.Protocol != nil {
@@ -160,8 +163,29 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		if l.DefaultBackendSetName != nil {
 			backend = *l.DefaultBackendSetName
 		}
+		// Capture SSL usage
+		if l.SslConfiguration != nil {
+			useSSL = true
+		}
+		// Capture routing policy referenced by the listener, if any
+		if l.RoutingPolicyName != nil && *l.RoutingPolicyName != "" {
+			routingPolicySet[*l.RoutingPolicyName] = struct{}{}
+		}
 		listeners[name] = fmt.Sprintf("%s:%d → %s", proto, port, backend)
 	}
+	// If no routing policies captured from listeners, fall back to keys of the load balancer's routing policies map
+	if len(routingPolicySet) == 0 {
+		for rpName := range lb.RoutingPolicies {
+			if rpName != "" {
+				routingPolicySet[rpName] = struct{}{}
+			}
+		}
+	}
+	routingPolicies := make([]string, 0, len(routingPolicySet))
+	for rp := range routingPolicySet {
+		routingPolicies = append(routingPolicies, rp)
+	}
+	sort.Strings(routingPolicies)
 
 	// Backend sets: only policy and health checker basic info; backends left empty initially
 	backendSets := make(map[string]domain.BackendSet)
@@ -210,6 +234,8 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		Created:         createdTime,
 		BackendSets:     backendSets,
 		SSLCertificates: certs,
+		RoutingPolicies: routingPolicies,
+		UseSSL:          useSSL,
 	}
 }
 
@@ -304,7 +330,22 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 				if err != nil {
 					return
 				}
-				status := string(hResp.BackendSetHealth.Status)
+				// Compute detailed counts from health response
+				w := len(hResp.BackendSetHealth.WarningStateBackendNames)
+				c := len(hResp.BackendSetHealth.CriticalStateBackendNames)
+				u := len(hResp.BackendSetHealth.UnknownStateBackendNames)
+				total := 0
+				if hResp.BackendSetHealth.TotalBackendCount != nil {
+					total = *hResp.BackendSetHealth.TotalBackendCount
+				}
+				ok := total - (w + c + u)
+				if ok < 0 {
+					ok = 0
+				}
+				// Pending and Incomplete are not exposed by the API; set to 0 for accuracy
+				pending := 0
+				incomplete := 0
+				status := fmt.Sprintf("Critical%d Warning%d Unknown%d Incomplete%d Pending%d OK%d", c, w, u, incomplete, pending, ok)
 				hmu.Lock()
 				healthLocal[n] = status
 				hmu.Unlock()
@@ -364,35 +405,76 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		inner.Wait()
 	}()
 
-	// SSL Certificates: parse PEM and extract expiry date from the embedded certificate map
+	// SSL Certificates: fetch names from listeners and certificate map; resolve expiry via GetCertificate
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		// Prefer certificates present on the object; if missing (common with List responses),
-		// fetch the full load balancer to retrieve the certificates map.
-		certMap := lb.Certificates
-		if len(certMap) == 0 && lb.Id != nil {
-			resp, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id})
-			if err == nil {
-				certMap = resp.LoadBalancer.Certificates
-			}
-		}
-		certs := make([]string, 0, len(certMap))
-		for name, cert := range certMap {
-			expires := ""
-			if cert.PublicCertificate != nil && *cert.PublicCertificate != "" {
-				if t, ok := parseCertNotAfter(*cert.PublicCertificate); ok {
-					expires = t.Format("2006-01-02")
+		// Collect certificate names from listeners' SSL configuration and from the load balancer's certificate map
+		names := make(map[string]struct{})
+		for _, l := range lb.Listeners {
+			if l.SslConfiguration != nil && l.SslConfiguration.CertificateName != nil {
+				name := strings.TrimSpace(*l.SslConfiguration.CertificateName)
+				if name != "" {
+					names[name] = struct{}{}
 				}
 			}
-			if expires != "" {
-				certs = append(certs, fmt.Sprintf("%s (Expires: %s)", name, expires))
-			} else {
-				certs = append(certs, name)
+		}
+		certMap := lb.Certificates
+		for name := range certMap {
+			if name != "" {
+				names[name] = struct{}{}
 			}
 		}
+		// If still empty, fetch full LB to get certificates and possibly listener SSL configs
+		if len(names) == 0 && lb.Id != nil {
+			if resp, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id}); err == nil {
+				certMap = resp.LoadBalancer.Certificates
+				for name := range certMap {
+					if name != "" {
+						names[name] = struct{}{}
+					}
+				}
+				for _, l := range resp.LoadBalancer.Listeners {
+					if l.SslConfiguration != nil && l.SslConfiguration.CertificateName != nil {
+						name := strings.TrimSpace(*l.SslConfiguration.CertificateName)
+						if name != "" {
+							names[name] = struct{}{}
+						}
+					}
+				}
+			}
+		}
+
+		// Resolve expiry for each certificate using embedded map (from list or full GetLoadBalancer fallback)
+		var out []string
+		var outMu sync.Mutex
+		var wg2 sync.WaitGroup
+		for name := range names {
+			n := name
+			wg2.Add(1)
+			go func() {
+				defer wg2.Done()
+				expires := ""
+				if cert, ok := certMap[n]; ok {
+					if cert.PublicCertificate != nil && *cert.PublicCertificate != "" {
+						if t, ok := parseCertNotAfter(*cert.PublicCertificate); ok {
+							expires = t.Format("2006-01-02")
+						}
+					}
+				}
+				display := n
+				if expires != "" {
+					display = fmt.Sprintf("%s (Expires: %s)", n, expires)
+				}
+				outMu.Lock()
+				out = append(out, display)
+				outMu.Unlock()
+			}()
+		}
+		wg2.Wait()
+		sort.Strings(out)
 		mu.Lock()
-		dm.SSLCertificates = certs
+		dm.SSLCertificates = out
 		mu.Unlock()
 	}()
 
