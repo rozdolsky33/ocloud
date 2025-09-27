@@ -24,7 +24,7 @@ func describeVCN(v domain.VCN) string {
 	parts := []string{}
 
 	if len(v.CidrBlocks) > 0 {
-		parts = append(parts, strings.Join(v.CidrBlocks, ","))
+		parts = append(parts, fmt.Sprintf("%d CIDRs", len(v.CidrBlocks)))
 	}
 
 	if v.DomainName != "" {

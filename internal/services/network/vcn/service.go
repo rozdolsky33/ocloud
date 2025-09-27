@@ -74,7 +74,7 @@ func (s *Service) ListVcns(ctx context.Context) ([]VCN, error) {
 
 // Find performs a fuzzy search for vcns.
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]VCN, error) {
-	all, err := s.vcnRepo.ListVcns(ctx, s.compartmentID)
+	all, err := s.vcnRepo.ListEnrichedVcns(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching all vcns for search: %w", err)
 	}
