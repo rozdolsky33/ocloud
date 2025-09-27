@@ -85,7 +85,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 			}
 			return "No"
 		}(),
-		"SSL Certificates": strings.Join(lb.SSLCertificates, ", "),
+		"SSL Certificates": formatCertificates(lb.SSLCertificates),
 	}
 	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "Routing Policy", "Use SSL", "SSL Certificates"}
 
@@ -184,4 +184,11 @@ func PrintLoadBalancersInfo(lbs []network.LoadBalancer, appCtx *app.ApplicationC
 
 	util.LogPaginationInfo(pagination, appCtx)
 	return nil
+}
+
+func formatCertificates(certs []string) string {
+	if len(certs) == 0 {
+		return ""
+	}
+	return strings.Join(certs, "\n")
 }
