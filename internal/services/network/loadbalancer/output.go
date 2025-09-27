@@ -113,7 +113,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		order = append(order, key)
 	}
 
-	p.PrintKeyValues(title, data, order)
+	p.PrintKeyValuesNoTruncate(title, data, order)
 }
 
 func formatListeners(listeners map[string]string, includeNames bool) string {

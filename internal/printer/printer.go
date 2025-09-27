@@ -116,6 +116,35 @@ func (p *Printer) PrintKeyValues(title string, data map[string]string, keys []st
 	t.Render()
 }
 
+// PrintKeyValuesNoTruncate renders a key/value table without truncating values.
+// Useful when full content must remain visible (e.g., SSL certificates lists).
+func (p *Printer) PrintKeyValuesNoTruncate(title string, data map[string]string, keys []string) {
+	t := table.NewWriter()
+	t.SetOutputMirror(p.out)
+	t.SetStyle(table.StyleRounded)
+	t.Style().Title.Align = text.AlignCenter
+	t.SetTitle(title)
+
+	t.AppendHeader(table.Row{"KEY", "VALUE"})
+	// No WidthMax and no Transformer -> no truncation
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1},
+		{Number: 2},
+	})
+
+	for i, key := range keys {
+		if value, ok := data[key]; ok {
+			if i > 0 {
+				t.AppendSeparator()
+			}
+			coloredValue := text.Colors{text.FgYellow}.Sprint(value)
+			t.AppendRow(table.Row{key, coloredValue})
+		}
+	}
+
+	t.Render()
+}
+
 // -----------------------------------------------------------------------------
 // Responsive multi‑column table
 // -----------------------------------------------------------------------------
