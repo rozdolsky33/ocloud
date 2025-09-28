@@ -213,6 +213,13 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 			if bs.HealthChecker.Port != nil {
 				port = int(*bs.HealthChecker.Port)
 			}
+			// Normalize scheme label by common ports regardless of protocol value from API
+			switch port {
+			case 443, 8443:
+				p = "HTTPS"
+			case 80:
+				p = "HTTP"
+			}
 			hc = fmt.Sprintf("%s:%d", p, port)
 		}
 		backendSets[name] = domain.BackendSet{Policy: policy, Health: hc, Backends: []domain.Backend{}}
