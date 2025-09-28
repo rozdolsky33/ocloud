@@ -43,7 +43,7 @@ func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
 	}, nil
 }
 
-// GetLoadBalancer retrieves a single Load Balancer and maps it to the basic domain model (no enrichment).
+// GetLoadBalancer retrieves a single Load Balancer and maps it to the basic domain model, adding backend health for usability.
 func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.LoadBalancer, error) {
 	response, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{
 		LoadBalancerId: &ocid,
@@ -53,6 +53,8 @@ func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.Loa
 	}
 
 	dm := toBaseDomainLoadBalancer(response.LoadBalancer)
+	// Light enrichment: populate BackendHealth so default view can show statuses
+	_ = a.enrichBackendHealth(ctx, response.LoadBalancer, &dm)
 	return &dm, nil
 }
 
@@ -72,7 +74,8 @@ func (a *Adapter) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*do
 	return &dm, nil
 }
 
-// ListLoadBalancers returns all load balancers in the compartment (paginated) mapped to a base domain model (no enrichment)
+// ListLoadBalancers returns all load balancers in the compartment (paginated) mapped to a base domain model,
+// lightly enriched with backend health so the default view can display statuses without the full enrichment cost.
 func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) ([]domain.LoadBalancer, error) {
 	result := make([]domain.LoadBalancer, 0)
 	var page *string
@@ -85,9 +88,24 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 			return nil, fmt.Errorf("listing load balancers: %w", err)
 		}
 
-		for _, item := range resp.Items {
-			result = append(result, toBaseDomainLoadBalancer(item))
+		// Process this page concurrently for performance
+		pageItems := resp.Items
+		mapped := make([]domain.LoadBalancer, len(pageItems))
+		var wg sync.WaitGroup
+		for i := range pageItems {
+			wg.Add(1)
+			idx := i
+			go func() {
+				defer wg.Done()
+				lb := pageItems[idx]
+				dm := toBaseDomainLoadBalancer(lb)
+				// Light enrichment: backend health only
+				_ = a.enrichBackendHealth(ctx, lb, &dm)
+				mapped[idx] = dm
+			}()
 		}
+		wg.Wait()
+		result = append(result, mapped...)
 
 		if resp.OpcNextPage == nil {
 			break
