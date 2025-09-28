@@ -5,6 +5,7 @@ import (
 	x509std "crypto/x509"
 	pemenc "encoding/pem"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -23,6 +24,12 @@ type Adapter struct {
 	nwClient    core.VirtualNetworkClient
 	certsClient certificatesmanagement.CertificatesManagementClient
 }
+
+const (
+	defaultMaxRetries     = 5
+	defaultInitialBackoff = 1 * time.Second
+	defaultMaxBackoff     = 32 * time.Second
+)
 
 // NewAdapter creates a new Adapter instance.
 func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
@@ -74,33 +81,11 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 			return nil, fmt.Errorf("listing load balancers: %w", err)
 		}
 
-		items := resp.Items
-		mappedCh := make(chan domain.LoadBalancer, len(items))
-		errCh := make(chan error, len(items))
-		var wg sync.WaitGroup
-		for i := range items {
-			wg.Add(1)
-			go func(it loadbalancer.LoadBalancer) {
-				defer wg.Done()
-				mapped, err := a.enrichAndMapLoadBalancer(ctx, it)
-				if err != nil {
-					errCh <- err
-					return
-				}
-				mappedCh <- mapped
-			}(items[i])
+		mapped, err := a.enrichAndMapLoadBalancers(ctx, resp.Items)
+		if err != nil {
+			return nil, err
 		}
-		wg.Wait()
-		close(errCh)
-		for e := range errCh {
-			if e != nil {
-				return nil, e
-			}
-		}
-		close(mappedCh)
-		for m := range mappedCh {
-			result = append(result, m)
-		}
+		result = append(result, mapped...)
 
 		if resp.OpcNextPage == nil {
 			break
@@ -178,8 +163,8 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		}
 		// Infer a protocol label based on port and SSL usage.
 		// Rules:
-		// - If SSL enabled or port==443 => https
-		// - Else if protocol is TCP (and not SSL/443) => tcp
+		// - If SSL enabled or port==443 or port==8443 => https
+		// - Else if protocol is TCP (and not SSL/443/8443) => tcp
 		// - Else if port==80 => http
 		// - Else default to http for HTTP listeners
 		protoLabel := "http"
@@ -187,10 +172,10 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		if l.Protocol != nil {
 			protoUpper = strings.ToUpper(*l.Protocol)
 		}
-		if l.SslConfiguration != nil || port == 443 {
+		if l.SslConfiguration != nil || port == 443 || port == 8443 {
 			protoLabel = "https"
 		} else if strings.EqualFold(protoUpper, "TCP") {
-			// Keep TCP for non-SSL, non-443 listeners
+			// Keep TCP for non-SSL, non-443/8443 listeners
 			protoLabel = "tcp"
 		} else if port == 80 {
 			protoLabel = "http"
@@ -263,294 +248,47 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 	}
 }
 
-// enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, and SSL certificate info using concurrency
+// enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, members and SSL certificate info
 func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.LoadBalancer) (domain.LoadBalancer, error) {
 	dm := toBaseDomainLoadBalancer(lb)
 
 	var wg sync.WaitGroup
-	errCh := make(chan error, 4)
-	var mu sync.Mutex
+	errCh := make(chan error, 5)
 
-	// Resolve Subnet names and CIDRs
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		resolved := make([]string, 0, len(dm.Subnets))
-		for _, sid := range dm.Subnets {
-			id := sid
-			if id == "" {
-				continue
-			}
-			resp, err := a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
-			if err == nil {
-				name := ""
-				if resp.Subnet.DisplayName != nil {
-					name = *resp.Subnet.DisplayName
-				}
-				cidr := ""
-				if resp.Subnet.CidrBlock != nil {
-					cidr = *resp.Subnet.CidrBlock
-				}
-				if name != "" && cidr != "" {
-					resolved = append(resolved, fmt.Sprintf("%s (%s)", name, cidr))
-					continue
-				}
-			}
-			// Fallback to ID when resolution fails
-			resolved = append(resolved, sid)
+		if err := a.resolveSubnets(ctx, &dm); err != nil {
+			errCh <- err
 		}
-		mu.Lock()
-		dm.Subnets = resolved
-		mu.Unlock()
 	}()
-
-	// Resolve NSG names
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		resolved := make([]string, 0, len(dm.NSGs))
-		for _, nid := range dm.NSGs {
-			id := nid
-			if id == "" {
-				continue
-			}
-			resp, err := a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
-			if err == nil {
-				name := ""
-				if resp.NetworkSecurityGroup.DisplayName != nil {
-					name = *resp.NetworkSecurityGroup.DisplayName
-				}
-				if name != "" {
-					resolved = append(resolved, name)
-					continue
-				}
-			}
-			resolved = append(resolved, nid)
+		if err := a.resolveNSGs(ctx, &dm); err != nil {
+			errCh <- err
 		}
-		mu.Lock()
-		dm.NSGs = resolved
-		mu.Unlock()
 	}()
-
-	// Backend set health summaries (concurrent per backend set)
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if lb.Id == nil {
-			return
+		if err := a.enrichBackendHealth(ctx, lb, &dm); err != nil {
+			errCh <- err
 		}
-		var inner sync.WaitGroup
-		healthLocal := make(map[string]string)
-		var hmu sync.Mutex
-		for bsName := range lb.BackendSets {
-			name := bsName
-			inner.Add(1)
-			go func(n string) {
-				defer inner.Done()
-				hResp, err := a.lbClient.GetBackendSetHealth(ctx, loadbalancer.GetBackendSetHealthRequest{
-					LoadBalancerId: lb.Id,
-					BackendSetName: &n,
-				})
-				if err != nil {
-					return
-				}
-				// Use overall backend set health status from OCI SDK (OK, WARNING, CRITICAL, UNKNOWN)
-				status := strings.ToUpper(string(hResp.BackendSetHealth.Status))
-				hmu.Lock()
-				healthLocal[n] = status
-				hmu.Unlock()
-			}(name)
-		}
-		inner.Wait()
-		mu.Lock()
-		if dm.BackendHealth == nil {
-			dm.BackendHealth = map[string]string{}
-		}
-		for k, v := range healthLocal {
-			dm.BackendHealth[k] = v
-		}
-		mu.Unlock()
 	}()
-
-	// Backend set members (populate Backends slice) fetched concurrently per backend set
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if lb.Id == nil {
-			return
+		if err := a.enrichBackendMembers(ctx, lb, &dm); err != nil {
+			errCh <- err
 		}
-		var inner sync.WaitGroup
-		for bsName := range lb.BackendSets {
-			name := bsName
-			inner.Add(1)
-			go func(n string) {
-				defer inner.Done()
-				bsResp, err := a.lbClient.GetBackendSet(ctx, loadbalancer.GetBackendSetRequest{
-					LoadBalancerId: lb.Id,
-					BackendSetName: &n,
-				})
-				if err != nil {
-					return
-				}
-				// Build domain backends with UNKNOWN status by default
-				backends := make([]domain.Backend, 0, len(bsResp.BackendSet.Backends))
-				for _, b := range bsResp.BackendSet.Backends {
-					ip := ""
-					if b.IpAddress != nil {
-						ip = *b.IpAddress
-					}
-					port := 0
-					if b.Port != nil {
-						port = int(*b.Port)
-					}
-					backends = append(backends, domain.Backend{Name: ip, Port: port, Status: "UNKNOWN"})
-				}
-				mu.Lock()
-				bs := dm.BackendSets[n]
-				bs.Backends = backends
-				dm.BackendSets[n] = bs
-				mu.Unlock()
-			}(name)
-		}
-		inner.Wait()
 	}()
-
-	// SSL Certificates: prefer ListCertificates API; also collect names from listeners; resolve expiry from PublicCertificate
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		out := make([]string, 0)
-		if lb.Id == nil {
-			mu.Lock()
-			dm.SSLCertificates = out
-			mu.Unlock()
-			return
+		if err := a.enrichCertificates(ctx, lb, &dm); err != nil {
+			errCh <- err
 		}
-
-		// 1) Collect names and IDs from listeners' SSL configurations
-		nameSet := make(map[string]struct{})
-		idSet := make(map[string]struct{})
-		for _, l := range lb.Listeners {
-			if l.SslConfiguration != nil {
-				if l.SslConfiguration.CertificateName != nil {
-					if n := strings.TrimSpace(*l.SslConfiguration.CertificateName); n != "" {
-						nameSet[n] = struct{}{}
-					}
-				}
-				// Capture certificate OCIDs when integrated with OCI Certificates service
-				for _, cid := range l.SslConfiguration.CertificateIds {
-					c := strings.TrimSpace(cid)
-					if c != "" {
-						idSet[c] = struct{}{}
-					}
-				}
-			}
-		}
-
-		// 2) Use ListCertificates to fetch all certificate bundles attached to this LB
-		certsResp, err := a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
-		certsByName := make(map[string]loadbalancer.Certificate)
-		if err == nil {
-			for _, c := range certsResp.Items {
-				if c.CertificateName != nil {
-					certsByName[*c.CertificateName] = c
-					nameSet[*c.CertificateName] = struct{}{}
-				}
-			}
-		} else {
-			// Fallback to object map if ListCertificates fails
-			for n, c := range lb.Certificates {
-				certsByName[n] = c
-				nameSet[n] = struct{}{}
-			}
-		}
-
-		// 3) If still empty, try GetLoadBalancer once for completeness
-		if len(nameSet) == 0 {
-			if resp, err2 := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id}); err2 == nil {
-				for n, c := range resp.LoadBalancer.Certificates {
-					certsByName[n] = c
-					nameSet[n] = struct{}{}
-				}
-				for _, l := range resp.LoadBalancer.Listeners {
-					if l.SslConfiguration != nil && l.SslConfiguration.CertificateName != nil {
-						if n := strings.TrimSpace(*l.SslConfiguration.CertificateName); n != "" {
-							nameSet[n] = struct{}{}
-						}
-					}
-				}
-			}
-		}
-
-		// 4) Build output concurrently with expiry parsing
-		var outMu sync.Mutex
-		var wg2 sync.WaitGroup
-		// From LB-managed certificate names
-		for n := range nameSet {
-			name := n
-			wg2.Add(1)
-			go func() {
-				defer wg2.Done()
-				expires := ""
-				if c, ok := certsByName[name]; ok {
-					if c.PublicCertificate != nil && *c.PublicCertificate != "" {
-						if t, ok := parseCertNotAfter(*c.PublicCertificate); ok {
-							expires = t.Format("2006-01-02")
-						}
-					}
-				}
-				display := name
-				if expires != "" {
-					display = fmt.Sprintf("%s (Expires: %s)", name, expires)
-				}
-				outMu.Lock()
-				out = append(out, display)
-				outMu.Unlock()
-			}()
-		}
-		// From OCI Certificates service via CertificateIds
-		for cid := range idSet {
-			id := cid
-			wg2.Add(1)
-			go func() {
-				defer wg2.Done()
-				// Get certificate metadata to find current version
-				certResp, err := a.certsClient.GetCertificate(ctx, certificatesmanagement.GetCertificateRequest{CertificateId: &id})
-				if err != nil {
-					// fallback: show OCID if no permission
-					outMu.Lock()
-					out = append(out, id)
-					outMu.Unlock()
-					return
-				}
-				name := id
-				if certResp.Certificate.Name != nil && *certResp.Certificate.Name != "" {
-					name = *certResp.Certificate.Name
-				}
-				var expiresStr string
-				if certResp.Certificate.CurrentVersion != nil && certResp.Certificate.CurrentVersion.VersionNumber != nil {
-					ver := *certResp.Certificate.CurrentVersion.VersionNumber
-					verResp, err2 := a.certsClient.GetCertificateVersion(ctx, certificatesmanagement.GetCertificateVersionRequest{CertificateId: &id, CertificateVersionNumber: &ver})
-					if err2 == nil {
-						if verResp.CertificateVersion.Validity != nil && verResp.CertificateVersion.Validity.TimeOfValidityNotAfter != nil {
-							expiresStr = verResp.CertificateVersion.Validity.TimeOfValidityNotAfter.Time.Format("2006-01-02")
-						}
-					}
-				}
-				display := name
-				if expiresStr != "" {
-					display = fmt.Sprintf("%s (Expires: %s)", name, expiresStr)
-				}
-				outMu.Lock()
-				out = append(out, display)
-				outMu.Unlock()
-			}()
-		}
-		wg2.Wait()
-		sort.Strings(out)
-		mu.Lock()
-		dm.SSLCertificates = out
-		mu.Unlock()
 	}()
 
 	wg.Wait()
@@ -560,8 +298,344 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 			return dm, err
 		}
 	}
-
 	return dm, nil
+}
+
+// enrichAndMapLoadBalancers converts a slice of OCI LBs to domain models with enrichment using concurrency
+func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbalancer.LoadBalancer) ([]domain.LoadBalancer, error) {
+	out := make([]domain.LoadBalancer, len(items))
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(items))
+	for i := range items {
+		wg.Add(1)
+		idx := i
+		go func() {
+			defer wg.Done()
+			mapped, err := a.enrichAndMapLoadBalancer(ctx, items[idx])
+			if err != nil {
+				errCh <- err
+				return
+			}
+			out[idx] = mapped
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+// resolveSubnets resolves subnet IDs on the domain model to "Name (CIDR)" best-effort
+func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) error {
+	resolved := make([]string, 0, len(dm.Subnets))
+	for _, sid := range dm.Subnets {
+		id := sid
+		if id == "" {
+			continue
+		}
+		var resp core.GetSubnetResponse
+		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			resp, e = a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
+			return e
+		})
+		if err == nil {
+			name := ""
+			if resp.Subnet.DisplayName != nil {
+				name = *resp.Subnet.DisplayName
+			}
+			cidr := ""
+			if resp.Subnet.CidrBlock != nil {
+				cidr = *resp.Subnet.CidrBlock
+			}
+			if name != "" && cidr != "" {
+				resolved = append(resolved, fmt.Sprintf("%s (%s)", name, cidr))
+				continue
+			}
+		}
+		resolved = append(resolved, sid)
+	}
+	dm.Subnets = resolved
+	return nil
+}
+
+// resolveNSGs resolves NSG IDs on the domain model to display names best-effort
+func (a *Adapter) resolveNSGs(ctx context.Context, dm *domain.LoadBalancer) error {
+	resolved := make([]string, 0, len(dm.NSGs))
+	for _, nid := range dm.NSGs {
+		id := nid
+		if id == "" {
+			continue
+		}
+		var resp core.GetNetworkSecurityGroupResponse
+		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			resp, e = a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
+			return e
+		})
+		if err == nil && resp.NetworkSecurityGroup.DisplayName != nil && *resp.NetworkSecurityGroup.DisplayName != "" {
+			resolved = append(resolved, *resp.NetworkSecurityGroup.DisplayName)
+			continue
+		}
+		resolved = append(resolved, nid)
+	}
+	dm.NSGs = resolved
+	return nil
+}
+
+// enrichBackendHealth fetches overall status per backend set and fills dm.BackendHealth
+func (a *Adapter) enrichBackendHealth(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer) error {
+	if lb.Id == nil {
+		return nil
+	}
+	healthLocal := make(map[string]string)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	for bsName := range lb.BackendSets {
+		name := bsName
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			var hResp loadbalancer.GetBackendSetHealthResponse
+			err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				var e error
+				hResp, e = a.lbClient.GetBackendSetHealth(ctx, loadbalancer.GetBackendSetHealthRequest{LoadBalancerId: lb.Id, BackendSetName: &n})
+				return e
+			})
+			if err != nil {
+				return
+			}
+			status := strings.ToUpper(string(hResp.BackendSetHealth.Status))
+			mu.Lock()
+			healthLocal[n] = status
+			mu.Unlock()
+		}(name)
+	}
+	wg.Wait()
+	if dm.BackendHealth == nil {
+		dm.BackendHealth = map[string]string{}
+	}
+	for k, v := range healthLocal {
+		dm.BackendHealth[k] = v
+	}
+	return nil
+}
+
+// enrichBackendMembers fetches backend members per backend set and fills dm.BackendSets[...].Backends
+func (a *Adapter) enrichBackendMembers(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer) error {
+	if lb.Id == nil {
+		return nil
+	}
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	for bsName := range lb.BackendSets {
+		name := bsName
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			var bsResp loadbalancer.GetBackendSetResponse
+			err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				var e error
+				bsResp, e = a.lbClient.GetBackendSet(ctx, loadbalancer.GetBackendSetRequest{LoadBalancerId: lb.Id, BackendSetName: &n})
+				return e
+			})
+			if err != nil {
+				return
+			}
+			backends := make([]domain.Backend, 0, len(bsResp.BackendSet.Backends))
+			for _, b := range bsResp.BackendSet.Backends {
+				ip := ""
+				if b.IpAddress != nil {
+					ip = *b.IpAddress
+				}
+				port := 0
+				if b.Port != nil {
+					port = int(*b.Port)
+				}
+				backends = append(backends, domain.Backend{Name: ip, Port: port, Status: "UNKNOWN"})
+			}
+			mu.Lock()
+			bs := dm.BackendSets[n]
+			bs.Backends = backends
+			dm.BackendSets[n] = bs
+			mu.Unlock()
+		}(name)
+	}
+	wg.Wait()
+	return nil
+}
+
+// enrichCertificates gathers certificate names/ids and resolves expiry where possible, storing formatted strings in dm.SSLCertificates
+func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer) error {
+	out := make([]string, 0)
+	if lb.Id == nil {
+		dm.SSLCertificates = out
+		return nil
+	}
+
+	nameSet := make(map[string]struct{})
+	idSet := make(map[string]struct{})
+	for _, l := range lb.Listeners {
+		if l.SslConfiguration != nil {
+			if l.SslConfiguration.CertificateName != nil {
+				if n := strings.TrimSpace(*l.SslConfiguration.CertificateName); n != "" {
+					nameSet[n] = struct{}{}
+				}
+			}
+			for _, cid := range l.SslConfiguration.CertificateIds {
+				if c := strings.TrimSpace(cid); c != "" {
+					idSet[c] = struct{}{}
+				}
+			}
+		}
+	}
+
+	certsByName := make(map[string]loadbalancer.Certificate)
+	// Prefer ListCertificates
+	var listResp loadbalancer.ListCertificatesResponse
+	_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		listResp, e = a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
+		return e
+	})
+	if len(listResp.Items) > 0 {
+		for _, c := range listResp.Items {
+			if c.CertificateName != nil {
+				certsByName[*c.CertificateName] = c
+				nameSet[*c.CertificateName] = struct{}{}
+			}
+		}
+	} else {
+		for n, c := range lb.Certificates {
+			certsByName[n] = c
+			nameSet[n] = struct{}{}
+		}
+	}
+
+	if len(nameSet) == 0 {
+		var getResp loadbalancer.GetLoadBalancerResponse
+		if err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			getResp, e = a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{LoadBalancerId: lb.Id})
+			return e
+		}); err == nil {
+			for n, c := range getResp.LoadBalancer.Certificates {
+				certsByName[n] = c
+				nameSet[n] = struct{}{}
+			}
+			for _, l := range getResp.LoadBalancer.Listeners {
+				if l.SslConfiguration != nil && l.SslConfiguration.CertificateName != nil {
+					if n := strings.TrimSpace(*l.SslConfiguration.CertificateName); n != "" {
+						nameSet[n] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	for n := range nameSet {
+		name := n
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			expires := ""
+			if c, ok := certsByName[name]; ok {
+				if c.PublicCertificate != nil && *c.PublicCertificate != "" {
+					if t, ok := parseCertNotAfter(*c.PublicCertificate); ok {
+						expires = t.Format("2006-01-02")
+					}
+				}
+			}
+			display := name
+			if expires != "" {
+				display = fmt.Sprintf("%s (Expires: %s)", name, expires)
+			}
+			mu.Lock()
+			out = append(out, display)
+			mu.Unlock()
+		}()
+	}
+
+	for cid := range idSet {
+		id := cid
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var certResp certificatesmanagement.GetCertificateResponse
+			err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				var e error
+				certResp, e = a.certsClient.GetCertificate(ctx, certificatesmanagement.GetCertificateRequest{CertificateId: &id})
+				return e
+			})
+			if err != nil {
+				mu.Lock()
+				out = append(out, id)
+				mu.Unlock()
+				return
+			}
+			name := id
+			if certResp.Certificate.Name != nil && *certResp.Certificate.Name != "" {
+				name = *certResp.Certificate.Name
+			}
+			var expiresStr string
+			if certResp.Certificate.CurrentVersion != nil && certResp.Certificate.CurrentVersion.VersionNumber != nil {
+				ver := *certResp.Certificate.CurrentVersion.VersionNumber
+				var verResp certificatesmanagement.GetCertificateVersionResponse
+				_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+					var e error
+					verResp, e = a.certsClient.GetCertificateVersion(ctx, certificatesmanagement.GetCertificateVersionRequest{CertificateId: &id, CertificateVersionNumber: &ver})
+					return e
+				})
+				if verResp.CertificateVersion.Validity != nil && verResp.CertificateVersion.Validity.TimeOfValidityNotAfter != nil {
+					expiresStr = verResp.CertificateVersion.Validity.TimeOfValidityNotAfter.Time.Format("2006-01-02")
+				}
+			}
+			display := name
+			if expiresStr != "" {
+				display = fmt.Sprintf("%s (Expires: %s)", name, expiresStr)
+			}
+			mu.Lock()
+			out = append(out, display)
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+	sort.Strings(out)
+	dm.SSLCertificates = out
+	return nil
+}
+
+// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.
+// It applies exponential backoff between retries and preserves the original behavior and error messages.
+func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
+	backoff := initialBackoff
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := op()
+		if err == nil {
+			return nil
+		}
+
+		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		return err
+	}
+	return nil
 }
 
 // parseCertNotAfter attempts to parse the first certificate in a PEM bundle and returns NotAfter
