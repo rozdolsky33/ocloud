@@ -21,7 +21,7 @@ func GetLoadBalancers(appCtx *app.ApplicationContext, useJSON bool, limit, page 
 	service := NewService(adapter, appCtx)
 
 	ctx := context.Background()
-	lbs, totalCount, nextPageToken, err := service.FetchPaginatedLoadBalancers(ctx, limit, page)
+	lbs, totalCount, nextPageToken, err := service.FetchPaginatedLoadBalancers(ctx, limit, page, showAll)
 	if err != nil {
 		return fmt.Errorf("listing load balancers: %w", err)
 	}

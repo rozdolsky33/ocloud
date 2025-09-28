@@ -1,0 +1,124 @@
+package loadbalancer
+
+import (
+	"context"
+	x509std "crypto/x509"
+	pemenc "encoding/pem"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/core"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
+)
+
+const (
+	defaultMaxRetries     = 5
+	defaultInitialBackoff = 1 * time.Second
+	defaultMaxBackoff     = 32 * time.Second
+)
+
+// resolveSubnets resolves subnet IDs on the domain model to "Name (CIDR)"
+func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) error {
+	resolved := make([]string, 0, len(dm.Subnets))
+	for _, sid := range dm.Subnets {
+		id := sid
+		if id == "" {
+			continue
+		}
+		var resp core.GetSubnetResponse
+		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			resp, e = a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
+			return e
+		})
+		if err == nil {
+			name := ""
+			if resp.Subnet.DisplayName != nil {
+				name = *resp.Subnet.DisplayName
+			}
+			cidr := ""
+			if resp.Subnet.CidrBlock != nil {
+				cidr = *resp.Subnet.CidrBlock
+			}
+			if name != "" && cidr != "" {
+				resolved = append(resolved, fmt.Sprintf("%s (%s)", name, cidr))
+				continue
+			}
+		}
+		resolved = append(resolved, sid)
+	}
+	dm.Subnets = resolved
+	return nil
+}
+
+// resolveNSGs resolves NSG IDs on the domain model to display names best-effort
+func (a *Adapter) resolveNSGs(ctx context.Context, dm *domain.LoadBalancer) error {
+	resolved := make([]string, 0, len(dm.NSGs))
+	for _, nid := range dm.NSGs {
+		id := nid
+		if id == "" {
+			continue
+		}
+		var resp core.GetNetworkSecurityGroupResponse
+		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			resp, e = a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
+			return e
+		})
+		if err == nil && resp.NetworkSecurityGroup.DisplayName != nil && *resp.NetworkSecurityGroup.DisplayName != "" {
+			resolved = append(resolved, *resp.NetworkSecurityGroup.DisplayName)
+			continue
+		}
+		resolved = append(resolved, nid)
+	}
+	dm.NSGs = resolved
+	return nil
+}
+
+// parseCertNotAfter attempts to parse the first certificate in a PEM bundle and returns NotAfter
+func parseCertNotAfter(pemData string) (time.Time, bool) {
+	data := []byte(pemData)
+	for {
+		var block *pemenc.Block
+		block, data = pemenc.Decode(data)
+		if block == nil {
+			break
+		}
+		if block.Type == "CERTIFICATE" {
+			c, err := x509std.ParseCertificate(block.Bytes)
+			if err == nil {
+				return c.NotAfter, true
+			}
+		}
+	}
+	return time.Time{}, false
+}
+
+// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.
+// It applies exponential backoff between retries and preserves the original behavior and error messages.
+func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
+	backoff := initialBackoff
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := op()
+		if err == nil {
+			return nil
+		}
+
+		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
+			}
+			time.Sleep(backoff)
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+			continue
+		}
+
+		return err
+	}
+	return nil
+}

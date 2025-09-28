@@ -2,10 +2,7 @@ package loadbalancer
 
 import (
 	"context"
-	x509std "crypto/x509"
-	pemenc "encoding/pem"
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -24,12 +21,6 @@ type Adapter struct {
 	nwClient    core.VirtualNetworkClient
 	certsClient certificatesmanagement.CertificatesManagementClient
 }
-
-const (
-	defaultMaxRetries     = 5
-	defaultInitialBackoff = 1 * time.Second
-	defaultMaxBackoff     = 32 * time.Second
-)
 
 // NewAdapter creates a new Adapter instance.
 func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
@@ -52,8 +43,21 @@ func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
 	}, nil
 }
 
-// GetLoadBalancer retrieves a single Load Balancer and maps it to the domain model (enriched).
+// GetLoadBalancer retrieves a single Load Balancer and maps it to the basic domain model (no enrichment).
 func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.LoadBalancer, error) {
+	response, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{
+		LoadBalancerId: &ocid,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get load balancer: %w", err)
+	}
+
+	dm := toBaseDomainLoadBalancer(response.LoadBalancer)
+	return &dm, nil
+}
+
+// GetEnrichedLoadBalancer retrieves a single Load Balancer and returns the enriched domain model.
+func (a *Adapter) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*domain.LoadBalancer, error) {
 	response, err := a.lbClient.GetLoadBalancer(ctx, loadbalancer.GetLoadBalancerRequest{
 		LoadBalancerId: &ocid,
 	})
@@ -68,8 +72,33 @@ func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.Loa
 	return &dm, nil
 }
 
-// ListLoadBalancers returns all load balancers in the compartment (paginated) enriched with details
+// ListLoadBalancers returns all load balancers in the compartment (paginated) mapped to a base domain model (no enrichment)
 func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) ([]domain.LoadBalancer, error) {
+	result := make([]domain.LoadBalancer, 0)
+	var page *string
+	for {
+		resp, err := a.lbClient.ListLoadBalancers(ctx, loadbalancer.ListLoadBalancersRequest{
+			CompartmentId: &compartmentID,
+			Page:          page,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("listing load balancers: %w", err)
+		}
+
+		for _, item := range resp.Items {
+			result = append(result, toBaseDomainLoadBalancer(item))
+		}
+
+		if resp.OpcNextPage == nil {
+			break
+		}
+		page = resp.OpcNextPage
+	}
+	return result, nil
+}
+
+// ListEnrichedLoadBalancers returns all load balancers in the compartment (paginated) with enrichment
+func (a *Adapter) ListEnrichedLoadBalancers(ctx context.Context, compartmentID string) ([]domain.LoadBalancer, error) {
 	result := make([]domain.LoadBalancer, 0)
 	var page *string
 	for {
@@ -95,164 +124,32 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 	return result, nil
 }
 
-// toBaseDomainLoadBalancer maps the base fields without enrichment
-func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer {
-	var id, name, shape string
-	if lb.Id != nil {
-		id = *lb.Id
-	}
-	if lb.DisplayName != nil {
-		name = *lb.DisplayName
-	}
-	if lb.ShapeName != nil {
-		shape = *lb.ShapeName
-	}
-	// Type: Public/Private
-	typeStr := "Public"
-	if lb.IsPrivate != nil && *lb.IsPrivate {
-		typeStr = "Private"
-	}
-	var createdTime *time.Time
-	if lb.TimeCreated != nil {
-		t := lb.TimeCreated.Time
-		createdTime = &t
-	}
-
-	// IP addresses
-	ips := make([]string, 0)
-	for _, ip := range lb.IpAddresses {
-		label := ""
-		if ip.IpAddress != nil {
-			label = *ip.IpAddress
-		}
-		// Try to annotate public/private if available in SDK (best-effort)
-		if ip.IsPublic != nil {
-			if *ip.IsPublic {
-				label = fmt.Sprintf("%s (public)", label)
-			} else {
-				label = fmt.Sprintf("%s (private)", label)
+// enrichAndMapLoadBalancers converts a slice of OCI LBs to domain models with enrichment using concurrency
+func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbalancer.LoadBalancer) ([]domain.LoadBalancer, error) {
+	out := make([]domain.LoadBalancer, len(items))
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(items))
+	for i := range items {
+		wg.Add(1)
+		idx := i
+		go func() {
+			defer wg.Done()
+			mapped, err := a.enrichAndMapLoadBalancer(ctx, items[idx])
+			if err != nil {
+				errCh <- err
+				return
 			}
-		}
-		if label != "" {
-			ips = append(ips, label)
+			out[idx] = mapped
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	// Listeners: name -> "proto:port → backendset"
-	listeners := make(map[string]string)
-	useSSL := false
-	routingPolicySet := make(map[string]struct{})
-	for name, l := range lb.Listeners {
-		// Determine port
-		port := 0
-		if l.Port != nil {
-			port = int(*l.Port)
-		}
-		// Determine backend set name
-		backend := ""
-		if l.DefaultBackendSetName != nil {
-			backend = *l.DefaultBackendSetName
-		}
-		// Capture SSL usage
-		if l.SslConfiguration != nil {
-			useSSL = true
-		}
-		// Capture routing policy referenced by the listener, if any
-		if l.RoutingPolicyName != nil && *l.RoutingPolicyName != "" {
-			routingPolicySet[*l.RoutingPolicyName] = struct{}{}
-		}
-		// Infer a protocol label based on port and SSL usage.
-		// Rules:
-		// - If SSL enabled or port==443 or port==8443 => https
-		// - Else if protocol is TCP (and not SSL/443/8443) => tcp
-		// - Else if port==80 => http
-		// - Else default to http for HTTP listeners
-		protoLabel := "http"
-		protoUpper := ""
-		if l.Protocol != nil {
-			protoUpper = strings.ToUpper(*l.Protocol)
-		}
-		if l.SslConfiguration != nil || port == 443 || port == 8443 {
-			protoLabel = "https"
-		} else if strings.EqualFold(protoUpper, "TCP") {
-			// Keep TCP for non-SSL, non-443/8443 listeners
-			protoLabel = "tcp"
-		} else if port == 80 {
-			protoLabel = "http"
-		}
-		listeners[name] = fmt.Sprintf("%s:%d → %s", protoLabel, port, backend)
-	}
-	// If no routing policies captured from listeners, fall back to keys of the load balancer's routing policies map
-	if len(routingPolicySet) == 0 {
-		for rpName := range lb.RoutingPolicies {
-			if rpName != "" {
-				routingPolicySet[rpName] = struct{}{}
-			}
-		}
-	}
-	routingPolicies := make([]string, 0, len(routingPolicySet))
-	for rp := range routingPolicySet {
-		routingPolicies = append(routingPolicies, rp)
-	}
-	sort.Strings(routingPolicies)
-
-	// Backend sets: only policy and health checker basic info; backends left empty initially
-	backendSets := make(map[string]domain.BackendSet)
-	for name, bs := range lb.BackendSets {
-		policy := ""
-		if bs.Policy != nil {
-			policy = *bs.Policy
-		}
-		hc := ""
-		if bs.HealthChecker != nil {
-			p := ""
-			if bs.HealthChecker.Protocol != nil {
-				p = strings.ToUpper(*bs.HealthChecker.Protocol)
-			}
-			port := 0
-			if bs.HealthChecker.Port != nil {
-				port = int(*bs.HealthChecker.Port)
-			}
-			// Normalize scheme label by common ports regardless of protocol value from API
-			switch port {
-			case 443, 8443:
-				p = "HTTPS"
-			case 80:
-				p = "HTTP"
-			}
-			hc = fmt.Sprintf("%s:%d", p, port)
-		}
-		backendSets[name] = domain.BackendSet{Policy: policy, Health: hc, Backends: []domain.Backend{}}
-	}
-
-	// Subnets and NSGs (IDs for now; will resolve to names during enrichment)
-	subnets := append([]string{}, lb.SubnetIds...)
-	nsgs := append([]string{}, lb.NetworkSecurityGroupIds...)
-
-	// Certificates: collect names only (expiry mapping omitted for portability)
-	certs := make([]string, 0)
-	for name := range lb.Certificates {
-		certs = append(certs, name)
-	}
-
-	return domain.LoadBalancer{
-		ID:              id,
-		OCID:            id,
-		Name:            name,
-		State:           string(lb.LifecycleState),
-		Type:            typeStr,
-		IPAddresses:     ips,
-		Shape:           shape,
-		Listeners:       listeners,
-		BackendHealth:   map[string]string{},
-		Subnets:         subnets,
-		NSGs:            nsgs,
-		Created:         createdTime,
-		BackendSets:     backendSets,
-		SSLCertificates: certs,
-		RoutingPolicies: routingPolicies,
-		UseSSL:          useSSL,
-	}
+	return out, nil
 }
 
 // enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, members and SSL certificate info
@@ -306,92 +203,6 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		}
 	}
 	return dm, nil
-}
-
-// enrichAndMapLoadBalancers converts a slice of OCI LBs to domain models with enrichment using concurrency
-func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbalancer.LoadBalancer) ([]domain.LoadBalancer, error) {
-	out := make([]domain.LoadBalancer, len(items))
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(items))
-	for i := range items {
-		wg.Add(1)
-		idx := i
-		go func() {
-			defer wg.Done()
-			mapped, err := a.enrichAndMapLoadBalancer(ctx, items[idx])
-			if err != nil {
-				errCh <- err
-				return
-			}
-			out[idx] = mapped
-		}()
-	}
-	wg.Wait()
-	close(errCh)
-	for err := range errCh {
-		if err != nil {
-			return nil, err
-		}
-	}
-	return out, nil
-}
-
-// resolveSubnets resolves subnet IDs on the domain model to "Name (CIDR)" best-effort
-func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) error {
-	resolved := make([]string, 0, len(dm.Subnets))
-	for _, sid := range dm.Subnets {
-		id := sid
-		if id == "" {
-			continue
-		}
-		var resp core.GetSubnetResponse
-		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-			var e error
-			resp, e = a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
-			return e
-		})
-		if err == nil {
-			name := ""
-			if resp.Subnet.DisplayName != nil {
-				name = *resp.Subnet.DisplayName
-			}
-			cidr := ""
-			if resp.Subnet.CidrBlock != nil {
-				cidr = *resp.Subnet.CidrBlock
-			}
-			if name != "" && cidr != "" {
-				resolved = append(resolved, fmt.Sprintf("%s (%s)", name, cidr))
-				continue
-			}
-		}
-		resolved = append(resolved, sid)
-	}
-	dm.Subnets = resolved
-	return nil
-}
-
-// resolveNSGs resolves NSG IDs on the domain model to display names best-effort
-func (a *Adapter) resolveNSGs(ctx context.Context, dm *domain.LoadBalancer) error {
-	resolved := make([]string, 0, len(dm.NSGs))
-	for _, nid := range dm.NSGs {
-		id := nid
-		if id == "" {
-			continue
-		}
-		var resp core.GetNetworkSecurityGroupResponse
-		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-			var e error
-			resp, e = a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
-			return e
-		})
-		if err == nil && resp.NetworkSecurityGroup.DisplayName != nil && *resp.NetworkSecurityGroup.DisplayName != "" {
-			resolved = append(resolved, *resp.NetworkSecurityGroup.DisplayName)
-			continue
-		}
-		resolved = append(resolved, nid)
-	}
-	dm.NSGs = resolved
-	return nil
 }
 
 // enrichBackendHealth fetches overall status per backend set and fills dm.BackendHealth
@@ -502,7 +313,6 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 	}
 
 	certsByName := make(map[string]loadbalancer.Certificate)
-	// Prefer ListCertificates
 	var listResp loadbalancer.ListCertificatesResponse
 	_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 		var e error
@@ -618,48 +428,153 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 	return nil
 }
 
-// retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.
-// It applies exponential backoff between retries and preserves the original behavior and error messages.
-func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBackoff time.Duration, op func() error) error {
-	backoff := initialBackoff
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		err := op()
-		if err == nil {
-			return nil
-		}
-
-		if serviceErr, ok := common.IsServiceError(err); ok && serviceErr.GetHTTPStatusCode() == http.StatusTooManyRequests {
-			if attempt == maxRetries-1 {
-				return fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
-			}
-			time.Sleep(backoff)
-			backoff *= 2
-			if backoff > maxBackoff {
-				backoff = maxBackoff
-			}
-			continue
-		}
-
-		return err
+// toBaseDomainLoadBalancer maps the base fields without enrichment
+func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer {
+	var id, name, shape string
+	if lb.Id != nil {
+		id = *lb.Id
 	}
-	return nil
-}
+	if lb.DisplayName != nil {
+		name = *lb.DisplayName
+	}
+	if lb.ShapeName != nil {
+		shape = *lb.ShapeName
+	}
+	// Type: Public/Private
+	typeStr := "Public"
+	if lb.IsPrivate != nil && *lb.IsPrivate {
+		typeStr = "Private"
+	}
+	var createdTime *time.Time
+	if lb.TimeCreated != nil {
+		t := lb.TimeCreated.Time
+		createdTime = &t
+	}
 
-// parseCertNotAfter attempts to parse the first certificate in a PEM bundle and returns NotAfter
-func parseCertNotAfter(pemData string) (time.Time, bool) {
-	data := []byte(pemData)
-	for {
-		var block *pemenc.Block
-		block, data = pemenc.Decode(data)
-		if block == nil {
-			break
+	// IP addresses
+	ips := make([]string, 0)
+	for _, ip := range lb.IpAddresses {
+		label := ""
+		if ip.IpAddress != nil {
+			label = *ip.IpAddress
 		}
-		if block.Type == "CERTIFICATE" {
-			c, err := x509std.ParseCertificate(block.Bytes)
-			if err == nil {
-				return c.NotAfter, true
+		if ip.IsPublic != nil {
+			if *ip.IsPublic {
+				label = fmt.Sprintf("%s (public)", label)
+			} else {
+				label = fmt.Sprintf("%s (private)", label)
 			}
+		}
+		if label != "" {
+			ips = append(ips, label)
 		}
 	}
-	return time.Time{}, false
+
+	// Listeners: name -> "proto:port → backendset"
+	listeners := make(map[string]string)
+	useSSL := false
+	routingPolicySet := make(map[string]struct{})
+	for name, l := range lb.Listeners {
+		// Determine port
+		port := 0
+		if l.Port != nil {
+			port = int(*l.Port)
+		}
+		// Determine backend set name
+		backend := ""
+		if l.DefaultBackendSetName != nil {
+			backend = *l.DefaultBackendSetName
+		}
+		// Capture SSL usage
+		if l.SslConfiguration != nil {
+			useSSL = true
+		}
+		// Capture routing policy referenced by the listener, if any
+		if l.RoutingPolicyName != nil && *l.RoutingPolicyName != "" {
+			routingPolicySet[*l.RoutingPolicyName] = struct{}{}
+		}
+		protoLabel := "http"
+		protoUpper := ""
+		if l.Protocol != nil {
+			protoUpper = strings.ToUpper(*l.Protocol)
+		}
+		if l.SslConfiguration != nil || port == 443 || port == 8443 {
+			protoLabel = "https"
+		} else if strings.EqualFold(protoUpper, "TCP") {
+			protoLabel = "tcp"
+		} else if port == 80 {
+			protoLabel = "http"
+		}
+		listeners[name] = fmt.Sprintf("%s:%d → %s", protoLabel, port, backend)
+	}
+	// If no routing policies captured from listeners, fall back to keys of the load balancer's routing policies map
+	if len(routingPolicySet) == 0 {
+		for rpName := range lb.RoutingPolicies {
+			if rpName != "" {
+				routingPolicySet[rpName] = struct{}{}
+			}
+		}
+	}
+	routingPolicies := make([]string, 0, len(routingPolicySet))
+	for rp := range routingPolicySet {
+		routingPolicies = append(routingPolicies, rp)
+	}
+	sort.Strings(routingPolicies)
+
+	// Backend sets: only policy and health checker basic info; backends left empty initially
+	backendSets := make(map[string]domain.BackendSet)
+	for name, bs := range lb.BackendSets {
+		policy := ""
+		if bs.Policy != nil {
+			policy = *bs.Policy
+		}
+		hc := ""
+		if bs.HealthChecker != nil {
+			p := ""
+			if bs.HealthChecker.Protocol != nil {
+				p = strings.ToUpper(*bs.HealthChecker.Protocol)
+			}
+			port := 0
+			if bs.HealthChecker.Port != nil {
+				port = int(*bs.HealthChecker.Port)
+			}
+			switch port {
+			case 443, 8443:
+				p = "HTTPS"
+			case 80:
+				p = "HTTP"
+			}
+			hc = fmt.Sprintf("%s:%d", p, port)
+		}
+		backendSets[name] = domain.BackendSet{Policy: policy, Health: hc, Backends: []domain.Backend{}}
+	}
+
+	// Subnets and NSGs (IDs for now; will resolve to names during enrichment)
+	subnets := append([]string{}, lb.SubnetIds...)
+	nsgs := append([]string{}, lb.NetworkSecurityGroupIds...)
+
+	// Certificates: collect names only (expiry mapping omitted for portability)
+	certs := make([]string, 0)
+	for name := range lb.Certificates {
+		certs = append(certs, name)
+	}
+
+	return domain.LoadBalancer{
+		ID:              id,
+		OCID:            id,
+		Name:            name,
+		State:           string(lb.LifecycleState),
+		Type:            typeStr,
+		IPAddresses:     ips,
+		Shape:           shape,
+		Listeners:       listeners,
+		BackendHealth:   map[string]string{},
+		Subnets:         subnets,
+		NSGs:            nsgs,
+		Created:         createdTime,
+		BackendSets:     backendSets,
+		SSLCertificates: certs,
+		RoutingPolicies: routingPolicies,
+		UseSSL:          useSSL,
+	}
 }

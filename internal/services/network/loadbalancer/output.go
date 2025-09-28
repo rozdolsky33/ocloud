@@ -173,7 +173,7 @@ func formatBackendHealth(health map[string]string) string {
 	if len(health) == 0 {
 		return ""
 	}
-	// Sort backend set names for deterministic output, then limit lines to keep table compact
+	// Sort backend set names for deterministic output, then limit lines to keep the table compact
 	keys := make([]string, 0, len(health))
 	for k := range health {
 		keys = append(keys, k)

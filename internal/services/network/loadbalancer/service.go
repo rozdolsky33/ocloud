@@ -47,9 +47,18 @@ func (s *Service) ListLoadBalancers(ctx context.Context) ([]network.LoadBalancer
 }
 
 // FetchPaginatedLoadBalancers returns a page of load balancers and pagination metadata.
-func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNum int) ([]network.LoadBalancer, int, string, error) {
-	s.logger.V(logger.Debug).Info("fetching paginated load balancers", "limit", limit, "page", pageNum)
-	all, err := s.repo.ListLoadBalancers(ctx, s.compartmentID)
+// If showAll is true, it uses the enriched model; otherwise, it uses the basic model for performance.
+func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNum int, showAll bool) ([]network.LoadBalancer, int, string, error) {
+	s.logger.V(logger.Debug).Info("fetching paginated load balancers", "limit", limit, "page", pageNum, "showAll", showAll)
+	var (
+		all []network.LoadBalancer
+		err error
+	)
+	if showAll {
+		all, err = s.repo.ListEnrichedLoadBalancers(ctx, s.compartmentID)
+	} else {
+		all, err = s.repo.ListLoadBalancers(ctx, s.compartmentID)
+	}
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing load balancers from repository: %w", err)
 	}
@@ -71,4 +80,14 @@ func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNu
 		next = fmt.Sprintf("%d", pageNum+1)
 	}
 	return paged, total, next, nil
+}
+
+// GetEnrichedLoadBalancer retrieves and returns the enriched load balancer by OCID.
+func (s *Service) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*network.LoadBalancer, error) {
+	s.logger.V(logger.Debug).Info("getting enriched load balancer", "ocid", ocid)
+	lb, err := s.repo.GetEnrichedLoadBalancer(ctx, ocid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get enriched load balancer: %w", err)
+	}
+	return lb, nil
 }
