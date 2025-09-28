@@ -53,7 +53,6 @@ func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.Loa
 	}
 
 	dm := toBaseDomainLoadBalancer(response.LoadBalancer)
-	// Light enrichment: populate BackendHealth so default view can show statuses
 	_ = a.enrichBackendHealth(ctx, response.LoadBalancer, &dm)
 	return &dm, nil
 }
@@ -87,8 +86,6 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 		if err != nil {
 			return nil, fmt.Errorf("listing load balancers: %w", err)
 		}
-
-		// Process this page concurrently for performance
 		pageItems := resp.Items
 		mapped := make([]domain.LoadBalancer, len(pageItems))
 		var wg sync.WaitGroup
@@ -99,7 +96,6 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 				defer wg.Done()
 				lb := pageItems[idx]
 				dm := toBaseDomainLoadBalancer(lb)
-				// Light enrichment: backend health only
 				_ = a.enrichBackendHealth(ctx, lb, &dm)
 				mapped[idx] = dm
 			}()
