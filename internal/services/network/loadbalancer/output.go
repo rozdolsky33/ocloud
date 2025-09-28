@@ -120,15 +120,53 @@ func formatListeners(listeners map[string]string, includeNames bool) string {
 	var parts []string
 	if includeNames {
 		for name, backend := range listeners {
-			parts = append(parts, fmt.Sprintf("%s → %s", name, backend))
+			normalized := normalizeListenerValue(backend)
+			parts = append(parts, fmt.Sprintf("%s → %s", name, normalized))
 		}
 	} else {
 		// Default view: omit listener names, show only protocol:port → backendset
 		for _, backend := range listeners {
-			parts = append(parts, backend)
+			normalized := normalizeListenerValue(backend)
+			parts = append(parts, normalized)
 		}
 	}
 	return strings.Join(parts, "\n")
+}
+
+// normalizeListenerValue ensures we display correct scheme labels for common ports
+// and previously mislabeled values coming from upstream mapping. It operates on
+// strings like "http:8443 → backendset" and fixes them to "https:8443 → backendset".
+func normalizeListenerValue(s string) string {
+	// Split on the arrow to isolate the left side (proto:port)
+	leftRight := strings.SplitN(s, " → ", 2)
+	left := leftRight[0]
+	right := ""
+	if len(leftRight) == 2 {
+		right = leftRight[1]
+	}
+	// Expect left to be proto:port
+	lp := strings.SplitN(left, ":", 2)
+	if len(lp) != 2 {
+		return s
+	}
+	proto := strings.ToLower(strings.TrimSpace(lp[0]))
+	portStr := strings.TrimSpace(lp[1])
+	// Extract numeric port (strip anything after space just in case)
+	if i := strings.IndexByte(portStr, ' '); i >= 0 {
+		portStr = portStr[:i]
+	}
+	// Force schemes for common ports
+	switch portStr {
+	case "443", "8443":
+		proto = "https"
+	case "80":
+		proto = "http"
+	}
+	leftFixed := fmt.Sprintf("%s:%s", proto, portStr)
+	if right != "" {
+		return leftFixed + " → " + right
+	}
+	return leftFixed
 }
 
 func formatBackendHealth(health map[string]string) string {
