@@ -62,13 +62,22 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		created = lb.Created.String()
 	}
 	data := map[string]string{
-		"Name":           lb.Name,
-		"Shape":          lb.Shape,
-		"Created":        created,
-		"IP Addresses":   strings.Join(lb.IPAddresses, ", "),
-		"State":          lb.State,
-		"OCID":           lb.OCID,
-		"Type":           lb.Type,
+		"Name":         lb.Name,
+		"Shape":        lb.Shape,
+		"Created":      created,
+		"IP Addresses": strings.Join(lb.IPAddresses, ", "),
+		"State":        lb.State,
+		"OCID":         lb.OCID,
+		"Type":         lb.Type,
+		"VCN Name": func() string {
+			if lb.VcnName != "" {
+				return lb.VcnName
+			}
+			if lb.VcnID != "" {
+				return lb.VcnID
+			}
+			return "-"
+		}(),
 		"Subnets":        strings.Join(lb.Subnets, ", "),
 		"NSGs":           strings.Join(lb.NSGs, ", "),
 		"Listeners":      formatListeners(lb.Listeners, true),
@@ -79,6 +88,12 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 			}
 			return strings.Join(lb.RoutingPolicies, ", ")
 		}(),
+		"Hostnames": func() string {
+			if len(lb.Hostnames) == 0 {
+				return "-"
+			}
+			return strings.Join(lb.Hostnames, ", ")
+		}(),
 		"Use SSL": func() string {
 			if lb.UseSSL {
 				return "Yes"
@@ -87,7 +102,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		}(),
 		"SSL Certificates": formatCertificates(lb.SSLCertificates),
 	}
-	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "Routing Policy", "Use SSL", "SSL Certificates"}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "Routing Policy", "Hostnames", "Use SSL", "SSL Certificates"}
 
 	// Include backend set summaries as additional key-value entries (no separate tables)
 	// To avoid truncating long backend set names in the Key column, we print a short key

@@ -596,6 +596,20 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		certs = append(certs, name)
 	}
 
+	// Hostnames: collect FQDN values from LB hostname map
+	hostnames := make([]string, 0)
+	for n, h := range lb.Hostnames {
+		if h.Hostname != nil && *h.Hostname != "" {
+			hostnames = append(hostnames, *h.Hostname)
+			continue
+		}
+		// fallback to the map key if value missing
+		if strings.TrimSpace(n) != "" {
+			hostnames = append(hostnames, n)
+		}
+	}
+	sort.Strings(hostnames)
+
 	return domain.LoadBalancer{
 		ID:              id,
 		OCID:            id,
@@ -613,5 +627,6 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		SSLCertificates: certs,
 		RoutingPolicies: routingPolicies,
 		UseSSL:          useSSL,
+		Hostnames:       hostnames,
 	}
 }

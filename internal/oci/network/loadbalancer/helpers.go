@@ -19,9 +19,10 @@ const (
 	defaultMaxBackoff     = 32 * time.Second
 )
 
-// resolveSubnets resolves subnet IDs on the domain model to "Name (CIDR)"
+// resolveSubnets resolves subnet IDs on the domain model to "Name (CIDR)" and captures the VCN context
 func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) error {
 	resolved := make([]string, 0, len(dm.Subnets))
+	var capturedVcnID string
 	for _, sid := range dm.Subnets {
 		id := sid
 		if id == "" {
@@ -34,6 +35,10 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 			return e
 		})
 		if err == nil {
+			// Capture VCN ID from the first successful subnet fetch
+			if capturedVcnID == "" && resp.Subnet.VcnId != nil {
+				capturedVcnID = *resp.Subnet.VcnId
+			}
 			name := ""
 			if resp.Subnet.DisplayName != nil {
 				name = *resp.Subnet.DisplayName
@@ -50,6 +55,22 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 		resolved = append(resolved, sid)
 	}
 	dm.Subnets = resolved
+
+	// If we have a VCN ID, resolve its name and set on the domain model
+	if capturedVcnID != "" {
+		var vcnResp core.GetVcnResponse
+		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			vcnResp, e = a.nwClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &capturedVcnID})
+			return e
+		})
+		if err == nil {
+			dm.VcnID = capturedVcnID
+			if vcnResp.Vcn.DisplayName != nil {
+				dm.VcnName = *vcnResp.Vcn.DisplayName
+			}
+		}
+	}
 	return nil
 }
 

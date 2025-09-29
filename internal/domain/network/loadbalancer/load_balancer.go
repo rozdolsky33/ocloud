@@ -22,6 +22,10 @@ type LoadBalancer struct {
 	SSLCertificates []string
 	RoutingPolicies []string
 	UseSSL          bool
+	Hostnames       []string
+	// Enriched network context
+	VcnID   string
+	VcnName string
 }
 
 type BackendSet struct {
