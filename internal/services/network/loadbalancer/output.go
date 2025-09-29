@@ -92,7 +92,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 			if len(lb.Hostnames) == 0 {
 				return "-"
 			}
-			return strings.Join(lb.Hostnames, ", ")
+			return formatHostnames(lb.Hostnames)
 		}(),
 		"Use SSL": func() string {
 			if lb.UseSSL {
@@ -244,4 +244,11 @@ func formatCertificates(certs []string) string {
 		return ""
 	}
 	return strings.Join(certs, "\n")
+}
+
+func formatHostnames(hosts []string) string {
+	if len(hosts) == 0 {
+		return ""
+	}
+	return strings.Join(hosts, "\n")
 }
