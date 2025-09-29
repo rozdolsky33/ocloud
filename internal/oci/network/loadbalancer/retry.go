@@ -41,7 +41,17 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 			if attempt == maxRetries-1 {
 				return fmt.Errorf("rate limit exceeded after %d retries: %w", maxRetries, err)
 			}
-			time.Sleep(backoff)
+			// add jitter (up to 25% of backoff)
+			var sleepDur = backoff
+			jitter := time.Duration(time.Now().UnixNano() % int64(backoff/4))
+			sleepDur = backoff + jitter
+			t := time.NewTimer(sleepDur)
+			select {
+			case <-t.C:
+			case <-ctx.Done():
+				t.Stop()
+				return ctx.Err()
+			}
 			backoff *= 2
 			if backoff > maxBackoff {
 				backoff = maxBackoff

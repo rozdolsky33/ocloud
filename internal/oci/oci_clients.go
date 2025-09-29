@@ -2,6 +2,9 @@ package oci
 
 import (
 	"fmt"
+	"net/http"
+	"sync"
+	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
@@ -14,12 +17,37 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/database"
 )
 
+var (
+	sharedTransportOnce sync.Once
+	sharedTransport     http.RoundTripper
+)
+
+func getSharedTransport() http.RoundTripper {
+	sharedTransportOnce.Do(func() {
+		sharedTransport = &http.Transport{
+			MaxIdleConns:          256,
+			MaxIdleConnsPerHost:   64,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}
+	})
+	return sharedTransport
+}
+
+func applySharedTransport(base *common.BaseClient) {
+	if base != nil {
+		base.HTTPClient = &http.Client{Transport: getSharedTransport()}
+	}
+}
+
 // NewIdentityClient creates and returns a new instance of IdentityClient using the provided configuration provider.
 func NewIdentityClient(provider common.ConfigurationProvider) (identity.IdentityClient, error) {
 	client, err := identity.NewIdentityClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating identity client: %w", err)
 	}
+	applySharedTransport(&client.BaseClient)
 	return client, nil
 }
 
