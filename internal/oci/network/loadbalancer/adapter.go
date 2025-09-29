@@ -209,49 +209,84 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	if lb.DisplayName != nil {
 		name = *lb.DisplayName
 	}
+	// Start log for this LB enrichment
+	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.start", "id", id, "name", name)
 	defer func() {
 		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Milliseconds())
 	}()
 
 	dm := toBaseDomainLoadBalancer(lb)
 
-	var wg sync.WaitGroup
-	errCh := make(chan error, 5)
+	var (
+		wg              sync.WaitGroup
+		errCh           = make(chan error, 5)
+		dResolveSubnets int64
+		dResolveNSGs    int64
+		dHealth         int64
+		dMembers        int64
+		dCerts          int64
+		mu              sync.Mutex
+	)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		s := time.Now()
 		if err := a.resolveSubnets(ctx, &dm); err != nil {
 			errCh <- err
+			return
 		}
+		mu.Lock()
+		dResolveSubnets = time.Since(s).Milliseconds()
+		mu.Unlock()
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		s := time.Now()
 		if err := a.resolveNSGs(ctx, &dm); err != nil {
 			errCh <- err
+			return
 		}
+		mu.Lock()
+		dResolveNSGs = time.Since(s).Milliseconds()
+		mu.Unlock()
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		s := time.Now()
 		if err := a.enrichBackendHealth(ctx, lb, &dm, true); err != nil {
 			errCh <- err
+			return
 		}
+		mu.Lock()
+		dHealth = time.Since(s).Milliseconds()
+		mu.Unlock()
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		s := time.Now()
 		if err := a.enrichBackendMembers(ctx, lb, &dm, true); err != nil {
 			errCh <- err
+			return
 		}
+		mu.Lock()
+		dMembers = time.Since(s).Milliseconds()
+		mu.Unlock()
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		s := time.Now()
 		if err := a.enrichCertificates(ctx, lb, &dm); err != nil {
 			errCh <- err
+			return
 		}
+		mu.Lock()
+		dCerts = time.Since(s).Milliseconds()
+		mu.Unlock()
 	}()
 
 	wg.Wait()
@@ -261,6 +296,15 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 			return dm, err
 		}
 	}
+	// Final summary with per-step durations
+	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.summary", "id", id, "name", name,
+		"duration_total_ms", time.Since(startTotal).Milliseconds(),
+		"resolve_subnets_ms", dResolveSubnets,
+		"resolve_nsgs_ms", dResolveNSGs,
+		"backend_health_ms", dHealth,
+		"backend_members_ms", dMembers,
+		"certificates_ms", dCerts,
+	)
 	return dm, nil
 }
 
@@ -431,13 +475,16 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 	var listResp loadbalancer.ListCertificatesResponse
 	var listItems []loadbalancer.Certificate
 	// Use cached list if available
+	cacheHit := false
 	if lbID != "" {
 		a.muCertLists.RLock()
 		if cached, ok := a.certListCache[lbID]; ok {
 			listItems = cached
+			cacheHit = true
 		}
 		a.muCertLists.RUnlock()
 	}
+	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.certificates.list_cache", "id", lbID, "name", lbName, "cache_hit", cacheHit)
 	if listItems == nil {
 		_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
 			return a.do(ctx, func() error {

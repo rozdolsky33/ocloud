@@ -148,7 +148,7 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 		}
 		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.resolve_vcn", "lb_id", dm.OCID, "lb_name", dm.Name, "vcn_id", dm.VcnID, "from_cache", vcnFromCache, "duration_ms", time.Since(vcnStart).Milliseconds())
 	}
-	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.resolve_subnets", "lb_id", dm.OCID, "lb_name", dm.Name, "subnets", origCount, "cache_hits", cacheHits, "duration_ms", time.Since(start).Milliseconds())
+	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.resolve_subnets", "lb_id", dm.OCID, "lb_name", dm.Name, "subnets", origCount, "cache_hits", cacheHits, "cache_misses", origCount-cacheHits, "duration_ms", time.Since(start).Milliseconds())
 	return nil
 }
 
@@ -192,7 +192,7 @@ func (a *Adapter) resolveNSGs(ctx context.Context, dm *domain.LoadBalancer) erro
 		resolved = append(resolved, nid)
 	}
 	dm.NSGs = resolved
-	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.resolve_nsgs", "lb_id", dm.OCID, "lb_name", dm.Name, "nsgs", origCount, "cache_hits", cacheHits, "duration_ms", time.Since(start).Milliseconds())
+	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.resolve_nsgs", "lb_id", dm.OCID, "lb_name", dm.Name, "nsgs", origCount, "cache_hits", cacheHits, "cache_misses", origCount-cacheHits, "duration_ms", time.Since(start).Milliseconds())
 	return nil
 }
 
