@@ -278,18 +278,41 @@ func (a *Adapter) enrichBackendMembers(ctx context.Context, lb loadbalancer.Load
 			if err != nil {
 				return
 			}
-			backends := make([]domain.Backend, 0, len(bsResp.BackendSet.Backends))
-			for _, b := range bsResp.BackendSet.Backends {
-				ip := ""
-				if b.IpAddress != nil {
-					ip = *b.IpAddress
-				}
-				port := 0
-				if b.Port != nil {
-					port = int(*b.Port)
-				}
-				backends = append(backends, domain.Backend{Name: ip, Port: port, Status: "UNKNOWN"})
+			// Prepare slice with exact length for deterministic ordering
+			backends := make([]domain.Backend, len(bsResp.BackendSet.Backends))
+			var innerWg sync.WaitGroup
+			for i, b := range bsResp.BackendSet.Backends {
+				innerWg.Add(1)
+				idx := i
+				backend := b
+				go func() {
+					defer innerWg.Done()
+					ip := ""
+					if backend.IpAddress != nil {
+						ip = *backend.IpAddress
+					}
+					port := 0
+					if backend.Port != nil {
+						port = int(*backend.Port)
+					}
+					status := "UNKNOWN"
+					// Try to fetch precise backend health
+					if ip != "" && port > 0 {
+						backendName := fmt.Sprintf("%s:%d", ip, port)
+						var bhResp loadbalancer.GetBackendHealthResponse
+						_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+							var e error
+							bhResp, e = a.lbClient.GetBackendHealth(ctx, loadbalancer.GetBackendHealthRequest{LoadBalancerId: lb.Id, BackendSetName: &n, BackendName: &backendName})
+							return e
+						})
+						if bhResp.RawResponse != nil {
+							status = strings.ToUpper(string(bhResp.BackendHealth.Status))
+						}
+					}
+					backends[idx] = domain.Backend{Name: ip, Port: port, Status: status}
+				}()
 			}
+			innerWg.Wait()
 			mu.Lock()
 			bs := dm.BackendSets[n]
 			bs.Backends = backends
