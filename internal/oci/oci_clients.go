@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/oracle/oci-go-sdk/v65/bastion"
+	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
 	"github.com/oracle/oci-go-sdk/v65/identity"
+	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/containerengine"
@@ -62,6 +64,24 @@ func NewBastionClient(provider common.ConfigurationProvider) (bastion.BastionCli
 	client, err := bastion.NewBastionClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating bastion client: %w", err)
+	}
+	return client, nil
+}
+
+// NewLoadBalancerClient creates and returns a new LoadBalancerClient using the provided configuration provider.
+func NewLoadBalancerClient(provider common.ConfigurationProvider) (loadbalancer.LoadBalancerClient, error) {
+	client, err := loadbalancer.NewLoadBalancerClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating load balancer client: %w", err)
+	}
+	return client, nil
+}
+
+// NewCertificatesManagementClient creates and returns a new CertificatesManagementClient.
+func NewCertificatesManagementClient(provider common.ConfigurationProvider) (certificatesmanagement.CertificatesManagementClient, error) {
+	client, err := certificatesmanagement.NewCertificatesManagementClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating certificates management client: %w", err)
 	}
 	return client, nil
 }

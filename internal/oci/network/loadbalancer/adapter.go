@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
@@ -23,12 +22,9 @@ type Adapter struct {
 	lbClient    loadbalancer.LoadBalancerClient
 	nwClient    core.VirtualNetworkClient
 	certsClient certificatesmanagement.CertificatesManagementClient
-
-	// concurrency and rate limiting
 	limiter     *rate.Limiter
 	sf          singleflight.Group
 	workerCount int
-
 	// caches to reduce repeated OCI calls within a command run
 	subnetCache   map[string]core.GetSubnetResponse
 	vcnCache      map[string]core.GetVcnResponse
@@ -40,20 +36,8 @@ type Adapter struct {
 	muCertLists   sync.RWMutex
 }
 
-// NewAdapter creates a new Adapter instance.
-func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
-	lbClient, err := loadbalancer.NewLoadBalancerClientWithConfigurationProvider(provider)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create load balancer client: %w", err)
-	}
-	nwClient, err := core.NewVirtualNetworkClientWithConfigurationProvider(provider)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create network client: %w", err)
-	}
-	certsClient, err := certificatesmanagement.NewCertificatesManagementClientWithConfigurationProvider(provider)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create certificates management client: %w", err)
-	}
+// NewAdapter creates a new Adapter instance using pre-created OCI clients.
+func NewAdapter(lbClient loadbalancer.LoadBalancerClient, nwClient core.VirtualNetworkClient, certsClient certificatesmanagement.CertificatesManagementClient) *Adapter {
 	ad := &Adapter{
 		lbClient:      lbClient,
 		nwClient:      nwClient,
@@ -65,7 +49,7 @@ func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
 		nsgCache:      make(map[string]core.GetNetworkSecurityGroupResponse),
 		certListCache: make(map[string][]loadbalancer.Certificate),
 	}
-	return ad, nil
+	return ad
 }
 
 // GetLoadBalancer retrieves a single Load Balancer and maps it to the basic domain model, adding backend health for usability.
@@ -212,7 +196,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	// Start log for this LB enrichment
 	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.start", "id", id, "name", name)
 	defer func() {
-		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Milliseconds())
+		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Seconds()*1000)
 	}()
 
 	dm := toBaseDomainLoadBalancer(lb)

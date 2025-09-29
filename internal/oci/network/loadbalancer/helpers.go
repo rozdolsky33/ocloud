@@ -28,7 +28,7 @@ const (
 // It returns an error to allow early cancellation via errgroup.
 type Work func() error
 
-// runWithWorkers executes jobs from the channel using n workers and stops on first error or context cancel.
+// runWithWorkers executes jobs from the channel using n workers and stops on the first error or context cancel.
 func runWithWorkers(ctx context.Context, n int, jobs <-chan Work) error {
 	g, ctx := errgroup.WithContext(ctx)
 	for i := 0; i < n; i++ {

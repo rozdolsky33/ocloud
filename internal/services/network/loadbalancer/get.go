@@ -6,6 +6,7 @@ import (
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	oci "github.com/rozdolsky33/ocloud/internal/oci"
 	ocilb "github.com/rozdolsky33/ocloud/internal/oci/network/loadbalancer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
@@ -13,10 +14,19 @@ import (
 // GetLoadBalancers retrieves load balancers and displays a paginated list.
 func GetLoadBalancers(appCtx *app.ApplicationContext, useJSON bool, limit, page int, showAll bool) error {
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing Load Balancers")
-	adapter, err := ocilb.NewAdapter(appCtx.Provider)
+	lbClient, err := oci.NewLoadBalancerClient(appCtx.Provider)
 	if err != nil {
-		return fmt.Errorf("creating load balancer adapter: %w", err)
+		return fmt.Errorf("creating load balancer client: %w", err)
 	}
+	nwClient, err := oci.NewNetworkClient(appCtx.Provider)
+	if err != nil {
+		return fmt.Errorf("creating network client: %w", err)
+	}
+	certsClient, err := oci.NewCertificatesManagementClient(appCtx.Provider)
+	if err != nil {
+		return fmt.Errorf("creating certificates management client: %w", err)
+	}
+	adapter := ocilb.NewAdapter(lbClient, nwClient, certsClient)
 
 	service := NewService(adapter, appCtx)
 
