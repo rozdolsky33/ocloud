@@ -2,6 +2,8 @@ package loadbalancer
 
 import (
 	"github.com/rozdolsky33/ocloud/internal/app"
+	configflags "github.com/rozdolsky33/ocloud/internal/config/flags"
+	lbdomain "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +14,7 @@ var listExamples = ``
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "list",
-		Short:         "Lists VCNs in a compartment",
+		Short:         "Lists Load Balancers in a compartment",
 		Long:          listLong,
 		Example:       listExamples,
 		SilenceUsage:  true,
@@ -25,5 +27,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 }
 
 func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	return nil
+	useJSON := configflags.GetBoolFlag(cmd, configflags.FlagNameJSON, false)
+	return lbdomain.ListLoadBalancers(appCtx, useJSON)
 }
