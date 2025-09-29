@@ -13,6 +13,9 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
+	lbLogger "github.com/rozdolsky33/ocloud/internal/logger"
+	"golang.org/x/sync/singleflight"
+	"golang.org/x/time/rate"
 )
 
 // Adapter implements the domain.LoadBalancerRepository interface for OCI.
@@ -20,6 +23,11 @@ type Adapter struct {
 	lbClient    loadbalancer.LoadBalancerClient
 	nwClient    core.VirtualNetworkClient
 	certsClient certificatesmanagement.CertificatesManagementClient
+
+	// concurrency and rate limiting
+	limiter     *rate.Limiter
+	sf          singleflight.Group
+	workerCount int
 
 	// caches to reduce repeated OCI calls within a command run
 	subnetCache   map[string]core.GetSubnetResponse
@@ -46,15 +54,18 @@ func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create certificates management client: %w", err)
 	}
-	return &Adapter{
+	ad := &Adapter{
 		lbClient:      lbClient,
 		nwClient:      nwClient,
 		certsClient:   certsClient,
+		workerCount:   defaultWorkerCount,
+		limiter:       rate.NewLimiter(rate.Limit(defaultRatePerSec), defaultRateBurst),
 		subnetCache:   make(map[string]core.GetSubnetResponse),
 		vcnCache:      make(map[string]core.GetVcnResponse),
 		nsgCache:      make(map[string]core.GetNetworkSecurityGroupResponse),
 		certListCache: make(map[string][]loadbalancer.Certificate),
-	}, nil
+	}
+	return ad, nil
 }
 
 // GetLoadBalancer retrieves a single Load Balancer and maps it to the basic domain model, adding backend health for usability.
@@ -65,11 +76,9 @@ func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.Loa
 	if err != nil {
 		return nil, fmt.Errorf("failed to get load balancer: %w", err)
 	}
-
 	dm := toBaseDomainLoadBalancer(response.LoadBalancer)
-	// Light enrichments for usability in default views/JSON
-	_ = a.enrichBackendHealth(ctx, response.LoadBalancer, &dm)
-	_ = a.resolveSubnets(ctx, &dm) // also captures VCN ID/Name
+	_ = a.enrichBackendHealth(ctx, response.LoadBalancer, &dm, false)
+	_ = a.resolveSubnets(ctx, &dm)
 	return &dm, nil
 }
 
@@ -113,7 +122,7 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 				lb := pageItems[idx]
 				dm := toBaseDomainLoadBalancer(lb)
 				// Light enrichment: health and subnets (captures VCN as well)
-				_ = a.enrichBackendHealth(ctx, lb, &dm)
+				_ = a.enrichBackendHealth(ctx, lb, &dm, false)
 				_ = a.resolveSubnets(ctx, &dm)
 				mapped[idx] = dm
 			}()
@@ -191,6 +200,19 @@ func (a *Adapter) toEnrichDomainLoadBalancer(ctx context.Context, lb loadbalance
 
 // enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, members and SSL certificate info
 func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.LoadBalancer) (domain.LoadBalancer, error) {
+	startTotal := time.Now()
+	id := ""
+	name := ""
+	if lb.Id != nil {
+		id = *lb.Id
+	}
+	if lb.DisplayName != nil {
+		name = *lb.DisplayName
+	}
+	defer func() {
+		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Milliseconds())
+	}()
+
 	dm := toBaseDomainLoadBalancer(lb)
 
 	var wg sync.WaitGroup
@@ -213,14 +235,14 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := a.enrichBackendHealth(ctx, lb, &dm); err != nil {
+		if err := a.enrichBackendHealth(ctx, lb, &dm, true); err != nil {
 			errCh <- err
 		}
 	}()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		if err := a.enrichBackendMembers(ctx, lb, &dm); err != nil {
+		if err := a.enrichBackendMembers(ctx, lb, &dm, true); err != nil {
 			errCh <- err
 		}
 	}()
@@ -242,35 +264,49 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	return dm, nil
 }
 
-// enrichBackendHealth fetches overall status per backend set and fills dm.BackendHealth
-func (a *Adapter) enrichBackendHealth(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer) error {
+// enrichBackendHealth fetches overall status per backend set and fills dm.BackendHealth.
+// When deep is false, it only fetches per-set health; per-backend health is handled in enrichBackendMembers when deep.
+func (a *Adapter) enrichBackendHealth(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer, deep bool) error {
+	start := time.Now()
+	lbID, lbName := "", ""
+	if lb.Id != nil {
+		lbID = *lb.Id
+	}
+	if lb.DisplayName != nil {
+		lbName = *lb.DisplayName
+	}
+	defer func() {
+		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.backend_health", "id", lbID, "name", lbName, "backend_sets", len(lb.BackendSets), "duration_ms", time.Since(start).Milliseconds())
+	}()
 	if lb.Id == nil {
 		return nil
 	}
 	healthLocal := make(map[string]string)
-	var wg sync.WaitGroup
+	jobs := make(chan Work, len(lb.BackendSets))
 	var mu sync.Mutex
 	for bsName := range lb.BackendSets {
 		name := bsName
-		wg.Add(1)
-		go func(n string) {
-			defer wg.Done()
+		jobs <- func() error {
 			var hResp loadbalancer.GetBackendSetHealthResponse
 			err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-				var e error
-				hResp, e = a.lbClient.GetBackendSetHealth(ctx, loadbalancer.GetBackendSetHealthRequest{LoadBalancerId: lb.Id, BackendSetName: &n})
-				return e
+				return a.do(ctx, func() error {
+					var e error
+					hResp, e = a.lbClient.GetBackendSetHealth(ctx, loadbalancer.GetBackendSetHealthRequest{LoadBalancerId: lb.Id, BackendSetName: &name})
+					return e
+				})
 			})
 			if err != nil {
-				return
+				return err
 			}
 			status := strings.ToUpper(string(hResp.BackendSetHealth.Status))
 			mu.Lock()
-			healthLocal[n] = status
+			healthLocal[name] = status
 			mu.Unlock()
-		}(name)
+			return nil
+		}
 	}
-	wg.Wait()
+	close(jobs)
+	_ = runWithWorkers(ctx, a.workerCount, jobs)
 	if dm.BackendHealth == nil {
 		dm.BackendHealth = map[string]string{}
 	}
@@ -280,75 +316,94 @@ func (a *Adapter) enrichBackendHealth(ctx context.Context, lb loadbalancer.LoadB
 	return nil
 }
 
-// enrichBackendMembers fetches backend members per backend set and fills dm.BackendSets[...].Backends
-func (a *Adapter) enrichBackendMembers(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer) error {
+// enrichBackendMembers fetches backend members per backend set and fills dm.BackendSets[...].Backends.
+// It avoids per-backend GetBackendHealth unless deep is true or the set is unhealthy.
+func (a *Adapter) enrichBackendMembers(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer, deep bool) error {
+	start := time.Now()
+	lbID, lbName := "", ""
+	if lb.Id != nil {
+		lbID = *lb.Id
+	}
+	if lb.DisplayName != nil {
+		lbName = *lb.DisplayName
+	}
+	defer func() {
+		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.backend_members", "id", lbID, "name", lbName, "backend_sets", len(lb.BackendSets), "duration_ms", time.Since(start).Milliseconds())
+	}()
 	if lb.Id == nil {
 		return nil
 	}
-	var wg sync.WaitGroup
+	jobs := make(chan Work, len(lb.BackendSets))
 	var mu sync.Mutex
 	for bsName := range lb.BackendSets {
 		name := bsName
-		wg.Add(1)
-		go func(n string) {
-			defer wg.Done()
+		jobs <- func() error {
 			var bsResp loadbalancer.GetBackendSetResponse
 			err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-				var e error
-				bsResp, e = a.lbClient.GetBackendSet(ctx, loadbalancer.GetBackendSetRequest{LoadBalancerId: lb.Id, BackendSetName: &n})
-				return e
+				return a.do(ctx, func() error {
+					var e error
+					bsResp, e = a.lbClient.GetBackendSet(ctx, loadbalancer.GetBackendSetRequest{LoadBalancerId: lb.Id, BackendSetName: &name})
+					return e
+				})
 			})
 			if err != nil {
-				return
+				return err
 			}
-			// Prepare slice with exact length for deterministic ordering
 			backends := make([]domain.Backend, len(bsResp.BackendSet.Backends))
-			var innerWg sync.WaitGroup
+			setStatus := strings.ToUpper(dm.BackendHealth[name])
+			needDeep := deep || (setStatus != "" && setStatus != "OK")
 			for i, b := range bsResp.BackendSet.Backends {
-				innerWg.Add(1)
-				idx := i
-				backend := b
-				go func() {
-					defer innerWg.Done()
-					ip := ""
-					if backend.IpAddress != nil {
-						ip = *backend.IpAddress
-					}
-					port := 0
-					if backend.Port != nil {
-						port = int(*backend.Port)
-					}
-					status := "UNKNOWN"
-					// Try to fetch precise backend health
-					if ip != "" && port > 0 {
-						backendName := fmt.Sprintf("%s:%d", ip, port)
-						var bhResp loadbalancer.GetBackendHealthResponse
-						_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				ip := ""
+				if b.IpAddress != nil {
+					ip = *b.IpAddress
+				}
+				port := 0
+				if b.Port != nil {
+					port = int(*b.Port)
+				}
+				status := "UNKNOWN"
+				if needDeep && ip != "" && port > 0 {
+					backendName := fmt.Sprintf("%s:%d", ip, port)
+					var bhResp loadbalancer.GetBackendHealthResponse
+					_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+						return a.do(ctx, func() error {
 							var e error
-							bhResp, e = a.lbClient.GetBackendHealth(ctx, loadbalancer.GetBackendHealthRequest{LoadBalancerId: lb.Id, BackendSetName: &n, BackendName: &backendName})
+							bhResp, e = a.lbClient.GetBackendHealth(ctx, loadbalancer.GetBackendHealthRequest{LoadBalancerId: lb.Id, BackendSetName: &name, BackendName: &backendName})
 							return e
 						})
-						if bhResp.RawResponse != nil {
-							status = strings.ToUpper(string(bhResp.BackendHealth.Status))
-						}
+					})
+					if bhResp.RawResponse != nil {
+						status = strings.ToUpper(string(bhResp.BackendHealth.Status))
 					}
-					backends[idx] = domain.Backend{Name: ip, Port: port, Status: status}
-				}()
+				}
+				backends[i] = domain.Backend{Name: ip, Port: port, Status: status}
 			}
-			innerWg.Wait()
 			mu.Lock()
-			bs := dm.BackendSets[n]
+			bs := dm.BackendSets[name]
 			bs.Backends = backends
-			dm.BackendSets[n] = bs
+			dm.BackendSets[name] = bs
 			mu.Unlock()
-		}(name)
+			return nil
+		}
 	}
-	wg.Wait()
+	close(jobs)
+	_ = runWithWorkers(ctx, a.workerCount, jobs)
 	return nil
 }
 
 // enrichCertificates gathers certificate names/ids and resolves expiry where possible, storing formatted strings in dm.SSLCertificates
 func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBalancer, dm *domain.LoadBalancer) error {
+	start := time.Now()
+	lbID, lbName := "", ""
+	if lb.Id != nil {
+		lbID = *lb.Id
+	}
+	if lb.DisplayName != nil {
+		lbName = *lb.DisplayName
+	}
+	defer func() {
+		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.certificates", "id", lbID, "name", lbName, "certs_count", len(dm.SSLCertificates), "duration_ms", time.Since(start).Milliseconds())
+	}()
 	out := make([]string, 0)
 	if lb.Id == nil {
 		dm.SSLCertificates = out
@@ -376,10 +431,6 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 	var listResp loadbalancer.ListCertificatesResponse
 	var listItems []loadbalancer.Certificate
 	// Use cached list if available
-	lbID := ""
-	if lb.Id != nil {
-		lbID = *lb.Id
-	}
 	if lbID != "" {
 		a.muCertLists.RLock()
 		if cached, ok := a.certListCache[lbID]; ok {
@@ -389,9 +440,11 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 	}
 	if listItems == nil {
 		_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-			var e error
-			listResp, e = a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
-			return e
+			return a.do(ctx, func() error {
+				var e error
+				listResp, e = a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
+				return e
+			})
 		})
 		listItems = listResp.Items
 		if lbID != "" {
