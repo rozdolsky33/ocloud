@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,7 +61,7 @@ func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.Loa
 	if err != nil {
 		return nil, fmt.Errorf("failed to get load balancer: %w", err)
 	}
-	dm := toBaseDomainLoadBalancer(response.LoadBalancer)
+	dm := toDomainLoadBalancerModel(response.LoadBalancer)
 	_ = a.enrichBackendHealth(ctx, response.LoadBalancer, &dm, false)
 	_ = a.resolveSubnets(ctx, &dm)
 	return &dm, nil
@@ -104,7 +105,7 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 			go func() {
 				defer wg.Done()
 				lb := pageItems[idx]
-				dm := toBaseDomainLoadBalancer(lb)
+				dm := toDomainLoadBalancerModel(lb)
 				_ = a.enrichBackendHealth(ctx, lb, &dm, false)
 				_ = a.resolveSubnets(ctx, &dm)
 				mapped[idx] = dm
@@ -215,7 +216,6 @@ func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbal
 		_ = runWithWorkers(ctx, a.workerCount, jobs)
 	}
 
-	// Prefetch NSGs
 	if len(uniqNSGs) > 0 {
 		jobs := make(chan Work, len(uniqNSGs))
 		for nid := range uniqNSGs {
@@ -242,7 +242,7 @@ func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbal
 		_ = runWithWorkers(ctx, a.workerCount, jobs)
 	}
 
-	// Now process each LB using a bounded worker pool as well
+	// Process each LB using a bounded worker pool as well
 	out := make([]domain.LoadBalancer, len(items))
 	jobs := make(chan Work, len(items))
 	var mu sync.Mutex
@@ -266,11 +266,6 @@ func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbal
 	return out, nil
 }
 
-// toEnrichDomainLoadBalancer maps and enriches the OCI LB into the domain model (alias for enrichAndMapLoadBalancer)
-func (a *Adapter) toEnrichDomainLoadBalancer(ctx context.Context, lb loadbalancer.LoadBalancer) (domain.LoadBalancer, error) {
-	return a.enrichAndMapLoadBalancer(ctx, lb)
-}
-
 // enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, members and SSL certificate info
 func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.LoadBalancer) (domain.LoadBalancer, error) {
 	startTotal := time.Now()
@@ -288,7 +283,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Milliseconds())
 	}()
 
-	dm := toBaseDomainLoadBalancer(lb)
+	dm := toDomainLoadBalancerModel(lb)
 
 	var (
 		wg              sync.WaitGroup
@@ -381,86 +376,96 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	return dm, nil
 }
 
-// toBaseDomainLoadBalancer maps the base fields without enrichment
-func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer {
-	var id, name, shape string
-	if lb.Id != nil {
-		id = *lb.Id
+// toDomainLoadBalancerModel transforms an OCI LB into a simplified domain model for easier processing.
+func toDomainLoadBalancerModel(lb loadbalancer.LoadBalancer) domain.LoadBalancer {
+	deref := func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return *p
 	}
-	if lb.DisplayName != nil {
-		name = *lb.DisplayName
+	derefInt := func(p *int) int {
+		if p == nil {
+			return 0
+		}
+		return *p
 	}
-	if lb.ShapeName != nil {
-		shape = *lb.ShapeName
-	}
-	// Type: Public/Private
+
+	id := deref(lb.Id)
+	name := deref(lb.DisplayName)
+	shape := deref(lb.ShapeName)
+
+	// Type
 	typeStr := "Public"
 	if lb.IsPrivate != nil && *lb.IsPrivate {
 		typeStr = "Private"
 	}
+
 	var createdTime *time.Time
 	if lb.TimeCreated != nil {
 		t := lb.TimeCreated.Time
 		createdTime = &t
 	}
 
-	// IP addresses
-	ips := make([]string, 0)
-	for _, ip := range lb.IpAddresses {
-		label := ""
-		if ip.IpAddress != nil {
-			label = *ip.IpAddress
+	ips := make([]string, 0, len(lb.IpAddresses))
+	for i := range lb.IpAddresses {
+		ip := lb.IpAddresses[i]
+		addr := deref(ip.IpAddress)
+		if addr == "" {
+			continue
 		}
+
 		if ip.IsPublic != nil {
 			if *ip.IsPublic {
-				label = fmt.Sprintf("%s (public)", label)
+				addr += " (public)"
 			} else {
-				label = fmt.Sprintf("%s (private)", label)
+				addr += " (private)"
 			}
 		}
-		if label != "" {
-			ips = append(ips, label)
-		}
+		ips = append(ips, addr)
 	}
 
-	// Listeners: name -> "proto:port → backendset"
-	listeners := make(map[string]string)
+	// Listeners (name -> "proto:port -> backendset")
+	listeners := make(map[string]string, len(lb.Listeners))
 	useSSL := false
-	routingPolicySet := make(map[string]struct{})
-	for name, l := range lb.Listeners {
-		// Determine port
-		port := 0
-		if l.Port != nil {
-			port = int(*l.Port)
-		}
-		// Determine backend set name
-		backend := ""
-		if l.DefaultBackendSetName != nil {
-			backend = *l.DefaultBackendSetName
-		}
-		// Capture SSL usage
+
+	// routing policies referenced by listeners; fallback to LB map if none seen
+	routingPolicySet := make(map[string]struct{}, len(lb.RoutingPolicies))
+	for lname, l := range lb.Listeners {
+		port := derefInt(l.Port)
+		backend := deref(l.DefaultBackendSetName)
+
 		if l.SslConfiguration != nil {
 			useSSL = true
 		}
-		// Capture routing policy referenced by the listener, if any
-		if l.RoutingPolicyName != nil && *l.RoutingPolicyName != "" {
-			routingPolicySet[*l.RoutingPolicyName] = struct{}{}
+		if rp := deref(l.RoutingPolicyName); rp != "" {
+			routingPolicySet[rp] = struct{}{}
 		}
-		protoLabel := "http"
-		protoUpper := ""
-		if l.Protocol != nil {
-			protoUpper = strings.ToUpper(*l.Protocol)
-		}
+
+		// Cheap protocol detection:
+		// If SSL config exists or typical HTTPS ports → https
+		// Else if protocol string is "TCP" (case-insensitive) → tcp
+		// Else common HTTP ports → http
+		proto := "http"
 		if l.SslConfiguration != nil || port == 443 || port == 8443 {
-			protoLabel = "https"
-		} else if strings.EqualFold(protoUpper, "TCP") {
-			protoLabel = "tcp"
+			proto = "https"
+		} else if l.Protocol != nil {
+			p := *l.Protocol
+			if p == "TCP" || p == "tcp" || p == "Tcp" {
+				proto = "tcp"
+			} else if port == 80 {
+				proto = "http"
+			}
 		} else if port == 80 {
-			protoLabel = "http"
+			proto = "http"
 		}
-		listeners[name] = fmt.Sprintf("%s:%d → %s", protoLabel, port, backend)
+
+		// Build "proto:port → backend" without fmt
+		// (fmt is fine, but concat avoids an allocation)
+		val := proto + ":" + strconv.Itoa(port) + " → " + backend
+		listeners[lname] = val
 	}
-	// If no routing policies captured from listeners, fall back to keys of the load balancer's routing policies map
+
 	if len(routingPolicySet) == 0 {
 		for rpName := range lb.RoutingPolicies {
 			if rpName != "" {
@@ -474,54 +479,74 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 	}
 	sort.Strings(routingPolicies)
 
-	// Backend sets: only policy and health checker basic info; backends left empty initially
-	backendSets := make(map[string]domain.BackendSet)
-	for name, bs := range lb.BackendSets {
-		policy := ""
-		if bs.Policy != nil {
-			policy = *bs.Policy
-		}
+	// Backend sets (policy + health-check summary)
+	backendSets := make(map[string]domain.BackendSet, len(lb.BackendSets))
+	for bsName, bs := range lb.BackendSets {
+		policy := deref(bs.Policy)
+
 		hc := ""
 		if bs.HealthChecker != nil {
-			p := ""
+			// Derive health-check label: PROTO:PORT (prefer explicit; normalize common ports)
+			var p string
 			if bs.HealthChecker.Protocol != nil {
-				p = strings.ToUpper(*bs.HealthChecker.Protocol)
+				// normalize once; no need for ToUpper on every path
+				switch *bs.HealthChecker.Protocol {
+				case "https", "HTTPS", "Https":
+					p = "HTTPS"
+				case "http", "HTTP", "Http":
+					p = "HTTP"
+				case "tcp", "TCP", "Tcp":
+					p = "TCP"
+				default:
+					p = strings.ToUpper(*bs.HealthChecker.Protocol)
+				}
 			}
+
 			port := 0
 			if bs.HealthChecker.Port != nil {
 				port = int(*bs.HealthChecker.Port)
 			}
+			// If port hints common protocols, prefer those (matches your earlier behavior)
 			switch port {
 			case 443, 8443:
 				p = "HTTPS"
 			case 80:
-				p = "HTTP"
+				if p == "" {
+					p = "HTTP"
+				}
 			}
-			hc = fmt.Sprintf("%s:%d", p, port)
+			if p != "" {
+				hc = p + ":" + strconv.Itoa(port)
+			}
 		}
-		backendSets[name] = domain.BackendSet{Policy: policy, Health: hc, Backends: []domain.Backend{}}
+
+		backendSets[bsName] = domain.BackendSet{
+			Policy:   policy,
+			Health:   hc,
+			Backends: []domain.Backend{}, // filled during enrichment
+		}
 	}
 
-	// Subnets and NSGs (IDs for now; will resolve to names during enrichment)
-	subnets := append([]string{}, lb.SubnetIds...)
-	nsgs := append([]string{}, lb.NetworkSecurityGroupIds...)
+	// Subnets/NSGs – copy IDs (pre-size)
+	subnets := make([]string, len(lb.SubnetIds))
+	copy(subnets, lb.SubnetIds)
 
-	// Certificates: collect names only (expiry mapping omitted for portability)
-	certs := make([]string, 0)
-	for name := range lb.Certificates {
-		certs = append(certs, name)
+	nsgs := make([]string, len(lb.NetworkSecurityGroupIds))
+	copy(nsgs, lb.NetworkSecurityGroupIds)
+
+	// Certificates: collect names only (pre-size)
+	certs := make([]string, 0, len(lb.Certificates))
+	for cname := range lb.Certificates {
+		certs = append(certs, cname)
 	}
 
-	// Hostnames: collect FQDN values from LB hostname map
-	hostnames := make([]string, 0)
-	for n, h := range lb.Hostnames {
+	// Hostnames (prefer value, fallback to key) + sort
+	hostnames := make([]string, 0, len(lb.Hostnames))
+	for key, h := range lb.Hostnames {
 		if h.Hostname != nil && *h.Hostname != "" {
 			hostnames = append(hostnames, *h.Hostname)
-			continue
-		}
-		// fallback to the map key if value missing
-		if strings.TrimSpace(n) != "" {
-			hostnames = append(hostnames, n)
+		} else if s := strings.TrimSpace(key); s != "" {
+			hostnames = append(hostnames, s)
 		}
 	}
 	sort.Strings(hostnames)
@@ -535,7 +560,7 @@ func toBaseDomainLoadBalancer(lb loadbalancer.LoadBalancer) domain.LoadBalancer 
 		IPAddresses:     ips,
 		Shape:           shape,
 		Listeners:       listeners,
-		BackendHealth:   map[string]string{},
+		BackendHealth:   make(map[string]string),
 		Subnets:         subnets,
 		NSGs:            nsgs,
 		Created:         createdTime,

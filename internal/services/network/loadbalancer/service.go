@@ -6,19 +6,19 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/app"
-	network "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 )
 
 // Service provides operations for managing load balancers.
 type Service struct {
-	repo          network.LoadBalancerRepository
+	repo          domain.LoadBalancerRepository
 	logger        logr.Logger
 	compartmentID string
 }
 
 // NewService creates a new load balancer service.
-func NewService(repo network.LoadBalancerRepository, appCtx *app.ApplicationContext) *Service {
+func NewService(repo domain.LoadBalancerRepository, appCtx *app.ApplicationContext) *Service {
 	return &Service{
 		repo:          repo,
 		logger:        appCtx.Logger,
@@ -27,7 +27,7 @@ func NewService(repo network.LoadBalancerRepository, appCtx *app.ApplicationCont
 }
 
 // GetLoadBalancer retrieves a load balancer by its OCID.
-func (s *Service) GetLoadBalancer(ctx context.Context, ocid string) (*network.LoadBalancer, error) {
+func (s *Service) GetLoadBalancer(ctx context.Context, ocid string) (*LoadBalancer, error) {
 	s.logger.V(logger.Debug).Info("getting load balancer", "ocid", ocid)
 	lb, err := s.repo.GetLoadBalancer(ctx, ocid)
 	if err != nil {
@@ -37,7 +37,7 @@ func (s *Service) GetLoadBalancer(ctx context.Context, ocid string) (*network.Lo
 }
 
 // ListLoadBalancers lists all load balancers in the configured compartment.
-func (s *Service) ListLoadBalancers(ctx context.Context) ([]network.LoadBalancer, error) {
+func (s *Service) ListLoadBalancers(ctx context.Context) ([]LoadBalancer, error) {
 	s.logger.V(logger.Debug).Info("listing load balancers", "compartmentID", s.compartmentID)
 	lbs, err := s.repo.ListLoadBalancers(ctx, s.compartmentID)
 	if err != nil {
@@ -48,10 +48,10 @@ func (s *Service) ListLoadBalancers(ctx context.Context) ([]network.LoadBalancer
 
 // FetchPaginatedLoadBalancers returns a page of load balancers and pagination metadata.
 // If showAll is true, it uses the enriched model; otherwise, it uses the basic model for performance.
-func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNum int, showAll bool) ([]network.LoadBalancer, int, string, error) {
+func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNum int, showAll bool) ([]LoadBalancer, int, string, error) {
 	s.logger.V(logger.Debug).Info("fetching paginated load balancers", "limit", limit, "page", pageNum, "showAll", showAll)
 	var (
-		all []network.LoadBalancer
+		all []LoadBalancer
 		err error
 	)
 	if showAll {
@@ -69,7 +69,7 @@ func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNu
 	start := (pageNum - 1) * limit
 	end := start + limit
 	if start >= total {
-		return []network.LoadBalancer{}, total, "", nil
+		return []LoadBalancer{}, total, "", nil
 	}
 	if end > total {
 		end = total
@@ -83,7 +83,7 @@ func (s *Service) FetchPaginatedLoadBalancers(ctx context.Context, limit, pageNu
 }
 
 // GetEnrichedLoadBalancer retrieves and returns the enriched load balancer by OCID.
-func (s *Service) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*network.LoadBalancer, error) {
+func (s *Service) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*LoadBalancer, error) {
 	s.logger.V(logger.Debug).Info("getting enriched load balancer", "ocid", ocid)
 	lb, err := s.repo.GetEnrichedLoadBalancer(ctx, ocid)
 	if err != nil {
