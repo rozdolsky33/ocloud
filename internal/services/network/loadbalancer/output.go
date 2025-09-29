@@ -109,7 +109,7 @@ func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 		}(),
 		"SSL Certificates": formatCertificates(lb.SSLCertificates),
 	}
-	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "Subnets", "NSGs", "Listeners", "Backend Health", "Routing Policy", "Hostnames", "Use SSL", "SSL Certificates"}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "OCID", "Type", "VCN Name", "Subnets", "NSGs", "Listeners", "Backend Health", "Routing Policy", "Hostnames", "Use SSL", "SSL Certificates"}
 
 	// Include backend set summaries as additional key-value entries (no separate tables)
 	// To avoid truncating long backend set names in the Key column, we print a short key
@@ -236,7 +236,7 @@ func PrintLoadBalancersInfo(lbs []network.LoadBalancer, appCtx *app.ApplicationC
 	// Print each load balancer as a key-value block similar to instance output
 	for i := range lbs {
 		lb := lbs[i]
-		// Reuse single-resource printer to ensure consistent formatting
+		// consistent formatting
 		if err := PrintLoadBalancerInfo(&lb, appCtx, false, showAll); err != nil {
 			return err
 		}
