@@ -196,7 +196,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	// Start log for this LB enrichment
 	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.start", "id", id, "name", name)
 	defer func() {
-		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Seconds()*1000)
+		lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.total", "id", id, "name", name, "duration_ms", time.Since(startTotal).Seconds())
 	}()
 
 	dm := toBaseDomainLoadBalancer(lb)
@@ -282,7 +282,7 @@ func (a *Adapter) enrichAndMapLoadBalancer(ctx context.Context, lb loadbalancer.
 	}
 	// Final summary with per-step durations
 	lbLogger.LogWithLevel(lbLogger.CmdLogger, lbLogger.Debug, "lb.enrich.summary", "id", id, "name", name,
-		"duration_total_ms", time.Since(startTotal).Milliseconds(),
+		"duration_total_ms", time.Since(startTotal).Seconds(),
 		"resolve_subnets_ms", dResolveSubnets,
 		"resolve_nsgs_ms", dResolveNSGs,
 		"backend_health_ms", dHealth,
