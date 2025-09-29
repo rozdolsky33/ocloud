@@ -29,13 +29,27 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 			continue
 		}
 		var resp core.GetSubnetResponse
-		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-			var e error
-			resp, e = a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
-			return e
-		})
-		if err == nil {
-			// Capture VCN ID from the first successful subnet fetch
+		var fromCache bool
+		// try cache first
+		a.muSubnets.RLock()
+		if cached, ok := a.subnetCache[id]; ok {
+			resp = cached
+			fromCache = true
+		}
+		a.muSubnets.RUnlock()
+		if !fromCache {
+			// fetch and cache
+			_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				var e error
+				resp, e = a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
+				return e
+			})
+			a.muSubnets.Lock()
+			a.subnetCache[id] = resp
+			a.muSubnets.Unlock()
+		}
+		// use response if present
+		if resp.Subnet.Id != nil {
 			if capturedVcnID == "" && resp.Subnet.VcnId != nil {
 				capturedVcnID = *resp.Subnet.VcnId
 			}
@@ -59,16 +73,26 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 	// If we have a VCN ID, resolve its name and set on the domain model
 	if capturedVcnID != "" {
 		var vcnResp core.GetVcnResponse
-		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-			var e error
-			vcnResp, e = a.nwClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &capturedVcnID})
-			return e
-		})
-		if err == nil {
-			dm.VcnID = capturedVcnID
-			if vcnResp.Vcn.DisplayName != nil {
-				dm.VcnName = *vcnResp.Vcn.DisplayName
-			}
+		var vcnFromCache bool
+		a.muVcns.RLock()
+		if cached, ok := a.vcnCache[capturedVcnID]; ok {
+			vcnResp = cached
+			vcnFromCache = true
+		}
+		a.muVcns.RUnlock()
+		if !vcnFromCache {
+			_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				var e error
+				vcnResp, e = a.nwClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &capturedVcnID})
+				return e
+			})
+			a.muVcns.Lock()
+			a.vcnCache[capturedVcnID] = vcnResp
+			a.muVcns.Unlock()
+		}
+		dm.VcnID = capturedVcnID
+		if vcnResp.Vcn.DisplayName != nil {
+			dm.VcnName = *vcnResp.Vcn.DisplayName
 		}
 	}
 	return nil
@@ -83,12 +107,24 @@ func (a *Adapter) resolveNSGs(ctx context.Context, dm *domain.LoadBalancer) erro
 			continue
 		}
 		var resp core.GetNetworkSecurityGroupResponse
-		err := retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-			var e error
-			resp, e = a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
-			return e
-		})
-		if err == nil && resp.NetworkSecurityGroup.DisplayName != nil && *resp.NetworkSecurityGroup.DisplayName != "" {
+		var fromCache bool
+		a.muNsgs.RLock()
+		if cached, ok := a.nsgCache[id]; ok {
+			resp = cached
+			fromCache = true
+		}
+		a.muNsgs.RUnlock()
+		if !fromCache {
+			_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+				var e error
+				resp, e = a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
+				return e
+			})
+			a.muNsgs.Lock()
+			a.nsgCache[id] = resp
+			a.muNsgs.Unlock()
+		}
+		if resp.NetworkSecurityGroup.DisplayName != nil && *resp.NetworkSecurityGroup.DisplayName != "" {
 			resolved = append(resolved, *resp.NetworkSecurityGroup.DisplayName)
 			continue
 		}

@@ -20,6 +20,16 @@ type Adapter struct {
 	lbClient    loadbalancer.LoadBalancerClient
 	nwClient    core.VirtualNetworkClient
 	certsClient certificatesmanagement.CertificatesManagementClient
+
+	// caches to reduce repeated OCI calls within a command run
+	subnetCache   map[string]core.GetSubnetResponse
+	vcnCache      map[string]core.GetVcnResponse
+	nsgCache      map[string]core.GetNetworkSecurityGroupResponse
+	certListCache map[string][]loadbalancer.Certificate // keyed by LB ID
+	muSubnets     sync.RWMutex
+	muVcns        sync.RWMutex
+	muNsgs        sync.RWMutex
+	muCertLists   sync.RWMutex
 }
 
 // NewAdapter creates a new Adapter instance.
@@ -37,9 +47,13 @@ func NewAdapter(provider common.ConfigurationProvider) (*Adapter, error) {
 		return nil, fmt.Errorf("failed to create certificates management client: %w", err)
 	}
 	return &Adapter{
-		lbClient:    lbClient,
-		nwClient:    nwClient,
-		certsClient: certsClient,
+		lbClient:      lbClient,
+		nwClient:      nwClient,
+		certsClient:   certsClient,
+		subnetCache:   make(map[string]core.GetSubnetResponse),
+		vcnCache:      make(map[string]core.GetVcnResponse),
+		nsgCache:      make(map[string]core.GetNetworkSecurityGroupResponse),
+		certListCache: make(map[string][]loadbalancer.Certificate),
 	}, nil
 }
 
@@ -53,7 +67,9 @@ func (a *Adapter) GetLoadBalancer(ctx context.Context, ocid string) (*domain.Loa
 	}
 
 	dm := toBaseDomainLoadBalancer(response.LoadBalancer)
+	// Light enrichments for usability in default views/JSON
 	_ = a.enrichBackendHealth(ctx, response.LoadBalancer, &dm)
+	_ = a.resolveSubnets(ctx, &dm) // also captures VCN ID/Name
 	return &dm, nil
 }
 
@@ -96,7 +112,9 @@ func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) (
 				defer wg.Done()
 				lb := pageItems[idx]
 				dm := toBaseDomainLoadBalancer(lb)
+				// Light enrichment: health and subnets (captures VCN as well)
 				_ = a.enrichBackendHealth(ctx, lb, &dm)
+				_ = a.resolveSubnets(ctx, &dm)
 				mapped[idx] = dm
 			}()
 		}
@@ -164,6 +182,11 @@ func (a *Adapter) enrichAndMapLoadBalancers(ctx context.Context, items []loadbal
 		}
 	}
 	return out, nil
+}
+
+// toEnrichDomainLoadBalancer maps and enriches the OCI LB into the domain model (alias for enrichAndMapLoadBalancer)
+func (a *Adapter) toEnrichDomainLoadBalancer(ctx context.Context, lb loadbalancer.LoadBalancer) (domain.LoadBalancer, error) {
+	return a.enrichAndMapLoadBalancer(ctx, lb)
 }
 
 // enrichAndMapLoadBalancer builds the domain model and enriches it with names, health, members and SSL certificate info
@@ -351,13 +374,34 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 
 	certsByName := make(map[string]loadbalancer.Certificate)
 	var listResp loadbalancer.ListCertificatesResponse
-	_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-		var e error
-		listResp, e = a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
-		return e
-	})
-	if len(listResp.Items) > 0 {
-		for _, c := range listResp.Items {
+	var listItems []loadbalancer.Certificate
+	// Use cached list if available
+	lbID := ""
+	if lb.Id != nil {
+		lbID = *lb.Id
+	}
+	if lbID != "" {
+		a.muCertLists.RLock()
+		if cached, ok := a.certListCache[lbID]; ok {
+			listItems = cached
+		}
+		a.muCertLists.RUnlock()
+	}
+	if listItems == nil {
+		_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+			var e error
+			listResp, e = a.lbClient.ListCertificates(ctx, loadbalancer.ListCertificatesRequest{LoadBalancerId: lb.Id})
+			return e
+		})
+		listItems = listResp.Items
+		if lbID != "" {
+			a.muCertLists.Lock()
+			a.certListCache[lbID] = listItems
+			a.muCertLists.Unlock()
+		}
+	}
+	if len(listItems) > 0 {
+		for _, c := range listItems {
 			if c.CertificateName != nil {
 				certsByName[*c.CertificateName] = c
 				nameSet[*c.CertificateName] = struct{}{}

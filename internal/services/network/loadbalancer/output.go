@@ -41,18 +41,25 @@ func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	if lb.UseSSL {
 		useSSL = "Yes"
 	}
+	vcn := "-"
+	if lb.VcnName != "" {
+		vcn = lb.VcnName
+	} else if lb.VcnID != "" {
+		vcn = lb.VcnID
+	}
 	data := map[string]string{
 		"Name":           lb.Name,
 		"Shape":          lb.Shape,
 		"Created":        created,
 		"IP Addresses":   strings.Join(lb.IPAddresses, ", "),
 		"State":          lb.State,
+		"VCN Name":       vcn,
 		"Listeners":      formatListeners(lb.Listeners, false),
 		"Backend Health": formatBackendHealth(lb.BackendHealth),
 		"Routing Policy": rp,
 		"Use SSL":        useSSL,
 	}
-	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "Listeners", "Backend Health", "Routing Policy", "Use SSL"}
+	order := []string{"Name", "Shape", "Created", "IP Addresses", "State", "VCN Name", "Listeners", "Backend Health", "Routing Policy", "Use SSL"}
 	p.PrintKeyValues(title, data, order)
 }
 
