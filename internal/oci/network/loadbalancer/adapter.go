@@ -458,7 +458,6 @@ func (a *Adapter) enrichCertificates(ctx context.Context, lb loadbalancer.LoadBa
 	certsByName := make(map[string]loadbalancer.Certificate)
 	var listResp loadbalancer.ListCertificatesResponse
 	var listItems []loadbalancer.Certificate
-	// Use cached list if available
 	cacheHit := false
 	if lbID != "" {
 		a.muCertLists.RLock()

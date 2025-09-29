@@ -31,7 +31,7 @@ func PrintLoadBalancerInfo(lb *network.LoadBalancer, appCtx *app.ApplicationCont
 func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	created := ""
 	if lb.Created != nil {
-		created = lb.Created.String()
+		created = lb.Created.Format("2006-01-02")
 	}
 	rp := strings.Join(lb.RoutingPolicies, ", ")
 	if rp == "" {
@@ -66,7 +66,7 @@ func printDefault(p *printer.Printer, title string, lb *network.LoadBalancer) {
 func printAll(p *printer.Printer, title string, lb *network.LoadBalancer) {
 	created := ""
 	if lb.Created != nil {
-		created = lb.Created.String()
+		created = lb.Created.Format("2006-01-02")
 	}
 	data := map[string]string{
 		"Name":         lb.Name,
