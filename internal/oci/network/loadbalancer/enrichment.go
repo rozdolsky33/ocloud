@@ -3,12 +3,43 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/core"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
 	lbLogger "github.com/rozdolsky33/ocloud/internal/logger"
 )
+
+// cachedFetch centralizes cache lookup, rate-limited fetch via Adapter.do, and cache population.
+// It returns the response and whether it was served from a cache.
+func cachedFetch[T any](ctx context.Context, a *Adapter, id string, mu *sync.RWMutex, cache map[string]T, fetch func(context.Context, string) (T, error)) (T, bool) {
+	var resp T
+	fromCache := false
+	// Fast path: read lock and check cache
+	mu.RLock()
+	if cached, ok := cache[id]; ok {
+		resp = cached
+		fromCache = true
+	}
+	mu.RUnlock()
+	if fromCache {
+		return resp, true
+	}
+	// Miss: perform fetch with retry and rate-limited do wrapper
+	_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		return a.do(ctx, func() error {
+			var e error
+			resp, e = fetch(ctx, id)
+			return e
+		})
+	})
+	// Store in cache
+	mu.Lock()
+	cache[id] = resp
+	mu.Unlock()
+	return resp, false
+}
 
 // resolveSubnets resolves subnet IDs on the domain model to "Name (CIDR)" and captures the VCN context
 func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) error {
@@ -22,31 +53,13 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 		if id == "" {
 			continue
 		}
-		var resp core.GetSubnetResponse
-		var fromCache bool
-		// try cache first
-		a.muSubnets.RLock()
-		if cached, ok := a.subnetCache[id]; ok {
-			resp = cached
-			fromCache = true
-		}
-		a.muSubnets.RUnlock()
-		if !fromCache {
-			// fetch and cache
-			_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-				return a.do(ctx, func() error {
-					var e error
-					resp, e = a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
-					return e
-				})
-			})
-			a.muSubnets.Lock()
-			a.subnetCache[id] = resp
-			a.muSubnets.Unlock()
-		} else {
+		resp, fromCache := cachedFetch(ctx, a, id, &a.muSubnets, a.subnetCache, func(ctx context.Context, id string) (core.GetSubnetResponse, error) {
+			return a.nwClient.GetSubnet(ctx, core.GetSubnetRequest{SubnetId: &id})
+		})
+		if fromCache {
 			cacheHits++
 		}
-		// use response if present
+
 		if resp.Subnet.Id != nil {
 			if capturedVcnID == "" && resp.Subnet.VcnId != nil {
 				capturedVcnID = *resp.Subnet.VcnId
@@ -68,29 +81,11 @@ func (a *Adapter) resolveSubnets(ctx context.Context, dm *domain.LoadBalancer) e
 	}
 	dm.Subnets = resolved
 
-	// If we have a VCN ID, resolve its name and set on the domain model
 	if capturedVcnID != "" {
 		vcnStart := time.Now()
-		var vcnResp core.GetVcnResponse
-		var vcnFromCache bool
-		a.muVcns.RLock()
-		if cached, ok := a.vcnCache[capturedVcnID]; ok {
-			vcnResp = cached
-			vcnFromCache = true
-		}
-		a.muVcns.RUnlock()
-		if !vcnFromCache {
-			_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-				return a.do(ctx, func() error {
-					var e error
-					vcnResp, e = a.nwClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &capturedVcnID})
-					return e
-				})
-			})
-			a.muVcns.Lock()
-			a.vcnCache[capturedVcnID] = vcnResp
-			a.muVcns.Unlock()
-		}
+		vcnResp, vcnFromCache := cachedFetch(ctx, a, capturedVcnID, &a.muVcns, a.vcnCache, func(ctx context.Context, id string) (core.GetVcnResponse, error) {
+			return a.nwClient.GetVcn(ctx, core.GetVcnRequest{VcnId: &id})
+		})
 		dm.VcnID = capturedVcnID
 		if vcnResp.Vcn.DisplayName != nil {
 			dm.VcnName = *vcnResp.Vcn.DisplayName
@@ -112,26 +107,10 @@ func (a *Adapter) resolveNSGs(ctx context.Context, dm *domain.LoadBalancer) erro
 		if id == "" {
 			continue
 		}
-		var resp core.GetNetworkSecurityGroupResponse
-		var fromCache bool
-		a.muNsgs.RLock()
-		if cached, ok := a.nsgCache[id]; ok {
-			resp = cached
-			fromCache = true
-		}
-		a.muNsgs.RUnlock()
-		if !fromCache {
-			_ = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
-				return a.do(ctx, func() error {
-					var e error
-					resp, e = a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
-					return e
-				})
-			})
-			a.muNsgs.Lock()
-			a.nsgCache[id] = resp
-			a.muNsgs.Unlock()
-		} else {
+		resp, fromCache := cachedFetch(ctx, a, id, &a.muNsgs, a.nsgCache, func(ctx context.Context, id string) (core.GetNetworkSecurityGroupResponse, error) {
+			return a.nwClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &id})
+		})
+		if fromCache {
 			cacheHits++
 		}
 		if resp.NetworkSecurityGroup.DisplayName != nil && *resp.NetworkSecurityGroup.DisplayName != "" {
