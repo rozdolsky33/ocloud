@@ -13,7 +13,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/tui"
 )
 
-func ListLoadBalancers(appCtx *app.ApplicationContext, useJSON bool) error {
+func ListLoadBalancers(appCtx *app.ApplicationContext, useJSON, showAll bool) error {
 	ctx := context.Background()
 
 	start := time.Now()
@@ -60,5 +60,5 @@ func ListLoadBalancers(appCtx *app.ApplicationContext, useJSON bool) error {
 		return fmt.Errorf("getting load balancer: %w", err)
 	}
 
-	return PrintLoadBalancerInfo(lb, appCtx, useJSON, true)
+	return PrintLoadBalancerInfo(lb, appCtx, useJSON, showAll)
 }

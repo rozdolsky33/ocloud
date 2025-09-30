@@ -28,5 +28,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := configflags.GetBoolFlag(cmd, configflags.FlagNameJSON, false)
-	return lbdomain.ListLoadBalancers(appCtx, useJSON)
+	showAll := configflags.GetBoolFlag(cmd, configflags.FlagNameAll, false)
+	return lbdomain.ListLoadBalancers(appCtx, useJSON, showAll)
 }
