@@ -195,13 +195,12 @@ func formatBackendHealth(health map[string]string) string {
 	if len(health) == 0 {
 		return ""
 	}
-	// Sort backend set names for deterministic output, then limit lines to keep the table compact
 	keys := make([]string, 0, len(health))
 	for k := range health {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	const maxLines = 6 // show up to 6 entries, then summarize the rest
+	const maxLines = 6
 	var parts []string
 	limit := len(keys)
 	if limit > maxLines {
@@ -233,10 +232,8 @@ func PrintLoadBalancersInfo(lbs []network.LoadBalancer, appCtx *app.ApplicationC
 		return nil
 	}
 
-	// Print each load balancer as a key-value block similar to instance output
 	for i := range lbs {
 		lb := lbs[i]
-		// consistent formatting
 		if err := PrintLoadBalancerInfo(&lb, appCtx, false, showAll); err != nil {
 			return err
 		}

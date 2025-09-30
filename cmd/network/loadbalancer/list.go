@@ -24,7 +24,6 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return runListCommand(cmd, appCtx)
 		},
 	}
-
 	instaceFlags.AllInfoFlag.Add(cmd)
 	return cmd
 }

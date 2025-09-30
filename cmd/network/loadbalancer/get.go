@@ -1,11 +1,11 @@
 package loadbalancer
 
 import (
-	instaceFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
+	lbFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	configflags "github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
-	lbdomain "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
+	lbservice "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,7 @@ var getExamples = `  # Get all load balancers with default pagination (20 per pa
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
-		Short:         "Paginated Load Balancer Results",
+		Short:         " Get Load Balancer Paginated Results",
 		Long:          getLong,
 		Example:       getExamples,
 		SilenceUsage:  true,
@@ -40,17 +40,17 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		},
 	}
 
-	instaceFlags.LimitFlag.Add(cmd)
-	instaceFlags.PageFlag.Add(cmd)
-	instaceFlags.AllInfoFlag.Add(cmd)
+	lbFlags.LimitFlag.Add(cmd)
+	lbFlags.PageFlag.Add(cmd)
+	lbFlags.AllInfoFlag.Add(cmd)
 	return cmd
 }
 
 func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
-	limit := configflags.GetIntFlag(cmd, configflags.FlagNameLimit, instaceFlags.FlagDefaultLimit)
-	page := configflags.GetIntFlag(cmd, configflags.FlagNamePage, instaceFlags.FlagDefaultPage)
+	limit := configflags.GetIntFlag(cmd, configflags.FlagNameLimit, lbFlags.FlagDefaultLimit)
+	page := configflags.GetIntFlag(cmd, configflags.FlagNamePage, lbFlags.FlagDefaultPage)
 	useJSON := configflags.GetBoolFlag(cmd, configflags.FlagNameJSON, false)
 	showAll := configflags.GetBoolFlag(cmd, configflags.FlagNameAll, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running load balancer get command", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "all", showAll)
-	return lbdomain.GetLoadBalancers(appCtx, useJSON, limit, page, showAll)
+	return lbservice.GetLoadBalancers(appCtx, useJSON, limit, page, showAll)
 }

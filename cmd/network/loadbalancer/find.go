@@ -1,7 +1,11 @@
 package loadbalancer
 
 import (
+	lbFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	configflags "github.com/rozdolsky33/ocloud/internal/config/flags"
+	lbservice "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +16,8 @@ var findExamples = ``
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find <pattern>",
-		Short:         "Finds VCNs by a name pattern",
+		Aliases:       []string{"f"},
+		Short:         "Finds Load Balancer with existing attribute",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),
@@ -22,9 +27,15 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return runFindCommand(cmd, args, appCtx)
 		},
 	}
+
+	lbFlags.AllInfoFlag.Add(cmd)
+
 	return cmd
 }
 
 func runFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
-	return nil
+	namePattern := args[0]
+	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
+	showAll := configflags.GetBoolFlag(cmd, configflags.FlagNameAll, false)
+	return lbservice.FindLoadBalancer(appCtx, namePattern, useJSON, showAll)
 }

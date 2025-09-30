@@ -22,6 +22,7 @@ var (
 	sharedTransport     http.RoundTripper
 )
 
+// getSharedTransport returns the shared transport.
 func getSharedTransport() http.RoundTripper {
 	sharedTransportOnce.Do(func() {
 		sharedTransport = &http.Transport{
@@ -35,6 +36,7 @@ func getSharedTransport() http.RoundTripper {
 	return sharedTransport
 }
 
+// applySharedTransport applies the shared transport to the provided BaseClient.
 func applySharedTransport(base *common.BaseClient) {
 	if base != nil {
 		base.HTTPClient = &http.Client{Transport: getSharedTransport()}
