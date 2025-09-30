@@ -22,10 +22,6 @@ func NewLoadBalancerListModel(lbs []domain.LoadBalancer) tui.Model {
 
 func description(lb domain.LoadBalancer) string {
 	ip := first(lb.IPAddresses)
-	meta := joinNonEmpty(" • ",
-		lb.Type,
-		ip,
-	)
 
 	// 2) Listeners summary: "2 listeners (https:443 → default)"
 	ls := listenerSummary(lb.Listeners)
@@ -39,7 +35,7 @@ func description(lb domain.LoadBalancer) string {
 		firstNonEmpty(lb.VcnName, lb.VcnID),
 	)
 
-	return joinNonEmpty(" • ", meta, line2)
+	return joinNonEmpty(" • ", ip, line2)
 }
 
 // --- helpers ---
