@@ -84,7 +84,6 @@ func (a *Adapter) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*do
 }
 
 // ListLoadBalancers returns all load balancers in the compartment (paginated) mapped to a base domain model,
-// lightly enriched with backend health so the default view can display statuses without the full enrichment cost.
 func (a *Adapter) ListLoadBalancers(ctx context.Context, compartmentID string) ([]domain.LoadBalancer, error) {
 	result := make([]domain.LoadBalancer, 0)
 	var page *string

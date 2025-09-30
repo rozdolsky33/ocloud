@@ -23,7 +23,6 @@ func NewLoadBalancerListModel(lbs []domain.LoadBalancer) tui.Model {
 func description(lb domain.LoadBalancer) string {
 	ip := first(lb.IPAddresses)
 	meta := joinNonEmpty(" • ",
-		lb.State,
 		lb.Type,
 		ip,
 	)
@@ -34,16 +33,10 @@ func description(lb domain.LoadBalancer) string {
 	// 3) Health summary: "Health OK (2/2)" or "UNHEALTHY (1/3)"
 	hs := healthSummary(lb.BackendHealth)
 
-	// 4) VCN + Created date
-	created := ""
-	if lb.Created != nil && !lb.Created.IsZero() {
-		created = lb.Created.Format("2006-01-02")
-	}
 	line2 := joinNonEmpty(" • ",
 		ls,
 		hs,
 		firstNonEmpty(lb.VcnName, lb.VcnID),
-		created,
 	)
 
 	return joinNonEmpty(" • ", meta, line2)

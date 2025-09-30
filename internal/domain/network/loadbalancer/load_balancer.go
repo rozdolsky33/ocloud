@@ -40,10 +40,8 @@ type Backend struct {
 }
 
 type LoadBalancerRepository interface {
-	// Basic getters
 	GetLoadBalancer(ctx context.Context, ocid string) (*LoadBalancer, error)
 	ListLoadBalancers(ctx context.Context, compartmentID string) ([]LoadBalancer, error)
-	// Enriched getters (may perform additional API calls)
 	GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*LoadBalancer, error)
 	ListEnrichedLoadBalancers(ctx context.Context, compartmentID string) ([]LoadBalancer, error)
 }
