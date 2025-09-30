@@ -2,7 +2,6 @@ package loadbalancer
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/loadbalancer"
@@ -23,14 +22,9 @@ func NewLoadBalancerListModel(lbs []domain.LoadBalancer) tui.Model {
 func description(lb domain.LoadBalancer) string {
 	ip := first(lb.IPAddresses)
 
-	// 2) Listeners summary: "2 listeners (https:443 → default)"
-	ls := listenerSummary(lb.Listeners)
-
-	// 3) Health summary: "Health OK (2/2)" or "UNHEALTHY (1/3)"
 	hs := healthSummary(lb.BackendHealth)
 
 	line2 := joinNonEmpty(" • ",
-		ls,
 		hs,
 		firstNonEmpty(lb.VcnName, lb.VcnID),
 	)
@@ -64,25 +58,6 @@ func joinNonEmpty(sep string, parts ...string) string {
 		}
 	}
 	return strings.Join(out, sep)
-}
-
-func listenerSummary(listeners map[string]string) string {
-	if len(listeners) == 0 {
-		return "0 listeners"
-	}
-	names := make([]string, 0, len(listeners))
-	for n := range listeners {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	example := listeners[names[0]]
-	if len(example) > 40 {
-		example = example[:40] + "…"
-	}
-	if len(listeners) == 1 {
-		return "1 listener (" + example + ")"
-	}
-	return fmt.Sprintf("%d listeners (%s)", len(listeners), example)
 }
 
 func healthSummary(health map[string]string) string {
