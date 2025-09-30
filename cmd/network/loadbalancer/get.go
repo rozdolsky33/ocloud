@@ -30,7 +30,7 @@ var getExamples = `  # Get all load balancers with default pagination (20 per pa
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
-		Short:         " Get Load Balancer Paginated Results",
+		Short:         "Get Load Balancer Paginated Results",
 		Long:          getLong,
 		Example:       getExamples,
 		SilenceUsage:  true,

@@ -97,7 +97,7 @@ func (s *Service) GetEnrichedLoadBalancer(ctx context.Context, ocid string) (*Lo
 func (s *Service) Find(ctx context.Context, searchPattern string) ([]LoadBalancer, error) {
 
 	// 1: Fetch all load balancers
-	all, err := s.repo.ListLoadBalancers(ctx, s.compartmentID)
+	all, err := s.repo.ListEnrichedLoadBalancers(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("fetching all load balancers for search: %w", err)
 	}
