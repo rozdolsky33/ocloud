@@ -229,6 +229,23 @@ run_command ./bin/ocloud network vcn find "prod" --json
 run_command ./bin/ocloud network vcn find "prod" --all
 run_command ./bin/ocloud network vcn find "prod" -A -j
 
+# Test network loadbalancer get command
+print_header "Testing network loadbalancer get command"
+run_command ./bin/ocloud network loadbalancer get
+run_command ./bin/ocloud network loadbalancer get --limit 10 --page 1 --json
+run_command ./bin/ocloud network loadbalancer get -m 10 -p 1 -j
+run_command ./bin/ocloud network loadbalancer get --all
+run_command ./bin/ocloud net lb get
+run_command ./bin/ocloud net lb get -A -j
+
+# Test network loadbalancer find command
+print_header "Testing network loadbalancer find command"
+run_command ./bin/ocloud network loadbalancer find "prod"
+run_command ./bin/ocloud network loadbalancer find "prod" --json
+run_command ./bin/ocloud network loadbalancer find "prod" --all
+run_command ./bin/ocloud net lb f "prod"
+run_command ./bin/ocloud net lb f "prod" -A -j
+
 # Test database command
 print_header "Testing database command"
 run_command ./bin/ocloud database --help

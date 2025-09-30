@@ -12,7 +12,7 @@ func TestGetCommand(t *testing.T) {
 	cmd := NewGetCmd(appCtx)
 
 	assert.Equal(t, "get", cmd.Use)
-	assert.Equal(t, " Get Load Balancer Paginated Results", cmd.Short)
+	assert.Equal(t, "Get Load Balancer Paginated Results", cmd.Short)
 	assert.Equal(t, getLong, cmd.Long)
 	assert.Equal(t, getExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
