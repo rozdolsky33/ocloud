@@ -9,9 +9,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var findLong = ``
+var findLong = `
+Find Load Balancers by display name using a pattern.
 
-var findExamples = ``
+This command searches Load Balancers in the current compartment using a case-insensitive
+substring and fuzzy match against the Load Balancer display name. By default, it prints a concise
+table of matches. Use --all to include extra columns, and --json to output machine-readable JSON.
+`
+
+var findExamples = `
+  # Find load balancers whose name contains "prod"
+  ocloud network loadbalancer find prod
+
+  # Use JSON output
+  ocloud network loadbalancer find prod --json
+
+  # Include extra details in the table
+  ocloud network loadbalancer find prod --all
+
+  # Short aliases
+  ocloud net lb find prod -A -j
+`
 
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{

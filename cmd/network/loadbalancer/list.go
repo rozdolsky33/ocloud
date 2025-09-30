@@ -8,9 +8,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var listLong = ``
+var listLong = `
+Interactively browse and search Load Balancers in the specified compartment using a TUI.
 
-var listExamples = ``
+This command launches a terminal UI that loads available Load Balancers and lets you:
+- Search/filter Load Balancers as you type
+- Navigate the list
+- Select a single Load Balancer to view its details
+
+After you pick a Load Balancer, the tool prints detailed information about the selected Load Balancer in the default table view or JSON format if specified with --json (-j).
+You can also toggle inclusion of extra columns via --all (-A).
+`
+
+var listExamples = `
+  # Launch the interactive Load Balancer browser
+  ocloud network loadbalancer list
+
+  # Include extra columns in the table output
+  ocloud network loadbalancer list --all
+
+  # Output in JSON
+  ocloud network loadbalancer list --json
+
+  # Using short aliases
+  ocloud net lb list -A -j
+`
 
 func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{

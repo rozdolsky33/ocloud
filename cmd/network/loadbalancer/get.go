@@ -25,7 +25,7 @@ var getExamples = `  # Get all load balancers with default pagination (20 per pa
   ocloud network loadbalancer get --all
 
   # Output in JSON format
-  ocloud network loadbalancer get --json`
+  ocloud net lb get --json`
 
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
