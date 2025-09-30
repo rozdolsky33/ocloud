@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	instaceFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	configflags "github.com/rozdolsky33/ocloud/internal/config/flags"
 	lbdomain "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
@@ -23,6 +24,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 			return runListCommand(cmd, appCtx)
 		},
 	}
+
+	instaceFlags.AllInfoFlag.Add(cmd)
 	return cmd
 }
 
