@@ -31,7 +31,7 @@ func TestNewPolicyAttributesFromOCIPolicy_AllFields(t *testing.T) {
 			"env": "dev",
 		},
 		DefinedTags: map[string]map[string]interface{}{
-			"ns": map[string]interface{}{"k": "v"},
+			"ns": {"k": "v"},
 		},
 	}
 
@@ -115,7 +115,7 @@ func TestEndToEnd_OCIPolicy_To_DomainPolicy(t *testing.T) {
 		Description:  &desc,
 		TimeCreated:  &common.SDKTime{Time: created},
 		FreeformTags: map[string]string{"a": "b"},
-		DefinedTags:  map[string]map[string]interface{}{"ns": map[string]interface{}{"k": "v"}},
+		DefinedTags:  map[string]map[string]interface{}{"ns": {"k": "v"}},
 	}
 
 	attrs := mapping.NewPolicyAttributesFromOCIPolicy(op)
