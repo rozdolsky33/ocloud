@@ -41,7 +41,6 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	}
 	osflags.LimitFlag.Add(cmd)
 	osflags.PageFlag.Add(cmd)
-	osflags.AllInfoFlag.Add(cmd)
 	return cmd
 }
 
@@ -49,7 +48,6 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, osflags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, osflags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running object storage get command", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON, "all", showAll)
-	return osSvc.GetBuckets(appCtx, limit, page, useJSON, showAll)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running object storage get command", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
+	return osSvc.GetBuckets(appCtx, limit, page, useJSON)
 }

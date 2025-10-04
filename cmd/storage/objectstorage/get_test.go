@@ -26,8 +26,4 @@ func TestGetCommand_ObjectStorage(t *testing.T) {
 	page := cmd.Flag("page")
 	assert.NotNil(t, page)
 	assert.Equal(t, "p", page.Shorthand)
-
-	all := cmd.Flag("all")
-	assert.NotNil(t, all)
-	assert.Equal(t, "A", all.Shorthand)
 }

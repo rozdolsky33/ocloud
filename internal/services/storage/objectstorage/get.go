@@ -10,7 +10,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-func GetBuckets(appCtx *app.ApplicationContext, limit int, page int, useJSON bool, showAll bool) error {
+func GetBuckets(appCtx *app.ApplicationContext, limit int, page int, useJSON bool) error {
 	ctx := context.Background()
 	client, err := oci.NewObjectStorageClient(appCtx.Provider)
 	if err != nil {
@@ -20,10 +20,10 @@ func GetBuckets(appCtx *app.ApplicationContext, limit int, page int, useJSON boo
 	bucketAdapter := os.NewAdapter(client)
 	service := NewService(bucketAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	buckets, total, next, err := service.FetchPaginatedBuckets(ctx, limit, page, showAll)
+	buckets, total, next, err := service.FetchPaginatedBuckets(ctx, limit, page)
 	if err != nil {
 		return err
 	}
 
-	return PrintBucketsInfo(buckets, appCtx, &util.PaginationInfo{CurrentPage: page, TotalCount: total, NextPageToken: next, Limit: limit}, useJSON, showAll)
+	return PrintBucketsInfo(buckets, appCtx, &util.PaginationInfo{CurrentPage: page, TotalCount: total, NextPageToken: next, Limit: limit}, useJSON)
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-func PrintBucketsInfo(buckets []objectstorage.Bucket, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showAll bool) error {
+func PrintBucketsInfo(buckets []objectstorage.Bucket, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -26,28 +26,23 @@ func PrintBucketsInfo(buckets []objectstorage.Bucket, appCtx *app.ApplicationCon
 
 	for _, bucket := range buckets {
 		bucketData := map[string]string{
-			"Name":      bucket.Name,
-			"Namespace": bucket.Namespace,
-			"Created":   bucket.TimeCreated.String(),
+			"Name":                 bucket.Name,
+			"Namespace":            bucket.Namespace,
+			"Created":              bucket.TimeCreated.String(),
+			"OCID":                 bucket.OCID,
+			"StorageTier":          bucket.StorageTier,
+			"Visibility":           bucket.Visibility,
+			"Encryption":           bucket.Encryption,
+			"Versioning":           bucket.Versioning,
+			"ReplicationEnabled":   fmt.Sprintf("%v", bucket.ReplicationEnabled),
+			"ReadOnly":             fmt.Sprintf("%v", bucket.IsReadOnly),
+			"ApproximateCount":     fmt.Sprintf("%d", bucket.ApproximateCount),
+			"ApproximateSize":      util.HumanizeBytesIEC(bucket.ApproximateSize),
+			"ApproximateSizeBytes": fmt.Sprintf("%d", bucket.ApproximateSize),
 		}
 
-		orderedKeys := []string{"Name", "Namespace", "Created"}
-
-		if showAll {
-			bucketData["OCID"] = bucket.OCID
-			bucketData["StorageTier"] = bucket.StorageTier
-			bucketData["Visibility"] = bucket.Visibility
-			bucketData["Encryption"] = bucket.Encryption
-			bucketData["Versioning"] = bucket.Versioning
-			bucketData["ReplicationEnabled"] = fmt.Sprintf("%v", bucket.ReplicationEnabled)
-			bucketData["ReadOnly"] = fmt.Sprintf("%v", bucket.IsReadOnly)
-			bucketData["ApproximateCount"] = fmt.Sprintf("%d", bucket.ApproximateCount)
-			bucketData["ApproximateSize"] = util.HumanizeBytesIEC(bucket.ApproximateSize)
-			bucketData["ApproximateSizeBytes"] = fmt.Sprintf("%d", bucket.ApproximateSize)
-
-			orderedKeys = []string{
-				"Name", "OCID", "Namespace", "Created", "StorageTier", "Visibility", "Encryption", "Versioning", "ReplicationEnabled", "ReadOnly", "ApproximateCount", "ApproximateSize", "ApproximateSizeBytes",
-			}
+		orderedKeys := []string{
+			"Name", "OCID", "Namespace", "Created", "StorageTier", "Visibility", "Encryption", "Versioning", "ReplicationEnabled", "ReadOnly", "ApproximateCount", "ApproximateSize", "ApproximateSizeBytes",
 		}
 
 		title := util.FormatColoredTitle(appCtx, bucket.Name)
