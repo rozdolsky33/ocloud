@@ -10,6 +10,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
+	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/containerengine"
@@ -112,6 +113,14 @@ func NewCertificatesManagementClient(provider common.ConfigurationProvider) (cer
 	client, err := certificatesmanagement.NewCertificatesManagementClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating certificates management client: %w", err)
+	}
+	return client, nil
+}
+
+func NewObjectStorageClient(provider common.ConfigurationProvider) (objectstorage.ObjectStorageClient, error) {
+	client, err := objectstorage.NewObjectStorageClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating object storage client: %w", err)
 	}
 	return client, nil
 }
