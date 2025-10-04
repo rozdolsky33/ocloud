@@ -12,6 +12,12 @@ type Adapter struct {
 	client objectstorage.ObjectStorageClient
 }
 
+// NewAdapter builds a new adapter.
+func NewAdapter(client objectstorage.ObjectStorageClient) *Adapter {
+	return &Adapter{client: client}
+}
+
+// GetBucket retrieves a single bucket by its OCID.
 func (a *Adapter) GetBucket(ctx context.Context, ocid string) (*domain.Bucket, error) {
 	nsResp, err := a.client.GetNamespace(context.Background(), objectstorage.GetNamespaceRequest{})
 	if err != nil {
@@ -35,10 +41,7 @@ func (a *Adapter) GetBucket(ctx context.Context, ocid string) (*domain.Bucket, e
 	return &db, nil
 }
 
-func NewAdapter(client objectstorage.ObjectStorageClient) *Adapter {
-	return &Adapter{client: client}
-}
-
+// ListBuckets retrieves all buckets in a given compartment.
 func (a *Adapter) ListBuckets(ctx context.Context, ocid string) (buckets []domain.Bucket, err error) {
 	var allBuckets []domain.Bucket
 	var page *string
@@ -103,7 +106,7 @@ func (a *Adapter) toDomainBucketFromBucket(bucket objectstorage.Bucket) domain.B
 	if bucket.PublicAccessType != "" {
 		db.Visibility = string(bucket.PublicAccessType)
 	}
-	// Encryption
+
 	if bucket.KmsKeyId != nil && *bucket.KmsKeyId != "" {
 		db.Encryption = "Customer-managed (KMS)"
 	} else {
@@ -120,7 +123,6 @@ func (a *Adapter) toDomainBucketFromBucket(bucket objectstorage.Bucket) domain.B
 	if bucket.IsReadOnly != nil {
 		db.IsReadOnly = *bucket.IsReadOnly
 	}
-	// Approximate metrics
 	if bucket.ApproximateCount != nil {
 		db.ApproximateCount = int(*bucket.ApproximateCount)
 	}
