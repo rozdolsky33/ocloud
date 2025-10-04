@@ -5,6 +5,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	osSvc "github.com/rozdolsky33/ocloud/internal/services/storage/objectstorage"
 	"github.com/spf13/cobra"
 )
 
@@ -34,5 +35,5 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, osflags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running image list command in", "compartment", appCtx.CompartmentName, "limit", limit, "page", page, "json", useJSON)
-	return nil
+	return osSvc.GetBuckets(appCtx, limit, page, useJSON)
 }

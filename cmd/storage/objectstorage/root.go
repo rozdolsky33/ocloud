@@ -15,5 +15,6 @@ func NewStorageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
+	cmd.AddCommand(NewGetCmd(appCtx))
 	return cmd
 }
