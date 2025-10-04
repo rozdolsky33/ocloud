@@ -25,7 +25,7 @@ var getExamples = `  # Get buckets with default pagination (20 per page)
   ocloud storage object-storage get --all
 
   # JSON output with short aliases
-  ocloud storage object-storage get -A -j`
+  ocloud storage os get -A -j`
 
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
