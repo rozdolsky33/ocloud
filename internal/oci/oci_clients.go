@@ -117,6 +117,7 @@ func NewCertificatesManagementClient(provider common.ConfigurationProvider) (cer
 	return client, nil
 }
 
+// NewObjectStorageClient creates and returns a new ObjectStorageClient.
 func NewObjectStorageClient(provider common.ConfigurationProvider) (objectstorage.ObjectStorageClient, error) {
 	client, err := objectstorage.NewObjectStorageClientWithConfigurationProvider(provider)
 	if err != nil {

@@ -1,6 +1,6 @@
 package vcn
 
-// DhcpOptions represents a DHCP options in the domain layer.
+// DhcpOptions represents a DHCP option in the domain layer.
 type DhcpOptions struct {
 	OCID           string
 	DisplayName    string

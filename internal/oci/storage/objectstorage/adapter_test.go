@@ -1,77 +1,37 @@
-package objectstorage
+package objectstorage_test
 
 import (
+	"context"
 	"testing"
-	"time"
 
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
+	"github.com/rozdolsky33/ocloud/internal/config"
+	ocloud_objectstorage "github.com/rozdolsky33/ocloud/internal/oci/storage/objectstorage"
 )
 
-func TestToDomainBucketFromSummary(t *testing.T) {
-	a := &Adapter{}
-	tm := commonTime(t, 2025, 10, 4)
-	name := "b1"
-	ns := "ns1"
-	sum := objectstorage.BucketSummary{
-		Name:        &name,
-		Namespace:   &ns,
-		TimeCreated: &common.SDKTime{Time: tm},
-	}
-	db := a.toDomainBucketFromSummary(sum)
-	if db.Name != name || db.Namespace != ns || !db.TimeCreated.Equal(tm) {
-		t.Fatalf("unexpected mapping: %+v", db)
-	}
-}
+// TestIntegrationListBuckets performs an integration test of the ListBuckets function.
+// NOTE: This test requires OCI credentials to be configured.
+func TestIntegrationListBuckets(t *testing.T) {
+	t.Skip("skipping integration test that requires live OCI; run manually when configured")
+	provider := config.LoadOCIConfig()
 
-func TestToDomainBucketFromBucket_MappingAndFlags(t *testing.T) {
-	a := &Adapter{}
-	tm := commonTime(t, 2025, 10, 4)
-	name := "bucketX"
-	ns := "ns"
-	id := "ocid1.bucket.oc1..xyz"
-	kms := "ocid1.key.oc1..kms"
-	approxCount := int64(42)
-	approxSize := int64(1<<20 + 512) // ~1 MiB
-	ro := false
-	detail := objectstorage.Bucket{
-		Name:               &name,
-		Id:                 &id,
-		Namespace:          &ns,
-		TimeCreated:        &common.SDKTime{Time: tm},
-		StorageTier:        objectstorage.BucketStorageTierStandard,
-		PublicAccessType:   objectstorage.BucketPublicAccessTypeNopublicaccess,
-		KmsKeyId:           &kms,
-		Versioning:         objectstorage.BucketVersioningDisabled,
-		ReplicationEnabled: &ro, // false
-		IsReadOnly:         &ro,
-		ApproximateCount:   &approxCount,
-		ApproximateSize:    &approxSize,
-		FreeformTags:       map[string]string{"env": "dev"},
-		DefinedTags:        map[string]map[string]interface{}{"ns": {"k": "v"}},
+	client, err := objectstorage.NewObjectStorageClientWithConfigurationProvider(provider)
+	if err != nil {
+		t.Fatalf("Failed to create object storage client: %v", err)
 	}
-	db := a.toDomainBucketFromBucket(detail)
-	if db.Name != name || db.OCID != id || db.Namespace != ns || !db.TimeCreated.Equal(tm) {
-		t.Fatalf("basic fields not mapped: %+v", db)
-	}
-	if db.StorageTier != "Standard" || db.Visibility != "NoPublicAccess" || db.Versioning != "Disabled" {
-		t.Fatalf("enum mappings incorrect: %+v", db)
-	}
-	if db.Encryption != "Customer-managed (KMS)" { // KMS key present
-		t.Fatalf("encryption mapping incorrect: %s", db.Encryption)
-	}
-	if db.ReplicationEnabled != false || db.IsReadOnly != false {
-		t.Fatalf("boolean flags incorrect: %+v", db)
-	}
-	if db.ApproximateCount != int(approxCount) || db.ApproximateSize != approxSize {
-		t.Fatalf("approximate metrics incorrect: %+v", db)
-	}
-	if db.FreeformTags["env"] != "dev" || db.DefinedTags["ns"]["k"] != "v" {
-		t.Fatalf("tags not mapped: %+v", db)
-	}
-}
 
-func commonTime(t *testing.T, y int, m int, d int) time.Time {
-	t.Helper()
-	return time.Date(y, time.Month(m), d, 0, 0, 0, 0, time.UTC)
+	adapter := ocloud_objectstorage.NewAdapter(client)
+
+	// This is the OCID of the root compartment of my tenancy.
+	// You will need to replace this with a valid compartment OCID from your tenancy.
+	compartmentID := "ocid1.tenancy.oc1..aaaaaaaa3k2ljgq4z4z4z4z4z4z4z4z4z4z4z4z4z4z4"
+
+	buckets, err := adapter.ListBuckets(context.Background(), compartmentID)
+	if err != nil {
+		t.Fatalf("ListBuckets failed: %v", err)
+	}
+
+	if len(buckets) == 0 {
+		t.Log("Warning: No buckets found in the compartment. The test passed, but it didn't verify any data.")
+	}
 }

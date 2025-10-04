@@ -3,6 +3,7 @@ package mapping
 import (
 	"time"
 
+	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/storage/objectstorage"
 )
 
@@ -23,6 +24,43 @@ type BucketAttributes struct {
 	ApproximateSize    *int64
 	FreeformTags       map[string]string
 	DefinedTags        map[string]map[string]interface{}
+}
+
+func NewBucketAttributesFromOCIBucket(bucket objectstorage.Bucket) *BucketAttributes {
+	var tc *time.Time
+	if bucket.TimeCreated != nil {
+		t := bucket.TimeCreated.Time
+		tc = &t
+	}
+	return &BucketAttributes{
+		Name:               bucket.Name,
+		ID:                 bucket.Id,
+		Namespace:          bucket.Namespace,
+		TimeCreated:        tc,
+		StorageTier:        string(bucket.StorageTier),
+		PublicAccessType:   string(bucket.PublicAccessType),
+		KmsKeyID:           bucket.KmsKeyId,
+		Versioning:         string(bucket.Versioning),
+		ReplicationEnabled: bucket.ReplicationEnabled,
+		IsReadOnly:         bucket.IsReadOnly,
+		ApproximateCount:   bucket.ApproximateCount,
+		ApproximateSize:    bucket.ApproximateSize,
+		FreeformTags:       bucket.FreeformTags,
+		DefinedTags:        bucket.DefinedTags,
+	}
+}
+
+func NewBucketAttributesFromOCIBucketSummary(bucket objectstorage.BucketSummary) *BucketAttributes {
+	var tc *time.Time
+	if bucket.TimeCreated != nil {
+		t := bucket.TimeCreated.Time
+		tc = &t
+	}
+	return &BucketAttributes{
+		Name:        bucket.Name,
+		Namespace:   bucket.Namespace,
+		TimeCreated: tc,
+	}
 }
 
 // NewDomainBucketFromAttrs builds a domain.Bucket from provider-agnostic attributes.
