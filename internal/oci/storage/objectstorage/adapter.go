@@ -3,9 +3,11 @@ package objectstorage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/storage/objectstorage"
+	"github.com/rozdolsky33/ocloud/internal/mapping"
 )
 
 type Adapter struct {
@@ -17,9 +19,9 @@ func NewAdapter(client objectstorage.ObjectStorageClient) *Adapter {
 	return &Adapter{client: client}
 }
 
-// GetBucket retrieves a single bucket by its OCID.
+// GetBucket retrieves a single bucket by its name (interprets input string as bucket name).
 func (a *Adapter) GetBucket(ctx context.Context, ocid string) (*domain.Bucket, error) {
-	nsResp, err := a.client.GetNamespace(context.Background(), objectstorage.GetNamespaceRequest{})
+	nsResp, err := a.client.GetNamespace(ctx, objectstorage.GetNamespaceRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get namespace: %w", err)
 	}
@@ -73,68 +75,40 @@ func (a *Adapter) ListBuckets(ctx context.Context, ocid string) (buckets []domai
 }
 
 func (a *Adapter) toDomainBucketFromSummary(bucket objectstorage.BucketSummary) domain.Bucket {
-	db := domain.Bucket{}
-	if bucket.Name != nil {
-		db.Name = *bucket.Name
-	}
-	if bucket.Namespace != nil {
-		db.Namespace = *bucket.Namespace
-	}
+	var tc *time.Time
 	if bucket.TimeCreated != nil {
-		db.TimeCreated = bucket.TimeCreated.Time
+		t := bucket.TimeCreated.Time
+		tc = &t
 	}
-	return db
+	attrs := mapping.BucketAttributes{
+		Name:        bucket.Name,
+		Namespace:   bucket.Namespace,
+		TimeCreated: tc,
+	}
+	return mapping.NewDomainBucketFromAttrs(attrs)
 }
 
 func (a *Adapter) toDomainBucketFromBucket(bucket objectstorage.Bucket) domain.Bucket {
-	db := domain.Bucket{}
-	if bucket.Name != nil {
-		db.Name = *bucket.Name
-	}
-	if bucket.Id != nil {
-		db.OCID = *bucket.Id
-	}
-	if bucket.Namespace != nil {
-		db.Namespace = *bucket.Namespace
-	}
+	var tc *time.Time
 	if bucket.TimeCreated != nil {
-		db.TimeCreated = bucket.TimeCreated.Time
+		t := bucket.TimeCreated.Time
+		tc = &t
 	}
-	if bucket.StorageTier != "" {
-		db.StorageTier = string(bucket.StorageTier)
+	attrs := mapping.BucketAttributes{
+		Name:               bucket.Name,
+		ID:                 bucket.Id,
+		Namespace:          bucket.Namespace,
+		TimeCreated:        tc,
+		StorageTier:        string(bucket.StorageTier),
+		PublicAccessType:   string(bucket.PublicAccessType),
+		KmsKeyID:           bucket.KmsKeyId,
+		Versioning:         string(bucket.Versioning),
+		ReplicationEnabled: bucket.ReplicationEnabled,
+		IsReadOnly:         bucket.IsReadOnly,
+		ApproximateCount:   bucket.ApproximateCount,
+		ApproximateSize:    bucket.ApproximateSize,
+		FreeformTags:       bucket.FreeformTags,
+		DefinedTags:        bucket.DefinedTags,
 	}
-	if bucket.PublicAccessType != "" {
-		db.Visibility = string(bucket.PublicAccessType)
-	}
-
-	if bucket.KmsKeyId != nil && *bucket.KmsKeyId != "" {
-		db.Encryption = "Customer-managed (KMS)"
-	} else {
-		db.Encryption = "Oracle-managed"
-	}
-	// Versioning
-	if bucket.Versioning != "" {
-		db.Versioning = string(bucket.Versioning)
-	}
-	// Flags
-	if bucket.ReplicationEnabled != nil {
-		db.ReplicationEnabled = *bucket.ReplicationEnabled
-	}
-	if bucket.IsReadOnly != nil {
-		db.IsReadOnly = *bucket.IsReadOnly
-	}
-	if bucket.ApproximateCount != nil {
-		db.ApproximateCount = int(*bucket.ApproximateCount)
-	}
-	if bucket.ApproximateSize != nil {
-		db.ApproximateSize = *bucket.ApproximateSize
-	}
-	// Tags
-	if bucket.FreeformTags != nil {
-		db.FreeformTags = bucket.FreeformTags
-	}
-	if bucket.DefinedTags != nil {
-		db.DefinedTags = bucket.DefinedTags
-	}
-	return db
+	return mapping.NewDomainBucketFromAttrs(attrs)
 }
