@@ -38,24 +38,7 @@ func (s *Service) FetchPaginateCompartments(ctx context.Context, limit, pageNum 
 		return nil, 0, "", fmt.Errorf("listing compartments from repository: %w", err)
 	}
 
-	totalCount := len(allCompartments)
-	start := (pageNum - 1) * limit
-	end := start + limit
-
-	if start >= totalCount {
-		return []Compartment{}, totalCount, "", nil
-	}
-
-	if end > totalCount {
-		end = totalCount
-	}
-
-	pagedResults := allCompartments[start:end]
-
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allCompartments, limit, pageNum)
 
 	s.logger.Info("completed compartment listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
 	return pagedResults, totalCount, nextPageToken, nil

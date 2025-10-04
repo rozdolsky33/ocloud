@@ -43,17 +43,17 @@ func (s *Service) ListAutonomousDb(ctx context.Context) ([]AutonomousDatabase, e
 func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing autonomous databases", "limit", limit, "pageNum", pageNum)
 
-	// First try enriched list
+	// First, try an enriched list
 	allDatabases, err := s.repo.ListEnrichedAutonomousDatabase(ctx, s.compartmentID)
 	if err != nil {
-		// Fallback to base list on error (as tests expect)
+		// Fallback to base a list on error (as tests expect)
 		allDatabases, err = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
 		}
 	}
 
-	// If enriched list is empty, also fallback to base list to confirm (as tests expect)
+	// If an enriched list is empty, also fallback to base list to confirm (as tests expect)
 	if len(allDatabases) == 0 {
 		var baseErr error
 		allDatabases, baseErr = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
@@ -62,24 +62,7 @@ func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum
 		}
 	}
 
-	totalCount := len(allDatabases)
-	start := (pageNum - 1) * limit
-	end := start + limit
-
-	if start >= totalCount {
-		return []AutonomousDatabase{}, totalCount, "", nil
-	}
-
-	if end > totalCount {
-		end = totalCount
-	}
-
-	pagedResults := allDatabases[start:end]
-
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allDatabases, limit, pageNum)
 
 	logger.LogWithLevel(s.logger, logger.Info, "completed database listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
 	return pagedResults, totalCount, nextPageToken, nil
