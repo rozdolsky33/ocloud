@@ -53,7 +53,7 @@ func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum
 		}
 	}
 
-	// If an enriched list is empty, also fallback to base list to confirm (as tests expect)
+	// If an enriched list is empty, also fallback to a base list to confirm (as tests expect)
 	if len(allDatabases) == 0 {
 		var baseErr error
 		allDatabases, baseErr = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
