@@ -10,13 +10,13 @@ type Bucket struct {
 	OCID               string
 	Namespace          string
 	StorageTier        string
-	Visibility         string // e.g., NoPublicAccess, ObjectRead
-	Encryption         string // e.g., Oracle-managed, Customer-managed
-	Versioning         string // e.g., Enabled, Suspended
+	Visibility         string
+	Encryption         string
+	Versioning         string
 	ReplicationEnabled bool
 	IsReadOnly         bool
-	ApproximateSize    int64 // bytes
-	ApproximateCount   int   // number of objects
+	ApproximateSize    int64
+	ApproximateCount   int
 	TimeCreated        time.Time
 	FreeformTags       map[string]string
 	DefinedTags        map[string]map[string]interface{}
