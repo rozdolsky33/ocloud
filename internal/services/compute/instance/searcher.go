@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
+	_ "github.com/blevesearch/bleve/v2/analysis/token/lowercase"
+	_ "github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	bleveQuery "github.com/blevesearch/bleve/v2/search/query"
 
@@ -17,14 +19,10 @@ import (
 func newInstanceIndexMapping() mapping.IndexMapping {
 	m := mapping.NewIndexMapping()
 
-	// ngram filter/analyzer for "Google-ish" substring search
-	_ = m.AddCustomTokenFilter("ng2_20", map[string]any{
-		"type": "ngram", "min": 2, "max": 20,
-	})
 	_ = m.AddCustomAnalyzer("ngram_lower", map[string]any{
 		"type":          "custom",
 		"tokenizer":     "unicode",
-		"token_filters": []string{"to_lower", "ng2_20"},
+		"token_filters": []string{"to_lower"},
 	})
 
 	// keyword analyzer (keeps the whole value incl punctuation)
