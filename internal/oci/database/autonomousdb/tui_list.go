@@ -42,16 +42,12 @@ func describeAutonomousDatabase(adb domain.AutonomousDatabase) string {
 
 	spec := strings.TrimSpace(strings.Join(filterNonEmpty(cpu, storage), "/"))
 	access := ""
-	if isTrue(adb.IsPubliclyAccessible) {
-		access = "Public"
+	if adb.PrivateEndpointLabel != "" {
+		access = "Private " + adb.PrivateEndpointLabel
+	} else if adb.SubnetName != "" {
+		access = "Private " + adb.SubnetName
 	} else {
-		if adb.PrivateEndpointLabel != "" {
-			access = "Private " + adb.PrivateEndpointLabel
-		} else if adb.SubnetName != "" {
-			access = "Private " + adb.SubnetName
-		} else {
-			access = "Private"
-		}
+		access = "Private"
 	}
 
 	license := ""

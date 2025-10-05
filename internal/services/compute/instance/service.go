@@ -46,31 +46,7 @@ func (s *Service) FetchPaginatedInstances(ctx context.Context, limit int, pageNu
 		return nil, 0, "", fmt.Errorf("listing instances from repository: %w", err)
 	}
 
-	// Manual pagination.
-	totalCount := len(allInstances)
-
-	// Handle pageNum=0 as the first page
-	if pageNum <= 0 {
-		pageNum = 1
-	}
-
-	start := (pageNum - 1) * limit
-	end := start + limit
-
-	if start >= totalCount {
-		return []Instance{}, totalCount, "", nil
-	}
-
-	if end > totalCount {
-		end = totalCount
-	}
-
-	pagedResults := allInstances[start:end]
-
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allInstances, limit, pageNum)
 
 	s.logger.Info("completed instance listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
 	return pagedResults, totalCount, nextPageToken, nil

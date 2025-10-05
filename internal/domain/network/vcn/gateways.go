@@ -1,6 +1,6 @@
 package vcn
 
-// Gateways represents a summarized view of gateways associated with a VCN.
+// Gateways represent a summarized view of gateways associated with a VCN.
 // It is used by the OCI gateway adapter to return a concise, human-readable
 // snapshot for presentation layers.
 type Gateways struct {

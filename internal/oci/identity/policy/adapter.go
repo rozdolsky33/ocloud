@@ -6,6 +6,7 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/identity"
+	"github.com/rozdolsky33/ocloud/internal/mapping"
 )
 
 type Adapter struct {
@@ -23,10 +24,9 @@ func (a *Adapter) GetPolicy(ctx context.Context, ocid string) (*domain.Policy, e
 		PolicyId: &ocid,
 	})
 	if err != nil {
-
+		return nil, fmt.Errorf("failed to get policy: %w", err)
 	}
-	policy := a.toDomainModel(resp.Policy)
-	return &policy, nil
+	return mapping.NewDomainPolicyFromAttrs(mapping.NewPolicyAttributesFromOCIPolicy(resp.Policy)), nil
 }
 
 // ListPolicies retrieves all policies in a given compartment.
@@ -42,7 +42,7 @@ func (a *Adapter) ListPolicies(ctx context.Context, compartmentID string) ([]dom
 			return nil, fmt.Errorf("failed to list policies: %w", err)
 		}
 		for _, item := range resp.Items {
-			policies = append(policies, a.toDomainModel(item))
+			policies = append(policies, *mapping.NewDomainPolicyFromAttrs(mapping.NewPolicyAttributesFromOCIPolicy(item)))
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -51,17 +51,4 @@ func (a *Adapter) ListPolicies(ctx context.Context, compartmentID string) ([]dom
 	}
 
 	return policies, nil
-}
-
-// toDomainModel converts an OCI SDK policy object to our application's domain model.'
-func (a *Adapter) toDomainModel(p identity.Policy) domain.Policy {
-	return domain.Policy{
-		Name:         *p.Name,
-		ID:           *p.Id,
-		Statement:    p.Statements,
-		TimeCreated:  p.TimeCreated.Time,
-		Description:  *p.Description,
-		FreeformTags: p.FreeformTags,
-		DefinedTags:  p.DefinedTags,
-	}
 }

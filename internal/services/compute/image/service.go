@@ -36,24 +36,7 @@ func (s *Service) FetchPaginatedImages(ctx context.Context, limit, pageNum int) 
 		return nil, 0, "", fmt.Errorf("listing images from repository: %w", err)
 	}
 
-	totalCount := len(allImages)
-	start := (pageNum - 1) * limit
-	end := start + limit
-
-	if start >= totalCount {
-		return []Image{}, totalCount, "", nil
-	}
-
-	if end > totalCount {
-		end = totalCount
-	}
-
-	pagedResults := allImages[start:end]
-
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allImages, limit, pageNum)
 
 	s.logger.Info("completed image listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
 	return pagedResults, totalCount, nextPageToken, nil

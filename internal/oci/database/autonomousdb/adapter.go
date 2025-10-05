@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/database"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/database"
+	"github.com/rozdolsky33/ocloud/internal/mapping"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 )
 
@@ -51,7 +51,7 @@ func (a *Adapter) GetAutonomousDatabase(ctx context.Context, ocid string) (*doma
 	if err != nil {
 		return nil, err
 	}
-	return &db, nil
+	return db, nil
 }
 
 // ListAutonomousDatabases retrieves a list of autonomous databases from OCI.
@@ -67,7 +67,7 @@ func (a *Adapter) ListAutonomousDatabases(ctx context.Context, compartmentID str
 			return nil, fmt.Errorf("failed to list autonomous databases: %w", err)
 		}
 		for _, item := range resp.Items {
-			allDatabases = append(allDatabases, a.toDomainAutonomousDB(item))
+			allDatabases = append(allDatabases, *mapping.NewDomainAutonomousDatabaseFromAttrs(mapping.NewAutonomousDatabaseAttributesFromOCIAutonomousDatabaseSummary(item)))
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -175,9 +175,9 @@ func (a *Adapter) enrichDomainAutonomousDB(ctx context.Context, d *domain.Autono
 }
 
 // enrichAndMapAutonomousDatabase maps a full OCI AutonomousDatabase and enriches it.
-func (a *Adapter) enrichAndMapAutonomousDatabase(ctx context.Context, full database.AutonomousDatabase) (domain.AutonomousDatabase, error) {
-	d := a.toDomainAutonomousDB(full)
-	if err := a.enrichDomainAutonomousDB(ctx, &d); err != nil {
+func (a *Adapter) enrichAndMapAutonomousDatabase(ctx context.Context, full database.AutonomousDatabase) (*domain.AutonomousDatabase, error) {
+	d := mapping.NewDomainAutonomousDatabaseFromAttrs(mapping.NewAutonomousDatabaseAttributesFromOCIAutonomousDatabase(full))
+	if err := a.enrichDomainAutonomousDB(ctx, d); err != nil {
 		return d, fmt.Errorf("enriching autonomous database %s: %w", d.ID, err)
 	}
 	return d, nil
@@ -187,222 +187,11 @@ func (a *Adapter) enrichAndMapAutonomousDatabase(ctx context.Context, full datab
 func (a *Adapter) enrichAndMapAutonomousDatabasesFromSummaries(ctx context.Context, items []database.AutonomousDatabaseSummary) ([]domain.AutonomousDatabase, error) {
 	res := make([]domain.AutonomousDatabase, 0, len(items))
 	for _, it := range items {
-		d := a.toDomainAutonomousDB(it)
-		if err := a.enrichDomainAutonomousDB(ctx, &d); err != nil {
+		d := mapping.NewDomainAutonomousDatabaseFromAttrs(mapping.NewAutonomousDatabaseAttributesFromOCIAutonomousDatabaseSummary(it))
+		if err := a.enrichDomainAutonomousDB(ctx, d); err != nil {
 			return nil, fmt.Errorf("enriching autonomous database %s: %w", d.ID, err)
 		}
-		res = append(res, d)
+		res = append(res, *d)
 	}
 	return res, nil
-}
-
-// toDomainAutonomousDB maps either a full database.AutonomousDatabase (from Get) or a database.AutonomousDatabaseSummary (from List) into the single domain.AutonomousDatabase type.
-func (a *Adapter) toDomainAutonomousDB(ociObj interface{}) domain.AutonomousDatabase {
-	var (
-		// identity
-		name            *string
-		id              *string
-		compartmentId   *string
-		lifecycleState  string
-		dbVersion       *string
-		dbWorkloadStr   string
-		licenseModelStr string
-
-		// network
-		whitelistedIps       []string
-		privateEndpoint      *string
-		privateEndpointIp    *string
-		privateEndpointLabel *string
-		subnetId             *string
-		nsgIds               []string
-		isMtlsRequired       *bool
-		isPubliclyAccessible *bool
-
-		// capacity
-		computeModelStr             string
-		ecpuCount                   *float32
-		ocpuCount                   *float32
-		cpuCoreCount                *int
-		storageTBs                  *int
-		storageGBs                  *int
-		isAutoScale                 *bool
-		isStorageAutoScalingEnabled *bool
-
-		// operations & integrations
-		operationsInsightsStatus string
-		databaseManagementStatus string
-		dataSafeStatus           string
-		isFreeTier               *bool
-
-		// Data Guard / DR
-		isDataGuardEnabled  *bool
-		role                *string
-		peerAutonomousDbIds []string
-
-		// maintenance
-		patchModel           *string
-		nextMaintenanceRunId *string
-		maintenanceSchedule  *string
-
-		// connections
-		connStrings *database.AutonomousDatabaseConnectionStrings
-		connUrls    *database.AutonomousDatabaseConnectionUrls
-
-		freeformTags map[string]string
-		definedTags  map[string]map[string]interface{}
-
-		timeCreated *common.SDKTime
-	)
-
-	switch src := ociObj.(type) {
-	case database.AutonomousDatabase:
-		name = src.DbName
-		id = src.Id
-		compartmentId = src.CompartmentId
-		lifecycleState = string(src.LifecycleState)
-		dbVersion = src.DbVersion
-		dbWorkloadStr = string(src.DbWorkload)
-		licenseModelStr = string(src.LicenseModel)
-
-		whitelistedIps = src.WhitelistedIps
-		privateEndpoint = src.PrivateEndpoint
-		privateEndpointIp = src.PrivateEndpointIp
-		privateEndpointLabel = src.PrivateEndpointLabel
-		subnetId = src.SubnetId
-		nsgIds = src.NsgIds
-		isMtlsRequired = src.IsMtlsConnectionRequired
-
-		computeModelStr = string(src.ComputeModel)
-		ecpuCount = src.ComputeCount
-		ocpuCount = src.OcpuCount
-		cpuCoreCount = src.CpuCoreCount
-		storageTBs = src.DataStorageSizeInTBs
-		isAutoScale = src.IsAutoScalingEnabled
-
-		connStrings = src.ConnectionStrings
-		connUrls = src.ConnectionUrls
-
-		freeformTags = src.FreeformTags
-		definedTags = src.DefinedTags
-		timeCreated = src.TimeCreated
-
-	case database.AutonomousDatabaseSummary:
-		name = src.DbName
-		id = src.Id
-		compartmentId = src.CompartmentId
-		lifecycleState = string(src.LifecycleState)
-		dbVersion = src.DbVersion
-		dbWorkloadStr = string(src.DbWorkload)
-		licenseModelStr = string(src.LicenseModel)
-
-		whitelistedIps = src.WhitelistedIps
-		privateEndpoint = src.PrivateEndpoint
-		privateEndpointIp = src.PrivateEndpointIp
-		privateEndpointLabel = src.PrivateEndpointLabel
-		subnetId = src.SubnetId
-		nsgIds = src.NsgIds
-		isMtlsRequired = src.IsMtlsConnectionRequired
-
-		computeModelStr = string(src.ComputeModel)
-		ecpuCount = src.ComputeCount
-		ocpuCount = src.OcpuCount
-		cpuCoreCount = src.CpuCoreCount
-		storageTBs = src.DataStorageSizeInTBs
-		isAutoScale = src.IsAutoScalingEnabled
-
-		connStrings = src.ConnectionStrings
-		connUrls = src.ConnectionUrls
-
-		freeformTags = src.FreeformTags
-		definedTags = src.DefinedTags
-		timeCreated = src.TimeCreated
-	default:
-		return domain.AutonomousDatabase{}
-	}
-	switch src := ociObj.(type) {
-	case database.AutonomousDatabase:
-		storageGBs = src.DataStorageSizeInGBs
-	case database.AutonomousDatabaseSummary:
-		storageGBs = src.DataStorageSizeInGBs
-	}
-
-	d := domain.AutonomousDatabase{}
-	if name != nil {
-		d.Name = *name
-	}
-	if id != nil {
-		d.ID = *id
-	}
-	if compartmentId != nil {
-		d.CompartmentOCID = *compartmentId
-	}
-	d.LifecycleState = lifecycleState
-	if dbVersion != nil {
-		d.DbVersion = *dbVersion
-	}
-	d.DbWorkload = dbWorkloadStr
-	d.LicenseModel = licenseModelStr
-
-	// network
-	d.WhitelistedIps = whitelistedIps
-	if privateEndpoint != nil {
-		d.PrivateEndpoint = *privateEndpoint
-	}
-	if privateEndpointIp != nil {
-		d.PrivateEndpointIp = *privateEndpointIp
-	}
-	if privateEndpointLabel != nil {
-		d.PrivateEndpointLabel = *privateEndpointLabel
-	}
-	if subnetId != nil {
-		d.SubnetId = *subnetId
-	}
-	d.NsgIds = nsgIds
-	d.IsMtlsRequired = isMtlsRequired
-	d.ComputeModel = computeModelStr
-	d.EcpuCount = ecpuCount
-	d.OcpuCount = ocpuCount
-	d.CpuCoreCount = cpuCoreCount
-	d.DataStorageSizeInTBs = storageTBs
-	d.DataStorageSizeInGBs = storageGBs
-	d.IsAutoScalingEnabled = isAutoScale
-	d.IsStorageAutoScalingEnabled = isStorageAutoScalingEnabled
-	d.OperationsInsightsStatus = operationsInsightsStatus
-	d.DatabaseManagementStatus = databaseManagementStatus
-	d.DataSafeStatus = dataSafeStatus
-	d.IsFreeTier = isFreeTier
-
-	d.IsPubliclyAccessible = isPubliclyAccessible
-
-	d.IsDataGuardEnabled = isDataGuardEnabled
-	if role != nil {
-		d.Role = *role
-	}
-	d.PeerAutonomousDbIds = peerAutonomousDbIds
-
-	if patchModel != nil {
-		d.PatchModel = *patchModel
-	}
-	if nextMaintenanceRunId != nil {
-		d.NextMaintenanceRunId = *nextMaintenanceRunId
-	}
-	if maintenanceSchedule != nil {
-		d.MaintenanceScheduleType = *maintenanceSchedule
-	}
-
-	if connStrings != nil {
-		if connStrings.AllConnectionStrings != nil {
-			d.ConnectionStrings = connStrings.AllConnectionStrings
-		}
-		d.Profiles = connStrings.Profiles
-	}
-	d.ConnectionUrls = connUrls
-	d.FreeformTags = freeformTags
-	d.DefinedTags = definedTags
-	if timeCreated != nil {
-		t := timeCreated.Time
-		d.TimeCreated = &t
-	}
-
-	return d
 }

@@ -33,20 +33,7 @@ func (s *Service) FetchPaginatedPolies(ctx context.Context, limit, pageNum int) 
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing policies from repository: %w", err)
 	}
-	totalCount := len(allPolicies)
-	start := (pageNum - 1) * limit
-	end := start + limit
-	if start >= totalCount {
-		return []identity.Policy{}, totalCount, "", nil
-	}
-	if end > totalCount {
-		end = totalCount
-	}
-	pagedResults := allPolicies[start:end]
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allPolicies, limit, pageNum)
 	s.logger.V(logger.Debug).Info("completed policy listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
 	return pagedResults, totalCount, nextPageToken, nil
 }

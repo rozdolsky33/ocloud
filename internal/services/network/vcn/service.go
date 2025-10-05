@@ -35,29 +35,7 @@ func (s *Service) FetchPaginatedVCNs(ctx context.Context, limit, pageNum int) ([
 		return nil, 0, "", fmt.Errorf("listing vcns from repository: %w", err)
 	}
 
-	totalCount := len(allVcn)
-
-	if pageNum <= 0 {
-		pageNum = 1
-	}
-
-	start := (pageNum - 1) * limit
-	end := start + limit
-
-	if start >= totalCount {
-		return []VCN{}, totalCount, "", nil
-	}
-
-	if end > totalCount {
-		end = totalCount
-	}
-
-	pagedResults := allVcn[start:end]
-
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allVcn, limit, pageNum)
 
 	return pagedResults, totalCount, nextPageToken, nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/oracle/oci-go-sdk/v65/core"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/compute"
+	"github.com/rozdolsky33/ocloud/internal/mapping"
 )
 
 // Adapter is an infrastructure-layer adapter that implements the domain.ImageRepository interface.
@@ -27,7 +28,7 @@ func (a *Adapter) GetImage(ctx context.Context, ocid string) (*domain.Image, err
 		return nil, fmt.Errorf("getting image from OCI: %w", err)
 	}
 
-	img := a.toDomainModel(resp.Image)
+	img := mapping.NewDomainImageFromAttrs(*mapping.NewImageAttributesFromOCIImage(resp.Image))
 	return &img, nil
 }
 
@@ -46,7 +47,7 @@ func (a *Adapter) ListImages(ctx context.Context, compartmentID string) ([]domai
 		}
 
 		for _, item := range resp.Items {
-			images = append(images, a.toDomainModel(item))
+			images = append(images, mapping.NewDomainImageFromAttrs(*mapping.NewImageAttributesFromOCIImage(item)))
 		}
 
 		if resp.OpcNextPage == nil {
@@ -56,16 +57,4 @@ func (a *Adapter) ListImages(ctx context.Context, compartmentID string) ([]domai
 	}
 
 	return images, nil
-}
-
-// toDomainModel converts an OCI SDK image object to our application's domain model.
-func (a *Adapter) toDomainModel(img core.Image) domain.Image {
-	return domain.Image{
-		OCID:                   *img.Id,
-		DisplayName:            *img.DisplayName,
-		OperatingSystem:        *img.OperatingSystem,
-		OperatingSystemVersion: *img.OperatingSystemVersion,
-		LaunchMode:             string(img.LaunchMode),
-		TimeCreated:            img.TimeCreated.Time,
-	}
 }
