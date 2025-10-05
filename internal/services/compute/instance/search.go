@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ociInst "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 )
@@ -28,5 +29,10 @@ func SearchInstances(appCtx *app.ApplicationContext, namePattern string, useJSON
 		return fmt.Errorf("finding instances: %w", err)
 	}
 
-	return PrintInstancesInfo(matchedInstances, appCtx, nil, useJSON, showDetails)
+	err = PrintInstancesInfo(matchedInstances, appCtx, nil, useJSON, showDetails)
+	if err != nil {
+		return fmt.Errorf("printing instances: %w", err)
+	}
+	logger.LogWithLevel(logger.CmdLogger, logger.Info, "Found matching instances", "name", namePattern, "matched", len(matchedInstances))
+	return nil
 }
