@@ -22,7 +22,7 @@ print_header() {
 # Function to run a command and print the command before executing
 # Captures exit code and displays errors in red
 run_command() {
-    echo "$ $@"
+    echo "$" "$@"
     "$@"
     exit_code=$?
 
@@ -245,6 +245,15 @@ run_command ./bin/ocloud network loadbalancer find "prod" --json
 run_command ./bin/ocloud network loadbalancer find "prod" --all
 run_command ./bin/ocloud net lb f "prod"
 run_command ./bin/ocloud net lb f "prod" -A -j
+
+# Test storage object-storage get command
+print_header "Testing storage object-storage get command"
+run_command ./bin/ocloud storage object-storage get
+run_command ./bin/ocloud storage object-storage get --limit 10 --page 1 --json
+run_command ./bin/ocloud storage object-storage get -m 10 -p 1 -j
+run_command ./bin/ocloud storage object-storage get --all
+run_command ./bin/ocloud storage os get
+run_command ./bin/ocloud storage os get -A -j
 
 # Test database command
 print_header "Testing database command"

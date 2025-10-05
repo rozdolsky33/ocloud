@@ -13,7 +13,7 @@ func NewImageListModel(images []domain.Image) tui.Model {
 		return tui.ResourceItemData{
 			ID:          image.OCID,
 			Title:       image.DisplayName,
-			Description: fmt.Sprintf("OS: %s  •  Version: %s", image.OperatingSystem, image.OperatingSystemVersion),
+			Description: fmt.Sprintf("OS: %s • Version: %s", image.OperatingSystem, image.OperatingSystemVersion),
 		}
 	})
 }

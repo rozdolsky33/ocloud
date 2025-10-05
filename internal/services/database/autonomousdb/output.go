@@ -144,13 +144,7 @@ func printOneAutonomousDb(p *printer.Printer, appCtx *app.ApplicationContext, db
 
 	// Network
 	accessType := ""
-	if db.IsPubliclyAccessible != nil {
-		if *db.IsPubliclyAccessible {
-			accessType = "Public"
-		} else if db.PrivateEndpoint != "" {
-			accessType = "Virtual cloud network"
-		}
-	} else if db.PrivateEndpoint != "" {
+	if db.PrivateEndpoint != "" {
 		accessType = "Virtual cloud network"
 	}
 	details["Access Type"] = accessType

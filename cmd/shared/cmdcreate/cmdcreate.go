@@ -9,6 +9,7 @@ import (
 	"github.com/rozdolsky33/ocloud/cmd/database"
 	"github.com/rozdolsky33/ocloud/cmd/identity"
 	"github.com/rozdolsky33/ocloud/cmd/network"
+	"github.com/rozdolsky33/ocloud/cmd/storage"
 	"github.com/rozdolsky33/ocloud/cmd/version"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
@@ -40,6 +41,7 @@ func CreateRootCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		rootCmd.AddCommand(identity.NewIdentityCmd(appCtx))
 		rootCmd.AddCommand(database.NewDatabaseCmd(appCtx))
 		rootCmd.AddCommand(network.NewNetworkCmd(appCtx))
+		rootCmd.AddCommand(storage.NewStorageCmd(appCtx))
 	}
 
 	return rootCmd
@@ -70,6 +72,7 @@ func addPlaceholderCommands(rootCmd *cobra.Command) {
 		{"identity", "Manage OCI identity services"},
 		{"database", "Manage OCI Database services"},
 		{"network", "Manage OCI network services"},
+		{"storage", "Manage OCI Storage services"},
 	}
 
 	for _, cmdType := range commandTypes {

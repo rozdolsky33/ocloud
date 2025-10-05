@@ -10,6 +10,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/compute"
+	"github.com/rozdolsky33/ocloud/internal/mapping"
 )
 
 const (
@@ -43,7 +44,7 @@ func (a *Adapter) GetEnrichedInstance(ctx context.Context, instanceID string) (*
 	if err != nil {
 		return nil, err
 	}
-	return &dm, nil
+	return dm, nil
 }
 
 // ListInstances fetches all running instances in a compartment.
@@ -61,7 +62,7 @@ func (a *Adapter) ListInstances(ctx context.Context, compartmentID string) ([]do
 			return nil, fmt.Errorf("listing instances from OCI: %w", err)
 		}
 		for _, item := range resp.Items {
-			allInstances = append(allInstances, a.toBaseDomainInstanceModel(item))
+			allInstances = append(allInstances, *mapping.NewDomainInstanceFromAttrs(mapping.NewInstanceAttributesFromOCIInstance(item)))
 		}
 
 		if resp.OpcNextPage == nil {
@@ -109,14 +110,14 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 		go func(i int, ociInstance core.Instance) {
 			defer wg.Done()
 
-			dm := a.toEnrichDomainInstanceModel(ociInstance)
+			dm := mapping.NewDomainInstanceFromAttrs(mapping.NewInstanceAttributesFromOCIInstance(ociInstance))
 
-			if err := a.enrichDomainInstance(ctx, &dm, ociInstance); err != nil {
+			if err := a.enrichDomainInstance(ctx, dm, ociInstance); err != nil {
 				errChan <- err
 				return
 			}
 
-			domainInstances[i] = dm
+			domainInstances[i] = *dm
 		}(i, ociInstance)
 	}
 
@@ -131,9 +132,9 @@ func (a *Adapter) enrichAndMapInstances(ctx context.Context, ociInstances []core
 }
 
 // enrichAndMapInstance converts a single OCI instance to a domain model and enriches it with details.
-func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Instance) (domain.Instance, error) {
-	dm := a.toEnrichDomainInstanceModel(ociInstance)
-	if err := a.enrichDomainInstance(ctx, &dm, ociInstance); err != nil {
+func (a *Adapter) enrichAndMapInstance(ctx context.Context, ociInstance core.Instance) (*domain.Instance, error) {
+	dm := mapping.NewDomainInstanceFromAttrs(mapping.NewInstanceAttributesFromOCIInstance(ociInstance))
+	if err := a.enrichDomainInstance(ctx, dm, ociInstance); err != nil {
 		return dm, err
 	}
 
@@ -147,27 +148,30 @@ func (a *Adapter) enrichDomainInstance(ctx context.Context, dm *domain.Instance,
 		return fmt.Errorf("enriching instance %s with network: %w", dm.OCID, err)
 	}
 	if vnic != nil {
-		dm.PrimaryIP = *vnic.PrivateIp
-		dm.SubnetID = *vnic.SubnetId
-		if vnic.HostnameLabel != nil {
-			dm.Hostname = *vnic.HostnameLabel
+		vnicAttrs := mapping.NewVnicAttributesFromOCIVnic(*vnic)
+		dm.PrimaryIP = *vnicAttrs.PrivateIp
+		dm.SubnetID = *vnicAttrs.SubnetId
+		if vnicAttrs.HostnameLabel != nil {
+			dm.Hostname = *vnicAttrs.HostnameLabel
 		}
-		dm.PrivateDNSEnabled = vnic.SkipSourceDestCheck == nil || !*vnic.SkipSourceDestCheck
-		subnet, err := a.getSubnet(ctx, *vnic.SubnetId)
+		dm.PrivateDNSEnabled = vnicAttrs.SkipSourceDestCheck == nil || !*vnicAttrs.SkipSourceDestCheck
+		subnet, err := a.getSubnet(ctx, *vnicAttrs.SubnetId)
 		if err != nil {
 			return fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
 		}
 		if subnet != nil {
-			dm.SubnetName = *subnet.DisplayName
+			subnetAttrs := mapping.NewSubnetAttributesFromOCISubnet(*subnet)
+			dm.SubnetName = *subnetAttrs.DisplayName
 			dm.VcnID = *subnet.VcnId
-			if subnet.RouteTableId != nil {
-				dm.RouteTableID = *subnet.RouteTableId
-				rt, err := a.getRouteTable(ctx, *subnet.RouteTableId)
+			if subnetAttrs.RouteTableId != nil {
+				dm.RouteTableID = *subnetAttrs.RouteTableId
+				rt, err := a.getRouteTable(ctx, *subnetAttrs.RouteTableId)
 				if err != nil {
 					return fmt.Errorf("enriching instance %s with route table: %w", dm.OCID, err)
 				}
 				if rt != nil {
-					dm.RouteTableName = *rt.DisplayName
+					rtAttrs := mapping.NewRouteTableAttributesFromOCIRouteTable(*rt)
+					dm.RouteTableName = *rtAttrs.DisplayName
 				}
 			}
 			vcn, err := a.getVcn(ctx, *subnet.VcnId)
@@ -175,7 +179,8 @@ func (a *Adapter) enrichDomainInstance(ctx context.Context, dm *domain.Instance,
 				return fmt.Errorf("enriching instance %s with vcn: %w", dm.OCID, err)
 			}
 			if vcn != nil {
-				dm.VcnName = *vcn.DisplayName
+				vcnAttrs := mapping.NewVcnAttributesFromOCIVcn(*vcn)
+				dm.VcnName = *vcnAttrs.DisplayName
 			}
 		}
 	}
@@ -185,8 +190,9 @@ func (a *Adapter) enrichDomainInstance(ctx context.Context, dm *domain.Instance,
 		return fmt.Errorf("enriching instance %s with image: %w", dm.OCID, err)
 	}
 	if image != nil {
-		dm.ImageName = *image.DisplayName
-		dm.ImageOS = *image.OperatingSystem
+		imageAttrs := mapping.NewImageAttributesFromOCIImage(*image)
+		dm.ImageName = *imageAttrs.DisplayName
+		dm.ImageOS = *imageAttrs.OperatingSystem
 	}
 	return nil
 }
@@ -316,37 +322,4 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 		return err
 	}
 	return nil
-}
-
-// toDomainModel converts an OCI SDK image object to our application's domain model.
-func (a *Adapter) toBaseDomainInstanceModel(inst core.Instance) domain.Instance {
-	return domain.Instance{
-		OCID:        *inst.Id,
-		DisplayName: *inst.DisplayName,
-		TimeCreated: inst.TimeCreated.Time,
-		Shape:       *inst.Shape,
-		State:       string(inst.LifecycleState),
-		VCPUs:       int(*inst.ShapeConfig.Vcpus),
-		MemoryGB:    *inst.ShapeConfig.MemoryInGBs,
-		FaultDomain: *inst.FaultDomain,
-	}
-}
-
-// toEnrichDomainInstanceModel converts an OCI SDK image object to our application's domain model.'
-func (a *Adapter) toEnrichDomainInstanceModel(inst core.Instance) domain.Instance {
-	return domain.Instance{
-		OCID:               *inst.Id,
-		DisplayName:        *inst.DisplayName,
-		State:              string(inst.LifecycleState),
-		Shape:              *inst.Shape,
-		ImageID:            *inst.ImageId,
-		TimeCreated:        inst.TimeCreated.Time,
-		Region:             *inst.Region,
-		AvailabilityDomain: *inst.AvailabilityDomain,
-		FaultDomain:        *inst.FaultDomain,
-		VCPUs:              int(*inst.ShapeConfig.Vcpus),
-		MemoryGB:           *inst.ShapeConfig.MemoryInGBs,
-		FreeformTags:       inst.FreeformTags,
-		DefinedTags:        inst.DefinedTags,
-	}
 }

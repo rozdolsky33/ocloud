@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain/compute"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // Service is the application-layer service for OKE operations.
@@ -38,35 +39,12 @@ func (s *Service) ListClusters(ctx context.Context) ([]Cluster, error) {
 func (s *Service) FetchPaginatedClusters(ctx context.Context, limit, pageNum int) ([]Cluster, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing clusters", "limit", limit, "pageNum", pageNum)
 
-	// Ensure pageNum is at least 1 to avoid negative slice indices
-	if pageNum < 1 {
-		pageNum = 1
-	}
-
 	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
 	if err != nil {
 		return nil, 0, "", fmt.Errorf("listing clusters from repository: %w", err)
 	}
 
-	// Manual pagination.
-	totalCount := len(allClusters)
-	start := (pageNum - 1) * limit
-	end := start + limit
-
-	if start >= totalCount {
-		return []Cluster{}, totalCount, "", nil
-	}
-
-	if end > totalCount {
-		end = totalCount
-	}
-
-	pagedResults := allClusters[start:end]
-
-	var nextPageToken string
-	if end < totalCount {
-		nextPageToken = fmt.Sprintf("%d", pageNum+1)
-	}
+	pagedResults, totalCount, nextPageToken := util.PaginateSlice(allClusters, limit, pageNum)
 
 	s.logger.Info("completed cluster listing", "returnedCount", len(pagedResults), "totalCount", totalCount)
 	return pagedResults, totalCount, nextPageToken, nil

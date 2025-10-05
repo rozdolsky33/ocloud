@@ -10,6 +10,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
+	"github.com/rozdolsky33/ocloud/internal/mapping"
 )
 
 const (
@@ -39,12 +40,12 @@ func (a *Adapter) GetEnrichedVcn(ctx context.Context, vcnID string) (domain.VCN,
 	if err != nil {
 		return domain.VCN{}, fmt.Errorf("getting VCN from OCI: %w", err)
 	}
-	m := toDomainVCNModel(resp.Vcn)
+	m := mapping.NewDomainVCNFromAttrs(mapping.NewVCNAttributesFromOCIVCN(resp.Vcn))
 
-	if e := a.enrichVCN(ctx, &m); e != nil {
+	if e := a.enrichVCN(ctx, m); e != nil {
 		return domain.VCN{}, e
 	}
-	return m, nil
+	return *m, nil
 }
 
 // ListVcns lists all VCNs in a given compartment.
@@ -62,7 +63,7 @@ func (a *Adapter) ListVcns(ctx context.Context, compartmentID string) ([]domain.
 			return nil, fmt.Errorf("listing VCNs from OCI: %w", err)
 		}
 		for _, v := range resp.Items {
-			out = append(out, toDomainVCNModel(v))
+			out = append(out, *mapping.NewDomainVCNFromAttrs(mapping.NewVCNAttributesFromOCIVCN(v)))
 		}
 		if resp.OpcNextPage == nil {
 			break
@@ -234,7 +235,7 @@ func (a *Adapter) listInternetGateways(ctx context.Context, compartmentID, vcnID
 	}
 	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Internet"})
+		gateways = append(gateways, *mapping.NewDomainGatewayFromAttrs(mapping.NewGatewayAttributesFromOCIInternetGateway(item)))
 	}
 	return gateways, nil
 }
@@ -252,7 +253,7 @@ func (a *Adapter) listNatGateways(ctx context.Context, compartmentID, vcnID stri
 	}
 	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "NAT"})
+		gateways = append(gateways, *mapping.NewDomainGatewayFromAttrs(mapping.NewGatewayAttributesFromOCINatGateway(item)))
 	}
 	return gateways, nil
 }
@@ -270,7 +271,7 @@ func (a *Adapter) listServiceGateways(ctx context.Context, compartmentID, vcnID 
 	}
 	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Service"})
+		gateways = append(gateways, *mapping.NewDomainGatewayFromAttrs(mapping.NewGatewayAttributesFromOCIServiceGateway(item)))
 	}
 	return gateways, nil
 }
@@ -288,7 +289,7 @@ func (a *Adapter) listLocalPeeringGateways(ctx context.Context, compartmentID, v
 	}
 	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "Local Peering"})
+		gateways = append(gateways, *mapping.NewDomainGatewayFromAttrs(mapping.NewGatewayAttributesFromOCILocalPeeringGateway(item)))
 	}
 	return gateways, nil
 }
@@ -306,7 +307,7 @@ func (a *Adapter) listDrgAttachments(ctx context.Context, compartmentID, vcnID s
 	}
 	var gateways []domain.Gateway
 	for _, item := range resp.Items {
-		gateways = append(gateways, domain.Gateway{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState), Type: "DRG"})
+		gateways = append(gateways, *mapping.NewDomainGatewayFromAttrs(mapping.NewGatewayAttributesFromOCIDrgAttachment(item)))
 	}
 	return gateways, nil
 }
@@ -324,7 +325,7 @@ func (a *Adapter) listRouteTables(ctx context.Context, compartmentID, vcnID stri
 	}
 	var rts []domain.RouteTable
 	for _, item := range resp.Items {
-		rts = append(rts, domain.RouteTable{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+		rts = append(rts, *mapping.NewDomainRouteTableFromAttrs(mapping.NewRouteTableAttributesFromOCIRouteTable(item)))
 	}
 	return rts, nil
 }
@@ -342,7 +343,7 @@ func (a *Adapter) listSecurityLists(ctx context.Context, compartmentID, vcnID st
 	}
 	var sls []domain.SecurityList
 	for _, item := range resp.Items {
-		sls = append(sls, domain.SecurityList{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+		sls = append(sls, *mapping.NewDomainSecurityListFromAttrs(mapping.NewSecurityListAttributesFromOCISecurityList(item)))
 	}
 	return sls, nil
 }
@@ -360,7 +361,7 @@ func (a *Adapter) listNetworkSecurityGroups(ctx context.Context, compartmentID, 
 	}
 	var nsgs []domain.NSG
 	for _, item := range resp.Items {
-		nsgs = append(nsgs, domain.NSG{OCID: *item.Id, DisplayName: *item.DisplayName, LifecycleState: string(item.LifecycleState)})
+		nsgs = append(nsgs, *mapping.NewDomainNSGFromAttrs(mapping.NewNSGAttributesFromOCINSG(item)))
 	}
 	return nsgs, nil
 }
@@ -375,7 +376,7 @@ func (a *Adapter) GetDhcpOptions(ctx context.Context, dhcpID string) (domain.Dhc
 	if err != nil {
 		return domain.DhcpOptions{}, err
 	}
-	return domain.DhcpOptions{OCID: *resp.Id, DisplayName: *resp.DisplayName, LifecycleState: string(resp.LifecycleState), DomainNameType: ""}, nil
+	return *mapping.NewDomainDhcpOptionsFromAttrs(mapping.NewDhcpOptionsAttributesFromOCIDhcpOptions(resp.DhcpOptions)), nil
 }
 
 func (a *Adapter) listSubnets(ctx context.Context, compartmentID, vcnID string) ([]domain.Subnet, error) {
@@ -391,25 +392,7 @@ func (a *Adapter) listSubnets(ctx context.Context, compartmentID, vcnID string) 
 	}
 	var subnets []domain.Subnet
 	for _, item := range resp.Items {
-		var id, name, cidr, rtID string
-		if item.Id != nil {
-			id = *item.Id
-		}
-		if item.DisplayName != nil {
-			name = *item.DisplayName
-		}
-		if item.CidrBlock != nil {
-			cidr = *item.CidrBlock
-		}
-		if item.RouteTableId != nil {
-			rtID = *item.RouteTableId
-		}
-		public := item.ProhibitPublicIpOnVnic == nil || !*item.ProhibitPublicIpOnVnic
-		var slIDs []string
-		if item.SecurityListIds != nil {
-			slIDs = item.SecurityListIds
-		}
-		subnets = append(subnets, domain.Subnet{OCID: id, DisplayName: name, LifecycleState: string(item.LifecycleState), CidrBlock: cidr, Public: public, RouteTableID: rtID, SecurityListIDs: slIDs})
+		subnets = append(subnets, *mapping.NewDomainSubnetFromAttrs(mapping.NewSubnetAttributesFromOCISubnet(item)))
 	}
 	return subnets, nil
 }
@@ -439,30 +422,4 @@ func retryOnRateLimit(ctx context.Context, maxRetries int, initialBackoff, maxBa
 		return err
 	}
 	return nil
-}
-
-func toDomainVCNModel(v core.Vcn) domain.VCN {
-	return domain.VCN{
-		OCID:           *v.Id,
-		DisplayName:    *v.DisplayName,
-		LifecycleState: string(v.LifecycleState),
-		CompartmentID:  *v.CompartmentId,
-		DnsLabel:       *v.DnsLabel,
-		DomainName:     *v.VcnDomainName,
-		CidrBlocks:     cloneStrings(v.CidrBlocks),
-		Ipv6Enabled:    len(v.Ipv6CidrBlocks) > 0,
-		DhcpOptionsID:  *v.DefaultDhcpOptionsId,
-		TimeCreated:    v.TimeCreated.Time,
-		FreeformTags:   v.FreeformTags,
-		DefinedTags:    v.DefinedTags,
-	}
-}
-
-func cloneStrings(in []string) []string {
-	if in == nil {
-		return nil
-	}
-	out := make([]string, len(in))
-	copy(out, in)
-	return out
 }

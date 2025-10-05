@@ -20,7 +20,6 @@ type AutonomousDatabase struct {
 	IsFreeTier      *bool
 
 	// Networking
-	IsPubliclyAccessible *bool
 	WhitelistedIps       []string
 	PrivateEndpoint      string
 	PrivateEndpointIp    string

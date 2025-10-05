@@ -49,7 +49,7 @@ func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list bastions: %w", err)
 	}
-	logger.Logger.V(logger.Info).Info("Successfully listed bastions.", "count", len(response.Items))
+	logger.Logger.V(logger.Debug).Info("Successfully listed bastions.", "count", len(response.Items))
 	var allBastions []Bastion
 
 	for _, b := range response.Items {
