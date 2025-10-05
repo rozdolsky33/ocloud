@@ -39,7 +39,7 @@ func newInstanceIndexMapping() mapping.IndexMapping {
 	// Core fields (tokenized + raw + ngram for the ones you care about)
 	for _, f := range []string{
 		"Name", "Hostname", "ImageName", "ImageOS", "Shape",
-		"PrimaryIP", "OCID", "VcnName", "SubnetName",
+		"PrimaryIP", "OCID", "VcnName", "SubnetName", "FD", "AD",
 		"TagsKV", "TagsVal",
 	} {
 		doc.AddFieldMappingsAt(f, std)
@@ -68,7 +68,7 @@ func BuildIndex(instances []compute.Instance) (bleve.Index, error) {
 		}
 		for _, k := range []string{
 			"Name", "Hostname", "ImageName", "ImageOS", "Shape",
-			"PrimaryIP", "OCID", "VcnName", "SubnetName",
+			"PrimaryIP", "OCID", "VcnName", "SubnetName", "FD", "AD",
 			"TagsKV", "TagsVal",
 		} {
 			dup(k)
