@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
-	"github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
+	_ "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	_ "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	_ "github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	_ "github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
