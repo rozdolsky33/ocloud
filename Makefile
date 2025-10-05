@@ -28,7 +28,7 @@ LDFLAGS := -X '$(PKG)/buildinfo.Version=$(VERSION)' \
 .DEFAULT_GOAL := help
 
 # Targets
-.PHONY: all build run install test fmt fmt-check vet lint clean help generate release compile zip check-env
+.PHONY: all build run install test fmt fmt-check vet lint vuln clean help generate release compile zip check-env
 
 all: build
 
@@ -78,6 +78,11 @@ lint:
 	@echo "Linting code..."
 	@$(GOLANGCI_LINT) run --no-config ./...
 
+# Vulnerability scan
+vuln:
+	@echo "Running govulncheck..."
+	@govulncheck ./...
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning up..."
@@ -106,6 +111,7 @@ check-env:
 	@echo "Checking environment..."
 	@command -v go >/dev/null 2>&1 || { echo >&2 "Go is not installed. Aborting."; exit 1; }
 	@command -v $(GOLANGCI_LINT) >/dev/null 2>&1 || { echo >&2 "golangci-lint is not installed. Run 'go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest' to install it."; exit 1; }
+	@command -v govulncheck >/dev/null 2>&1 || { echo >&2 "govulncheck is not installed. Run 'go install golang.org/x/vuln/cmd/govulncheck@latest' to install it."; exit 1; }
 	@command -v zip >/dev/null 2>&1 || { echo >&2 "Zip is not installed. Aborting."; exit 1; }
 
 # Help target
@@ -122,6 +128,7 @@ help:
 	@echo "  fmt-check      Checks if Go source files are formatted correctly"
 	@echo "  vet            Runs go vet on the code"
 	@echo "  lint           Runs golangci-lint on the code"
+	@echo "  vuln           Runs govulncheck on the code"
 	@echo "  clean          Removes build artifacts"
 	@echo "  release        Builds binaries for all supported platforms and creates zip archives"
 	@echo "  compile        Compiles binaries for all supported platforms"
