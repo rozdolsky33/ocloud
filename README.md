@@ -2,7 +2,7 @@
 [![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
 [![Downloads](https://img.shields.io/github/downloads/rozdolsky33/ocloud/total?style=flat&logo=cloudsmith&logoColor=white&label=downloads&labelColor=2f363d&color=brightgreen)](https://github.com/rozdolsky33/ocloud/releases)
-[![Version](https://img.shields.io/badge/goversion-1.24.x-blue.svg)](https://golang.org)
+[![Version](https://img.shields.io/badge/goversion-1.25.x-blue.svg)](https://golang.org)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
 [![Go Coverage](https://github.com/rozdolsky33/ocloud/wiki/coverage.svg)](https://raw.githack.com/wiki/rozdolsky33/ocloud/coverage.html)
@@ -15,13 +15,15 @@ Whether you're managing instances, working with images, or need to quickly find 
 
 ## Features
 
-- Manage compute instances, images, and OKE resources
-- Manage networking resources, including Virtual Cloud Networks (VCNs), Subnets, and Load Balancers
-- Powerful find commands with fuzzy, prefix, and substring matching powered by Bleve
-- Interactive configuration and OCI Auth Refresher to keep sessions alive
+- Manage compute resources: Instances, Images, and OKE (Kubernetes) clusters and node pools
+- Manage networking resources: Virtual Cloud Networks (VCNs), Subnets, Load Balancers, and related components
+- Manage storage resources: Object Storage Buckets (list via TUI and paginated get)
+- Powerful find/search commands using Bleve for fuzzy, prefix, and substring matching where applicable
+- Interactive configuration and an OCI Auth Refresher to keep sessions alive
 - Tenancy mapping for friendly tenancy and compartment names
 - Bastion session management: start/attach/terminate OCI Bastion sessions with reachability checks and an interactive SSH key picker (TUI)
-- Consistent JSON output, pagination, and short/long flag aliases across commands
+- Consistent JSON output, unified pagination across services, and short/long flag aliases
+- Built-in security in CI: govulncheck vulnerability scanning via `make vuln` and GitHub Actions
 
 ## Installation
 
@@ -306,6 +308,24 @@ Interactive list (TUI):
 - ocloud network loadbalancer list
   Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
 
+### Storage: Object Storage commands
+
+Manage and explore Object Storage Buckets in the configured compartment. You can:
+- Get paginated lists with optional extended details using --all (-A)
+- Launch an interactive list (TUI) to search and select a Bucket
+
+Examples:
+
+- Get Buckets with pagination
+  - ocloud storage object-storage get
+  - ocloud storage object-storage get --limit 10 --page 2
+  - ocloud storage object-storage get --all
+  - ocloud storage os get -A -j
+
+Interactive list (TUI):
+- ocloud storage object-storage list
+  Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
+
 ### Development Commands
 
 | Command | Description |
@@ -318,6 +338,7 @@ Interactive list (TUI):
 | `make fmt-check` | Check if code is formatted correctly |
 | `make vet` | Run go vet |
 | `make lint` | Run golangci-lint |
+| `make vuln` | Run govulncheck vulnerability scan |
 | `make clean` | Clean build artifacts |
 | `make release` | Build binaries for all supported platforms and create zip archives |
 | `make compile` | Compile binaries for all supported platforms |

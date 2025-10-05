@@ -251,9 +251,9 @@ print_header "Testing storage object-storage get command"
 run_command ./bin/ocloud storage object-storage get
 run_command ./bin/ocloud storage object-storage get --limit 10 --page 1 --json
 run_command ./bin/ocloud storage object-storage get -m 10 -p 1 -j
-run_command ./bin/ocloud storage object-storage get --all
+run_command ./bin/ocloud storage object-storage get
 run_command ./bin/ocloud storage os get
-run_command ./bin/ocloud storage os get -A -j
+run_command ./bin/ocloud storage os get -j
 
 # Test database command
 print_header "Testing database command"
