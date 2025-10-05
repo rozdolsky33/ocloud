@@ -11,7 +11,7 @@ import (
 )
 
 var findLong = `
-Find VCNs by display name using a pattern.
+FuzzySearch VCNs by display name using a pattern.
 
 This command searches Virtual Cloud Networks (VCNs) in the current compartment using a case-insensitive
 substring match against the VCN display name. By default, it prints a concise table of matches.
@@ -20,7 +20,7 @@ Use --json (-j) to output raw JSON. You can include related networking resources
 `
 
 var findExamples = `
-  # Find VCNs whose name contains "prod"
+  # FuzzySearch VCNs whose name contains "prod"
   ocloud network vcn find prod
 
   # Include related resources (gateways, subnets, NSGs, route tables, security lists)

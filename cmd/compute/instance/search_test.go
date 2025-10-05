@@ -13,15 +13,17 @@ func TestFindCommand(t *testing.T) {
 	// Create a mock ApplicationContext
 	appCtx := &app.ApplicationContext{}
 
-	// Create a new find command
-	cmd := NewFindCmd(appCtx)
+	// Create a new search command
+	cmd := NewSearchCmd(appCtx)
 
-	// Test that the find command is properly configured
-	assert.Equal(t, "find [pattern]", cmd.Use)
-	assert.Equal(t, []string{"f"}, cmd.Aliases)
-	assert.Equal(t, "Find instances by name pattern", cmd.Short)
-	assert.Equal(t, findLong, cmd.Long)
-	assert.Equal(t, findExamples, cmd.Example)
+	assert.NotNil(t, cmd, "NewSearchCmd should not return nil")
+
+	// Check basic properties
+	assert.Equal(t, "search [pattern]", cmd.Use, "Command Use should be set correctly")
+	assert.Contains(t, cmd.Aliases, "s", "Command should have alias 's'")
+	assert.Equal(t, "Search instances by name pattern", cmd.Short, "Command Short description should be set correctly")
+	assert.Equal(t, searchLong, cmd.Long, "Command Long description should be set correctly")
+	assert.Equal(t, searchExamples, cmd.Example, "Command Example should be set correctly")
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	// Verify that the command requires exactly one argument
@@ -33,6 +35,6 @@ func TestFindCommand(t *testing.T) {
 	assert.Equal(t, "all", imageDetailsFlag.Name)
 	assert.Equal(t, "A", imageDetailsFlag.Shorthand)
 
-	// Note: The JSON flag is a global flag and is not directly added to the command in the find.go file.
+	// Note: The JSON flag is a global flag and is not directly added to the command in the search.go file.
 	// It's added at a higher level in the command hierarchy.
 }

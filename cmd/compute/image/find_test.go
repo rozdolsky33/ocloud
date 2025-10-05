@@ -19,7 +19,7 @@ func TestFindCommand(t *testing.T) {
 	// Test that the find command is properly configured
 	assert.Equal(t, "find [pattern]", cmd.Use)
 	assert.Equal(t, []string{"f"}, cmd.Aliases)
-	assert.Equal(t, "Find image by name pattern", cmd.Short)
+	assert.Equal(t, "FuzzySearch image by name pattern", cmd.Short)
 	assert.Equal(t, findLong, cmd.Long)
 	assert.Equal(t, findExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

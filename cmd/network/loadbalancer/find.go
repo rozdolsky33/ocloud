@@ -10,7 +10,7 @@ import (
 )
 
 var findLong = `
-Find Load Balancers by display name using a pattern.
+FuzzySearch Load Balancers by display name using a pattern.
 
 This command searches Load Balancers in the current compartment using a case-insensitive
 substring and fuzzy match against the Load Balancer display name. By default, it prints a concise
@@ -18,7 +18,7 @@ table of matches. Use --all to include extra columns, and --json to output machi
 `
 
 var findExamples = `
-  # Find load balancers whose name contains "prod"
+  # FuzzySearch load balancers whose name contains "prod"
   ocloud network loadbalancer find prod
 
   # Use JSON output

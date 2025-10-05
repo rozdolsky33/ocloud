@@ -73,15 +73,15 @@ func TestList(t *testing.T) {
 	assert.NotNil(t, policies)
 }
 
-// TestFind tests the Find function
+// TestFind tests the FuzzySearch function
 func TestFind(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for Find since it requires the OCI SDK")
+	t.Skip("Skipping test for FuzzySearch since it requires the OCI SDK")
 
-	// This is a placeholder test that would normally test the Find function
+	// This is a placeholder test that would normally test the FuzzySearch function
 	// In a real test, we would:
 	// 1. Create a mock service with mock clients
-	// 2. Call Find with different search patterns
+	// 2. Call FuzzySearch with different search patterns
 	// 3. Verify that the returned policies match the search pattern
 
 	service := &Service{

@@ -101,7 +101,7 @@ func TestService_Find_ByNameSubstring_CaseInsensitive(t *testing.T) {
 
 	res, err := service.Find(context.Background(), "prod")
 	if err != nil {
-		t.Fatalf("Find returned error: %v", err)
+		t.Fatalf("FuzzySearch returned error: %v", err)
 	}
 	if len(res) != 2 {
 		t.Fatalf("expected 2 results, got %d", len(res))

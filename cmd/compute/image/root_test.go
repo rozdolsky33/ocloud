@@ -64,7 +64,7 @@ func TestImageCommand(t *testing.T) {
 	// Test that the find subcommand is added
 	findCmd := findSubCommand(cmd, "find")
 	assert.NotNil(t, findCmd, "find subcommand should be added")
-	assert.Equal(t, "Find image by name pattern", findCmd.Short)
+	assert.Equal(t, "FuzzySearch image by name pattern", findCmd.Short)
 	assert.NotNil(t, findCmd.RunE, "find subcommand should have a RunE function")
 
 	// JSON flag is now a global flag, so it should not be in the local flags

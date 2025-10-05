@@ -9,8 +9,8 @@ import (
 	ociInst "github.com/rozdolsky33/ocloud/internal/oci/compute/instance"
 )
 
-// FindInstances finds and displays instances matching a name pattern.
-func FindInstances(appCtx *app.ApplicationContext, namePattern string, useJSON, showDetails bool) error {
+// SearchInstances finds and displays instances matching a name pattern.
+func SearchInstances(appCtx *app.ApplicationContext, namePattern string, useJSON, showDetails bool) error {
 	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating compute client: %w", err)
@@ -23,7 +23,7 @@ func FindInstances(appCtx *app.ApplicationContext, namePattern string, useJSON, 
 	instanceAdapter := ociInst.NewAdapter(computeClient, networkClient)
 	service := NewService(instanceAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	matchedInstances, err := service.Find(context.Background(), namePattern)
+	matchedInstances, err := service.FuzzySearch(context.Background(), namePattern)
 	if err != nil {
 		return fmt.Errorf("finding instances: %w", err)
 	}

@@ -142,7 +142,7 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestFind tests the Find function
+// TestFind tests the FuzzySearch function
 func TestFind(t *testing.T) {
 	mockRepo := new(MockAutonomousDatabaseRepository)
 	appCtx := &app.ApplicationContext{

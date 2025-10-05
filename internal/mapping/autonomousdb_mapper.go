@@ -133,25 +133,32 @@ func NewAutonomousDatabaseAttributesFromOCIAutonomousDatabaseSummary(db database
 }
 
 func NewDomainAutonomousDatabaseFromAttrs(attrs *AutonomousDatabaseAttributes) *domain.AutonomousDatabase {
+	// helper to safely dereference string pointers
+	val := func(p *string) string {
+		if p == nil {
+			return ""
+		}
+		return *p
+	}
 	var timeCreated *time.Time
 	if attrs.TimeCreated != nil {
 		t := attrs.TimeCreated.Time
 		timeCreated = &t
 	}
 	return &domain.AutonomousDatabase{
-		ID:                          *attrs.ID,
-		Name:                        *attrs.Name,
-		CompartmentOCID:             *attrs.CompartmentOCID,
+		ID:                          val(attrs.ID),
+		Name:                        val(attrs.Name),
+		CompartmentOCID:             val(attrs.CompartmentOCID),
 		LifecycleState:              attrs.LifecycleState,
-		DbVersion:                   *attrs.DbVersion,
+		DbVersion:                   val(attrs.DbVersion),
 		DbWorkload:                  attrs.DbWorkload,
 		LicenseModel:                attrs.LicenseModel,
 		IsFreeTier:                  attrs.IsFreeTier,
 		WhitelistedIps:              attrs.WhitelistedIps,
-		PrivateEndpoint:             *attrs.PrivateEndpoint,
-		PrivateEndpointIp:           *attrs.PrivateEndpointIp,
-		PrivateEndpointLabel:        *attrs.PrivateEndpointLabel,
-		SubnetId:                    *attrs.SubnetId,
+		PrivateEndpoint:             val(attrs.PrivateEndpoint),
+		PrivateEndpointIp:           val(attrs.PrivateEndpointIp),
+		PrivateEndpointLabel:        val(attrs.PrivateEndpointLabel),
+		SubnetId:                    val(attrs.SubnetId),
 		NsgIds:                      attrs.NsgIds,
 		IsMtlsRequired:              attrs.IsMtlsRequired,
 		ComputeModel:                attrs.ComputeModel,
@@ -166,14 +173,14 @@ func NewDomainAutonomousDatabaseFromAttrs(attrs *AutonomousDatabaseAttributes) *
 		DatabaseManagementStatus:    attrs.DatabaseManagementStatus,
 		DataSafeStatus:              attrs.DataSafeStatus,
 		IsDataGuardEnabled:          attrs.IsDataGuardEnabled,
-		Role:                        *attrs.Role,
+		Role:                        val(attrs.Role),
 		PeerAutonomousDbIds:         attrs.PeerAutonomousDbIds,
 		BackupRetentionDays:         attrs.BackupRetentionDays,
 		LastBackupTime:              attrs.LastBackupTime,
 		LatestRestoreTime:           attrs.LatestRestoreTime,
-		PatchModel:                  *attrs.PatchModel,
-		NextMaintenanceRunId:        *attrs.NextMaintenanceRunId,
-		MaintenanceScheduleType:     *attrs.MaintenanceScheduleType,
+		PatchModel:                  val(attrs.PatchModel),
+		NextMaintenanceRunId:        val(attrs.NextMaintenanceRunId),
+		MaintenanceScheduleType:     val(attrs.MaintenanceScheduleType),
 		ConnectionStrings:           attrs.ConnectionStrings,
 		Profiles:                    attrs.Profiles,
 		ConnectionUrls:              attrs.ConnectionUrls,

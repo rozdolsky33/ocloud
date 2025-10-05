@@ -10,7 +10,7 @@ import (
 
 // Long description for the find command
 var findLong = `
-Find images in the specified compartment that match the given pattern.
+FuzzySearch images in the specified compartment that match the given pattern.
 
 The search is performed using a fuzzy matching algorithm that searches across multiple fields:
 
@@ -27,19 +27,19 @@ For example, searching for "oracle" will match "oracle" etc.
 
 // Examples for the find command
 var findExamples = `
-  # Find images with "oracle" in their name
+  # FuzzySearch images with "oracle" in their name
   ocloud compute image find oracle
 
-  # Find images with a specific operating system
+  # FuzzySearch images with a specific operating system
   ocloud compute image find linux
 
-  # Find images with a specific tag value (searching just the value)
+  # FuzzySearch images with a specific tag value (searching just the value)
   ocloud compute image find 8.10
 
-  # Find images with "server" in their name and output in JSON format
+  # FuzzySearch images with "server" in their name and output in JSON format
   ocloud compute image find server --json
 
-  # Find images with a specific launch mode
+  # FuzzySearch images with a specific launch mode
   ocloud compute image find native
 `
 
@@ -48,7 +48,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find image by name pattern",
+		Short:         "FuzzySearch image by name pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),

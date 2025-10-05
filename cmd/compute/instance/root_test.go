@@ -22,7 +22,7 @@ func TestInstanceCommand(t *testing.T) {
 	assert.Equal(t, "instance", cmd.Use)
 	assert.Equal(t, "Manage OCI Compute instances — list, paginate, and search.", cmd.Short)
 	assert.Equal(t, "List OCI Compute instances in a compartment. Supports paging through large result sets and filtering by name pattern.", cmd.Long)
-	assert.Equal(t, "  ocloud compute instance get\n  ocloud compute instance list\n  ocloud compute instance find <value>", cmd.Example)
+	assert.Equal(t, "  ocloud compute instance get\n  ocloud compute instance list\n  ocloud compute instance search <value>", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")
@@ -52,25 +52,25 @@ func TestInstanceCommand(t *testing.T) {
 	useJSON := flags.GetBoolFlag(listCmd, flags.FlagNameJSON, false)
 	assert.False(t, useJSON, "default value of json flag should be false")
 
-	// Test that the find subcommand is added
-	findCmd := findSubCommand(cmd, "find")
-	assert.NotNil(t, findCmd, "find subcommand should be added")
-	assert.Equal(t, "Find instances by name pattern", findCmd.Short)
-	assert.NotNil(t, findCmd.RunE, "find subcommand should have a RunE function")
+	// Test that the search subcommand is added
+	searchCmd := findSubCommand(cmd, "search")
+	assert.NotNil(t, searchCmd, "search subcommand should be added")
+	assert.Equal(t, "Search instances by name pattern", searchCmd.Short)
+	assert.NotNil(t, searchCmd.RunE, "search subcommand should have a RunE function")
 
-	// Test that the find subcommand has the appropriate flags
-	imageDetailsFlag := findCmd.Flags().Lookup(flags.FlagNameAll)
-	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added to find subcommand")
+	// Test that the search subcommand has the appropriate flags
+	imageDetailsFlag := searchCmd.Flags().Lookup(flags.FlagNameAll)
+	assert.NotNil(t, imageDetailsFlag, "image-details flag should be added to search subcommand")
 	assert.Equal(t, flags.FlagShortAll, imageDetailsFlag.Shorthand)
 	assert.Equal(t, flags.FlagDescAll, imageDetailsFlag.Usage)
 
 	// JSON flag is now a global flag, so it should not be in the local flags
-	jsonFlagFind := findCmd.Flags().Lookup(flags.FlagNameJSON)
-	assert.Nil(t, jsonFlagFind, "json flag should not be added as a local flag to find subcommand")
+	jsonFlagSearch := searchCmd.Flags().Lookup(flags.FlagNameJSON)
+	assert.Nil(t, jsonFlagSearch, "json flag should not be added as a local flag to search subcommand")
 
 	// But we should still be able to get its value using flags.GetBoolFlag
-	useJSONFind := flags.GetBoolFlag(findCmd, flags.FlagNameJSON, false)
-	assert.False(t, useJSONFind, "default value of json flag should be false")
+	useJSONSearch := flags.GetBoolFlag(searchCmd, flags.FlagNameJSON, false)
+	assert.False(t, useJSONSearch, "default value of json flag should be false")
 }
 
 // findSubCommand is a helper function to find a subcommand by name

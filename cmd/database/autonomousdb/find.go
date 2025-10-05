@@ -11,7 +11,7 @@ import (
 
 // Long description for the find command
 var findLong = `
-Find Autonomous Databases in the specified compartment that match the given pattern.
+FuzzySearch Autonomous Databases in the specified compartment that match the given pattern.
 
 The search is performed using a fuzzy matching algorithm that searches across multiple fields:
 
@@ -26,10 +26,10 @@ For example, searching for "prod" will match "production", etc.
 
 // Examples for the find command
 var findExamples = `
-  # Find Autonomous Databases with "prod" in their name
+  # FuzzySearch Autonomous Databases with "prod" in their name
   ocloud database autonomous find prod
 
-  # Find Autonomous Databases with "test" in their name and output in JSON format
+  # FuzzySearch Autonomous Databases with "test" in their name and output in JSON format
   ocloud database autonomous find test --json
 `
 
@@ -38,7 +38,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find Database by name pattern",
+		Short:         "FuzzySearch Database by name pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),

@@ -12,7 +12,7 @@ import (
 
 // Long description for the find command
 var findLong = `
-Find Policies in the specified tenancy or parent compartment that match the given pattern.
+FuzzySearch Policies in the specified tenancy or parent compartment that match the given pattern.
 
 This command searches for policies whose names or statements match the specified pattern within
 the chosen scope. By default, it searches within the configured parent compartment.
@@ -33,7 +33,7 @@ Additional Information:
 
 // Examples for the find command
 var findExamples = `
-  # Find policies with names containing "admin" (default scope: compartment)
+  # FuzzySearch policies with names containing "admin" (default scope: compartment)
   ocloud identity policy find admin
 
   # Search at tenancy level (equivalent ways)
@@ -43,7 +43,7 @@ var findExamples = `
   # Search only direct children of the configured compartment (explicit)
   ocloud identity policy find admin --scope compartment
 
-  # Find policies with names containing "network" and output in JSON format
+  # FuzzySearch policies with names containing "network" and output in JSON format
   ocloud identity policy find network --json
 `
 
@@ -52,7 +52,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find Policies by name pattern",
+		Short:         "FuzzySearch Policies by name pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),

@@ -12,7 +12,7 @@ import (
 
 // Long description for the find command
 var findLong = `
-Find Compartments in the specified tenancy or parent compartment that match the given pattern.
+FuzzySearch Compartments in the specified tenancy or parent compartment that match the given pattern.
 
 This command searches for compartments whose names match the specified pattern. By default, it
 shows basic compartment information such as name, ID, and description for all matching compartments
@@ -33,7 +33,7 @@ Additional Information:
 
 // Examples for the find command
 var findExamples = `
-  # Find compartments with names containing "prod" (default scope: compartment)
+  # FuzzySearch compartments with names containing "prod" (default scope: compartment)
   ocloud identity compartment find prod
 
   # Search at tenancy level (equivalent ways)
@@ -43,7 +43,7 @@ var findExamples = `
   # Search only direct children of the configured compartment (explicit)
   ocloud identity compartment find prod --scope compartment
 
-  # Find compartments with names containing "dev" and output in JSON format
+  # FuzzySearch compartments with names containing "dev" and output in JSON format
   ocloud identity compartment find dev --json
 `
 
@@ -52,7 +52,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find compartment by name pattern",
+		Short:         "FuzzySearch compartment by name pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),

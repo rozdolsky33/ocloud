@@ -3,7 +3,6 @@ package instance
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain/compute"
@@ -28,7 +27,7 @@ func NewService(repo compute.InstanceRepository, logger logr.Logger, compartment
 }
 
 // ListInstances retrieves a list of instances.
-func (s *Service) ListInstances(ctx context.Context) ([]Instance, error) {
+func (s *Service) ListInstances(ctx context.Context) ([]compute.Instance, error) {
 	s.logger.V(logger.Debug).Info("listing instances")
 	instances, err := s.instanceRepo.ListInstances(ctx, s.compartmentID)
 	if err != nil {
@@ -38,7 +37,7 @@ func (s *Service) ListInstances(ctx context.Context) ([]Instance, error) {
 }
 
 // FetchPaginatedInstances retrieves a paginated list of instances.
-func (s *Service) FetchPaginatedInstances(ctx context.Context, limit int, pageNum int) ([]Instance, int, string, error) {
+func (s *Service) FetchPaginatedInstances(ctx context.Context, limit int, pageNum int) ([]compute.Instance, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing instances", "limit", limit, "pageNum", pageNum)
 
 	allInstances, err := s.instanceRepo.ListEnrichedInstances(ctx, s.compartmentID)
@@ -52,51 +51,32 @@ func (s *Service) FetchPaginatedInstances(ctx context.Context, limit int, pageNu
 	return pagedResults, totalCount, nextPageToken, nil
 }
 
-// Find performs a fuzzy search for instances.
-func (s *Service) Find(ctx context.Context, searchPattern string) ([]Instance, error) {
-	s.logger.V(logger.Debug).Info("finding instances with fuzzy search", "pattern", searchPattern)
+// FuzzySearch performs a fuzzy search for instances.
+func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]compute.Instance, error) {
+	s.logger.V(logger.Debug).Info("finding instances", "pattern", searchPattern)
 
-	allInstances, err := s.instanceRepo.ListEnrichedInstances(ctx, s.compartmentID)
+	all, err := s.instanceRepo.ListEnrichedInstances(ctx, s.compartmentID)
 	if err != nil {
-		return nil, fmt.Errorf("fetching all instances for search: %w", err)
+		return nil, fmt.Errorf("fetching instances: %w", err)
 	}
 
-	index, err := util.BuildIndex(allInstances, func(inst Instance) any {
-		return mapToIndexableInstance(inst)
-	})
+	idx, err := BuildIndex(all)
 	if err != nil {
-		return nil, fmt.Errorf("building search index: %w", err)
+		return nil, fmt.Errorf("build index: %w", err)
 	}
-	s.logger.V(logger.Debug).Info("Search index built successfully.", "numEntries", len(allInstances))
+	s.logger.V(logger.Debug).Info("index ready", "count", len(all))
 
-	fields := []string{"Name", "PrimaryIP", "ImageName", "ImageOS"}
-	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
+	matchedIdxs, err := FuzzySearchInstances(idx, searchPattern)
 	if err != nil {
-		return nil, fmt.Errorf("performing fuzzy search: %w", err)
+		return nil, fmt.Errorf("search: %w", err)
 	}
-	s.logger.V(logger.Debug).Info("Fuzzy search completed.", "numMatches", len(matchedIdxs))
-	var results []Instance
-	for _, idx := range matchedIdxs {
-		if idx >= 0 && idx < len(allInstances) {
-			results = append(results, allInstances[idx])
+
+	results := make([]compute.Instance, 0, len(matchedIdxs))
+	for _, i := range matchedIdxs {
+		if i >= 0 && i < len(all) {
+			results = append(results, all[i])
 		}
 	}
-
 	s.logger.Info("instance search complete", "matches", len(results))
 	return results, nil
-}
-
-// mapToIndexableInstance converts a domain.Instance to a struct suitable for indexing.
-func mapToIndexableInstance(inst compute.Instance) any {
-	return struct {
-		Name      string
-		PrimaryIP string
-		ImageName string
-		ImageOS   string
-	}{
-		Name:      strings.ToLower(inst.DisplayName),
-		PrimaryIP: inst.PrimaryIP,
-		ImageName: strings.ToLower(inst.ImageName),
-		ImageOS:   strings.ToLower(inst.ImageOS),
-	}
 }

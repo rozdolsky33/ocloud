@@ -9,7 +9,7 @@ import (
 )
 
 var findLong = `
-Find Oracle Kubernetes Engine (OKE) clusters in the specified compartment that match the given pattern.
+FuzzySearch Oracle Kubernetes Engine (OKE) clusters in the specified compartment that match the given pattern.
 
 This command searches for OKE clusters whose names or node pool names match the specified pattern.
 By default, it shows detailed cluster information such as name, ID, Kubernetes version,
@@ -24,13 +24,13 @@ Additional Information:
 `
 
 var findExamples = `
-  # Find clusters with names containing "prod"
+  # FuzzySearch clusters with names containing "prod"
   ocloud compute oke find prod
 
-  # Find clusters with names containing "dev" and output in JSON format
+  # FuzzySearch clusters with names containing "dev" and output in JSON format
   ocloud compute oke find dev --json
 
-  # Find clusters with names containing "test" (case-insensitive)
+  # FuzzySearch clusters with names containing "test" (case-insensitive)
   ocloud compute oke find test
 `
 
@@ -39,7 +39,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find OKE clusters by name pattern",
+		Short:         "FuzzySearch OKE clusters by name pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),
