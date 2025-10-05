@@ -40,7 +40,6 @@ func newInstanceIndexMapping() mapping.IndexMapping {
 	for _, f := range []string{
 		"Name", "Hostname", "ImageName", "ImageOS", "Shape",
 		"PrimaryIP", "OCID", "VcnName", "SubnetName",
-		// tags below (logical fields)
 		"TagsKV", "TagsVal",
 	} {
 		doc.AddFieldMappingsAt(f, std)
@@ -104,6 +103,9 @@ func mapToIndexableInstance(inst compute.Instance) map[string]any {
 }
 
 // FuzzySearchInstances searches across core fields + tags.
+// It applies heuristics: if the pattern looks very specific (e.g., IP, long name with punctuation),
+// it performs precise matching on raw fields first (exact equals, then substring). Falls back to
+// broader fuzzy/prefix/ngram search only if no precise hits are found.
 func FuzzySearchInstances(index bleve.Index, pattern string) ([]int, error) {
 	pattern = strings.ToLower(strings.TrimSpace(pattern))
 	if pattern == "" {
@@ -116,6 +118,67 @@ func FuzzySearchInstances(index bleve.Index, pattern string) ([]int, error) {
 		"TagsKV", "TagsVal",
 	}
 
+	looksSpecific := func(p string) bool {
+		if len(p) >= 15 { // long tokens are likely specific
+			return true
+		}
+		// contains punctuation typical for exact IDs/hosts/IPs
+		if strings.ContainsAny(p, ".:-_/[]@") {
+			return true
+		}
+		// naive IPv4 check
+		if strings.Count(p, ".") == 3 {
+			return true
+		}
+		return false
+	}
+
+	// helper to run a bleve search and convert to []int
+	collect := func(q bleveQuery.Query, size int) ([]int, error) {
+		req := bleve.NewSearchRequestOptions(q, size, 0, false)
+		res, err := index.Search(req)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]int, 0, len(res.Hits))
+		for _, h := range res.Hits {
+			if n, err := strconv.Atoi(h.ID); err == nil {
+				out = append(out, n)
+			}
+		}
+		return out, nil
+	}
+
+	// 1) If specific, try exact equals on raw fields
+	if looksSpecific(pattern) {
+		var eqQs []bleveQuery.Query
+		for _, f := range fields {
+			tq := bleve.NewTermQuery(pattern)
+			tq.SetField(f + ".raw")
+			eqQs = append(eqQs, tq)
+		}
+		if hits, err := collect(bleve.NewDisjunctionQuery(eqQs...), 200); err != nil {
+			return nil, err
+		} else if len(hits) > 0 {
+			return hits, nil // return only exact matches
+		}
+
+		// 2) Next, substring on raw fields only
+		var subQs []bleveQuery.Query
+		for _, f := range fields {
+			wq := bleve.NewWildcardQuery("*" + pattern + "*")
+			wq.SetField(f + ".raw")
+			wq.SetBoost(1.0)
+			subQs = append(subQs, wq)
+		}
+		if hits, err := collect(bleve.NewDisjunctionQuery(subQs...), 500); err != nil {
+			return nil, err
+		} else if len(hits) > 0 {
+			return hits, nil
+		}
+	}
+
+	// 3) Broad fallback: fuzzy + prefix + ngram + raw substring across all fields
 	var qs []bleveQuery.Query
 	for _, f := range fields {
 		// Tokenized fuzzy/prefix
@@ -149,17 +212,5 @@ func FuzzySearchInstances(index bleve.Index, pattern string) ([]int, error) {
 		qs = append(qs, bq)
 	}
 
-	req := bleve.NewSearchRequestOptions(bleve.NewDisjunctionQuery(qs...), 1000, 0, false)
-	res, err := index.Search(req)
-	if err != nil {
-		return nil, err
-	}
-
-	out := make([]int, 0, len(res.Hits))
-	for _, h := range res.Hits {
-		if n, err := strconv.Atoi(h.ID); err == nil {
-			out = append(out, n)
-		}
-	}
-	return out, nil
+	return collect(bleve.NewDisjunctionQuery(qs...), 1000)
 }
