@@ -9,7 +9,9 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
-func PrintBucketsInfo(buckets []objectstorage.Bucket, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
+// PrintBucketsInfo displays buckets in a formatted table or JSON format.
+// If pagination info is provided, it adjusts and logs it.
+func PrintBucketsInfo(buckets []Bucket, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool) error {
 	p := printer.New(appCtx.Stdout)
 
 	if pagination != nil {
@@ -50,5 +52,38 @@ func PrintBucketsInfo(buckets []objectstorage.Bucket, appCtx *app.ApplicationCon
 	}
 
 	util.LogPaginationInfo(pagination, appCtx)
+	return nil
+}
+
+func PrintBucketInfo(bucket *Bucket, appCtx *app.ApplicationContext, useJSON bool) error {
+	p := printer.New(appCtx.Stdout)
+
+	if useJSON {
+		return p.MarshalToJSON(bucket)
+	}
+
+	bucketData := map[string]string{
+		"Name":                 bucket.Name,
+		"Namespace":            bucket.Namespace,
+		"Created":              bucket.TimeCreated.String(),
+		"OCID":                 bucket.OCID,
+		"StorageTier":          bucket.StorageTier,
+		"Visibility":           bucket.Visibility,
+		"Encryption":           bucket.Encryption,
+		"Versioning":           bucket.Versioning,
+		"ReplicationEnabled":   fmt.Sprintf("%v", bucket.ReplicationEnabled),
+		"ReadOnly":             fmt.Sprintf("%v", bucket.IsReadOnly),
+		"ApproximateCount":     fmt.Sprintf("%d", bucket.ApproximateCount),
+		"ApproximateSize":      util.HumanizeBytesIEC(bucket.ApproximateSize),
+		"ApproximateSizeBytes": fmt.Sprintf("%d", bucket.ApproximateSize),
+	}
+
+	orderedKeys := []string{
+		"Name", "OCID", "Namespace", "Created", "StorageTier", "Visibility", "Encryption", "Versioning", "ReplicationEnabled", "ReadOnly", "ApproximateCount", "ApproximateSize", "ApproximateSizeBytes",
+	}
+
+	title := util.FormatColoredTitle(appCtx, bucket.Name)
+	p.PrintKeyValues(title, bucketData, orderedKeys)
+
 	return nil
 }

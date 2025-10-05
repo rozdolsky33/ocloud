@@ -24,9 +24,29 @@ func NewService(repo storage.ObjectStorageRepository, logger logr.Logger, compar
 	}
 }
 
+func (s *Service) ListBuckets(ctx context.Context) ([]Bucket, error) {
+	s.logger.V(logger.Debug).Info("listing object storage buckets")
+	buckets, err := s.osRepo.ListBuckets(ctx, s.CompartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("listing buckets from repository: %w", err)
+	}
+	for i := range buckets {
+		name := buckets[i].Name
+		if name == "" {
+			continue
+		}
+		full, e := s.osRepo.GetBucketByName(ctx, name)
+		if e != nil {
+			continue
+		}
+		buckets[i] = *full
+	}
+
+	return buckets, nil
+}
+
 // FetchPaginatedBuckets lists buckets and returns a page plus pagination metadata.
-// When showAll is true, it enriches each bucket by calling GetBucket to retrieve full details.
-func (s *Service) FetchPaginatedBuckets(ctx context.Context, limit, pageNum int) ([]storage.Bucket, int, string, error) {
+func (s *Service) FetchPaginatedBuckets(ctx context.Context, limit, pageNum int) ([]Bucket, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing object storage buckets", "limit", limit, "page", pageNum)
 	all, err := s.osRepo.ListBuckets(ctx, s.CompartmentID)
 	if err != nil {
@@ -37,7 +57,7 @@ func (s *Service) FetchPaginatedBuckets(ctx context.Context, limit, pageNum int)
 		if name == "" {
 			continue
 		}
-		full, e := s.osRepo.GetBucket(ctx, name)
+		full, e := s.osRepo.GetBucketByName(ctx, name)
 		if e != nil {
 			continue
 		}

@@ -24,7 +24,7 @@ func (a *Adapter) GetPolicy(ctx context.Context, ocid string) (*domain.Policy, e
 		PolicyId: &ocid,
 	})
 	if err != nil {
-
+		return nil, fmt.Errorf("failed to get policy: %w", err)
 	}
 	return mapping.NewDomainPolicyFromAttrs(mapping.NewPolicyAttributesFromOCIPolicy(resp.Policy)), nil
 }

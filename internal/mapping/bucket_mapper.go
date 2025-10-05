@@ -65,7 +65,6 @@ func NewBucketAttributesFromOCIBucketSummary(bucket objectstorage.BucketSummary)
 
 // NewDomainBucketFromAttrs builds a domain.Bucket from provider-agnostic attributes.
 func NewDomainBucketFromAttrs(attrs BucketAttributes) domain.Bucket {
-	// Default encryption assumes Oracle-managed unless a KMS key is provided.
 	encryption := "Oracle-managed"
 	if kmsKeyID := stringValue(attrs.KmsKeyID); kmsKeyID != "" {
 		encryption = "Customer-managed (KMS)"

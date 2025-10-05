@@ -31,8 +31,10 @@ type Object struct {
 	ETag         string
 }
 
+// ObjectStorageRepository defines the port for interacting with object storage.
 type ObjectStorageRepository interface {
-	GetBucket(ctx context.Context, ocid string) (*Bucket, error)
+	GetBucketNameByOCID(ctx context.Context, compartmentID, bucketOCID string) (string, error)
+	GetBucketByName(ctx context.Context, name string) (*Bucket, error)
 	ListBuckets(ctx context.Context, compartmentID string) ([]Bucket, error)
 	//GetObject(ctx context.Context, bucketName, objectName string) (*Object, error)
 	//ListObjects(ctx context.Context, bucketName string) ([]Object, error)
