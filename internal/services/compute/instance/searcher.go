@@ -27,16 +27,10 @@ func newInstanceIndexMapping() mapping.IndexMapping {
 		"token_filters": []string{"to_lower"},
 	})
 
-	// keyword analyzer (keeps the whole value incl punctuation)
-	_ = m.AddCustomAnalyzer("keyword_lower", map[string]any{
-		"type":          "custom",
-		"tokenizer":     "keyword",
-		"token_filters": []string{"to_lower"},
-	})
-
+	// Use built-in keyword analyzer for raw fields; values are already lowercased at ingestion
 	std := mapping.NewTextFieldMapping() // default wordy search
 	raw := mapping.NewTextFieldMapping() // raw/punctuation-preserving
-	raw.Analyzer = "keyword_lower"
+	raw.Analyzer = "keyword"
 	ng := mapping.NewTextFieldMapping() // ngram-substring search
 	ng.Analyzer = "ngram_lower"
 
