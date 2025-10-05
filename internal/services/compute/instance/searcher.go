@@ -94,6 +94,8 @@ func mapToIndexableInstance(inst compute.Instance) map[string]any {
 		"ImageOS":    strings.ToLower(inst.ImageOS),
 		"Shape":      strings.ToLower(inst.Shape),
 		"OCID":       strings.ToLower(inst.OCID),
+		"FD":         strings.ToLower(inst.FaultDomain),
+		"AD":         strings.ToLower(inst.AvailabilityDomain),
 		"VcnName":    strings.ToLower(inst.VcnName),
 		"SubnetName": strings.ToLower(inst.SubnetName),
 
@@ -114,7 +116,7 @@ func FuzzySearchInstances(index bleve.Index, pattern string) ([]int, error) {
 
 	fields := []string{
 		"Name", "Hostname", "PrimaryIP", "ImageName", "ImageOS",
-		"Shape", "OCID", "VcnName", "SubnetName",
+		"Shape", "OCID", "VcnName", "SubnetName", "AD", "FD",
 		"TagsKV", "TagsVal",
 	}
 
