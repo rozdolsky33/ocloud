@@ -19,7 +19,7 @@ func TestFindCommand(t *testing.T) {
 	// Test that the find command is properly configured
 	assert.Equal(t, "search [pattern]", cmd.Use)
 	assert.Equal(t, []string{"s"}, cmd.Aliases)
-	assert.Equal(t, "Fuzzy Search Database by search pattern", cmd.Short)
+	assert.Equal(t, "Fuzzy Search Autonomous Databases by search pattern", cmd.Short)
 	assert.Equal(t, findLong, cmd.Long)
 	assert.Equal(t, findExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
