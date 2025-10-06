@@ -80,12 +80,12 @@ run_command ./bin/ocloud compute instance get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute instance get -m 10 -p 1 -j
 run_command ./bin/ocloud comp inst get
 
-# Test compute instance find command
-print_header "Testing compute instance find command"
-run_command ./bin/ocloud compute instance find "roster"
-run_command ./bin/ocloud compute instance find "roster" --all --json
-run_command ./bin/ocloud compute instance find "roster" -A -j
-run_command ./bin/ocloud comp inst f "roster"
+# Test compute instance search command
+print_header "Testing compute instance search command"
+run_command ./bin/ocloud compute instance search "roster"
+run_command ./bin/ocloud compute instance search "roster" --all --json
+run_command ./bin/ocloud compute instance search "roster" -A -j
+run_command ./bin/ocloud comp inst s "roster"
 
 # Test compute image command
 print_header "Testing compute image command"
@@ -101,10 +101,10 @@ run_command ./bin/ocloud comp img get
 
 # Test compute image find command
 print_header "Testing compute image find command"
-run_command ./bin/ocloud compute image find "ubuntu"
-run_command ./bin/ocloud compute image find "ubuntu" --json
-run_command ./bin/ocloud compute image find "ubuntu" -j
-run_command ./bin/ocloud comp img f "ubuntu"
+run_command ./bin/ocloud compute image search "Oracle-Linux"
+run_command ./bin/ocloud compute image search "Oracle-Linux" --json
+run_command ./bin/ocloud compute image search "Oracle-Linux" -j
+run_command ./bin/ocloud comp img s "Oracle-Linux"
 
 # Test compute oke command
 print_header "Testing compute oke command"

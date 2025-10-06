@@ -61,24 +61,6 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// NewFindCmd provides backward-compatible 'find' command that reuses search implementation
-func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:           "find [pattern]",
-		Aliases:       []string{"f"},
-		Short:         "FuzzySearch image by name pattern",
-		Long:          searchLong,
-		Example:       searchExamples,
-		Args:          cobra.ExactArgs(1),
-		SilenceUsage:  true,
-		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runSearchCommand(cmd, args, appCtx)
-		},
-	}
-	return cmd
-}
-
 // runSearchCommand handles the execution of the search command
 func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]

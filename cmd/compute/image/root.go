@@ -20,7 +20,6 @@ func NewImageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewListCmd(appCtx))
 	cmd.AddCommand(NewSearchCmd(appCtx))
-	cmd.AddCommand(NewFindCmd(appCtx))
 
 	return cmd
 }

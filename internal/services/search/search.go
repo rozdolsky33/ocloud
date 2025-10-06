@@ -50,7 +50,6 @@ func BuildIndex[T Indexable](items []T, indexMapping mapping.IndexMapping) (blev
 
 	for i, item := range items {
 		doc := item.ToIndexable()
-		// duplicate into raw/ng variants for the fields you want substring search on
 		dup := func(k string) {
 			if v, ok := doc[k].(string); ok && v != "" {
 				doc[k+".raw"] = v
