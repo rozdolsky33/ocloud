@@ -99,8 +99,8 @@ run_command ./bin/ocloud compute image get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute image get -m 10 -p 1 -j
 run_command ./bin/ocloud comp img get
 
-# Test compute image find command
-print_header "Testing compute image find command"
+# Test compute image search command
+print_header "Testing compute image search command"
 run_command ./bin/ocloud compute image search "Oracle-Linux"
 run_command ./bin/ocloud compute image search "Oracle-Linux" --json
 run_command ./bin/ocloud compute image search "Oracle-Linux" -j
@@ -118,8 +118,8 @@ run_command ./bin/ocloud compute oke get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute oke get -m 10 -p 1 -j
 run_command ./bin/ocloud comp oke get
 
-# Test compute oke find command
-print_header "Testing compute oke find command"
+# Test compute oke search command
+print_header "Testing compute oke search command"
 run_command ./bin/ocloud compute oke search "orion"
 run_command ./bin/ocloud compute oke search "orion" --json
 run_command ./bin/ocloud compute oke search "orion" -j
@@ -146,6 +146,7 @@ run_command ./bin/ocloud identity compartment --help
 run_command ./bin/ocloud identity compart --help
 run_command ./bin/ocloud ident compart --help
 
+
 # Test identity compartment list command
 print_header "Testing identity compartment get command"
 run_command ./bin/ocloud identity compartment get
@@ -153,12 +154,26 @@ run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json
 run_command ./bin/ocloud identity compartment get -m 10 -p 1 -j
 
 
-# Test identity compartment find command
-print_header "Testing identity compartment find command"
-run_command ./bin/ocloud identity compartment find "sand"
-run_command ./bin/ocloud identity compartment find "sand" --json
-run_command ./bin/ocloud identity compartment find "sand" -j
-run_command ./bin/ocloud ident compart f "sand"
+# Test identity compartment search command
+print_header "Testing identity compartment search command"
+run_command ./bin/ocloud identity compartment search "sandbox"
+run_command ./bin/ocloud identity compartment search "sandbox" --json
+run_command ./bin/ocloud identity compartment search "sandbox" -j
+run_command ./bin/ocloud ident compart s "sandbox" -T
+
+# Test identity compartment list command
+print_header "Testing identity compartment get command in tenancy scope"
+run_command ./bin/ocloud identity compartment get -T
+run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json --scope tenancy
+run_command ./bin/ocloud identity compartment get -m 10 -p 1 -j --tenancy-scope
+
+
+# Test identity compartment search command
+print_header "Testing identity compartment search command in tenancy"
+run_command ./bin/ocloud identity compartment search "sandbox" --tenancy-scope
+run_command ./bin/ocloud identity compartment search "sandbox" --json -T
+run_command ./bin/ocloud identity compartment search "sandbox" -j --scope tenancy
+run_command ./bin/ocloud ident compart s "sandbox" -T
 
 # Test identity policy command
 print_header "Testing identity policy command"
@@ -173,12 +188,25 @@ run_command ./bin/ocloud identity policy get
 run_command ./bin/ocloud identity policy get --limit 10 --page 1 --json
 run_command ./bin/ocloud identity policy get -m 10 -p 1 -j
 
-# Test identity policy find command
-print_header "Testing identity policy find command"
-run_command ./bin/ocloud identity policy find "monitor"
-run_command ./bin/ocloud identity policy find "monitor" --json
-run_command ./bin/ocloud identity policy find "monitor" -j
-run_command ./bin/ocloud ident pol f "monitor"
+# Test identity policy search command
+print_header "Testing identity policy search command"
+run_command ./bin/ocloud identity policy search "monitor"
+run_command ./bin/ocloud identity policy search "monitor" --json
+run_command ./bin/ocloud identity policy search "monitor" -j
+run_command ./bin/ocloud ident pol s "monitor"
+
+
+# Test identity policy search command in tenancy scope
+print_header "Testing identity policy search command in tenancy scope"
+run_command ./bin/ocloud identity policy get --tenancy-scope
+run_command ./bin/ocloud identity policy get  -T
+run_command ./bin/ocloud identity policy get --limit 10 --page 1 --json --scope tenancy
+run_command ./bin/ocloud identity policy get -m 10 -p 1 -j -T
+
+run_command ./bin/ocloud identity policy search "monitor" --scope tenancy
+run_command ./bin/ocloud identity policy search "monitor" --json -T
+run_command ./bin/ocloud identity policy search "monitor" -j -T
+run_command ./bin/ocloud ident pol s "monitor" --tenancy-scope
 
 # Test network command
 print_header "Testing network command"
@@ -272,12 +300,12 @@ run_command ./bin/ocloud database autonomous get
 run_command ./bin/ocloud database autonomous get --limit 10 --page 1 --json
 run_command ./bin/ocloud database autonomous get -m 10 -p 1 -j
 
-# Test database autonomousdb find command
-print_header "Testing database autonomousdb find command"
-run_command ./bin/ocloud database autonomous find "test"
-run_command ./bin/ocloud database autonomous find "test" --json
-run_command ./bin/ocloud database autonomous find "test" -j
-run_command ./bin/ocloud db adb f "test"
+# Test database autonomousdb search command
+print_header "Testing database autonomousdb search command"
+run_command ./bin/ocloud database autonomous search "test"
+run_command ./bin/ocloud database autonomous search "test" --json
+run_command ./bin/ocloud database autonomous search "test" -j
+run_command ./bin/ocloud db adb s "test"
 
 # Test version command and flag
 print_header "Testing ocloud settings"

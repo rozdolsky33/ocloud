@@ -14,7 +14,7 @@ func TestFindCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new find command
-	cmd := NewFindCmd(appCtx)
+	cmd := NewSearchCmd(appCtx)
 
 	// Test that the find command is properly configured
 	assert.Equal(t, "search [pattern]", cmd.Use)

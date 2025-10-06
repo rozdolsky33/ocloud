@@ -96,9 +96,9 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 // RunSearchCommand handles the execution of the find command
 func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
-	namePattern := args[0]
+	search := args[0]
 	showDetails := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance search command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return instance.SearchInstances(appCtx, namePattern, useJSON, showDetails)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running instance search command", "search", search, "in compartment", appCtx.CompartmentName, "json", useJSON)
+	return instance.SearchInstances(appCtx, search, useJSON, showDetails)
 }

@@ -45,8 +45,8 @@ var findExamples = `
   ocloud compute oke search platform
 `
 
-// NewFindCmd creates a new command for finding OKE clusters by name pattern
-func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewSearchCmd creates a new command for searching OKE clusters.
+func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
@@ -57,17 +57,17 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunFindCommand(cmd, args, appCtx)
+			return runSearchCommand(cmd, args, appCtx)
 		},
 	}
 
 	return cmd
 }
 
-// RunFindCommand handles the execution of the find command
-func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
-	namePattern := args[0]
+// RunFindCommand handles the execution of the search command
+func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
+	search := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running oke search command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.SearchOKEClusters(appCtx, namePattern, useJSON)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running oke search command", "search", search, "in compartment", appCtx.CompartmentName, "json", useJSON)
+	return oke.SearchOKEClusters(appCtx, search, useJSON)
 }

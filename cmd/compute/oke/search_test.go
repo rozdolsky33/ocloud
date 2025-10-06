@@ -9,12 +9,12 @@ import (
 )
 
 // TestFindCommand tests the basic structure of the find command
-func TestFindCommand(t *testing.T) {
+func TestSearchCommand(t *testing.T) {
 	// Create a mock ApplicationContext
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new find command
-	cmd := NewFindCmd(appCtx)
+	cmd := NewSearchCmd(appCtx)
 
 	// Test that the find command is properly configured
 	assert.Equal(t, "search [pattern]", cmd.Use)

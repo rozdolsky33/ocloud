@@ -60,8 +60,8 @@ var findExamples = `
   ocloud database autonomous search prod
 `
 
-// NewFindCmd creates a new command for finding compartments by name pattern
-func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewSearchCmd creates a new command for searching Autonomous Databases.
+func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
@@ -72,15 +72,15 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runFindCommand(cmd, args, appCtx)
+			return runSearchCommand(cmd, args, appCtx)
 		},
 	}
 	databaseFlags.AllInfoFlag.Add(cmd)
 	return cmd
 }
 
-// runFindCommand handles the execution of the find command
-func runFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
+// runFindCommand handles the execution of the search command
+func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running search command", "searchPattern", namePattern, "json", useJSON)

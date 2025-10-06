@@ -260,7 +260,7 @@ ocloud identity compartment get -T              # same as above
 
 # Policies
 ocloud identity policy list --scope compartment # explicit compartment-level listing
-ocloud identity policy find prod -T             # tenancy-level search
+ocloud identity policy search prod -T            # tenancy-level search
 ```
 
 ### Networking: VCN commands

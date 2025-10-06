@@ -9,17 +9,17 @@ import (
 )
 
 // TestFindCommand tests the basic structure of the find command
-func TestFindCommand(t *testing.T) {
+func TestSearchCommand(t *testing.T) {
 	// Create a mock ApplicationContext
 	appCtx := &app.ApplicationContext{}
 
 	// Create a new find command
-	cmd := NewFindCmd(appCtx)
+	cmd := NewSearchCmd(appCtx)
 
 	// Test that the find command is properly configured
-	assert.Equal(t, "find [pattern]", cmd.Use)
-	assert.Equal(t, []string{"f"}, cmd.Aliases)
-	assert.Equal(t, "FuzzySearch Policies by name pattern", cmd.Short)
+	assert.Equal(t, "search [pattern]", cmd.Use)
+	assert.Equal(t, []string{"s"}, cmd.Aliases)
+	assert.Equal(t, "Fuzzy Search for Policies", cmd.Short)
 	assert.Equal(t, findLong, cmd.Long)
 	assert.Equal(t, findExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

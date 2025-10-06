@@ -9,16 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestFindPoliciesSimple is a simplified test for the FindPolicies function
+// TestFindPoliciesSimple is a simplified test for the SearchPolicies function
 // that doesn't rely on mocking the OCI SDK interfaces
 func TestFindPoliciesSimple(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for FindPolicies since it requires the OCI SDK")
+	t.Skip("Skipping test for SearchPolicies since it requires the OCI SDK")
 
 	// In a real test, we would:
 	// 1. Create a mock application context
 	// 2. Create mock policies
-	// 3. Call FindPolicies with different parameters
+	// 3. Call SearchPolicies with different parameters
 	// 4. Verify the results
 
 	appCtx := &app.ApplicationContext{
@@ -28,21 +28,21 @@ func TestFindPoliciesSimple(t *testing.T) {
 		Stdout:          io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := FindPolicies(appCtx, "test", false, appCtx.CompartmentID)
+	err := SearchPolicies(appCtx, "test", false, appCtx.CompartmentID)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
 }
 
-// TestFindPoliciesOutput tests the output of the FindPolicies function
+// TestFindPoliciesOutput tests the output of the SearchPolicies function
 func TestFindPoliciesOutput(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for FindPolicies output since it requires the OCI SDK")
+	t.Skip("Skipping test for SearchPolicies output since it requires the OCI SDK")
 
 	// In a real test, we would:
 	// 1. Create a mock application context with a buffer for stdout
 	// 2. Create mock policies
-	// 3. Call FindPolicies with different parameters
+	// 3. Call SearchPolicies with different parameters
 	// 4. Verify that the output contains the expected information
 
 	// Test with JSON output
@@ -53,7 +53,7 @@ func TestFindPoliciesOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := FindPolicies(appCtxJSON, "test", true, appCtxJSON.CompartmentID)
+	err := SearchPolicies(appCtxJSON, "test", true, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,19 +64,19 @@ func TestFindPoliciesOutput(t *testing.T) {
 		Stdout:          io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = FindPolicies(appCtxTable, "test", false, appCtxTable.CompartmentID)
+	err = SearchPolicies(appCtxTable, "test", false, appCtxTable.CompartmentID)
 	assert.NoError(t, err)
 }
 
-// TestFindPoliciesError tests error handling in the FindPolicies function
+// TestFindPoliciesError tests error handling in the SearchPolicies function
 func TestFindPoliciesError(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for FindPolicies error handling since it requires the OCI SDK")
+	t.Skip("Skipping test for SearchPolicies error handling since it requires the OCI SDK")
 
 	// In a real test, we would:
 	// 1. Create a mock application context
 	// 2. Set up the mock to return an error
-	// 3. Call FindPolicies
+	// 3. Call SearchPolicies
 	// 4. Verify that the error is handled correctly
 
 	appCtx := &app.ApplicationContext{
@@ -86,7 +86,7 @@ func TestFindPoliciesError(t *testing.T) {
 		Stdout:          io.Discard,
 	}
 
-	err := FindPolicies(appCtx, "test", false, appCtx.CompartmentID)
+	err := SearchPolicies(appCtx, "test", false, appCtx.CompartmentID)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

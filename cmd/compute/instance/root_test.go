@@ -28,7 +28,7 @@ func TestInstanceCommand(t *testing.T) {
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")
 
 	// Test that the subcommands are added
-	listCmd := findSubCommand(cmd, "get")
+	listCmd := instanceSubCommand(cmd, "get")
 	assert.NotNil(t, listCmd, "get subcommand should be added")
 	assert.Equal(t, "Paginated Instance Results", listCmd.Short)
 	assert.NotNil(t, listCmd.RunE, "list subcommand should have a RunE function")
@@ -53,7 +53,7 @@ func TestInstanceCommand(t *testing.T) {
 	assert.False(t, useJSON, "default value of json flag should be false")
 
 	// Test that the search subcommand is added
-	searchCmd := findSubCommand(cmd, "search")
+	searchCmd := instanceSubCommand(cmd, "search")
 	assert.NotNil(t, searchCmd, "search subcommand should be added")
 	assert.Equal(t, "Fuzzy Search for Instances", searchCmd.Short)
 	assert.NotNil(t, searchCmd.RunE, "search subcommand should have a RunE function")
@@ -73,8 +73,8 @@ func TestInstanceCommand(t *testing.T) {
 	assert.False(t, useJSONSearch, "default value of json flag should be false")
 }
 
-// findSubCommand is a helper function to find a subcommand by name
-func findSubCommand(cmd *cobra.Command, name string) *cobra.Command {
+// instanceSubCommand is a helper function to find a subcommand by name
+func instanceSubCommand(cmd *cobra.Command, name string) *cobra.Command {
 	for _, subCmd := range cmd.Commands() {
 		if subCmd.Name() == name {
 			return subCmd

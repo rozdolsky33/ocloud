@@ -60,8 +60,8 @@ var searchExamples = `
   ocloud identity compartment search finance --json
 `
 
-// NewFindCmd creates a new command for finding compartments by name pattern
-func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewSearchCmd creates a new command for searching compartments
+func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
@@ -72,7 +72,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunFindCommand(cmd, args, appCtx)
+			return runSearchCommand(cmd, args, appCtx)
 		},
 	}
 
@@ -83,7 +83,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 }
 
 // RunFindCommand handles the execution of the find command
-func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
+func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	scope := scopeUtil.ResolveScope(cmd)

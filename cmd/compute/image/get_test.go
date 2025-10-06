@@ -9,7 +9,7 @@ import (
 )
 
 // TestListCommand tests the basic structure of the list command
-func TestListCommand(t *testing.T) {
+func TestGetCommand(t *testing.T) {
 	// Create a mock ApplicationContext
 	appCtx := &app.ApplicationContext{}
 

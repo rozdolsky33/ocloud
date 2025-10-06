@@ -10,16 +10,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Long description for the find command
+// Long description for the search command
 var findLong = `
-FuzzySearch Policies in the specified tenancy or parent compartment that match the given pattern.
+Fuzzy search Policies in the specified tenancy or parent compartment that match the given pattern.
 
-This command searches for policies whose names or statements match the specified pattern within
+This command searches for policies whose fields match the specified pattern within
 the chosen scope. By default, it searches within the configured parent compartment.
 
 Search behavior:
-- Uses a fuzzy/contains-style match; partial and case-insensitive matches are supported.
-- Searchable fields include Name, Description, and Statements.
+- Uses a combination of fuzzy, prefix, and substring matching; partial and case-insensitive matches are supported.
+- You can search using any of the following fields (partial matches are supported):
+
+Searchable fields:
+- Name: Policy name
+- Description: Policy description
+- OCID: Policy OCID
+- Statements: Policy statements (combined)
+- TagsKV: Tags in key:value or namespace.key:value format
+- TagsVal: Tag values only (without keys)
 
 Scope control:
 - Use --scope to choose where to search: "compartment" (default) or "tenancy".
@@ -31,35 +39,35 @@ Additional Information:
 - Use --json (-j) to output the results in JSON format
 `
 
-// Examples for the find command
+// Examples for the search command
 var findExamples = `
   # FuzzySearch policies with names containing "admin" (default scope: compartment)
-  ocloud identity policy find admin
+  ocloud identity policy search admin
 
   # Search at tenancy level (equivalent ways)
-  ocloud identity policy find admin -T
-  ocloud identity policy find admin --scope tenancy
+  ocloud identity policy search admin -T
+  ocloud identity policy search admin --scope tenancy
 
   # Search only direct children of the configured compartment (explicit)
-  ocloud identity policy find admin --scope compartment
+  ocloud identity policy search admin --scope compartment
 
   # FuzzySearch policies with names containing "network" and output in JSON format
-  ocloud identity policy find network --json
+  ocloud identity policy search network --json
 `
 
-// NewFindCmd creates a new command for finding policies by name pattern
-func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
+// NewSearchCmd creates a new command for finding policies by name pattern
+func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "find [pattern]",
-		Aliases:       []string{"f"},
-		Short:         "FuzzySearch Policies by name pattern",
+		Use:           "search [pattern]",
+		Aliases:       []string{"s"},
+		Short:         "Fuzzy Search for Policies",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunFindCommand(cmd, args, appCtx)
+			return runSearchCommand(cmd, args, appCtx)
 		},
 	}
 
@@ -70,17 +78,17 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 }
 
 // RunFindCommand handles the execution of the find command
-func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
-	namePattern := args[0]
+func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
+	search := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	scope := scopeUtil.ResolveScope(cmd)
 	parentID := scopeUtil.ResolveParentID(scope, appCtx)
 
 	logger.LogWithLevel(
-		logger.CmdLogger, logger.Debug, "Running policy find",
+		logger.CmdLogger, logger.Debug, "Running policy search",
 		"scope", scope, "parentID", parentID, "json", useJSON,
 	)
 
-	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy find command", "pattern", namePattern, "json", useJSON)
-	return policy.FindPolicies(appCtx, namePattern, useJSON, parentID)
+	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running policy search command", "search", search, "json", useJSON)
+	return policy.SearchPolicies(appCtx, search, useJSON, parentID)
 }
