@@ -10,9 +10,9 @@ func NewImageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "image",
 		Aliases:       []string{"img"},
-		Short:         "Manage OCI Compute images — list, paginate, and search.",
-		Long:          "List OCI Compute images in a compartment. Supports paging through large result sets and filtering by value pattern.",
-		Example:       "  ocloud compute image get\n  ocloud compute image list\n  ocloud compute image search <image-name>",
+		Short:         "Manage OCI Compute images — list, get, and search",
+		Long:          "List OCI Compute images in a compartment. Supports paging through large result sets and fuzzy search",
+		Example:       "  ocloud compute image get\n  ocloud compute image list\n  ocloud compute image search <value>",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

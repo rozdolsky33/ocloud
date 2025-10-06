@@ -19,9 +19,9 @@ func TestFindCommand(t *testing.T) {
 	// Test that the find command is properly configured
 	assert.Equal(t, "search [pattern]", cmd.Use)
 	assert.Equal(t, []string{"s"}, cmd.Aliases)
-	assert.Equal(t, "Fuzzy search for compartments", cmd.Short)
-	assert.Equal(t, findLong, cmd.Long)
-	assert.Equal(t, findExamples, cmd.Example)
+	assert.Equal(t, "Fuzzy Search for Compartments", cmd.Short)
+	assert.Equal(t, searchLong, cmd.Long)
+	assert.Equal(t, searchExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	// Verify that the command requires exactly one argument
