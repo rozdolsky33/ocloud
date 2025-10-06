@@ -9,16 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestFindCompartmentsSimple is a simplified test for the FindCompartments function
+// TestFindCompartmentsSimple is a simplified test for the SearchCompartments function
 // that doesn't rely on mocking the OCI SDK interfaces
 func TestFindCompartmentsSimple(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for FindCompartments since it requires the OCI SDK")
+	t.Skip("Skipping test for SearchCompartments since it requires the OCI SDK")
 
 	// In a real test, we would:
 	// 1. Create a mock application context
 	// 2. Create mock compartments
-	// 3. Call FindCompartments with different parameters
+	// 3. Call SearchCompartments with different parameters
 	// 4. Verify the results
 
 	appCtx := &app.ApplicationContext{
@@ -28,21 +28,21 @@ func TestFindCompartmentsSimple(t *testing.T) {
 		Stdout:      io.Discard, // Discard output to avoid cluttering the test output
 	}
 
-	err := FindCompartments(appCtx, "test", false, appCtx.CompartmentID)
+	err := SearchCompartments(appCtx, "test", false, appCtx.CompartmentID)
 
 	// but if we did, we would expect no error
 	assert.NoError(t, err)
 }
 
-// TestFindCompartmentsOutput tests the output of the FindCompartments function
+// TestFindCompartmentsOutput tests the output of the SearchCompartments function
 func TestFindCompartmentsOutput(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for FindCompartments output since it requires the OCI SDK")
+	t.Skip("Skipping test for SearchCompartments output since it requires the OCI SDK")
 
 	// In a real test, we would:
 	// 1. Create a mock application context with a buffer for stdout
 	// 2. Create mock compartments
-	// 3. Call FindCompartments with different parameters
+	// 3. Call SearchCompartments with different parameters
 	// 4. Verify that the output contains the expected information
 
 	// Test with JSON output
@@ -53,7 +53,7 @@ func TestFindCompartmentsOutput(t *testing.T) {
 		Stdout:      io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err := FindCompartments(appCtxJSON, "test", true, appCtxJSON.CompartmentID)
+	err := SearchCompartments(appCtxJSON, "test", true, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 
 	// Test with table output
@@ -64,19 +64,19 @@ func TestFindCompartmentsOutput(t *testing.T) {
 		Stdout:      io.Discard, // In a real test, we would use a buffer to capture output
 	}
 
-	err = FindCompartments(appCtxTable, "test", false, appCtxJSON.CompartmentID)
+	err = SearchCompartments(appCtxTable, "test", false, appCtxJSON.CompartmentID)
 	assert.NoError(t, err)
 }
 
-// TestFindCompartmentsError tests error handling in the FindCompartments function
+// TestFindCompartmentsError tests error handling in the SearchCompartments function
 func TestFindCompartmentsError(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for FindCompartments error handling since it requires the OCI SDK")
+	t.Skip("Skipping test for SearchCompartments error handling since it requires the OCI SDK")
 
 	// In a real test, we would:
 	// 1. Create a mock application context
 	// 2. Set up the mock to return an error
-	// 3. Call FindCompartments
+	// 3. Call SearchCompartments
 	// 4. Verify that the error is handled correctly
 
 	appCtx := &app.ApplicationContext{
@@ -86,7 +86,7 @@ func TestFindCompartmentsError(t *testing.T) {
 		Stdout:      io.Discard,
 	}
 
-	err := FindCompartments(appCtx, "test", false, appCtx.CompartmentID)
+	err := SearchCompartments(appCtx, "test", false, appCtx.CompartmentID)
 
 	// In a real test with a mock that returns an error, we would expect an error
 	// assert.Error(t, err)

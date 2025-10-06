@@ -44,17 +44,14 @@ func (s *Service) ListAutonomousDb(ctx context.Context) ([]AutonomousDatabase, e
 func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing autonomous databases", "limit", limit, "pageNum", pageNum)
 
-	// First, try an enriched list
 	allDatabases, err := s.repo.ListEnrichedAutonomousDatabase(ctx, s.compartmentID)
 	if err != nil {
-		// Fallback to base a list on error (as tests expect)
 		allDatabases, err = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
 		}
 	}
 
-	// If an enriched list is empty, also fallback to a base list to confirm (as tests expect)
 	if len(allDatabases) == 0 {
 		var baseErr error
 		allDatabases, baseErr = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
@@ -81,7 +78,7 @@ func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]Auto
 		return allDatabases, nil
 	}
 
-	// Build index using SearchableAutonomousDatabase adapter
+	// Build index using SearchableAutonomousDatabase
 	indexables := ToSearchableAutonomousDBs(allDatabases)
 	idxMapping := search.NewIndexMapping(GetSearchableFields())
 	idx, err := search.BuildIndex(indexables, idxMapping)

@@ -10,8 +10,11 @@ import (
 	ociImage "github.com/rozdolsky33/ocloud/internal/oci/compute/image"
 )
 
-// SearchImages finds and displays images matching a pattern using fuzzy/prefix/substring search over indexed fields.
-func SearchImages(appCtx *app.ApplicationContext, searchPattern string, useJSON bool) error {
+// SearchImages performs a search for images based on a given search term.
+// It uses fuzzy matching to find relevant images in the specified OCI compartment.
+// The results are printed in either a tabular or JSON format depending on the `useJSON` flag.
+// An error is returned if there are issues with creating required clients, searching images, or printing results.
+func SearchImages(appCtx *app.ApplicationContext, search string, useJSON bool) error {
 	computeClient, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating compute client: %w", err)
@@ -20,7 +23,7 @@ func SearchImages(appCtx *app.ApplicationContext, searchPattern string, useJSON 
 	imageAdapter := ociImage.NewAdapter(computeClient)
 	service := NewService(imageAdapter, appCtx.Logger, appCtx.CompartmentID)
 
-	matchedImages, err := service.FuzzySearch(context.Background(), searchPattern)
+	matchedImages, err := service.FuzzySearch(context.Background(), search)
 	if err != nil {
 		return fmt.Errorf("finding images: %w", err)
 	}
@@ -29,6 +32,6 @@ func SearchImages(appCtx *app.ApplicationContext, searchPattern string, useJSON 
 	if err != nil {
 		return fmt.Errorf("printing images: %w", err)
 	}
-	logger.LogWithLevel(logger.CmdLogger, logger.Info, "Found matching images", "searchPattern", searchPattern, "matched", len(matchedImages))
+	logger.LogWithLevel(logger.CmdLogger, logger.Info, "Found matching images", "search", search, "matched", len(matchedImages))
 	return nil
 }

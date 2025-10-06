@@ -50,9 +50,9 @@ var findExamples = `
 // NewFindCmd creates a new command for finding compartments by name pattern
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "find [pattern]",
-		Aliases:       []string{"f"},
-		Short:         "FuzzySearch compartment by name pattern",
+		Use:           "search [pattern]",
+		Aliases:       []string{"s"},
+		Short:         "Fuzzy search for compartments",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),
@@ -79,5 +79,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 		logger.CmdLogger, logger.Debug, "Running compartment find",
 		"scope", scope, "parentID", parentID, "json", useJSON,
 	)
-	return compartment.FindCompartments(appCtx, namePattern, useJSON, parentID)
+	return compartment.SearchCompartments(appCtx, namePattern, useJSON, parentID)
 }

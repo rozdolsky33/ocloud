@@ -9,11 +9,14 @@ import (
 	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
 )
 
-// SearchAutonomousDatabases searches for Autonomous Databases matching the provided name pattern in the application context.
-// Logs database discovery tasks and can format the result based on the useJSON flag.
-func SearchAutonomousDatabases(appCtx *app.ApplicationContext, namePattern string, useJSON bool, showAll bool) error {
-	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Finding Autonomous Databases", "pattern", namePattern)
-
+// SearchAutonomousDatabases searches for OCI Autonomous Databases matching the given query string in the current context.
+// Parameters:
+// - appCtx: The application context containing OCI configuration and runtime settings.
+// - search: The search query string to perform a fuzzy match against the available databases.
+// - useJSON: A flag that determines if the output should be JSON formatted.
+// - showAll: A flag indicating whether detailed or summary information should be displayed.
+// Returns an error if database search or result processing fails.
+func SearchAutonomousDatabases(appCtx *app.ApplicationContext, search string, useJSON bool, showAll bool) error {
 	adapter, err := ociadb.NewAdapter(appCtx.Provider)
 	if err != nil {
 		return fmt.Errorf("creating database adapter: %w", err)
@@ -21,14 +24,14 @@ func SearchAutonomousDatabases(appCtx *app.ApplicationContext, namePattern strin
 	service := NewService(adapter, appCtx)
 
 	ctx := context.Background()
-	matchedDatabases, err := service.FuzzySearch(ctx, namePattern)
+	matchedDatabases, err := service.FuzzySearch(ctx, search)
 	if err != nil {
 		return fmt.Errorf("finding autonomous databases: %w", err)
 	}
-	err = PrintAutonomousDbsInfo(matchedDatabases, appCtx, nil, useJSON, true)
+	err = PrintAutonomousDbsInfo(matchedDatabases, appCtx, nil, useJSON, showAll)
 	if err != nil {
 		return fmt.Errorf("printing autonomous databases: %w", err)
 	}
-	logger.LogWithLevel(logger.CmdLogger, logger.Info, "Found matching autonomous databases", "searchPattern", namePattern, "matched", len(matchedDatabases))
+	logger.LogWithLevel(logger.CmdLogger, logger.Info, "Found matching autonomous databases", "search", search, "matched", len(matchedDatabases))
 	return nil
 }

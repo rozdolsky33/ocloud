@@ -65,7 +65,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
-		Short:         "Fuzzy Search Autonomous Databases by search pattern",
+		Short:         "Fuzzy Search for Autonomous Databases",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),

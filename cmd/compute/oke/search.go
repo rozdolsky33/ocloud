@@ -50,7 +50,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
-		Short:         "Fuzzy Search OKE clusters by search pattern",
+		Short:         "Fuzzy Search for OKE clusters",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),
