@@ -78,7 +78,7 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
-		Short:         "Search instances by name pattern",
+		Short:         "Search instances by search pattern",
 		Long:          searchLong,
 		Example:       searchExamples,
 		Args:          cobra.ExactArgs(1),

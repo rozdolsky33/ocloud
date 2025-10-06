@@ -21,7 +21,7 @@ func TestFindCommand(t *testing.T) {
 	// Check basic properties
 	assert.Equal(t, "search [pattern]", cmd.Use, "Command Use should be set correctly")
 	assert.Contains(t, cmd.Aliases, "s", "Command should have alias 's'")
-	assert.Equal(t, "Search instances by name pattern", cmd.Short, "Command Short description should be set correctly")
+	assert.Equal(t, "Search instances by search pattern", cmd.Short, "Command Short description should be set correctly")
 	assert.Equal(t, searchLong, cmd.Long, "Command Long description should be set correctly")
 	assert.Equal(t, searchExamples, cmd.Example, "Command Example should be set correctly")
 	assert.True(t, cmd.SilenceUsage)
@@ -31,7 +31,7 @@ func TestFindCommand(t *testing.T) {
 
 	// Test that the all flags are added (used for image details)
 	imageDetailsFlag := cmd.Flag("all")
-	assert.NotNil(t, imageDetailsFlag, "find command should have all flag (used for image details)")
+	assert.NotNil(t, imageDetailsFlag, "search command should have all flag (used for image details)")
 	assert.Equal(t, "all", imageDetailsFlag.Name)
 	assert.Equal(t, "A", imageDetailsFlag.Shorthand)
 

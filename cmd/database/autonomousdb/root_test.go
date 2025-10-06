@@ -29,16 +29,16 @@ func TestAutonomousDatabaseCommand(t *testing.T) {
 	assert.Equal(t, 3, len(subCmds), "autonomousdb command should have 2 subcommands")
 
 	// Check that the list subcommand is present
-	getCmd := findSubCommand(subCmds, "get")
+	getCmd := adbSubCommand(subCmds, "get")
 	assert.NotNil(t, getCmd, "autonomousdb command should have list subcommand")
 
 	// Check that the find subcommand is present
-	findCmd := findSubCommand(subCmds, "find")
-	assert.NotNil(t, findCmd, "autonomousdb command should have find subcommand")
+	findCmd := adbSubCommand(subCmds, "search")
+	assert.NotNil(t, findCmd, "autonomousdb command should have search subcommand")
 }
 
-// findSubCommand is a helper function to find a subcommand by name
-func findSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
+// adbSubCommand is a helper function to search a subcommand by name
+func adbSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
 	for _, cmd := range cmds {
 		if cmd.Name() == name {
 			return cmd

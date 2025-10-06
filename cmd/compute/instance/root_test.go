@@ -55,7 +55,7 @@ func TestInstanceCommand(t *testing.T) {
 	// Test that the search subcommand is added
 	searchCmd := findSubCommand(cmd, "search")
 	assert.NotNil(t, searchCmd, "search subcommand should be added")
-	assert.Equal(t, "Search instances by name pattern", searchCmd.Short)
+	assert.Equal(t, "Search instances by search pattern", searchCmd.Short)
 	assert.NotNil(t, searchCmd.RunE, "search subcommand should have a RunE function")
 
 	// Test that the search subcommand has the appropriate flags
