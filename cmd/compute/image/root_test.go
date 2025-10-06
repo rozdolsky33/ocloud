@@ -22,13 +22,13 @@ func TestImageCommand(t *testing.T) {
 	assert.Equal(t, "image", cmd.Use)
 	assert.Equal(t, "Manage OCI Compute images — list, paginate, and search.", cmd.Short)
 	assert.Equal(t, "List OCI Compute images in a compartment. Supports paging through large result sets and filtering by value pattern.", cmd.Long)
-	assert.Equal(t, "  ocloud compute image get\n  ocloud compute image list\n  ocloud compute image find <image-name>", cmd.Example)
+	assert.Equal(t, "  ocloud compute image get\n  ocloud compute image list\n  ocloud compute image search <image-name>", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	assert.Nil(t, cmd.RunE, "RunE should be nil since the root command now has subcommands")
 
 	// Test that the list subcommand is added and configured (TUI, no pagination flags)
-	listCmd := findSubCommand(cmd, "list")
+	listCmd := imageSubCommand(cmd, "list")
 	assert.NotNil(t, listCmd, "list subcommand should be added")
 	assert.Equal(t, "List all images", listCmd.Short)
 	assert.NotNil(t, listCmd.RunE, "list subcommand should have a RunE function")
@@ -42,7 +42,7 @@ func TestImageCommand(t *testing.T) {
 	assert.False(t, useJSON, "default value of json flag should be false")
 
 	// Test that the get subcommand is added and has pagination flags
-	getCmd := findSubCommand(cmd, "get")
+	getCmd := imageSubCommand(cmd, "get")
 	assert.NotNil(t, getCmd, "get subcommand should be added")
 	assert.Equal(t, "Paginated Image Results", getCmd.Short)
 	assert.NotNil(t, getCmd.RunE, "get subcommand should have a RunE function")
@@ -62,22 +62,22 @@ func TestImageCommand(t *testing.T) {
 	assert.Nil(t, jsonFlagGet, "json flag should not be added as a local flag to get subcommand")
 
 	// Test that the find subcommand is added
-	findCmd := findSubCommand(cmd, "find")
-	assert.NotNil(t, findCmd, "find subcommand should be added")
-	assert.Equal(t, "FuzzySearch image by name pattern", findCmd.Short)
-	assert.NotNil(t, findCmd.RunE, "find subcommand should have a RunE function")
+	searchCmd := imageSubCommand(cmd, "search")
+	assert.NotNil(t, searchCmd, "search subcommand should be added")
+	assert.Equal(t, "Search images by name pattern", searchCmd.Short)
+	assert.NotNil(t, searchCmd.RunE, "search subcommand should have a RunE function")
 
 	// JSON flag is now a global flag, so it should not be in the local flags
-	jsonFlagFind := findCmd.Flags().Lookup(flags.FlagNameJSON)
+	jsonFlagFind := searchCmd.Flags().Lookup(flags.FlagNameJSON)
 	assert.Nil(t, jsonFlagFind, "json flag should not be added as a local flag to find subcommand")
 
 	// But we should still be able to get its value using flags.GetBoolFlag
-	useJSONFind := flags.GetBoolFlag(findCmd, flags.FlagNameJSON, false)
+	useJSONFind := flags.GetBoolFlag(searchCmd, flags.FlagNameJSON, false)
 	assert.False(t, useJSONFind, "default value of json flag should be false")
 }
 
 // findSubCommand is a helper function to find a subcommand by name
-func findSubCommand(cmd *cobra.Command, name string) *cobra.Command {
+func imageSubCommand(cmd *cobra.Command, name string) *cobra.Command {
 	for _, subCmd := range cmd.Commands() {
 		if subCmd.Name() == name {
 			return subCmd
