@@ -49,7 +49,7 @@ var findExamples = `
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "search [pattern]",
-		Aliases:       []string{"f"},
+		Aliases:       []string{"s"},
 		Short:         "Fuzzy Search OKE clusters by search pattern",
 		Long:          findLong,
 		Example:       findExamples,

@@ -120,10 +120,10 @@ run_command ./bin/ocloud comp oke get
 
 # Test compute oke find command
 print_header "Testing compute oke find command"
-run_command ./bin/ocloud compute oke find "orion"
-run_command ./bin/ocloud compute oke find "orion" --json
-run_command ./bin/ocloud compute oke find "orion" -j
-run_command ./bin/ocloud comp oke f "orion"
+run_command ./bin/ocloud compute oke search "orion"
+run_command ./bin/ocloud compute oke search "orion" --json
+run_command ./bin/ocloud compute oke search "orion" -j
+run_command ./bin/ocloud comp oke s "orion"
 
 # Test with debug flag
 print_header "Testing with debug flag"
