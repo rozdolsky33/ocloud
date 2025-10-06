@@ -12,7 +12,7 @@ func NewAutonomousDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Aliases:       []string{"adb"},
 		Short:         "Manage OCI Databases.",
 		Long:          "Manage Oracle Cloud Infrastructure databases: list, get, and search by name or pattern.",
-		Example:       "  ocloud database autonomous list \n  ocloud database autonomous get \n  ocloud database autonomous find mydatabase",
+		Example:       "  ocloud database autonomous list \n  ocloud database autonomous get \n  ocloud database autonomous search mydatabase",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
