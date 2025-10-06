@@ -17,9 +17,9 @@ func TestFindCommand(t *testing.T) {
 	cmd := NewFindCmd(appCtx)
 
 	// Test that the find command is properly configured
-	assert.Equal(t, "find [pattern]", cmd.Use)
+	assert.Equal(t, "search [pattern]", cmd.Use)
 	assert.Equal(t, []string{"f"}, cmd.Aliases)
-	assert.Equal(t, "FuzzySearch OKE clusters by name pattern", cmd.Short)
+	assert.Equal(t, "Fuzzy Search OKE clusters by search pattern", cmd.Short)
 	assert.Equal(t, findLong, cmd.Long)
 	assert.Equal(t, findExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

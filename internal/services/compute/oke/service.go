@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/domain/compute"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/search"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -50,8 +51,8 @@ func (s *Service) FetchPaginatedClusters(ctx context.Context, limit, pageNum int
 	return pagedResults, totalCount, nextPageToken, nil
 }
 
-// Find performs a case-insensitive search for clusters.
-func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, error) {
+// FuzzySearch performs a fuzzy search for clusters using the generic search engine.
+func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]Cluster, error) {
 	s.logger.V(logger.Debug).Info("finding clusters with search", "pattern", searchPattern)
 
 	allClusters, err := s.clusterRepo.ListClusters(ctx, s.compartmentID)
@@ -59,29 +60,39 @@ func (s *Service) Find(ctx context.Context, searchPattern string) ([]Cluster, er
 		return nil, fmt.Errorf("fetching all clusters for search: %w", err)
 	}
 
-	if searchPattern == "" {
-		s.logger.V(logger.Debug).Info("Empty search pattern, returning all clusters.")
+	// If no search pattern provided, return all clusters
+	p := strings.TrimSpace(searchPattern)
+	if p == "" {
+		s.logger.V(logger.Debug).Info("empty search pattern, returning all clusters")
 		return allClusters, nil
 	}
 
-	var matchedClusters []Cluster
-	searchPattern = strings.ToLower(searchPattern)
+	// Build index using SearchableCluster adapter
+	idxMapping := search.NewIndexMapping(GetSearchableFields())
+	indexables := ToSearchableClusters(allClusters)
+	idx, err := search.BuildIndex(indexables, idxMapping)
+	if err != nil {
+		return nil, fmt.Errorf("building search index: %w", err)
+	}
 
-	s.logger.V(logger.Trace).Info("Starting cluster iteration for search.", "totalClusters", len(allClusters))
+	// Execute fuzzy search
+	hits, err := search.FuzzySearch(idx, p, GetSearchableFields(), GetBoostedFields())
+	if err != nil {
+		return nil, fmt.Errorf("executing search: %w", err)
+	}
 
-	for _, cluster := range allClusters {
-		if strings.Contains(strings.ToLower(cluster.DisplayName), searchPattern) {
-			matchedClusters = append(matchedClusters, cluster)
-			continue
-		}
-		for _, nodePool := range cluster.NodePools {
-			if strings.Contains(strings.ToLower(nodePool.DisplayName), searchPattern) {
-				matchedClusters = append(matchedClusters, cluster)
-				break
-			}
+	if len(hits) == 0 {
+		s.logger.V(logger.Debug).Info("no matches found for pattern")
+		return nil, nil
+	}
+
+	matched := make([]Cluster, 0, len(hits))
+	for _, i := range hits {
+		if i >= 0 && i < len(allClusters) {
+			matched = append(matched, allClusters[i])
 		}
 	}
 
-	s.logger.Info("cluster search complete", "matches", len(matchedClusters))
-	return matchedClusters, nil
+	s.logger.Info("cluster search complete", "matches", len(matched))
+	return matched, nil
 }

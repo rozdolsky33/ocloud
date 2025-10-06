@@ -30,16 +30,16 @@ func TestOKECommand(t *testing.T) {
 	assert.Equal(t, 3, len(subCmds), "oke command should have 3 subcommands")
 
 	// Check that the list subcommand is present
-	listCmd := findSubCommand(subCmds, "list")
+	listCmd := searchSubCommand(subCmds, "list")
 	assert.NotNil(t, listCmd, "oke command should have list subcommand")
 
 	// Check that the find subcommand is present
-	findCmd := findSubCommand(subCmds, "find")
+	findCmd := searchSubCommand(subCmds, "search")
 	assert.NotNil(t, findCmd, "oke command should have find subcommand")
 }
 
-// findSubCommand is a helper function to find a subcommand by name
-func findSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
+// searchSubCommand is a helper function to find a subcommand by name
+func searchSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
 	for _, cmd := range cmds {
 		if cmd.Name() == name {
 			return cmd

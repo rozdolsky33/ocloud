@@ -11,9 +11,12 @@ import (
 var findLong = `
 FuzzySearch Oracle Kubernetes Engine (OKE) clusters in the specified compartment that match the given pattern.
 
-This command searches for OKE clusters whose names or node pool names match the specified pattern.
+This command searches across both cluster-level and node-pool attributes. It matches on:
+- Cluster: name, OCID, Kubernetes version, state, VCN OCID, private/public endpoints, and tags
+- Node pools: display names and node shapes (aggregated per cluster)
+
 By default, it shows detailed cluster information such as name, ID, Kubernetes version,
-endpoint, and associated node pools for all matching clusters.
+endpoints, and associated node pools for all matching clusters.
 
 The search is performed using fuzzy matching, which means it will find clusters
 even if the pattern is only partially matched. The search is case-insensitive.
@@ -24,22 +27,30 @@ Additional Information:
 `
 
 var findExamples = `
-  # FuzzySearch clusters with names containing "prod"
-  ocloud compute oke find prod
+  # Fuzzy search clusters with names containing "prod"
+  ocloud compute oke search prod
 
-  # FuzzySearch clusters with names containing "dev" and output in JSON format
-  ocloud compute oke find dev --json
+  # Fuzzy search clusters with names containing "dev" and output in JSON format
+  ocloud compute oke search dev --json
 
-  # FuzzySearch clusters with names containing "test" (case-insensitive)
-  ocloud compute oke find test
+  # Fuzzy search clusters by node pool shape
+  ocloud compute oke search "VM.Standard3"
+
+  # Fuzzy search clusters by OCID fragment or exact OCID
+  ocloud compute oke search ocid1.clusters
+  ocloud compute oke search ocid1.cluster.oc1..exampleexactocid
+
+  # Fuzzy search clusters with tags (key or value)
+  ocloud compute oke search team:platform
+  ocloud compute oke search platform
 `
 
 // NewFindCmd creates a new command for finding OKE clusters by name pattern
 func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:           "find [pattern]",
+		Use:           "search [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "FuzzySearch OKE clusters by name pattern",
+		Short:         "Fuzzy Search OKE clusters by search pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),
@@ -58,5 +69,5 @@ func RunFindCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationCo
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running oke find command", "pattern", namePattern, "in compartment", appCtx.CompartmentName, "json", useJSON)
-	return oke.FindClusters(appCtx, namePattern, useJSON)
+	return oke.SearchOKEClusters(appCtx, namePattern, useJSON)
 }
