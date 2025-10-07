@@ -73,15 +73,15 @@ func TestList(t *testing.T) {
 	assert.NotNil(t, policies)
 }
 
-// TestFind tests the Find function
-func TestFind(t *testing.T) {
+// TestFind tests the FuzzySearch function
+func TestSearch(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
-	t.Skip("Skipping test for Find since it requires the OCI SDK")
+	t.Skip("Skipping test for FuzzySearch since it requires the OCI SDK")
 
-	// This is a placeholder test that would normally test the Find function
+	// This is a placeholder test that would normally test the FuzzySearch function
 	// In a real test, we would:
 	// 1. Create a mock service with mock clients
-	// 2. Call Find with different search patterns
+	// 2. Call FuzzySearch with different search patterns
 	// 3. Verify that the returned policies match the search pattern
 
 	service := &Service{
@@ -90,7 +90,7 @@ func TestFind(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	policies, err := service.Find(ctx, "test")
+	policies, err := service.FuzzySearch(ctx, "test")
 
 	// but if we did, we would expect no error and a valid list of policies
 	assert.NoError(t, err)
@@ -98,7 +98,7 @@ func TestFind(t *testing.T) {
 }
 
 // TestFetchAllPolicies tests the fetchAllPolicies function
-func TestFetchAllPolicies(t *testing.T) {
+func TestSearchAllPolicies(t *testing.T) {
 	// Skip this test since it requires the OCI SDK
 	t.Skip("Skipping test for fetchAllPolicies since it requires the OCI SDK")
 
@@ -121,23 +121,29 @@ func TestFetchAllPolicies(t *testing.T) {
 	assert.NotNil(t, policies)
 }
 
-// TestMapToIndexablePolicy tests the mapToIndexablePolicy function
+// TestMapToIndexablePolicy verifies the SearchablePolicy adapter produces expected fields
 func TestMapToIndexablePolicy(t *testing.T) {
 	// Create a test policy
-	policy := identity.Policy{
+	p := identity.Policy{
 		Name:        "TestPolicy",
 		ID:          "ocid1.policy.oc1.phx.test",
 		Description: "Test policy description",
 		Statement:   []string{"Allow group Administrators to manage all-resources in tenancy"},
 	}
 
-	// Call mapToIndexablePolicy
-	indexable := mapToIndexablePolicy(policy)
+	// Adapt and convert to an indexable map
+	sp := SearchablePolicy{Policy: Policy(p)}
+	doc := sp.ToIndexable()
 
-	// Verify that the indexable policy has the expected values
-	assert.Equal(t, policy.Name, indexable.Name)
-	assert.Equal(t, policy.Description, indexable.Description)
-	assert.Contains(t, indexable.Statement, policy.Statement[0])
+	// Validate expected lower-cased fields and combined statements
+	assert.Equal(t, "testpolicy", doc["Name"])                     // lowercased
+	assert.Equal(t, "test policy description", doc["Description"]) // lowercased
+	assert.Equal(t, "ocid1.policy.oc1.phx.test", doc["OCID"])      // lowercased (already)
+	assert.Contains(t, doc["Statements"], "allow group administrators")
+
+	// Tags are not set; flattened forms should exist as empty strings
+	assert.Equal(t, "", doc["TagsKV"])
+	assert.Equal(t, "", doc["TagsVal"])
 }
 
 // TestMapToPolicies tests the mapToPolicies function

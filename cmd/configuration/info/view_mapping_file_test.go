@@ -1,9 +1,10 @@
 package info
 
 import (
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // TestViewMappingFile tests the ViewMappingFile function
@@ -52,6 +53,6 @@ func TestRunViewFileMappingCommand(t *testing.T) {
 	// For now, we'll just verify that the function doesn't panic
 	assert.NotPanics(t, func() {
 		// We expect an error since the tenancy mapping file is not available in the test environment
-		_ = RunViewFileMappingCommand(cmd)
+		_ = runViewFileMappingCommand(cmd)
 	}, "RunViewFileMappingCommand should not panic")
 }

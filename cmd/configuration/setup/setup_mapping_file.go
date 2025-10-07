@@ -45,15 +45,15 @@ func SetupMappingFile() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunSetupFileMappingCommand(cmd)
+			return runSetupFileMappingCommand(cmd)
 		},
 	}
 
 	return cmd
 }
 
-// RunSetupFileMappingCommand handles the execution of the setup command
-func RunSetupFileMappingCommand(cmd *cobra.Command) error {
+// runSetupFileMappingCommand handles the execution of the setup command
+func runSetupFileMappingCommand(cmd *cobra.Command) error {
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running setup command")
 	return setup.SetupTenancyMapping()
 }

@@ -37,15 +37,15 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunListCommand(cmd, appCtx)
+			return runListCommand(cmd, appCtx)
 		},
 	}
 
 	return cmd
 }
 
-// RunListCommand executes the interactive TUI image lister
-func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// runListCommand executes the interactive TUI image lister
+func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running image list (TUI) command in", "compartment", appCtx.CompartmentName)

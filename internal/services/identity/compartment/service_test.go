@@ -45,7 +45,7 @@ func TestService_Find(t *testing.T) {
 	}
 	service := NewService(mockRepo, logr.Discard(), "test-tenancy")
 
-	results, err := service.Find(context.Background(), "test")
+	results, err := service.FuzzySearch(context.Background(), "test")
 
 	assert.NoError(t, err)
 	assert.Len(t, results, 1)

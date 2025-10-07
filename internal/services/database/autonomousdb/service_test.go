@@ -3,6 +3,7 @@ package autonomousdb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -142,7 +143,7 @@ func TestList(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestFind tests the Find function
+// TestFind tests the FuzzySearch function
 func TestFind(t *testing.T) {
 	mockRepo := new(MockAutonomousDatabaseRepository)
 	appCtx := &app.ApplicationContext{
@@ -160,7 +161,7 @@ func TestFind(t *testing.T) {
 
 	// Test case: found
 	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
-	databases, err := service.Find(ctx, "test")
+	databases, err := service.FuzzySearch(ctx, "test")
 
 	assert.NoError(t, err)
 	assert.Len(t, databases, 1)
@@ -169,7 +170,7 @@ func TestFind(t *testing.T) {
 
 	// Test case: not found
 	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return(expectedDBs, nil).Once()
-	databases, err = service.Find(ctx, "nonexistent")
+	databases, err = service.FuzzySearch(ctx, "nonexistent")
 
 	assert.NoError(t, err) // Fuzzy search returns no error if not found, just an empty list
 	assert.Len(t, databases, 0)
@@ -177,7 +178,7 @@ func TestFind(t *testing.T) {
 
 	// Test case: error from repository
 	mockRepo.On("ListEnrichedAutonomousDatabase", ctx, appCtx.CompartmentID).Return([]database.AutonomousDatabase{}, fmt.Errorf("mock error")).Once()
-	databases, err = service.Find(ctx, "test")
+	databases, err = service.FuzzySearch(ctx, "test")
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to fetch all databases: mock error")
@@ -185,7 +186,7 @@ func TestFind(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-// TestMapToIndexableDatabase tests the mapToIndexableDatabase function
+// TestMapToIndexableDatabase tests the SearchableAutonomousDatabase.ToIndexable mapping
 func TestMapToIndexableDatabase(t *testing.T) {
 	// Create a test database
 	db := database.AutonomousDatabase{
@@ -193,9 +194,11 @@ func TestMapToIndexableDatabase(t *testing.T) {
 		ID:   "ocid1.autonomousdatabase.oc1.phx.test",
 	}
 
-	// Call mapToIndexableDatabase
-	indexable := mapToIndexableDatabase(db)
+	// Adapt to searchable and build indexable map
+	s := SearchableAutonomousDatabase{AutonomousDatabase: db}
+	idx := s.ToIndexable()
 
-	// Verify that the indexable database has the expected values
-	assert.Equal(t, db.Name, indexable.Name)
+	// Verify that the indexable database has the expected (lowercased) values
+	assert.Equal(t, strings.ToLower(db.Name), idx["Name"])
+	assert.Equal(t, strings.ToLower(db.ID), idx["OCID"])
 }
