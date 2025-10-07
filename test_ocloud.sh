@@ -257,20 +257,20 @@ run_command ./bin/ocloud network vcn find "prod" --json
 run_command ./bin/ocloud network vcn find "prod" --all
 run_command ./bin/ocloud network vcn find "prod" -A -j
 
-# Test network loadbalancer get command
-print_header "Testing network loadbalancer get command"
-run_command ./bin/ocloud network loadbalancer get
-run_command ./bin/ocloud network loadbalancer get --limit 10 --page 1 --json
-run_command ./bin/ocloud network loadbalancer get -m 10 -p 1 -j
-run_command ./bin/ocloud network loadbalancer get --all
+# Test network load-balancer get command
+print_header "Testing network load-balancer get command"
+run_command ./bin/ocloud network load-balancer get
+run_command ./bin/ocloud network load-balancer get --limit 10 --page 1 --json
+run_command ./bin/ocloud network load-balancer get -m 10 -p 1 -j
+run_command ./bin/ocloud network load-balancer get --all
 run_command ./bin/ocloud net lb get
 run_command ./bin/ocloud net lb get -A -j
 
-# Test network loadbalancer search command
-print_header "Testing network loadbalancer search command"
-run_command ./bin/ocloud network loadbalancer search "prod"
-run_command ./bin/ocloud network loadbalancer search "prod" --json
-run_command ./bin/ocloud network loadbalancer search "prod" --all
+# Test network load-balancer search command
+print_header "Testing network load-balancer search command"
+run_command ./bin/ocloud network load-balancer search "prod"
+run_command ./bin/ocloud network load-balancer search "prod" --json
+run_command ./bin/ocloud network load-balancer search "prod" --all
 run_command ./bin/ocloud net lb s "prod"
 run_command ./bin/ocloud net lb s "prod" -A -j
 

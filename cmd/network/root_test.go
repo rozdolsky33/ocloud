@@ -27,11 +27,11 @@ func TestNetworkRootCommand(t *testing.T) {
 			hasSubnet = true
 		case "vcn":
 			hasVcn = true
-		case "loadbalancer":
+		case "load-balancer":
 			hasLB = true
 		}
 	}
 	assert.True(t, hasSubnet, "expected subnet subcommand")
 	assert.True(t, hasVcn, "expected vcn subcommand")
-	assert.True(t, hasLB, "expected loadbalancer subcommand")
+	assert.True(t, hasLB, "expected load-balancer subcommand")
 }

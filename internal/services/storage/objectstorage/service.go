@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	storage "github.com/rozdolsky33/ocloud/internal/domain/storage/objectstorage"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/search"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -65,4 +66,43 @@ func (s *Service) FetchPaginatedBuckets(ctx context.Context, limit, pageNum int)
 	}
 	paged, total, next := util.PaginateSlice(all, limit, pageNum)
 	return paged, total, next, nil
+}
+
+func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]Bucket, error) {
+	s.logger.V(logger.Debug).Info("searching object storage buckets", "pattern", searchPattern)
+	// List and enrich buckets similar to ListBuckets behavior
+	all, err := s.osRepo.ListBuckets(ctx, s.CompartmentID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching all buckets for search: %w", err)
+	}
+	for i := range all {
+		name := all[i].Name
+		if name == "" {
+			continue
+		}
+		if full, e := s.osRepo.GetBucketByName(ctx, name); e == nil && full != nil {
+			all[i] = *full
+		}
+	}
+
+	// Build the search index using the common search package and the bucket searcher adapter.
+	indexables := ToSearchableBuckets(all)
+	idxMapping := search.NewIndexMapping(GetSearchableFields())
+	idx, err := search.BuildIndex(indexables, idxMapping)
+	if err != nil {
+		return nil, fmt.Errorf("building search index: %w", err)
+	}
+
+	matchedIdxs, err := search.FuzzySearch(idx, searchPattern, GetSearchableFields(), GetBoostedFields())
+	if err != nil {
+		return nil, fmt.Errorf("performing fuzzy search: %w", err)
+	}
+
+	results := make([]Bucket, 0, len(matchedIdxs))
+	for _, i := range matchedIdxs {
+		if i >= 0 && i < len(all) {
+			results = append(results, all[i])
+		}
+	}
+	return results, nil
 }
