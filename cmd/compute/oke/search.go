@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var findLong = `
+var searchLong = `
 FuzzySearch Oracle Kubernetes Engine (OKE) clusters in the specified compartment that match the given pattern.
 
 This command searches across both cluster-level and node-pool attributes. It matches on:
@@ -26,7 +26,7 @@ Additional Information:
 - The command searches across all available clusters in the compartment
 `
 
-var findExamples = `
+var searchExamples = `
   # Fuzzy search clusters with names containing "prod"
   ocloud compute oke search prod
 
@@ -51,8 +51,8 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
 		Short:         "Fuzzy Search for OKE clusters",
-		Long:          findLong,
-		Example:       findExamples,
+		Long:          searchLong,
+		Example:       searchExamples,
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,

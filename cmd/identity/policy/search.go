@@ -11,7 +11,7 @@ import (
 )
 
 // Long description for the search command
-var findLong = `
+var searchLong = `
 Fuzzy search Policies in the specified tenancy or parent compartment that match the given pattern.
 
 This command searches for policies whose fields match the specified pattern within
@@ -40,7 +40,7 @@ Additional Information:
 `
 
 // Examples for the search command
-var findExamples = `
+var searchExamples = `
   # FuzzySearch policies with names containing "admin" (default scope: compartment)
   ocloud identity policy search admin
 
@@ -61,8 +61,8 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
 		Short:         "Fuzzy Search for Policies",
-		Long:          findLong,
-		Example:       findExamples,
+		Long:          searchLong,
+		Example:       searchExamples,
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,

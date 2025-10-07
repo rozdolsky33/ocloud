@@ -10,7 +10,7 @@ import (
 )
 
 // Long description for the search command
-var findLong = `
+var searchLong = `
 FuzzySearch Autonomous Databases in the specified compartment that match the given pattern.
 
 This command searches across a broad set of Autonomous Database attributes. It matches on:
@@ -28,7 +28,7 @@ Additional Information:
 `
 
 // Examples for the search command
-var findExamples = `
+var searchExamples = `
   # Fuzzy search ADBs with names containing "prod"
   ocloud database autonomous search prod
 
@@ -66,8 +66,8 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "search [pattern]",
 		Aliases:       []string{"s"},
 		Short:         "Fuzzy Search for Autonomous Databases",
-		Long:          findLong,
-		Example:       findExamples,
+		Long:          searchLong,
+		Example:       searchExamples,
 		Args:          cobra.ExactArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,

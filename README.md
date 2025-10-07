@@ -288,7 +288,7 @@ Interactive list (TUI):
 
 Manage and explore Load Balancers in the configured compartment. You can:
 - Get paginated lists with optional extra columns using --all (-A)
-- Find by display name using case-insensitive substring, prefix, and fuzzy matching
+- Search using fuzzy, prefix, token, and substring matching across multiple fields
 - Launch an interactive list (TUI) to search and select a Load Balancer
 
 Examples:
@@ -299,10 +299,11 @@ Examples:
   - ocloud network loadbalancer get --all
   - ocloud net lb get -A -j
 
-- Find Load Balancers by name pattern
-  - ocloud network loadbalancer find prod
-  - ocloud network loadbalancer find prod --json
-  - ocloud net lb find prod -A -j
+- Search Load Balancers by pattern
+  - ocloud network loadbalancer search prod
+  - ocloud network loadbalancer search prod --json
+  - ocloud network loadbalancer search prod --all
+  - ocloud net lb s prod -A -j
 
 Interactive list (TUI):
 - ocloud network loadbalancer list

@@ -20,8 +20,8 @@ func TestSearchCommand(t *testing.T) {
 	assert.Equal(t, "search [pattern]", cmd.Use)
 	assert.Equal(t, []string{"s"}, cmd.Aliases)
 	assert.Equal(t, "Fuzzy Search for OKE clusters", cmd.Short)
-	assert.Equal(t, findLong, cmd.Long)
-	assert.Equal(t, findExamples, cmd.Example)
+	assert.Equal(t, searchLong, cmd.Long)
+	assert.Equal(t, searchExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 	// Verify that the command requires exactly one argument

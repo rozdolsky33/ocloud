@@ -266,13 +266,13 @@ run_command ./bin/ocloud network loadbalancer get --all
 run_command ./bin/ocloud net lb get
 run_command ./bin/ocloud net lb get -A -j
 
-# Test network loadbalancer find command
-print_header "Testing network loadbalancer find command"
-run_command ./bin/ocloud network loadbalancer find "prod"
-run_command ./bin/ocloud network loadbalancer find "prod" --json
-run_command ./bin/ocloud network loadbalancer find "prod" --all
-run_command ./bin/ocloud net lb f "prod"
-run_command ./bin/ocloud net lb f "prod" -A -j
+# Test network loadbalancer search command
+print_header "Testing network loadbalancer search command"
+run_command ./bin/ocloud network loadbalancer search "prod"
+run_command ./bin/ocloud network loadbalancer search "prod" --json
+run_command ./bin/ocloud network loadbalancer search "prod" --all
+run_command ./bin/ocloud net lb s "prod"
+run_command ./bin/ocloud net lb s "prod" -A -j
 
 # Test storage object-storage get command
 print_header "Testing storage object-storage get command"

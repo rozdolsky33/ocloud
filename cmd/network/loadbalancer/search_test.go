@@ -7,15 +7,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFindCommand(t *testing.T) {
+func TestSearchCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
-	cmd := NewFindCmd(appCtx)
+	cmd := NewSearchCmd(appCtx)
 
-	assert.Equal(t, "find <pattern>", cmd.Use)
-	assert.Contains(t, cmd.Aliases, "f")
-	assert.Equal(t, "Finds Load Balancer with existing attribute", cmd.Short)
-	assert.Equal(t, findLong, cmd.Long)
-	assert.Equal(t, findExamples, cmd.Example)
+	assert.Equal(t, "search <pattern>", cmd.Use)
+	assert.Contains(t, cmd.Aliases, "s")
+	assert.Equal(t, "Fuzzy search for Load Balancers", cmd.Short)
+	assert.Equal(t, searchLong, cmd.Long)
+	assert.Equal(t, searchExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
