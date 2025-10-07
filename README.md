@@ -72,6 +72,13 @@ make install
 ```
 
 
+## Prerequisites
+
+Before using OCloud, ensure the following tools and setup are in place:
+- OCI CLI installed and configured. Follow Oracle's Quickstart guide: https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm#Quickstart
+- kubectl installed (for interacting with OKE clusters). Installation instructions for Linux: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+- SSH key pair available in your ~/.ssh directory. This is required for OCI Bastion managed sessions and for SSH port forwarding features.
+
 ## Configuration
 
 Running `ocloud` without any arguments displays the configuration details and available commands.
@@ -86,7 +93,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: v0.0.39
+	      Version: v0.1.0
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -294,19 +301,19 @@ Manage and explore Load Balancers in the configured compartment. You can:
 Examples:
 
 - Get Load Balancers with pagination
-  - ocloud network loadbalancer get
-  - ocloud network loadbalancer get --limit 10 --page 2
-  - ocloud network loadbalancer get --all
+  - ocloud network load-balancer get
+  - ocloud network load-balancer get --limit 10 --page 2
+  - ocloud network load-balancer get --all
   - ocloud net lb get -A -j
 
 - Search Load Balancers by pattern
-  - ocloud network loadbalancer search prod
-  - ocloud network loadbalancer search prod --json
-  - ocloud network loadbalancer search prod --all
+  - ocloud network load-balancer search prod
+  - ocloud network load-balancer search prod --json
+  - ocloud network load-balancer search prod --all
   - ocloud net lb s prod -A -j
 
 Interactive list (TUI):
-- ocloud network loadbalancer list
+- ocloud network load-balancer list
   Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
 
 ### Storage: Object Storage commands
