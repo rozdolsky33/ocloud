@@ -15,15 +15,14 @@ Whether you're managing instances, working with images, or need to quickly find 
 
 ## Features
 
-- Manage compute resources: Instances, Images, and OKE (Kubernetes) clusters and node pools
-- Manage networking resources: Virtual Cloud Networks (VCNs), Subnets, Load Balancers, and related components
-- Manage storage resources: Object Storage Buckets (list via TUI and paginated get)
+- Explore and retrieve information about compute resources: Instances, Images, and OKE (Kubernetes) clusters and node pools
+- Explore and retrieve information about networking resources: Virtual Cloud Networks (VCNs), Subnets, Load Balancers, and related components
+- Explore and retrieve information about storage resources: Object Storage Buckets (interactive list via TUI and paginated get)
 - Powerful find/search commands using Bleve for fuzzy, prefix, and substring matching where applicable
 - Interactive configuration and an OCI Auth Refresher to keep sessions alive
 - Tenancy mapping for friendly tenancy and compartment names
 - Bastion session management: start/attach/terminate OCI Bastion sessions with reachability checks and an interactive SSH key picker (TUI)
 - Consistent JSON output, unified pagination across services, and short/long flag aliases
-- Built-in security in CI: govulncheck vulnerability scanning via `make vuln` and GitHub Actions
 
 ## Installation
 
