@@ -275,10 +275,10 @@ Examples:
   - ocloud network vcn get -m 5 -p 3 --all
   - ocloud network vcn get -m 5 -p 3 -A -j
 
-- Find VCNs by name pattern
-  - ocloud network vcn find prod
-  - ocloud network vcn find prod --all
-  - ocloud network vcn find prod -A -j
+- Search VCNs by pattern
+  - ocloud network vcn search prod
+  - ocloud network vcn search prod --all
+  - ocloud network vcn search prod -A -j
 
 Interactive list (TUI):
 - ocloud network vcn list
@@ -323,6 +323,11 @@ Examples:
   - ocloud storage object-storage get --all
   - ocloud storage os get -A -j
 
+- Search Buckets by pattern
+  - ocloud storage object-storage search prod
+  - ocloud storage object-storage search prod --json
+  - ocloud storage os s prod -j
+
 Interactive list (TUI):
 - ocloud storage object-storage list
   Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
@@ -356,6 +361,7 @@ The project includes a comprehensive test script `test_ocloud.sh` that tests all
 - Compute commands (instance, image, oke)
 - Identity commands (bastion, compartment, policy)
 - Network commands (subnet, vcn, loadbalancer)
+- Storage commands (object-storage)
 - Database commands (autonomousdb)
 
 The script tests various flags and abbreviations for each command, following a consistent pattern throughout.

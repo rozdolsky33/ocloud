@@ -250,12 +250,12 @@ run_command ./bin/ocloud network vcn get --all
 run_command ./bin/ocloud network vcn get -G -S -N -R -L -j
 run_command ./bin/ocloud network vcn get -A -j
 
-# Test network vcn find command
-print_header "Testing network vcn find command"
-run_command ./bin/ocloud network vcn find "prod"
-run_command ./bin/ocloud network vcn find "prod" --json
-run_command ./bin/ocloud network vcn find "prod" --all
-run_command ./bin/ocloud network vcn find "prod" -A -j
+# Test network vcn search command
+print_header "Testing network vcn search command"
+run_command ./bin/ocloud network vcn search "prod"
+run_command ./bin/ocloud network vcn search "prod" --json
+run_command ./bin/ocloud network vcn search "prod" --all
+run_command ./bin/ocloud network vcn search "prod" -A -j
 
 # Test network load-balancer get command
 print_header "Testing network load-balancer get command"
@@ -279,9 +279,19 @@ print_header "Testing storage object-storage get command"
 run_command ./bin/ocloud storage object-storage get
 run_command ./bin/ocloud storage object-storage get --limit 10 --page 1 --json
 run_command ./bin/ocloud storage object-storage get -m 10 -p 1 -j
-run_command ./bin/ocloud storage object-storage get
 run_command ./bin/ocloud storage os get
 run_command ./bin/ocloud storage os get -j
+
+# Test storage object-storage list command (interactive; just ensure it starts)
+print_header "Testing storage object-storage list command"
+run_command ./bin/ocloud storage object-storage list --json
+
+# Test storage object-storage search command
+print_header "Testing storage object-storage search command"
+run_command ./bin/ocloud storage object-storage search "prod"
+run_command ./bin/ocloud storage object-storage search "prod" --json
+run_command ./bin/ocloud storage object-storage search "prod" -j
+run_command ./bin/ocloud storage os s "prod" -j
 
 # Test database command
 print_header "Testing database command"
