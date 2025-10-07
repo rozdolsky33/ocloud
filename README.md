@@ -260,7 +260,7 @@ ocloud identity compartment get -T              # same as above
 
 # Policies
 ocloud identity policy list --scope compartment # explicit compartment-level listing
-ocloud identity policy find prod -T             # tenancy-level search
+ocloud identity policy search prod -T            # tenancy-level search
 ```
 
 ### Networking: VCN commands
@@ -275,10 +275,10 @@ Examples:
   - ocloud network vcn get -m 5 -p 3 --all
   - ocloud network vcn get -m 5 -p 3 -A -j
 
-- Find VCNs by name pattern
-  - ocloud network vcn find prod
-  - ocloud network vcn find prod --all
-  - ocloud network vcn find prod -A -j
+- Search VCNs by pattern
+  - ocloud network vcn search prod
+  - ocloud network vcn search prod --all
+  - ocloud network vcn search prod -A -j
 
 Interactive list (TUI):
 - ocloud network vcn list
@@ -288,7 +288,7 @@ Interactive list (TUI):
 
 Manage and explore Load Balancers in the configured compartment. You can:
 - Get paginated lists with optional extra columns using --all (-A)
-- Find by display name using case-insensitive substring, prefix, and fuzzy matching
+- Search using fuzzy, prefix, token, and substring matching across multiple fields
 - Launch an interactive list (TUI) to search and select a Load Balancer
 
 Examples:
@@ -299,10 +299,11 @@ Examples:
   - ocloud network loadbalancer get --all
   - ocloud net lb get -A -j
 
-- Find Load Balancers by name pattern
-  - ocloud network loadbalancer find prod
-  - ocloud network loadbalancer find prod --json
-  - ocloud net lb find prod -A -j
+- Search Load Balancers by pattern
+  - ocloud network loadbalancer search prod
+  - ocloud network loadbalancer search prod --json
+  - ocloud network loadbalancer search prod --all
+  - ocloud net lb s prod -A -j
 
 Interactive list (TUI):
 - ocloud network loadbalancer list
@@ -321,6 +322,11 @@ Examples:
   - ocloud storage object-storage get --limit 10 --page 2
   - ocloud storage object-storage get --all
   - ocloud storage os get -A -j
+
+- Search Buckets by pattern
+  - ocloud storage object-storage search prod
+  - ocloud storage object-storage search prod --json
+  - ocloud storage os s prod -j
 
 Interactive list (TUI):
 - ocloud storage object-storage list
@@ -355,6 +361,7 @@ The project includes a comprehensive test script `test_ocloud.sh` that tests all
 - Compute commands (instance, image, oke)
 - Identity commands (bastion, compartment, policy)
 - Network commands (subnet, vcn, loadbalancer)
+- Storage commands (object-storage)
 - Database commands (autonomousdb)
 
 The script tests various flags and abbreviations for each command, following a consistent pattern throughout.

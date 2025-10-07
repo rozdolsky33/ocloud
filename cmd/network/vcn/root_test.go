@@ -2,10 +2,11 @@ package vcn
 
 import (
 	"bytes"
+	"testing"
+
 	"github.com/go-logr/logr/testr"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewVcnCmd(t *testing.T) {
@@ -23,7 +24,7 @@ func TestNewVcnCmd(t *testing.T) {
 	assert.Equal(t, "Manage OCI Virtual Cloud Networks (VCNs)", cmd.Short)
 
 	// Check if subcommands are added
-	expectedSubcommands := []string{"get", "list"}
+	expectedSubcommands := []string{"get", "list", "search"}
 	for _, sub := range expectedSubcommands {
 		found := false
 		for _, c := range cmd.Commands() {

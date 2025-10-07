@@ -14,7 +14,7 @@ func NewIdentityCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		Use:           "identity",
 		Aliases:       []string{"ident", "idt"},
 		Short:         "Manage OCI identity services",
-		Long:          "Manage Oracle Cloud Infrastructure Identity services such as compartments, policies, bastion sessions and more.",
+		Long:          "Manage Oracle Cloud Infrastructure Identity services such as compartments, policies, bastion sessions",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

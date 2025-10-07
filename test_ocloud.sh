@@ -80,12 +80,12 @@ run_command ./bin/ocloud compute instance get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute instance get -m 10 -p 1 -j
 run_command ./bin/ocloud comp inst get
 
-# Test compute instance find command
-print_header "Testing compute instance find command"
-run_command ./bin/ocloud compute instance find "roster"
-run_command ./bin/ocloud compute instance find "roster" --all --json
-run_command ./bin/ocloud compute instance find "roster" -A -j
-run_command ./bin/ocloud comp inst f "roster"
+# Test compute instance search command
+print_header "Testing compute instance search command"
+run_command ./bin/ocloud compute instance search "roster"
+run_command ./bin/ocloud compute instance search "roster" --all --json
+run_command ./bin/ocloud compute instance search "roster" -A -j
+run_command ./bin/ocloud comp inst s "roster"
 
 # Test compute image command
 print_header "Testing compute image command"
@@ -99,12 +99,12 @@ run_command ./bin/ocloud compute image get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute image get -m 10 -p 1 -j
 run_command ./bin/ocloud comp img get
 
-# Test compute image find command
-print_header "Testing compute image find command"
-run_command ./bin/ocloud compute image find "ubuntu"
-run_command ./bin/ocloud compute image find "ubuntu" --json
-run_command ./bin/ocloud compute image find "ubuntu" -j
-run_command ./bin/ocloud comp img f "ubuntu"
+# Test compute image search command
+print_header "Testing compute image search command"
+run_command ./bin/ocloud compute image search "Oracle-Linux"
+run_command ./bin/ocloud compute image search "Oracle-Linux" --json
+run_command ./bin/ocloud compute image search "Oracle-Linux" -j
+run_command ./bin/ocloud comp img s "Oracle-Linux"
 
 # Test compute oke command
 print_header "Testing compute oke command"
@@ -118,12 +118,12 @@ run_command ./bin/ocloud compute oke get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute oke get -m 10 -p 1 -j
 run_command ./bin/ocloud comp oke get
 
-# Test compute oke find command
-print_header "Testing compute oke find command"
-run_command ./bin/ocloud compute oke find "orion"
-run_command ./bin/ocloud compute oke find "orion" --json
-run_command ./bin/ocloud compute oke find "orion" -j
-run_command ./bin/ocloud comp oke f "orion"
+# Test compute oke search command
+print_header "Testing compute oke search command"
+run_command ./bin/ocloud compute oke search "orion"
+run_command ./bin/ocloud compute oke search "orion" --json
+run_command ./bin/ocloud compute oke search "orion" -j
+run_command ./bin/ocloud comp oke s "orion"
 
 # Test with debug flag
 print_header "Testing with debug flag"
@@ -146,6 +146,7 @@ run_command ./bin/ocloud identity compartment --help
 run_command ./bin/ocloud identity compart --help
 run_command ./bin/ocloud ident compart --help
 
+
 # Test identity compartment list command
 print_header "Testing identity compartment get command"
 run_command ./bin/ocloud identity compartment get
@@ -153,12 +154,26 @@ run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json
 run_command ./bin/ocloud identity compartment get -m 10 -p 1 -j
 
 
-# Test identity compartment find command
-print_header "Testing identity compartment find command"
-run_command ./bin/ocloud identity compartment find "sand"
-run_command ./bin/ocloud identity compartment find "sand" --json
-run_command ./bin/ocloud identity compartment find "sand" -j
-run_command ./bin/ocloud ident compart f "sand"
+# Test identity compartment search command
+print_header "Testing identity compartment search command"
+run_command ./bin/ocloud identity compartment search "sandbox"
+run_command ./bin/ocloud identity compartment search "sandbox" --json
+run_command ./bin/ocloud identity compartment search "sandbox" -j
+run_command ./bin/ocloud ident compart s "sandbox" -T
+
+# Test identity compartment list command
+print_header "Testing identity compartment get command in tenancy scope"
+run_command ./bin/ocloud identity compartment get -T
+run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json --scope tenancy
+run_command ./bin/ocloud identity compartment get -m 10 -p 1 -j --tenancy-scope
+
+
+# Test identity compartment search command
+print_header "Testing identity compartment search command in tenancy"
+run_command ./bin/ocloud identity compartment search "sandbox" --tenancy-scope
+run_command ./bin/ocloud identity compartment search "sandbox" --json -T
+run_command ./bin/ocloud identity compartment search "sandbox" -j --scope tenancy
+run_command ./bin/ocloud ident compart s "sandbox" -T
 
 # Test identity policy command
 print_header "Testing identity policy command"
@@ -173,12 +188,25 @@ run_command ./bin/ocloud identity policy get
 run_command ./bin/ocloud identity policy get --limit 10 --page 1 --json
 run_command ./bin/ocloud identity policy get -m 10 -p 1 -j
 
-# Test identity policy find command
-print_header "Testing identity policy find command"
-run_command ./bin/ocloud identity policy find "monitor"
-run_command ./bin/ocloud identity policy find "monitor" --json
-run_command ./bin/ocloud identity policy find "monitor" -j
-run_command ./bin/ocloud ident pol f "monitor"
+# Test identity policy search command
+print_header "Testing identity policy search command"
+run_command ./bin/ocloud identity policy search "monitor"
+run_command ./bin/ocloud identity policy search "monitor" --json
+run_command ./bin/ocloud identity policy search "monitor" -j
+run_command ./bin/ocloud ident pol s "monitor"
+
+
+# Test identity policy search command in tenancy scope
+print_header "Testing identity policy search command in tenancy scope"
+run_command ./bin/ocloud identity policy get --tenancy-scope
+run_command ./bin/ocloud identity policy get  -T
+run_command ./bin/ocloud identity policy get --limit 10 --page 1 --json --scope tenancy
+run_command ./bin/ocloud identity policy get -m 10 -p 1 -j -T
+
+run_command ./bin/ocloud identity policy search "monitor" --scope tenancy
+run_command ./bin/ocloud identity policy search "monitor" --json -T
+run_command ./bin/ocloud identity policy search "monitor" -j -T
+run_command ./bin/ocloud ident pol s "monitor" --tenancy-scope
 
 # Test network command
 print_header "Testing network command"
@@ -222,38 +250,48 @@ run_command ./bin/ocloud network vcn get --all
 run_command ./bin/ocloud network vcn get -G -S -N -R -L -j
 run_command ./bin/ocloud network vcn get -A -j
 
-# Test network vcn find command
-print_header "Testing network vcn find command"
-run_command ./bin/ocloud network vcn find "prod"
-run_command ./bin/ocloud network vcn find "prod" --json
-run_command ./bin/ocloud network vcn find "prod" --all
-run_command ./bin/ocloud network vcn find "prod" -A -j
+# Test network vcn search command
+print_header "Testing network vcn search command"
+run_command ./bin/ocloud network vcn search "prod"
+run_command ./bin/ocloud network vcn search "prod" --json
+run_command ./bin/ocloud network vcn search "prod" --all
+run_command ./bin/ocloud network vcn search "prod" -A -j
 
-# Test network loadbalancer get command
-print_header "Testing network loadbalancer get command"
-run_command ./bin/ocloud network loadbalancer get
-run_command ./bin/ocloud network loadbalancer get --limit 10 --page 1 --json
-run_command ./bin/ocloud network loadbalancer get -m 10 -p 1 -j
-run_command ./bin/ocloud network loadbalancer get --all
+# Test network load-balancer get command
+print_header "Testing network load-balancer get command"
+run_command ./bin/ocloud network load-balancer get
+run_command ./bin/ocloud network load-balancer get --limit 10 --page 1 --json
+run_command ./bin/ocloud network load-balancer get -m 10 -p 1 -j
+run_command ./bin/ocloud network load-balancer get --all
 run_command ./bin/ocloud net lb get
 run_command ./bin/ocloud net lb get -A -j
 
-# Test network loadbalancer find command
-print_header "Testing network loadbalancer find command"
-run_command ./bin/ocloud network loadbalancer find "prod"
-run_command ./bin/ocloud network loadbalancer find "prod" --json
-run_command ./bin/ocloud network loadbalancer find "prod" --all
-run_command ./bin/ocloud net lb f "prod"
-run_command ./bin/ocloud net lb f "prod" -A -j
+# Test network load-balancer search command
+print_header "Testing network load-balancer search command"
+run_command ./bin/ocloud network load-balancer search "prod"
+run_command ./bin/ocloud network load-balancer search "prod" --json
+run_command ./bin/ocloud network load-balancer search "prod" --all
+run_command ./bin/ocloud net lb s "prod"
+run_command ./bin/ocloud net lb s "prod" -A -j
 
 # Test storage object-storage get command
 print_header "Testing storage object-storage get command"
 run_command ./bin/ocloud storage object-storage get
 run_command ./bin/ocloud storage object-storage get --limit 10 --page 1 --json
 run_command ./bin/ocloud storage object-storage get -m 10 -p 1 -j
-run_command ./bin/ocloud storage object-storage get
 run_command ./bin/ocloud storage os get
 run_command ./bin/ocloud storage os get -j
+
+# Test storage object-storage list command (interactive; just ensure it starts)
+print_header "Testing storage object-storage list command"
+run_command ./bin/ocloud storage object-storage list --json
+
+# Test storage object-storage search command
+print_header "Testing storage object-storage search command"
+run_command ./bin/ocloud storage object-storage search "prod"
+run_command ./bin/ocloud storage object-storage search "prod" --json
+run_command ./bin/ocloud storage object-storage search "prod" -j
+run_command ./bin/ocloud storage os s "prod" -j
 
 # Test database command
 print_header "Testing database command"
@@ -272,12 +310,12 @@ run_command ./bin/ocloud database autonomous get
 run_command ./bin/ocloud database autonomous get --limit 10 --page 1 --json
 run_command ./bin/ocloud database autonomous get -m 10 -p 1 -j
 
-# Test database autonomousdb find command
-print_header "Testing database autonomousdb find command"
-run_command ./bin/ocloud database autonomous find "test"
-run_command ./bin/ocloud database autonomous find "test" --json
-run_command ./bin/ocloud database autonomous find "test" -j
-run_command ./bin/ocloud db adb f "test"
+# Test database autonomousdb search command
+print_header "Testing database autonomousdb search command"
+run_command ./bin/ocloud database autonomous search "test"
+run_command ./bin/ocloud database autonomous search "test" --json
+run_command ./bin/ocloud database autonomous search "test" -j
+run_command ./bin/ocloud db adb s "test"
 
 # Test version command and flag
 print_header "Testing ocloud settings"

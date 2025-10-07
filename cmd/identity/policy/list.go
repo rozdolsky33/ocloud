@@ -53,7 +53,7 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunListCommand(cmd, appCtx)
+			return runListCommand(cmd, appCtx)
 		},
 	}
 	scopeFlags.ScopeFlag.Add(cmd)
@@ -62,8 +62,8 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 }
 
-// RunListCommand handles the execution of the list command
-func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// runListCommand handles the execution of the list command
+func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	scope := scopeUtil.ResolveScope(cmd)
 	parentID := scopeUtil.ResolveParentID(scope, appCtx)

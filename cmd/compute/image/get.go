@@ -49,7 +49,7 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunGetCommand(cmd, appCtx)
+			return runGetCommand(cmd, appCtx)
 		},
 	}
 
@@ -59,8 +59,8 @@ func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// RunGetCommand handles the execution of the list command
-func RunGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// runGetCommand handles the execution of the list command
+func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, imageFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, imageFlags.FlagDefaultPage)
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)

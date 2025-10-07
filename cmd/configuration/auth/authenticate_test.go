@@ -54,7 +54,7 @@ func TestRunAuthenticateCommand(t *testing.T) {
 	cmd.Flags().Set("realm", "OC1")
 
 	// Run the authenticate command
-	err := RunAuthenticateCommand(cmd)
+	err := runAuthenticateCommand(cmd)
 
 	// Since we can't easily mock the auth.AuthenticateWithOCI function,
 	// we'll just verify that the function returns without error

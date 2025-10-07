@@ -36,15 +36,15 @@ func NewListCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunListCommand(cmd, appCtx)
+			return runListCommand(cmd, appCtx)
 		},
 	}
 	return cmd
 
 }
 
-// RunListCommand handles the execution of the list command
-func RunListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// runListCommand handles the execution of the list command
+func runListCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running autonomous database list command")
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
 	return autonomousdb.ListAutonomousDatabases(appCtx, useJSON)

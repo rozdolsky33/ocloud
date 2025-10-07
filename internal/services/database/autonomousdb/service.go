@@ -9,6 +9,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/domain/database"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/search"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -43,17 +44,14 @@ func (s *Service) ListAutonomousDb(ctx context.Context) ([]AutonomousDatabase, e
 func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum int) ([]AutonomousDatabase, int, string, error) {
 	s.logger.V(logger.Debug).Info("listing autonomous databases", "limit", limit, "pageNum", pageNum)
 
-	// First, try an enriched list
 	allDatabases, err := s.repo.ListEnrichedAutonomousDatabase(ctx, s.compartmentID)
 	if err != nil {
-		// Fallback to base a list on error (as tests expect)
 		allDatabases, err = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("failed to list autonomous databases: %w", err)
 		}
 	}
 
-	// If an enriched list is empty, also fallback to a base list to confirm (as tests expect)
 	if len(allDatabases) == 0 {
 		var baseErr error
 		allDatabases, baseErr = s.repo.ListAutonomousDatabases(ctx, s.compartmentID)
@@ -68,42 +66,37 @@ func (s *Service) FetchPaginatedAutonomousDb(ctx context.Context, limit, pageNum
 	return pagedResults, totalCount, nextPageToken, nil
 }
 
-// Find performs a fuzzy search to find autonomous databases matching the given search pattern in their Name field.
-func (s *Service) Find(ctx context.Context, searchPattern string) ([]AutonomousDatabase, error) {
-	logger.LogWithLevel(s.logger, logger.Trace, "finding database with bleve fuzzy search", "pattern", searchPattern)
-
-	// 1: Fetch all databases
+// FuzzySearch performs a fuzzy search for Autonomous Databases using the generic search engine.
+func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]AutonomousDatabase, error) {
+	logger.LogWithLevel(s.logger, logger.Trace, "finding databases with search", "pattern", searchPattern)
 	allDatabases, err := s.repo.ListEnrichedAutonomousDatabase(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch all databases: %w", err)
 	}
-	// 2: Build index
-	index, err := util.BuildIndex(allDatabases, func(db database.AutonomousDatabase) any {
-		return mapToIndexableDatabase(db)
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to build index: %w", err)
+	p := strings.TrimSpace(searchPattern)
+	if p == "" {
+		return allDatabases, nil
 	}
 
-	// Step 3: Fuzzy search on multiple fields
-	fields := []string{"Name"}
-	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
+	// Build index using SearchableAutonomousDatabase
+	indexables := ToSearchableAutonomousDBs(allDatabases)
+	idxMapping := search.NewIndexMapping(GetSearchableFields())
+	idx, err := search.BuildIndex(indexables, idxMapping)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fuzzy search index: %w", err)
+		return nil, fmt.Errorf("building search index: %w", err)
 	}
 
-	var results []AutonomousDatabase
-	for _, idx := range matchedIdxs {
-		if idx >= 0 && idx < len(allDatabases) {
-			results = append(results, allDatabases[idx]) // TODO: REDO
+	hits, err := search.FuzzySearch(idx, strings.ToLower(p), GetSearchableFields(), GetBoostedFields())
+	if err != nil {
+		return nil, fmt.Errorf("executing search: %w", err)
+	}
+
+	results := make([]AutonomousDatabase, 0, len(hits))
+	for _, i := range hits {
+		if i >= 0 && i < len(allDatabases) {
+			results = append(results, allDatabases[i])
 		}
 	}
-	return results, nil
-}
 
-func mapToIndexableDatabase(db database.AutonomousDatabase) IndexableAutonomousDatabase {
-	return IndexableAutonomousDatabase{
-		Name: db.Name,
-	}
+	return results, nil
 }

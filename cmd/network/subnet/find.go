@@ -10,7 +10,7 @@ import (
 
 // Long description for the find command
 var findLong = `
-Find Subnets in the specified tenancy or compartment that match the given pattern.
+FuzzySearch Subnets in the specified tenancy or compartment that match the given pattern.
 
 This command searches for subnets whose names match the specified pattern.
 By default, it shows detailed subnet information such as name, ID, CIDR block,
@@ -26,13 +26,13 @@ Additional Information:
 
 // Examples for the find command
 var findExamples = `
-  # Find subnets with names containing "prod"
+  # FuzzySearch subnets with names containing "prod"
   ocloud network subnet find prod
 
-  # Find subnets with names containing "dev" and output in JSON format
+  # FuzzySearch subnets with names containing "dev" and output in JSON format
   ocloud network subnet find dev --json
 
-  # Find subnets with names containing "test" (case-insensitive)
+  # FuzzySearch subnets with names containing "test" (case-insensitive)
   ocloud network subnet find test
 `
 
@@ -41,7 +41,7 @@ func NewFindCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "find [pattern]",
 		Aliases:       []string{"f"},
-		Short:         "Find Subnets by name pattern",
+		Short:         "FuzzySearch Subnets by name pattern",
 		Long:          findLong,
 		Example:       findExamples,
 		Args:          cobra.ExactArgs(1),

@@ -21,7 +21,7 @@ func TestPolicyCommand(t *testing.T) {
 	assert.Equal(t, "policy", cmd.Use)
 	assert.Equal(t, []string{"pol"}, cmd.Aliases)
 	assert.Equal(t, "Manage OCI Policies", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Policies: list, get, and search by name or pattern.", cmd.Long)
+	assert.Equal(t, "Manage Oracle Cloud Infrastructure Policies: list, get, and search", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
@@ -30,16 +30,16 @@ func TestPolicyCommand(t *testing.T) {
 	assert.Equal(t, 3, len(subCmds), "policy command should have 2 subcommands")
 
 	// Check that the list subcommand is present
-	listCmd := findSubCommand(subCmds, "get")
+	listCmd := policySubCommand(subCmds, "get")
 	assert.NotNil(t, listCmd, "policy command should have get subcommand")
 
 	// Check that the find subcommand is present
-	findCmd := findSubCommand(subCmds, "find")
+	findCmd := policySubCommand(subCmds, "search")
 	assert.NotNil(t, findCmd, "policy command should have find subcommand")
 }
 
-// findSubCommand is a helper function to find a subcommand by name
-func findSubCommand(cmds []*cobra.Command, name string) *cobra.Command {
+// policySubCommand is a helper function to find a subcommand by name
+func policySubCommand(cmds []*cobra.Command, name string) *cobra.Command {
 	for _, cmd := range cmds {
 		if cmd.Name() == name {
 			return cmd

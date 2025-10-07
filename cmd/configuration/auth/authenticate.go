@@ -34,7 +34,7 @@ func NewAuthenticateCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunAuthenticateCommand(cmd)
+			return runAuthenticateCommand(cmd)
 		},
 	}
 
@@ -44,7 +44,7 @@ func NewAuthenticateCmd() *cobra.Command {
 	return cmd
 }
 
-func RunAuthenticateCommand(cmd *cobra.Command) error {
+func runAuthenticateCommand(cmd *cobra.Command) error {
 	filter := flags.GetStringFlag(cmd, flags.FlagNameFilter, "")
 	realm := flags.GetStringFlag(cmd, flags.FlagNameRealm, "")
 	logger.LogWithLevel(logger.CmdLogger, logger.Debug, "Running authenticate command", "filter", filter, "realm", realm)

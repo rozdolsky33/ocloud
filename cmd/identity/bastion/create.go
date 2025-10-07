@@ -20,14 +20,14 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return RunCreateCommand(cmd, appCtx)
+			return runCreateCommand(cmd, appCtx)
 		},
 	}
 	return cmd
 }
 
-// RunCreateCommand orchestrates the full flow. It calls TUI for selections.
-func RunCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
+// runCreateCommand orchestrates the full flow. It calls TUI for selections.
+func runCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
 
 	svc, err := bastionSvc.NewService(appCtx)
