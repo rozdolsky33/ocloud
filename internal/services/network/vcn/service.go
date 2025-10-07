@@ -3,11 +3,11 @@ package vcn
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	domain "github.com/rozdolsky33/ocloud/internal/domain/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/search"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
@@ -50,53 +50,31 @@ func (s *Service) ListVcns(ctx context.Context) ([]VCN, error) {
 	return allVcn, nil
 }
 
-// Find performs a fuzzy search for vcns.
-func (s *Service) Find(ctx context.Context, searchPattern string) ([]VCN, error) {
+// FuzzySearch performs a fuzzy search for vcns.
+func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]VCN, error) {
 	all, err := s.vcnRepo.ListEnrichedVcns(ctx, s.compartmentID)
 	if err != nil {
-		return nil, fmt.Errorf("fetching all vcns for search: %w", err)
+		return nil, fmt.Errorf("fetching all VCNs for search: %w", err)
 	}
 
-	index, err := util.BuildIndex(all, func(vcn VCN) any {
-		return mapToIndexableVCN(&vcn)
-	})
+	// Build the search index using the common search package and the VCN searcher adapter.
+	indexables := ToSearchableVCNs(all)
+	idxMapping := search.NewIndexMapping(GetSearchableFields())
+	idx, err := search.BuildIndex(indexables, idxMapping)
 	if err != nil {
 		return nil, fmt.Errorf("building search index: %w", err)
 	}
 
-	fields := []string{"Name", "OCID", "DNSLabel", "DomainName", "CidrBlocks", "TagText", "TagValues"}
-	matchedIdxs, err := util.FuzzySearchIndex(index, strings.ToLower(searchPattern), fields)
+	matchedIdxs, err := search.FuzzySearch(idx, searchPattern, GetSearchableFields(), GetBoostedFields())
 	if err != nil {
 		return nil, fmt.Errorf("performing fuzzy search: %w", err)
 	}
-	var results []VCN
-	for _, idx := range matchedIdxs {
-		if idx >= 0 && idx < len(all) {
-			results = append(results, all[idx])
+
+	results := make([]VCN, 0, len(matchedIdxs))
+	for _, i := range matchedIdxs {
+		if i >= 0 && i < len(all) {
+			results = append(results, all[i])
 		}
 	}
-
 	return results, nil
-}
-
-// mapToIndexableVCN converts a domain.VCN to a struct suitable for indexing.
-func mapToIndexableVCN(v *VCN) any {
-	// Flatten tags for better search coverage
-	tagText, _ := util.FlattenTags(v.FreeformTags, v.DefinedTags)
-	tagValues, _ := util.ExtractTagValues(v.FreeformTags, v.DefinedTags)
-	return struct {
-		Name       string
-		OCID       string
-		DNSLabel   string
-		DomainName string
-		TagText    string
-		TagValues  string
-	}{
-		Name:       strings.ToLower(v.DisplayName),
-		OCID:       strings.ToLower(v.OCID),
-		DNSLabel:   strings.ToLower(v.DnsLabel),
-		DomainName: strings.ToLower(v.DomainName),
-		TagText:    tagText,
-		TagValues:  tagValues,
-	}
 }

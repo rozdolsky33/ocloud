@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
 	ocivcn "github.com/rozdolsky33/ocloud/internal/oci/network/vcn"
 )
 
-func FindVCNs(appCtx *app.ApplicationContext, pattern string, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
+func SearchVCNs(appCtx *app.ApplicationContext, pattern string, useJSON, gateways, subnets, nsgs, routes, securityLists bool) error {
 	ctx := context.Background()
 	networkClient, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {
@@ -19,10 +20,14 @@ func FindVCNs(appCtx *app.ApplicationContext, pattern string, useJSON, gateways,
 	adapter := ocivcn.NewAdapter(networkClient)
 	service := NewService(adapter, appCtx.Logger, appCtx.CompartmentID)
 
-	vcns, err := service.Find(ctx, pattern)
+	vcns, err := service.FuzzySearch(ctx, pattern)
 	if err != nil {
 		return fmt.Errorf("finding vcn: %w", err)
 	}
-
-	return PrintVCNsInfo(vcns, appCtx, nil, useJSON, gateways, subnets, nsgs, routes, securityLists)
+	err = PrintVCNsInfo(vcns, appCtx, nil, useJSON, gateways, subnets, nsgs, routes, securityLists)
+	if err != nil {
+		return fmt.Errorf("printing vcn: %w", err)
+	}
+	logger.LogWithLevel(logger.CmdLogger, logger.Info, "Found matching vcn", "search", pattern, "matched", len(vcns))
+	return nil
 }

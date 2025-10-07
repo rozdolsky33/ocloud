@@ -7,16 +7,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFindCommand(t *testing.T) {
+func TestSearchCommand(t *testing.T) {
 	appCtx := &app.ApplicationContext{}
-	cmd := NewFindCmd(appCtx)
+	cmd := NewSearchCmd(appCtx)
 
-	assert.Equal(t, "find <pattern>", cmd.Use)
-	assert.Equal(t, "Finds VCNs by a name pattern", cmd.Short)
-	assert.Equal(t, findLong, cmd.Long)
-	assert.Equal(t, findExamples, cmd.Example)
+	assert.Equal(t, "search <pattern>", cmd.Use)
+	assert.Equal(t, "Fuzzy search for VCNs", cmd.Short)
+	assert.Equal(t, searchLong, cmd.Long)
+	assert.Equal(t, searchExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
+
+	// Aliases
+	assert.Contains(t, cmd.Aliases, "s")
 
 	// Require exactly one arg
 	assert.NotNil(t, cmd.Args)
