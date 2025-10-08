@@ -9,9 +9,9 @@
 
 ## Overview
 
-OCloud is a powerful command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for managing common OCI services—including compute, identity, networking, and database—with a focus on usability, performance, and automation.
+OCloud is a powerful command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for exploring and retrieving information about common OCI services—including compute, identity, networking, and storage with a focus on usability, performance, and automation.
 
-Whether you're managing instances, working with images, or need to quickly find resources across your OCI environment, OCloud offers an intuitive and efficient interface that works seamlessly with your existing OCI configuration.
+Whether you're exploring instances, working with images, or need to quickly find resources across your OCI environment, OCloud offers an intuitive and efficient interface that works seamlessly with your existing OCI configuration.
 
 ## Features
 
