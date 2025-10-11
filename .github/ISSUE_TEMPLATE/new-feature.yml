@@ -1,36 +1,91 @@
-name: New feature
-description: Suggest or request a new feature
+name: CLI Feature request
+description: Suggest or request a new capability for the ocloud CLI
+title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Please fill out the sections below to properly describe the new feature you are suggesting.
-  - type: textarea
-    id: description
+        Please propose features in terms of CLI user value and how it fits the architecture (domain, mapping, services, cmd). Fill out the sections below.
+  - type: input
+    id: motivation
     attributes:
-      label: Describe the feature
-      placeholder: A button in the screen X that allows to do Y
+      label: What problem does this solve?
+      placeholder: As a user, I want to ... so that ...
     validations:
       required: true
   - type: textarea
-    id: rationale
+    id: proposal
     attributes:
-      label: It should be implemented because
-      placeholder: It will allow to do Y that is needed for Z
+      label: Proposed solution
+      description: CLI UX, command(s), flags, and behavior.
+      placeholder: |
+        New command: `ocloud network vcn create`
+        Flags: --compartment, --cidr-block, ...
+        Output: table/json, etc.
+    validations:
+      required: true
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain area
+      multiple: true
+      options:
+        - compute
+        - network
+        - storage
+        - database
+        - identity
+        - configuration
+        - search
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Architecture impact
+      description: Describe changes across layers.
+      placeholder: |
+        Domain: new model X in internal/domain/... 
+        Mapping: map SDK Y to domain X (internal/mapping)
+        Services: new use case Z (internal/services/...)
+        OCI adapters: new calls (internal/oci/...)
+        cmd: new cobra command with flags (cmd/...)
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: Other approaches and why they were rejected.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: Clear, testable criteria (including error cases and docs updates).
+      value: |
+        - [ ] CLI command(s) implemented and documented
+        - [ ] Unit tests for mapping/services
+        - [ ] E2E sanity (manual or script) documented
+        - [ ] Backward compatibility maintained
+  - type: checkboxes
+    id: checklists
+    attributes:
+      label: Contributor checklist
+      options:
+        - label: I have read CONTRIBUTING.md
+          required: true
+        - label: I will add/update tests and docs as needed
+        - label: The proposal aligns with the separation of concerns (domain, mapping, services, cmd)
   - type: textarea
     id: context
     attributes:
       label: Additional context
-      placeholder: |
-        Add any other context or screenshots about the feature request here.
+      placeholder: Links, prior art, screenshots, etc.
   - type: dropdown
     id: assign
     attributes:
-      label: "Would you like to work on this issue?"
+      label: Would you like to work on this issue?
       options:
         - "Yes"
+        - "No"
   - type: markdown
     attributes:
       value: |
-        Thanks for your suggestion! Let's see together if it can be implemented.
+        Thanks for your suggestion! Check CONTRIBUTING.md for architecture references and patterns.
