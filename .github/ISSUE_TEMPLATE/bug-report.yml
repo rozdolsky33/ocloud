@@ -1,4 +1,4 @@
-name: Bug report
+name: CLI Bug report
 description: Report a reproducible problem with the ocloud CLI
 title: "[Bug]: "
 labels: ["bug"]
