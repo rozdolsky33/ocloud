@@ -396,3 +396,25 @@ Tip: You can also enable colored log messages with `--color`.
 ## License
 
 This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+We welcome contributions! Please read our contributing guide for development setup, coding standards, testing, and—most importantly—how changes should align with the project architecture (domain, mapping, services, cmd):
+
+- See CONTRIBUTING.md: https://github.com/rozdolsky33/ocloud/blob/main/CONTRIBUTING.md
+
+If you plan to work on a change that spans multiple layers, describe the data flow and adapter wiring in your PR as outlined in the guide.
+
+## Reporting issues and feature requests
+
+Use our GitHub Issue Forms so we can triage faster:
+- Bug report: includes CLI command(s), environment, region/tenancy context, and debug logs.
+- Feature request: focuses on CLI UX and the impact across domain, mapping, services, cmd, and oci adapters.
+
+Open a new issue: https://github.com/rozdolsky33/ocloud/issues/new/choose
+
+Tips for good bug reports:
+- Run with --log-level debug and paste relevant logs (redact secrets).
+- Include exact command(s) and flags used, along with OS/arch and ocloud version (ocloud version).
+
+Have a question rather than a bug/feature? Please use Discussions: https://github.com/rozdolsky33/ocloud/discussions
