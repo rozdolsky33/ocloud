@@ -74,8 +74,8 @@ make install
 ## Prerequisites
 
 Before using OCloud, ensure the following tools and setup are in place:
-- OCI CLI installed and configured. Follow Oracle's Quickstart guide: https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm#Quickstart
-- kubectl installed (for interacting with OKE clusters). Installation instructions for Linux: https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+- OCI CLI installed and configured. Follow Oracle's [Quickstart guide](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm#Quickstart)
+- kubectl installed (for interacting with OKE clusters). Installation instructions for [macOS](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/) and [Linux](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/) are available.
 - SSH key pair available in your ~/.ssh directory. This is required for OCI Bastion managed sessions and for SSH port forwarding features.
 
 ## Configuration
@@ -315,29 +315,6 @@ Interactive list (TUI):
 - ocloud network load-balancer list
   Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
 
-### Storage: Object Storage commands
-
-Manage and explore Object Storage Buckets in the configured compartment. You can:
-- Get paginated lists with optional extended details using --all (-A)
-- Launch an interactive list (TUI) to search and select a Bucket
-
-Examples:
-
-- Get Buckets with pagination
-  - ocloud storage object-storage get
-  - ocloud storage object-storage get --limit 10 --page 2
-  - ocloud storage object-storage get --all
-  - ocloud storage os get -A -j
-
-- Search Buckets by pattern
-  - ocloud storage object-storage search prod
-  - ocloud storage object-storage search prod --json
-  - ocloud storage os s prod -j
-
-Interactive list (TUI):
-- ocloud storage object-storage list
-  Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
-
 ### Development Commands
 
 | Command | Description |
@@ -401,7 +378,7 @@ This project is licensed under the MIT License—see the [LICENSE](LICENSE) file
 
 We welcome contributions! Please read our contributing guide for development setup, coding standards, testing, and—most importantly—how changes should align with the project architecture (domain, mapping, services, cmd):
 
-- See CONTRIBUTING.md: https://github.com/rozdolsky33/ocloud/blob/main/CONTRIBUTING.md
+- See [CONTRIBUTING.md](https://github.com/rozdolsky33/ocloud/blob/main/CONTRIBUTING.md)
 
 If you plan to work on a change that spans multiple layers, describe the data flow and adapter wiring in your PR as outlined in the guide.
 
@@ -411,10 +388,10 @@ Use our GitHub Issue Forms so we can triage faster:
 - Bug report: includes CLI command(s), environment, region/tenancy context, and debug logs.
 - Feature request: focuses on CLI UX and the impact across domain, mapping, services, cmd, and oci adapters.
 
-Open a new issue: https://github.com/rozdolsky33/ocloud/issues/new/choose
+Open a new [issue](https://github.com/rozdolsky33/ocloud/issues/new/choose)
 
 Tips for good bug reports:
 - Run with --log-level debug and paste relevant logs (redact secrets).
 - Include exact command(s) and flags used, along with OS/arch and ocloud version (ocloud version).
 
-Have a question rather than a bug/feature? Please use Discussions: https://github.com/rozdolsky33/ocloud/discussions
+Have a question rather than a bug/feature? Please use [Discussions](https://github.com/rozdolsky33/ocloud/discussions)
