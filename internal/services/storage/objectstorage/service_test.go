@@ -27,7 +27,7 @@ func (f *fakeRepo) GetBucketNameByOCID(ctx context.Context, compartmentID, bucke
 	return "", assert.AnError
 }
 
-func (f *fakeRepo) GetBucketByName(ctx context.Context, name string) (*Bucket, error) {
+func (f *fakeRepo) GetBucketByName(ctx context.Context, compartmentID, name string) (*Bucket, error) {
 	if b, ok := f.byName[name]; ok {
 		return &b, nil
 	}
