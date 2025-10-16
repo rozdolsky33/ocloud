@@ -9,6 +9,8 @@ on:
       - 'feature/*'
       - "refactor/*"
       - "refactor-*"
+      - 'hotfix/*'
+      - 'bugfix/*'
     paths-ignore:
       - 'README.md'
   pull_request:
@@ -40,7 +42,6 @@ jobs:
         with:
           go-version: '1.25.x'
           cache: true
-      # Ensure all Go files are formatted
       - name: Check gofmt
         run: |
           unformatted=$(gofmt -s -l .)

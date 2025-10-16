@@ -1,0 +1,105 @@
+name: CLI Bug Report
+description: Report a reproducible problem with the ocloud CLI
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide enough detail so we can reproduce and fix the bug. Use --log-level debug where relevant and paste logs below.
+  - type: input
+    id: ocloud_version
+    attributes:
+      label: ocloud version
+      description: Output of `ocloud version`
+      placeholder: v0.1.0 (commit abcdef)
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and architecture
+      placeholder: macOS 14.6 (arm64) / Ubuntu 24.04 (x86_64)
+    validations:
+      required: true
+  - type: input
+    id: go_version
+    attributes:
+      label: Go version (if building from source)
+      placeholder: go1.22.x
+  - type: input
+    id: oci_region
+    attributes:
+      label: OCI region
+      placeholder: us-ashburn-1
+  - type: input
+    id: tenancy
+    attributes:
+      label: Tenancy/Compartment context
+      description: Tenancy OCID or mapped name; compartment OCID or name
+      placeholder: ocid1.tenancy... / my-compartment
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command(s) run
+      description: Include all flags and environment variables.
+      placeholder: |
+        OCI_CLI_TENANCY=... ocloud compute instance list --compartment ... --log-level debug
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run command X
+        2. Observe output Y
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What happened? Include any error messages.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (debug level preferred)
+      description: Redact secrets before pasting. Use --log-level debug.
+      render: shell
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Affected area(s)
+      options:
+        - label: cmd (CLI flags/commands)
+        - label: services (use-cases)
+        - label: mapping (SDK <-> domain)
+        - label: domain models
+        - label: oci adapters (SDK calls)
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      placeholder: Screenshots, configs, tenancy-map snippet, etc.
+  - type: dropdown
+    id: assign
+    attributes:
+      label: Would you like to work on this issue?
+      options:
+        - "Yes"
+        - "No"
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please check CONTRIBUTING.md for our debugging tips and architecture overview.

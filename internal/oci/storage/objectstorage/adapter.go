@@ -20,7 +20,10 @@ func NewAdapter(client objectstorage.ObjectStorageClient) *Adapter {
 
 // GetBucketNameByOCID retrieves the OCID of a bucket by its name.
 func (a *Adapter) GetBucketNameByOCID(ctx context.Context, compartmentID, bucketOCID string) (string, error) {
-	nsResp, err := a.client.GetNamespace(ctx, objectstorage.GetNamespaceRequest{})
+	nsResp, err := a.client.GetNamespace(ctx, objectstorage.GetNamespaceRequest{
+		CompartmentId: &compartmentID,
+	})
+
 	if err != nil {
 		return "", fmt.Errorf("failed to get namespace: %w", err)
 	}
@@ -66,8 +69,10 @@ func (a *Adapter) GetBucketNameByOCID(ctx context.Context, compartmentID, bucket
 }
 
 // GetBucketByName retrieves a single bucket by its name (interprets input string as bucket name).
-func (a *Adapter) GetBucketByName(ctx context.Context, bucketName string) (*domain.Bucket, error) {
-	nsResp, err := a.client.GetNamespace(ctx, objectstorage.GetNamespaceRequest{})
+func (a *Adapter) GetBucketByName(ctx context.Context, compartmentID, bucketName string) (*domain.Bucket, error) {
+	nsResp, err := a.client.GetNamespace(ctx, objectstorage.GetNamespaceRequest{
+		CompartmentId: &compartmentID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get namespace: %w", err)
 	}
@@ -92,7 +97,9 @@ func (a *Adapter) GetBucketByName(ctx context.Context, bucketName string) (*doma
 func (a *Adapter) ListBuckets(ctx context.Context, ocid string) (buckets []domain.Bucket, err error) {
 	var allBuckets []domain.Bucket
 	var page *string
-	nsResp, err := a.client.GetNamespace(context.Background(), objectstorage.GetNamespaceRequest{})
+	nsResp, err := a.client.GetNamespace(context.Background(), objectstorage.GetNamespaceRequest{
+		CompartmentId: &ocid,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get namespace: %w", err)
 	}
