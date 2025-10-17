@@ -21,7 +21,7 @@ func TestNewVcnCmd(t *testing.T) {
 	cmd.SetOut(out)
 
 	assert.Equal(t, "vcn", cmd.Use)
-	assert.Equal(t, "Manage OCI Virtual Cloud Networks (VCNs)", cmd.Short)
+	assert.Equal(t, "Explore OCI Virtual Cloud Networks (VCNs)", cmd.Short)
 
 	// Check if subcommands are added
 	expectedSubcommands := []string{"get", "list", "search"}

@@ -10,8 +10,8 @@ func NewSubnetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "subnet",
 		Aliases:       []string{"sub"},
-		Short:         "Manage OCI Subnets",
-		Long:          "Manage Oracle Cloud Infrastructure Subnets - list all subnets or find subnet by pattern.",
+		Short:         "Explore OCI Subnets",
+		Long:          "Explore Oracle Cloud Infrastructure Subnets - list all subnets or find subnet by pattern.",
 		Example:       "  ocloud network subnet list \n  ocloud network subnet find mysubnet",
 		SilenceUsage:  true,
 		SilenceErrors: true,

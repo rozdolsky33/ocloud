@@ -17,15 +17,15 @@ func TestCreateRootCmd(t *testing.T) {
 	assert.Equal(t, "Interact with Oracle Cloud Infrastructure", rootCmd.Short)
 	assert.True(t, rootCmd.SilenceUsage)
 
-	// Verify that version command is added
+	// Verify that a version command is added
 	versionCmd := findSubcommand(rootCmd, "version")
 	assert.NotNil(t, versionCmd, "version command should be added as a subcommand")
 
-	// Verify that config command is added
+	// Verify that the config command is added
 	configCmd := findSubcommand(rootCmd, "config")
 	assert.NotNil(t, configCmd, "config command should be added as a subcommand")
 
-	// Verify that compute command is not added when appCtx is nil
+	// Verify that the compute command is not added when appCtx is nil
 	computeCmd := findSubcommand(rootCmd, "compute")
 	assert.Nil(t, computeCmd, "compute command should not be added when appCtx is nil")
 
@@ -34,15 +34,15 @@ func TestCreateRootCmd(t *testing.T) {
 	rootCmdWithCtx := CreateRootCmd(mockAppCtx)
 	assert.NotNil(t, rootCmdWithCtx, "root command should not be nil")
 
-	// Verify that compute command is added when appCtx is not nil
+	// Verify that the compute command is added when appCtx is not nil
 	computeCmdWithCtx := findSubcommand(rootCmdWithCtx, "compute")
 	assert.NotNil(t, computeCmdWithCtx, "compute command should be added when appCtx is not nil")
 
-	// Verify that identity command is added when appCtx is not nil
+	// Verify that the identity command is added when appCtx is not nil
 	identityCmd := findSubcommand(rootCmdWithCtx, "identity")
 	assert.NotNil(t, identityCmd, "identity command should be added when appCtx is not nil")
 
-	// Verify that database command is added when appCtx is not nil
+	// Verify that a database command is added when appCtx is not nil
 	databaseCmd := findSubcommand(rootCmdWithCtx, "database")
 	assert.NotNil(t, databaseCmd, "database command should be added when appCtx is not nil")
 

@@ -13,7 +13,7 @@ func TestNetworkRootCommand(t *testing.T) {
 
 	assert.Equal(t, "network", cmd.Use)
 	assert.Contains(t, cmd.Aliases, "net")
-	assert.Equal(t, "Manage OCI network services", cmd.Short)
+	assert.Equal(t, "Explore OCI network services", cmd.Short)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

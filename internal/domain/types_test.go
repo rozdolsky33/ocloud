@@ -42,7 +42,7 @@ func TestResourceTags(t *testing.T) {
 		assert.Equal(t, "value1", tags["key1"])
 		assert.Equal(t, "value2", tags["key2"])
 
-		// Update existing key
+		// Update the existing key
 		tags["key1"] = "updated-value1"
 		assert.Equal(t, "updated-value1", tags["key1"])
 		assert.Len(t, tags, 2)
@@ -50,6 +50,6 @@ func TestResourceTags(t *testing.T) {
 		// Delete key
 		delete(tags, "key2")
 		assert.Len(t, tags, 1)
-		assert.Equal(t, "", tags["key2"]) // Zero value for missing key
+		assert.Equal(t, "", tags["key2"]) // Zero value for a missing key
 	})
 }

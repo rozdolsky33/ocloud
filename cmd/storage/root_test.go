@@ -15,7 +15,7 @@ func TestStorageRootCommand(t *testing.T) {
 
 	assert.Equal(t, "storage", cmd.Use)
 	assert.Contains(t, cmd.Aliases, "stg")
-	assert.Equal(t, "Manage OCI Storage Resources", cmd.Short)
+	assert.Equal(t, "Explore OCI Storage Resources", cmd.Short)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

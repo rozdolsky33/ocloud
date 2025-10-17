@@ -108,12 +108,12 @@ Usage:
   ocloud [command]
 
 Available Commands:
-  compute     Manage OCI compute services
-  config      Manage ocloud CLI configurations file and authentication
-  database    Manage OCI Database services
+  compute     Explore OCI compute services
+  config      Configure ocloud CLI and authentication
+  database    Explore OCI Database services
   help        Help about any command
-  identity    Manage OCI identity services
-  network     Manage OCI networking services
+  identity    Explore OCI identity services
+  network     Explore OCI networking services
   version     Print the version information
 
 Flags:
@@ -292,7 +292,7 @@ Interactive list (TUI):
 
 ### Networking: Load Balancer commands
 
-Manage and explore Load Balancers in the configured compartment. You can:
+Explore Load Balancers in the configured compartment. You can:
 - Get paginated lists with optional extra columns using --all (-A)
 - Search using fuzzy, prefix, token, and substring matching across multiple fields
 - Launch an interactive list (TUI) to search and select a Load Balancer

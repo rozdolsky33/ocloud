@@ -14,8 +14,8 @@ func NewComputeCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "compute",
 		Aliases:       []string{"comp"},
-		Short:         "Manage OCI compute services",
-		Long:          "Manage Oracle Cloud Infrastructure Compute services such as instances, images, and oke.",
+		Short:         "Explore OCI compute services",
+		Long:          "Explore Oracle Cloud Infrastructure Compute services such as instances, images, and oke.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

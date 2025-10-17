@@ -10,8 +10,8 @@ func NewCompartmentCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "compartment",
 		Aliases:       []string{"compart", "comp", "cmp", "c"},
-		Short:         "Manage OCI Compartments",
-		Long:          "Manage Oracle Cloud Infrastructure Compartments: list, get and search",
+		Short:         "Explore OCI Compartments",
+		Long:          "Explore Oracle Cloud Infrastructure Compartments: list, get and search",
 		Example:       "  ocloud identity compartment get \n  ocloud identity compartment list \n  ocloud identity compartment search <value>",
 		SilenceUsage:  true,
 		SilenceErrors: true,

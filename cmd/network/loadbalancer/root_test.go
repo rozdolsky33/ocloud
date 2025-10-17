@@ -15,8 +15,8 @@ func TestRootCommand(t *testing.T) {
 	assert.Contains(t, cmd.Aliases, "loadbalancer")
 	assert.Contains(t, cmd.Aliases, "lb")
 	assert.Contains(t, cmd.Aliases, "lbr")
-	assert.Equal(t, "Manage OCI Network Load Balancers", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Network Load Balancers such as LBs, listeners, backend sets, and more", cmd.Long)
+	assert.Equal(t, "Explore OCI Network Load Balancers", cmd.Short)
+	assert.Equal(t, "Explore Oracle Cloud Infrastructure Network Load Balancers such as LBs, listeners, backend sets, and more", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

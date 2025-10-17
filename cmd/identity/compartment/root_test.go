@@ -20,8 +20,8 @@ func TestCompartmentCommand(t *testing.T) {
 	// Test that the compartment command is properly configured
 	assert.Equal(t, "compartment", cmd.Use)
 	assert.Equal(t, []string{"compart", "comp", "cmp", "c"}, cmd.Aliases)
-	assert.Equal(t, "Manage OCI Compartments", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Compartments: list, get and search", cmd.Long)
+	assert.Equal(t, "Explore OCI Compartments", cmd.Short)
+	assert.Equal(t, "Explore Oracle Cloud Infrastructure Compartments: list, get and search", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

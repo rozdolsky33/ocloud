@@ -12,8 +12,8 @@ func NewDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "database",
 		Aliases:       []string{"db"},
-		Short:         "Manage OCI Database services",
-		Long:          "Manage Oracle Cloud Infrastructure database services such as Autonomous Database, HeatWave MySql and more.",
+		Short:         "Explore OCI Database services",
+		Long:          "Explore Oracle Cloud Infrastructure database services such as Autonomous Database, HeatWave and more.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
