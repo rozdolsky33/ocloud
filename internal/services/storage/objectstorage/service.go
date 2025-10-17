@@ -36,7 +36,7 @@ func (s *Service) ListBuckets(ctx context.Context) ([]Bucket, error) {
 		if name == "" {
 			continue
 		}
-		full, e := s.osRepo.GetBucketByName(ctx, name)
+		full, e := s.osRepo.GetBucketByName(ctx, s.CompartmentID, name)
 		if e != nil {
 			continue
 		}
@@ -58,7 +58,7 @@ func (s *Service) FetchPaginatedBuckets(ctx context.Context, limit, pageNum int)
 		if name == "" {
 			continue
 		}
-		full, e := s.osRepo.GetBucketByName(ctx, name)
+		full, e := s.osRepo.GetBucketByName(ctx, s.CompartmentID, name)
 		if e != nil {
 			continue
 		}
@@ -80,7 +80,7 @@ func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]Buck
 		if name == "" {
 			continue
 		}
-		if full, e := s.osRepo.GetBucketByName(ctx, name); e == nil && full != nil {
+		if full, e := s.osRepo.GetBucketByName(ctx, s.CompartmentID, name); e == nil && full != nil {
 			all[i] = *full
 		}
 	}

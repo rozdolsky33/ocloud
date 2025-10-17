@@ -37,7 +37,7 @@ func ListBuckets(appCtx *app.ApplicationContext, useJSON bool) error {
 	}
 
 	name, err := service.osRepo.GetBucketNameByOCID(ctx, appCtx.CompartmentID, id)
-	bucket, err := service.osRepo.GetBucketByName(ctx, name)
+	bucket, err := service.osRepo.GetBucketByName(ctx, appCtx.CompartmentID, name)
 	if err != nil {
 		return fmt.Errorf("getting bucket: %w", err)
 	}
