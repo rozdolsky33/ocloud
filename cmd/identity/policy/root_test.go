@@ -20,8 +20,8 @@ func TestPolicyCommand(t *testing.T) {
 	// Test that the policy command is properly configured
 	assert.Equal(t, "policy", cmd.Use)
 	assert.Equal(t, []string{"pol"}, cmd.Aliases)
-	assert.Equal(t, "Manage OCI Policies", cmd.Short)
-	assert.Equal(t, "Manage Oracle Cloud Infrastructure Policies: list, get, and search", cmd.Long)
+	assert.Equal(t, "Explore OCI Policies", cmd.Short)
+	assert.Equal(t, "Explore Oracle Cloud Infrastructure Policies: list, get, and search", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

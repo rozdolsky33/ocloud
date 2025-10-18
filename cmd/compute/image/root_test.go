@@ -20,7 +20,7 @@ func TestImageCommand(t *testing.T) {
 
 	// Test that the image command is properly configured
 	assert.Equal(t, "image", cmd.Use)
-	assert.Equal(t, "Manage OCI Compute images — list, get, and search", cmd.Short)
+	assert.Equal(t, "Explore OCI Compute images — list, get, and search", cmd.Short)
 	assert.Equal(t, "List OCI Compute images in a compartment. Supports paging through large result sets and fuzzy search", cmd.Long)
 	assert.Equal(t, "  ocloud compute image get\n  ocloud compute image list\n  ocloud compute image search <value>", cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

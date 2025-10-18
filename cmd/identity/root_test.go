@@ -14,7 +14,7 @@ func TestIdentityRootCommand(t *testing.T) {
 	assert.Equal(t, "identity", cmd.Use)
 	assert.Contains(t, cmd.Aliases, "ident")
 	assert.Contains(t, cmd.Aliases, "idt")
-	assert.Equal(t, "Manage OCI identity services", cmd.Short)
+	assert.Equal(t, "Explore OCI identity services and manage bastion sessions", cmd.Short)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 

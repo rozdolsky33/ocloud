@@ -13,8 +13,8 @@ func NewNetworkCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "network",
 		Aliases:       []string{"net"},
-		Short:         "Manage OCI network services",
-		Long:          "Manage Oracle Cloud Infrastructure Networking services such as vcn, subnets and more.",
+		Short:         "Explore OCI network services",
+		Long:          "Explore Oracle Cloud Infrastructure Networking services such as vcn, subnets and more.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

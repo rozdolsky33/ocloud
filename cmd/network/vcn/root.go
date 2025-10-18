@@ -9,7 +9,7 @@ import (
 func NewVcnCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "vcn",
-		Short:         "Manage OCI Virtual Cloud Networks (VCNs)",
+		Short:         "Explore OCI Virtual Cloud Networks (VCNs)",
 		Long:          "  ocloud network vcn list \n  ocloud network vcn get \n  ocloud network vcn search <value>",
 		SilenceUsage:  true,
 		SilenceErrors: true,

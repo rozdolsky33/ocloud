@@ -10,8 +10,8 @@ func NewStorageCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "storage",
 		Aliases:       []string{"stg"},
-		Short:         "Manage OCI Storage Resources",
-		Long:          "Manage Oracle Cloud Infrastructure Storage Resources: list, get, and search by name or pattern.",
+		Short:         "Explore OCI Storage Resources",
+		Long:          "Explore Oracle Cloud Infrastructure Storage Resources: object storage, block storage, file storage, and more.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

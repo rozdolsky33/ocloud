@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/rozdolsky33/ocloud/cmd/database/autonomousdb"
+	"github.com/rozdolsky33/ocloud/cmd/database/heatwave"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -12,13 +13,14 @@ func NewDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "database",
 		Aliases:       []string{"db"},
-		Short:         "Manage OCI Database services",
-		Long:          "Manage Oracle Cloud Infrastructure database services such as Autonomous Database, HeatWave MySql and more.",
+		Short:         "Explore OCI Database services",
+		Long:          "Explore Oracle Cloud Infrastructure database services such as Autonomous Database, HeatWave and more.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
 
 	cmd.AddCommand(autonomousdb.NewAutonomousDatabaseCmd(appCtx))
+	cmd.AddCommand(heatwave.NewHeatWaveDatabaseCmd(appCtx))
 
 	return cmd
 }

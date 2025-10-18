@@ -11,7 +11,7 @@ func NewInstanceCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "instance",
 		Aliases:       []string{"inst"},
-		Short:         "Manage OCI Compute instances — list, get, and search.",
+		Short:         "Explore OCI Compute instances — list, get, and search.",
 		Long:          "List OCI Compute instances in a compartment. Supports paging through large result sets and fuzzy search",
 		Example:       "  ocloud compute instance get\n  ocloud compute instance list\n  ocloud compute instance search <value>",
 		SilenceUsage:  true,

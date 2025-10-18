@@ -282,10 +282,6 @@ run_command ./bin/ocloud storage object-storage get -m 10 -p 1 -j
 run_command ./bin/ocloud storage os get
 run_command ./bin/ocloud storage os get -j
 
-# Test storage object-storage list command (interactive; just ensure it starts)
-print_header "Testing storage object-storage list command"
-run_command ./bin/ocloud storage object-storage list --json
-
 # Test storage object-storage search command
 print_header "Testing storage object-storage search command"
 run_command ./bin/ocloud storage object-storage search "prod"
@@ -316,6 +312,30 @@ run_command ./bin/ocloud database autonomous search "test"
 run_command ./bin/ocloud database autonomous search "test" --json
 run_command ./bin/ocloud database autonomous search "test" -j
 run_command ./bin/ocloud db adb s "test"
+
+# Test database heatwave command
+print_header "Testing database heatwave command"
+run_command ./bin/ocloud database heatwave --help
+run_command ./bin/ocloud database hw --help
+run_command ./bin/ocloud db hw --help
+
+# Test database heatwave get command
+print_header "Testing database heatwave get command"
+run_command ./bin/ocloud database heatwave get
+run_command ./bin/ocloud database heatwave get --limit 10 --page 1 --json
+run_command ./bin/ocloud database heatwave get -m 10 -p 1 -j
+run_command ./bin/ocloud database heatwave get --all
+run_command ./bin/ocloud db hw get -A -j
+
+
+# Test database heatwave search command
+print_header "Testing database heatwave search command"
+run_command ./bin/ocloud database heatwave search "prod"
+run_command ./bin/ocloud database heatwave search "prod" --json
+run_command ./bin/ocloud database heatwave search "prod" --all
+run_command ./bin/ocloud database heatwave search "prod" -A -j
+run_command ./bin/ocloud db hw s "prod"
+run_command ./bin/ocloud db hw s "8.4" -j
 
 # Test version command and flag
 print_header "Testing ocloud settings"

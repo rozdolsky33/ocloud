@@ -10,12 +10,6 @@ import (
 )
 
 // SearchAutonomousDatabases searches for OCI Autonomous Databases matching the given query string in the current context.
-// Parameters:
-// - appCtx: The application context containing OCI configuration and runtime settings.
-// - search: The search query string to perform a fuzzy match against the available databases.
-// - useJSON: A flag that determines if the output should be JSON formatted.
-// - showAll: A flag indicating whether detailed or summary information should be displayed.
-// Returns an error if database search or result processing fails.
 func SearchAutonomousDatabases(appCtx *app.ApplicationContext, search string, useJSON bool, showAll bool) error {
 	adapter, err := ociadb.NewAdapter(appCtx.Provider)
 	if err != nil {
