@@ -90,8 +90,20 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	// High availability
 	highAvailability := boolToString(db.IsHighlyAvailable)
 
+	// Primary endpoint info
+	primaryIP := db.IpAddress
+	primaryPort := ""
+	if db.Port != nil {
+		primaryPort = fmt.Sprintf("%d", *db.Port)
+	}
+	primaryFQDN := ""
+	if db.HostnameLabel != "" && db.SubnetName != "" && db.VcnName != "" {
+		// Construct FQDN pattern: hostname.subnet.vcn.oraclevcn.com
+		primaryFQDN = fmt.Sprintf("%s.%s.%s.oraclevcn.com", db.HostnameLabel, db.SubnetName, db.VcnName)
+	}
+
 	if !showAll {
-		// Summary view
+		// Summary view - Essential operational info
 		summary := map[string]string{
 			"Lifecycle State":   db.LifecycleState,
 			"MySQL Version":     db.MysqlVersion,
@@ -101,16 +113,18 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 			"HeatWave Cluster":  heatwaveCluster,
 			"Database Mode":     db.DatabaseMode,
 			"Access Mode":       db.AccessMode,
+			"Private IP":        primaryIP,
+			"Port":              primaryPort,
 			"Subnet":            subnetVal,
 			"VCN":               vcnVal,
-			"NSGs":              nsgVal,
 		}
 		if db.TimeCreated != nil {
 			summary["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
 		}
 		ordered := []string{
 			"Lifecycle State", "MySQL Version", "Shape", "Storage", "High Availability",
-			"HeatWave Cluster", "Database Mode", "Access Mode", "Subnet", "VCN", "NSGs", "Time Created",
+			"HeatWave Cluster", "Database Mode", "Access Mode", "Private IP", "Port",
+			"Subnet", "VCN", "Time Created",
 		}
 		p.PrintKeyValues(title, summary, ordered)
 		return nil
@@ -156,15 +170,30 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	details["Database Mode"] = db.DatabaseMode
 	details["Access Mode"] = db.AccessMode
 	details["Configuration ID"] = db.ConfigurationId
-	orderedKeys = append(orderedKeys, "Database Mode", "Access Mode", "Configuration ID")
+	details["Crash Recovery"] = db.CrashRecovery
+	orderedKeys = append(orderedKeys, "Database Mode", "Access Mode", "Configuration ID", "Crash Recovery")
 
 	// Network
 	details["Subnet"] = subnetVal
+	details["Subnet Type"] = "Regional" // HeatWave DB systems use regional subnets
 	details["VCN"] = vcnVal
 	details["NSGs"] = nsgVal
-	orderedKeys = append(orderedKeys, "Subnet", "VCN", "NSGs")
+	orderedKeys = append(orderedKeys, "Subnet", "Subnet Type", "VCN", "NSGs")
 
-	// Endpoints
+	// Primary Endpoint - Critical connection info
+	details["Private IP"] = primaryIP
+	if primaryPort != "" {
+		details["Database Port"] = primaryPort
+	}
+	if db.PortX != nil {
+		details["X Protocol Port"] = fmt.Sprintf("%d", *db.PortX)
+	}
+	if primaryFQDN != "" {
+		details["Internal FQDN"] = primaryFQDN
+	}
+	orderedKeys = append(orderedKeys, "Private IP", "Database Port", "X Protocol Port", "Internal FQDN")
+
+	// Additional Endpoints
 	if len(db.Endpoints) > 0 {
 		for i, endpoint := range db.Endpoints {
 			if endpoint.IpAddress != nil {
@@ -177,6 +206,11 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 				details[key] = *endpoint.Hostname
 				orderedKeys = append(orderedKeys, key)
 			}
+			if endpoint.Port != nil {
+				key := fmt.Sprintf("Endpoint %d Port", i+1)
+				details[key] = fmt.Sprintf("%d", *endpoint.Port)
+				orderedKeys = append(orderedKeys, key)
+			}
 		}
 	}
 
@@ -185,16 +219,102 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	details["Fault Domain"] = db.FaultDomain
 	orderedKeys = append(orderedKeys, "Availability Domain", "Fault Domain")
 
-	// Backup Policy
+	// Backup Policy - Critical for SREs
 	if db.BackupPolicy != nil {
 		if db.BackupPolicy.IsEnabled != nil {
-			details["Backup Enabled"] = boolToString(db.BackupPolicy.IsEnabled)
-			orderedKeys = append(orderedKeys, "Backup Enabled")
+			details["Automatic Backups"] = boolToString(db.BackupPolicy.IsEnabled)
+			orderedKeys = append(orderedKeys, "Automatic Backups")
+		}
+		if db.BackupPolicy.WindowStartTime != nil {
+			details["Backup Window"] = *db.BackupPolicy.WindowStartTime
+			orderedKeys = append(orderedKeys, "Backup Window")
 		}
 		if db.BackupPolicy.RetentionInDays != nil {
-			details["Backup Retention"] = fmt.Sprintf("%d days", *db.BackupPolicy.RetentionInDays)
-			orderedKeys = append(orderedKeys, "Backup Retention")
+			details["Retention Days"] = fmt.Sprintf("%d", *db.BackupPolicy.RetentionInDays)
+			orderedKeys = append(orderedKeys, "Retention Days")
 		}
+	}
+
+	// Point-in-time recovery
+	if db.PointInTimeRecoveryDetails != nil {
+		details["Point-in-time Recovery"] = "Enabled"
+		if db.PointInTimeRecoveryDetails.TimeEarliestRecoveryPoint != nil {
+			details["Earliest Recovery Point"] = db.PointInTimeRecoveryDetails.TimeEarliestRecoveryPoint.Format("2006-01-02 15:04:05")
+		}
+		orderedKeys = append(orderedKeys, "Point-in-time Recovery", "Earliest Recovery Point")
+	}
+
+	// Deletion protection
+	if db.DeletionPolicy != nil {
+		if db.DeletionPolicy.IsDeleteProtected != nil {
+			details["Delete Protected"] = boolToString(db.DeletionPolicy.IsDeleteProtected)
+			orderedKeys = append(orderedKeys, "Delete Protected")
+		}
+		if db.DeletionPolicy.FinalBackup != "" {
+			details["Final Backup"] = string(db.DeletionPolicy.FinalBackup)
+			orderedKeys = append(orderedKeys, "Final Backup")
+		}
+	}
+
+	// Maintenance window
+	if db.MaintenanceInfo != nil && db.MaintenanceInfo.WindowStartTime != nil {
+		details["Maintenance Window"] = *db.MaintenanceInfo.WindowStartTime
+		orderedKeys = append(orderedKeys, "Maintenance Window")
+	}
+
+	// Encryption
+	if db.EncryptData != nil {
+		if db.EncryptData.KeyId != nil {
+			details["Encryption Key"] = *db.EncryptData.KeyId
+		} else {
+			details["Encryption Key"] = "Oracle-managed key"
+		}
+		orderedKeys = append(orderedKeys, "Encryption Key")
+	}
+
+	// Security certificates
+	if db.SecureConnections != nil {
+		if db.SecureConnections.CertificateGenerationType != "" {
+			details["Security Certificate"] = string(db.SecureConnections.CertificateGenerationType)
+			orderedKeys = append(orderedKeys, "Security Certificate")
+		}
+	}
+
+	// Read endpoint
+	if db.ReadEndpoint != nil {
+		if db.ReadEndpoint.ReadEndpointIpAddress != nil {
+			details["Read Endpoint IP"] = *db.ReadEndpoint.ReadEndpointIpAddress
+			orderedKeys = append(orderedKeys, "Read Endpoint IP")
+		} else {
+			details["Read Endpoint"] = "Disabled"
+			orderedKeys = append(orderedKeys, "Read Endpoint")
+		}
+	}
+
+	// Database Management
+	if db.DatabaseManagement != "" {
+		details["Database Management"] = db.DatabaseManagement
+		orderedKeys = append(orderedKeys, "Database Management")
+	}
+
+	// Customer contacts
+	if len(db.CustomerContacts) > 0 {
+		var contacts []string
+		for _, contact := range db.CustomerContacts {
+			if contact.Email != nil {
+				contacts = append(contacts, *contact.Email)
+			}
+		}
+		if len(contacts) > 0 {
+			details["Customer Contacts"] = fmt.Sprintf("%v", contacts)
+			orderedKeys = append(orderedKeys, "Customer Contacts")
+		}
+	}
+
+	// Lifecycle details (useful for troubleshooting)
+	if db.LifecycleDetails != "" {
+		details["Lifecycle Details"] = db.LifecycleDetails
+		orderedKeys = append(orderedKeys, "Lifecycle Details")
 	}
 
 	p.PrintKeyValues(title, details, orderedKeys)

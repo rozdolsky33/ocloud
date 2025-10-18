@@ -33,6 +33,12 @@ type HeatWaveDatabase struct {
 	DataStorageSizeInGBs *int
 	IsHighlyAvailable    *bool
 
+	// Primary endpoint connection details
+	HostnameLabel string
+	IpAddress     string
+	Port          *int
+	PortX         *int
+
 	// HeatWave cluster
 	IsHeatWaveClusterAttached *bool
 	HeatWaveCluster           *mysql.HeatWaveClusterSummary
@@ -47,12 +53,24 @@ type HeatWaveDatabase struct {
 	FaultDomain        string
 
 	// Backup & maintenance
-	BackupPolicy    *mysql.BackupPolicy
-	DeletionPolicy  *mysql.DeletionPolicyDetails
-	MaintenanceInfo *mysql.MaintenanceDetails
+	BackupPolicy               *mysql.BackupPolicy
+	DeletionPolicy             *mysql.DeletionPolicyDetails
+	MaintenanceInfo            *mysql.MaintenanceDetails
+	CrashRecovery              string
+	PointInTimeRecoveryDetails *mysql.PointInTimeRecoveryDetails
 
 	// REST & security
-	RestInfo *mysql.RestDetails
+	RestInfo          *mysql.RestDetails
+	SecureConnections *mysql.SecureConnectionDetails
+	EncryptData       *mysql.EncryptDataDetails
+
+	// Read endpoint & monitoring
+	ReadEndpoint       *mysql.ReadEndpointDetails
+	DatabaseManagement string
+	CustomerContacts   []mysql.CustomerContact
+
+	// Lifecycle details
+	LifecycleDetails string
 
 	// Tags
 	FreeformTags map[string]string
