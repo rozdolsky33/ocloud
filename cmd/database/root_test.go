@@ -19,11 +19,15 @@ func TestDatabaseRootCommand(t *testing.T) {
 
 	// Verify autonomous subcommand exists
 	hasAutonomous := false
+	hasHeatWave := false
 	for _, sc := range cmd.Commands() {
 		if sc.Use == "autonomous" {
 			hasAutonomous = true
-			break
+		}
+		if sc.Use == "heatwave" {
+			hasHeatWave = true
 		}
 	}
 	assert.True(t, hasAutonomous, "expected autonomous subcommand")
+	assert.True(t, hasHeatWave, "expected heatwave subcommand")
 }

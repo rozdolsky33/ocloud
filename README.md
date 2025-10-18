@@ -1,4 +1,5 @@
 # OCloud - Oracle Cloud Infrastructure CLI Tool
+
 [![CI Build](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/build.yml)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rozdolsky33/ocloud?sort=semver)
 [![Downloads](https://img.shields.io/github/downloads/rozdolsky33/ocloud/total?style=flat&logo=cloudsmith&logoColor=white&label=downloads&labelColor=2f363d&color=brightgreen)](https://github.com/rozdolsky33/ocloud/releases)
@@ -9,24 +10,43 @@
 
 ## Overview
 
-OCloud is a powerful command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for exploring and retrieving information about common OCI services—including compute, identity, networking, and storage with a focus on usability, performance, and automation.
+OCloud is a powerful command-line interface (CLI) tool designed to simplify interactions with Oracle Cloud Infrastructure (OCI). It provides a streamlined experience for exploring and retrieving information about common OCI services with a focus on usability, performance, and automation.
 
-Whether you're exploring instances, working with images, or need to quickly find resources across your OCI environment, OCloud offers an intuitive and efficient interface that works seamlessly with your existing OCI configuration.
+Whether you're exploring instances, working with databases, or need to quickly find resources across your OCI environment, OCloud offers an intuitive and efficient interface that works seamlessly with your existing OCI configuration.
 
 ## Features
 
-- Explore and retrieve information about compute resources: Instances, Images, and OKE (Kubernetes) clusters and node pools
-- Explore and retrieve information about networking resources: Virtual Cloud Networks (VCNs), Subnets, Load Balancers, and related components
-- Explore and retrieve information about storage resources: Object Storage Buckets (interactive list via TUI and paginated get)
-- Powerful find/search commands using Bleve for fuzzy, prefix, and substring matching where applicable
-- Interactive configuration and an OCI Auth Refresher to keep sessions alive
-- Tenancy mapping for friendly tenancy and compartment names
-- Bastion session management: start/attach/terminate OCI Bastion sessions with reachability checks and an interactive SSH key picker (TUI)
-- Consistent JSON output, unified pagination across services, and short/long flag aliases
+### Compute Resources
+- **Instances**: List, search, and explore compute instances
+- **Images**: Browse and search compute images
+- **OKE Clusters**: Manage Kubernetes clusters and node pools
+
+### Database Services
+- **Autonomous Database**: List, search, and explore ADB instances
+- **HeatWave MySQL**: Explore HeatWave database instances with detailed configuration info
+
+### Networking
+- **VCNs**: Virtual Cloud Networks with gateways, subnets, NSGs, route tables, and security lists
+- **Subnets**: Network subnet management
+- **Load Balancers**: Explore and search load balancer configurations
+
+### Identity & Access
+- **Compartments**: Navigate compartment hierarchy with tenancy-level scope support
+- **Policies**: Explore IAM policies across compartments
+- **Bastion Sessions**: Manage OCI Bastion sessions with interactive SSH key picker (TUI)
+
+### Storage
+- **Object Storage**: Browse and search buckets with interactive TUI
+
+### Core Capabilities
+- **Powerful Search**: Fuzzy, prefix, and substring matching using Bleve indexing
+- **Interactive TUI**: Navigate resources with the terminal user interface for select commands
+- **JSON Output**: Consistent structured output across all commands
+- **Pagination**: Unified pagination support (`--limit`, `--page`)
+- **Authentication**: Interactive OCI Auth with automatic session refresh
+- **Tenancy Mapping**: Friendly names for tenancies and compartments
 
 ## Installation
-
-OCloud can be installed in several ways:
 
 ### Using Homebrew (macOS and Linux)
 
@@ -42,8 +62,7 @@ brew install ocloud
 
 Download the latest binary from the [release page](https://github.com/rozdolsky33/ocloud/releases) and place it in your PATH.
 
-#### macOS/Linux
-
+**macOS/Linux:**
 ```bash
 # Move the binary to a directory in your PATH
 mv ~/Downloads/ocloud ~/.local/bin
@@ -51,10 +70,9 @@ mv ~/Downloads/ocloud ~/.local/bin
 # For macOS, clear quarantine (if applicable)
 sudo xattr -d com.apple.quarantine ~/.local/bin/ocloud
 
-# Make the binary executable
+# Make executable
 chmod +x ~/.local/bin/ocloud
 ```
-
 
 ### Build from Source
 
@@ -63,20 +81,38 @@ chmod +x ~/.local/bin/ocloud
 git clone https://github.com/rozdolsky33/ocloud.git
 cd ocloud
 
-# Build the binary
+# Build and install
 make build
-
-# Install the binary to your GOPATH
 make install
 ```
 
-
 ## Prerequisites
 
-Before using OCloud, ensure the following tools and setup are in place:
-- OCI CLI installed and configured. Follow Oracle's [Quickstart guide](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm#Quickstart)
-- kubectl installed (for interacting with OKE clusters). Installation instructions for [macOS](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/) and [Linux](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/) are available.
-- SSH key pair available in your ~/.ssh directory. This is required for OCI Bastion managed sessions and for SSH port forwarding features.
+- **OCI CLI**: Installed and configured ([Quickstart guide](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/cliinstall.htm#Quickstart))
+- **kubectl**: For OKE cluster interactions ([macOS](https://kubernetes.io/docs/tasks/tools/install-kubectl-macos/) | [Linux](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/))
+- **SSH Key Pair**: Required for OCI Bastion sessions (`~/.ssh`)
+
+## Quick Start
+
+```bash
+# View configuration and available commands
+ocloud
+
+# Authenticate with OCI
+ocloud config session authenticate
+
+# Search for compute instances
+ocloud compute instance search "prod"
+
+# Get HeatWave databases with pagination
+ocloud database heatwave get --limit 10 --page 1
+
+# Search Autonomous Databases in JSON format
+ocloud database autonomous search "test" --json
+
+# Interactive VCN list (TUI)
+ocloud network vcn list
+```
 
 ## Configuration
 
@@ -132,15 +168,21 @@ OCloud can be configured in multiple ways, with the following precedence (highes
 
 1. Command-line flags
 2. Environment variables
-3. OCI configuration file
+3. OCI configuration file (`~/.oci/config`)
 
-### OCI Configuration
+### Environment Variables
 
-OCloud uses the standard OCI configuration file located at `~/.oci/config`. You can specify a different profile using the `OCI_CLI_PROFILE` environment variable.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OCI_CLI_PROFILE` | OCI configuration profile | `DEFAULT` |
+| `OCI_TENANCY_NAME` | Tenancy name (looked up in tenancy map) | - |
+| `OCI_COMPARTMENT` | Compartment name | - |
+| `OCI_REGION` | OCI region | - |
+| `OCI_TENANCY_MAP_PATH` | Path to tenancy mapping file | `~/.oci/.ocloud/tenancy-map.yaml` |
 
 ### Authentication
 
-ocloud provides interactive authentication with OCI through the `config session` command. You can also control which browser is used during the login flow; see docs/auth-browser-selection.md for details:
+OCloud provides interactive authentication with automatic session refresh:
 
 ```bash
 # Authenticate with OCI
@@ -153,23 +195,11 @@ ocloud config session authenticate --filter us
 ocloud config session authenticate --realm OC1
 ```
 
-During authentication, you'll be prompted to set up the OCI Auth Refresher, which keeps your OCI session alive by automatically refreshing it before it expires. This is especially useful for long-running operations.
-
-### OCI Auth Refresher
-
-The OCI Auth Refresher is a background service that keeps your OCI session active by refreshing it shortly before it expires. When enabled, it runs as a background process and continuously monitors your session status.
-
-Key features:
-- Automatically refreshes your OCI session before it expires
-- Runs in the background with minimal resource usage
-- Supports multiple OCI profiles
-- Status is displayed in the configuration output (`OCI_AUTH_AUTO_REFRESHER: ON [PID]`)
-
-The refresher script is embedded in the ocloud binary and is automatically extracted to `~/.oci/.ocloud/scripts/` when needed.
+The **OCI Auth Refresher** is a background service that automatically refreshes your OCI session before it expires, keeping your session active for long-running operations. Status is displayed in configuration output: `OCI_AUTH_AUTO_REFRESHER: ON [PID]`.
 
 ### Tenancy Mapping
 
-OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.oci/.ocloud/tenancy-map.yaml`. The format is:
+Map tenancy names to OCIDs using `~/.oci/.ocloud/tenancy-map.yaml`:
 
 ```yaml
 - environment: Prod
@@ -178,220 +208,231 @@ OCloud supports mapping tenancy names to OCIDs using a YAML file located at `~/.
   realm: OC1
   compartments:
     - sandbox
-    - production 
+    - production
   regions:
     - us-chicago-1
     - us-ashburn-1
 ```
 
-You can override the tenancy map path using the `OCI_TENANCY_MAP_PATH` environment variable.
-
-To view the tenancy mapping information:
-
+View tenancy mapping:
 ```bash
-# View tenancy mapping information
 ocloud config info map-file
-
-# View in JSON format
-ocloud config info map-file --json
-
-# Filter by realm
-ocloud config info map-file --realm OC1
+ocloud config info map-file --realm OC1 --json
 ```
 
-### Environment Variables
+## Command Reference
 
-| Variable | Description |
-|----------|-------------|
-| `OCI_CLI_PROFILE` | OCI configuration profile (default: "DEFAULT") |
-| `OCI_CLI_TENANCY` | Tenancy OCID |
-| `OCI_TENANCY_NAME` | Tenancy name (looked up in tenancy map) |
-| `OCI_COMPARTMENT` | Compartment name |
-| `OCI_REGION` | OCI region |
-| `OCI_TENANCY_MAP_PATH` | Path to tenancy mapping file |
-| `OCI_AUTH_AUTO_REFRESHER` | Status of the OCI auth refresher |
-
-### Command-Line Flags
-
-#### Global Flags
+### Global Flags
 
 | Flag | Short | Description |
 |------|-------|-------------|
-| `--tenancy-id` | `-t` | OCI tenancy OCID |
-| `--tenancy-name` |  | Tenancy name |
-| `--log-level` |  | Set the log verbosity (e.g., info, debug) |
-| `--debug` | `-d` | Enable debug logging |
-| `--color` |  | Enable colored output |
 | `--compartment` | `-c` | OCI compartment name |
-| `--version` | `-v` | Print the version number |
-| `--help` | `-h` | Display help information |
+| `--tenancy-name` | | Tenancy name |
+| `--debug` | `-d` | Enable debug logging |
+| `--json` | `-j` | Output in JSON format |
+| `--help` | `-h` | Display help |
+| `--version` | `-v` | Print version |
+| `--color` | | Enable colored output |
+| `--log-level` | | Set verbosity (debug, info, warn, error) |
 
-#### Command Flags
+### Common Command Flags
 
-| Flag            | Short | Description |
-|-----------------|-------|-------------|
-| `--json`        | `-j`  | Output information in JSON format |
-| `--all`         | `-A`  | Include all related info sections where applicable (e.g., for VCNs: gateways, subnets, NSGs, route tables, security lists) |
-| `--limit`       | `-m`  | Maximum number of records per page (default: 20) |
-| `--page`        | `-p`  | Page number to display (default: 1) |
-| `--scope`       |       | Listing/search scope for applicable commands: `compartment` (default) or `tenancy` |
-| `--tenancy-scope` | `-T`  | Shortcut to force tenancy-level scope; overrides `--scope` |
-| `--filter`      | `-f`  | Filter regions by prefix (e.g., us, eu, ap) |
-| `--realm`       | `-r`  | Filter by realm (e.g., OC1, OC2) |
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--json` | `-j` | JSON output format |
+| `--all` | `-A` | Include all related information |
+| `--limit` | `-m` | Records per page (default: 20) |
+| `--page` | `-p` | Page number (default: 1) |
+| `--scope` | | `compartment` (default) or `tenancy` |
+| `--tenancy-scope` | `-T` | Force tenancy-level scope |
 
-#### Network resource toggles (used by networking commands)
+### Scope Control
 
-| Flag                | Short | Description                                 |
-|---------------------|-------|---------------------------------------------|
-| `--gateway`         | `-G`  | Include/display internet/NAT gateways       |
-| `--subnet`          | `-S`  | Include/display subnets                     |
-| `--nsg`             | `-N`  | Include/display network security groups     |
-| `--route-table`     | `-R`  | Include/display route tables                |
-| `--security-list`   | `-L`  | Include/display security lists              |
-
-### Scope Control (Identity commands)
-
-Some identity subcommands support scoping their operations to either the configured parent compartment or the whole tenancy.
-
-- --scope: Choose where to operate: "compartment" (default) or "tenancy".
-- -T/--tenancy-scope: Shortcut to force tenancy-level scope; it overrides --scope.
-
-Examples:
+Some identity commands support compartment or tenancy scope:
 
 ```bash
 # Compartments
-ocloud identity compartment get                 # children of configured compartment (default)
-ocloud identity compartment get --scope tenancy # whole tenancy (includes subtree)
+ocloud identity compartment get                 # configured compartment (default)
+ocloud identity compartment get --scope tenancy # whole tenancy
 ocloud identity compartment get -T              # same as above
 
 # Policies
-ocloud identity policy list --scope compartment # explicit compartment-level listing
-ocloud identity policy search prod -T            # tenancy-level search
+ocloud identity policy get --scope compartment
+ocloud identity policy search prod -T
 ```
 
-### Networking: VCN commands
+### Network Resource Toggles
 
-The network VCN group provides commands to get and find Virtual Cloud Networks in the configured compartment. You can include related networking resources using the network toggles shown above or the --all (-A) flag to include everything at once.
+For VCN commands, include specific resources or use `--all`:
 
-Examples:
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--gateway` | `-G` | Internet/NAT gateways |
+| `--subnet` | `-S` | Subnets |
+| `--nsg` | `-N` | Network security groups |
+| `--route-table` | `-R` | Route tables |
+| `--security-list` | `-L` | Security lists |
+| `--all` | `-A` | All of the above |
 
-- Get VCNs with pagination
-  - ocloud network vcn get
-  - ocloud network vcn get --limit 10 --page 2
-  - ocloud network vcn get -m 5 -p 3 --all
-  - ocloud network vcn get -m 5 -p 3 -A -j
+**Examples:**
+```bash
+# Get VCNs with all related resources
+ocloud network vcn get --all
+ocloud network vcn get -G -S -N -R -L
 
-- Search VCNs by pattern
-  - ocloud network vcn search prod
-  - ocloud network vcn search prod --all
-  - ocloud network vcn search prod -A -j
+# Search VCNs with JSON output
+ocloud network vcn search prod -A -j
+```
 
-Interactive list (TUI):
-- ocloud network vcn list
-  Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
+## Command Categories
 
-### Networking: Load Balancer commands
+### Compute
 
-Explore Load Balancers in the configured compartment. You can:
-- Get paginated lists with optional extra columns using --all (-A)
-- Search using fuzzy, prefix, token, and substring matching across multiple fields
-- Launch an interactive list (TUI) to search and select a Load Balancer
+```bash
+# Instances
+ocloud compute instance get
+ocloud compute instance search "roster" --json
+ocloud comp inst s "roster" -j
 
-Examples:
+# Images
+ocloud compute image get --limit 10
+ocloud compute image search "Oracle-Linux"
+ocloud comp img s "Oracle-Linux" -j
 
-- Get Load Balancers with pagination
-  - ocloud network load-balancer get
-  - ocloud network load-balancer get --limit 10 --page 2
-  - ocloud network load-balancer get --all
-  - ocloud net lb get -A -j
+# OKE Clusters
+ocloud compute oke get
+ocloud compute oke search "orion" --json
+```
 
-- Search Load Balancers by pattern
-  - ocloud network load-balancer search prod
-  - ocloud network load-balancer search prod --json
-  - ocloud network load-balancer search prod --all
-  - ocloud net lb s prod -A -j
+### Database
 
-Interactive list (TUI):
-- ocloud network load-balancer list
-  Note: This command is interactive and not suitable for non-interactive scripts. If you quit without selecting an item, it exits without error.
+```bash
+# Autonomous Database
+ocloud database autonomous get --limit 10 --page 1
+ocloud database autonomous search "test" --json
+ocloud db adb s "test" -j
 
-### Development Commands
+# HeatWave MySQL
+ocloud database heatwave get --all
+ocloud database heatwave search "prod" --json
+ocloud database heatwave list  # Interactive TUI
+ocloud db hw s "8.4" -j
+```
+
+### Network
+
+```bash
+# VCNs
+ocloud network vcn get --all
+ocloud network vcn search "prod" -A -j
+ocloud network vcn list  # Interactive TUI
+
+# Load Balancers
+ocloud network load-balancer get
+ocloud network load-balancer search "prod" --all
+ocloud net lb s "prod" -A -j
+
+# Subnets
+ocloud network subnet list
+ocloud network subnet find "pub" --json
+```
+
+### Identity
+
+```bash
+# Compartments
+ocloud identity compartment get
+ocloud identity compartment get -T  # Tenancy scope
+ocloud identity compartment search "sandbox" --json
+
+# Policies
+ocloud identity policy get
+ocloud identity policy search "monitor" -T
+```
+
+### Storage
+
+```bash
+# Object Storage
+ocloud storage object-storage get
+ocloud storage object-storage search "prod" --json
+ocloud storage object-storage list  # Interactive TUI
+ocloud storage os s "prod" -j
+```
+
+## Development
+
+### Build Commands
 
 | Command | Description |
 |---------|-------------|
-| `make build` | Build the binary |
-| `make run` | Build and run the CLI |
-| `make install` | Install the binary to $GOPATH/bin |
-| `make test` | Run tests |
-| `make fmt` | Format code |
-| `make fmt-check` | Check if code is formatted correctly |
-| `make vet` | Run go vet |
+| `make build` | Build the binary to `bin/ocloud` |
+| `make install` | Install to `$GOPATH/bin` |
+| `make test` | Run all tests with coverage |
+| `make fmt` | Format Go source files |
+| `make vet` | Run go vet static analysis |
 | `make lint` | Run golangci-lint |
-| `make vuln` | Run govulncheck vulnerability scan |
-| `make clean` | Clean build artifacts |
-| `make release` | Build binaries for all supported platforms and create zip archives |
-| `make compile` | Compile binaries for all supported platforms |
-| `make zip` | Create zip archives for all binaries |
-| `make check-env` | Check if required tools are installed |
-| `make help` | Display help message with available commands |
+| `make vuln` | Run govulncheck |
+| `make clean` | Remove build artifacts |
+| `make release` | Build for all platforms and create archives |
 
 ### Testing
 
-The project includes a comprehensive test script `test_ocloud.sh` that tests all major command categories and their subcommands:
-
-- Root commands and global flags
-- Configuration commands (info, map-file, session)
-- Compute commands (instance, image, oke)
-- Identity commands (bastion, compartment, policy)
-- Network commands (subnet, vcn, loadbalancer)
-- Storage commands (object-storage)
-- Database commands (autonomousdb)
-
-The script tests various flags and abbreviations for each command, following a consistent pattern throughout.
-
-To run the test script:
+Run the comprehensive test script that covers all command categories:
 
 ```bash
 ./test_ocloud.sh
 ```
 
-## Tips
+The script tests:
+- Root commands and global flags
+- Configuration commands (info, map-file, session)
+- Compute commands (instance, image, oke)
+- Identity commands (compartment, policy)
+- Network commands (subnet, vcn, load-balancer)
+- Storage commands (object-storage)
+- Database commands (autonomous, heatwave)
 
-- Interactive TUI lists (e.g., network vcn list, database autonomous list, compute image list) support quitting with q/Esc/Ctrl+C. If you exit without selecting an item, the command will exit gracefully without an error.
+## Tips & Best Practices
+
+- **Interactive TUI Commands**: Use `q`, `Esc`, or `Ctrl+C` to quit. Exiting without selection is graceful.
+- **Search Patterns**: Searches support fuzzy matching, so typos and partial matches work.
+- **JSON Output**: Use `--json` for scripting and automation.
+- **Debug Logging**: Run with `--log-level debug` or `-d` for troubleshooting.
+- **Colored Output**: Use `--color` for better readability in terminals.
 
 ## Error Handling
 
-OCloud provides detailed error messages and supports multiple log verbosity levels. The valid values for --log-level are:
+OCloud provides detailed error messages with configurable log levels:
 
-- `--log-level debug`: Most verbose; shows all logs, including detailed developer output. Equivalent to using `-d` / `--debug`.
-- `--log-level info`: Default; shows standard, user‑facing information and errors.
-- `--log-level warn`: Shows warnings and errors only.
-- `--log-level error`: Shows errors only.
+- `--log-level debug`: Most verbose, shows all logs (equivalent to `-d`)
+- `--log-level info`: Default, shows standard information
+- `--log-level warn`: Warnings and errors only
+- `--log-level error`: Errors only
 
-Tip: You can also enable colored log messages with `--color`.
+Enable colored output with `--color` for better visibility.
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](https://github.com/rozdolsky33/ocloud/blob/main/CONTRIBUTING.md) for:
+- Development setup and architecture overview
+- Coding standards and testing requirements
+- Data flow patterns across domain, mapping, services, and cmd layers
+
+## Reporting Issues
+
+Use our GitHub Issue Forms for faster triage:
+- **Bug Report**: Include command(s), environment details, region/tenancy context, and debug logs
+- **Feature Request**: Describe CLI UX impact and affected layers
+
+Open a new [issue](https://github.com/rozdolsky33/ocloud/issues/new/choose)
+
+**Tips for bug reports:**
+- Run with `--log-level debug` and include relevant logs (redact secrets)
+- Provide exact command(s), flags, OS/arch, and `ocloud version` output
+
+For questions, use [Discussions](https://github.com/rozdolsky33/ocloud/discussions)
 
 ## License
 
 This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-We welcome contributions! Please read our contributing guide for development setup, coding standards, testing, and—most importantly—how changes should align with the project architecture (domain, mapping, services, cmd):
-
-- See [CONTRIBUTING.md](https://github.com/rozdolsky33/ocloud/blob/main/CONTRIBUTING.md)
-
-If you plan to work on a change that spans multiple layers, describe the data flow and adapter wiring in your PR as outlined in the guide.
-
-## Reporting issues and feature requests
-
-Use our GitHub Issue Forms so we can triage faster:
-- Bug report: includes CLI command(s), environment, region/tenancy context, and debug logs.
-- Feature request: focuses on CLI UX and the impact across domain, mapping, services, cmd, and oci adapters.
-
-Open a new [issue](https://github.com/rozdolsky33/ocloud/issues/new/choose)
-
-Tips for good bug reports:
-- Run with --log-level debug and paste relevant logs (redact secrets).
-- Include exact command(s) and flags used, along with OS/arch and ocloud version (ocloud version).
-
-Have a question rather than a bug/feature? Please use [Discussions](https://github.com/rozdolsky33/ocloud/discussions)

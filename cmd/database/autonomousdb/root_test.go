@@ -19,7 +19,7 @@ func TestAutonomousDatabaseCommand(t *testing.T) {
 
 	// Test that the autonomousdb command is properly configured
 	assert.Equal(t, "autonomous", cmd.Use)
-	assert.Equal(t, "Explore OCI Databases.", cmd.Short)
+	assert.Equal(t, "Explore OCI Autonomous Databases.", cmd.Short)
 	assert.Equal(t, "Explore Oracle Cloud Infrastructure databases: list, get, and search", cmd.Long)
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)

@@ -79,7 +79,7 @@ func NewSearchCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	return cmd
 }
 
-// runFindCommand handles the execution of the search command
+// runSearchCommand handles the execution of the search command
 func runSearchCommand(cmd *cobra.Command, args []string, appCtx *app.ApplicationContext) error {
 	namePattern := args[0]
 	useJSON := flags.GetBoolFlag(cmd, flags.FlagNameJSON, false)
