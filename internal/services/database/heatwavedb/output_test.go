@@ -235,45 +235,66 @@ func TestGetMySQLShapeDetails(t *testing.T) {
 		wantFound  bool
 	}{
 		{
+			name:       "MySQL.Free shape",
+			shapeName:  "MySQL.Free",
+			wantECPU:   2,
+			wantMemory: 8,
+			wantFound:  true,
+		},
+		{
 			name:       "MySQL.2 shape",
 			shapeName:  "MySQL.2",
-			wantECPU:   6,
-			wantMemory: 48,
+			wantECPU:   2,
+			wantMemory: 16,
 			wantFound:  true,
 		},
 		{
 			name:       "MySQL.4 shape",
 			shapeName:  "MySQL.4",
-			wantECPU:   12,
-			wantMemory: 96,
+			wantECPU:   4,
+			wantMemory: 32,
 			wantFound:  true,
 		},
 		{
 			name:       "MySQL.8 shape",
 			shapeName:  "MySQL.8",
-			wantECPU:   24,
-			wantMemory: 192,
+			wantECPU:   8,
+			wantMemory: 64,
 			wantFound:  true,
 		},
 		{
 			name:       "MySQL.16 shape",
 			shapeName:  "MySQL.16",
-			wantECPU:   48,
-			wantMemory: 384,
+			wantECPU:   16,
+			wantMemory: 128,
 			wantFound:  true,
 		},
 		{
 			name:       "MySQL.32 shape",
 			shapeName:  "MySQL.32",
-			wantECPU:   96,
-			wantMemory: 768,
+			wantECPU:   32,
+			wantMemory: 256,
 			wantFound:  true,
 		},
 		{
-			name:       "MySQL.128 shape",
-			shapeName:  "MySQL.128",
-			wantECPU:   384,
-			wantMemory: 3072,
+			name:       "MySQL.48 shape",
+			shapeName:  "MySQL.48",
+			wantECPU:   48,
+			wantMemory: 384,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.64 shape",
+			shapeName:  "MySQL.64",
+			wantECPU:   64,
+			wantMemory: 512,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.256 shape",
+			shapeName:  "MySQL.256",
+			wantECPU:   256,
+			wantMemory: 1024,
 			wantFound:  true,
 		},
 		{
@@ -302,24 +323,39 @@ func TestGetMySQLShapeDetails(t *testing.T) {
 	}
 }
 
-// Test storage size formatting with new ECPU shapes
+// Test storage size formatting with ECPU shapes based on actual API response
 func TestPrintHeatWaveDbInfo_ECPUShapeAndStorage(t *testing.T) {
+	autoExpand := false
 	db := database.HeatWaveDatabase{
-		DisplayName:               "prod-orion-midtier",
-		ID:                        "ocid1.mysqldbsystem.oc2..test",
-		LifecycleState:            "ACTIVE",
-		MysqlVersion:              "8.4.6",
-		ShapeName:                 "MySQL.4",    // 12 ECPUs, 96 GB memory
-		DataStorageSizeInGBs:      ptrInt(3072), // 3072 GB = 3 TB
+		DisplayName:          "prod-orion-midtier",
+		ID:                   "ocid1.mysqldbsystem.oc2.us-luke-1.aaaaaaaa5cm2tpeirggrcvzbep6nicruo3v233emfgguk32n4kaydrv5vyza",
+		LifecycleState:       "ACTIVE",
+		MysqlVersion:         "8.4.6",
+		Description:          "Prod Orion Midtier MySQL Database service",
+		ShapeName:            "MySQL.4", // 4 ECPUs, 32 GB memory (per official Oracle table)
+		DataStorageSizeInGBs: ptrInt(1024),
+		DataStorage: &mysql.DataStorage{
+			IsAutoExpandStorageEnabled: &autoExpand,
+			MaxStorageSizeInGBs:        nil,
+			AllocatedStorageSizeInGBs:  ptrInt(1024),  // 1 TiB allocated
+			DataStorageSizeInGBs:       ptrInt(1024),  // 1 TiB used
+			DataStorageSizeLimitInGBs:  ptrInt(98304), // 96 TiB maximum limit
+		},
 		IsHighlyAvailable:         ptrBool(true),
 		IsHeatWaveClusterAttached: ptrBool(false),
 		DatabaseMode:              "READ_WRITE",
 		AccessMode:                "UNRESTRICTED",
 		IpAddress:                 "217.142.42.138",
 		Port:                      ptrInt(3306),
+		PortX:                     ptrInt(33060),
+		SubnetId:                  "ocid1.subnet.oc2.us-luke-1.aaaaaaaaciwbptgw5zr6tha4hkwhmbbh5symeeus673oqiilfefltmadkh6q",
 		SubnetName:                "database",
+		VcnID:                     "ocid1.vcn.oc2.us-luke-1.amaaaaaalkxuqyqaepjbdrld74cdsr4crmazexzv5o3bjbp7cxoidelbxeqq",
 		VcnName:                   "vcn-luf-rho-udeprod1-1",
+		AvailabilityDomain:        "PQsp:us-luke-1-ad-1",
+		FaultDomain:               "FAULT-DOMAIN-3",
 		TimeCreated:               ptrTime(time.Date(2025, 10, 8, 19, 49, 26, 0, time.UTC)),
+		TimeUpdated:               ptrTime(time.Date(2025, 10, 18, 9, 41, 39, 0, time.UTC)),
 	}
 
 	var buf bytes.Buffer
@@ -330,13 +366,18 @@ func TestPrintHeatWaveDbInfo_ECPUShapeAndStorage(t *testing.T) {
 	assert.NoError(t, err)
 	out := buf.String()
 
-	// Validate ECPU shape info is displayed
+	// Validate ECPU shape info is displayed correctly per Oracle Table 5-1
 	assert.Contains(t, out, "MySQL.4")
-	assert.Contains(t, out, "12")    // ECPU count (MySQL.4 has 12 ECPUs)
-	assert.Contains(t, out, "96 GB") // Memory
+	assert.Contains(t, out, "4")     // ECPU count (MySQL.4 has 4 ECPUs per official table)
+	assert.Contains(t, out, "32 GB") // Memory (4 ECPUs × 8 GB = 32 GB)
 
-	// Validate storage is shown in TiB (3072 GB = 3 TiB)
-	assert.Contains(t, out, "3.00 TiB")
+	// Validate storage is shown in TiB (1024 GB = 1.00 TiB)
+	assert.Contains(t, out, "1.00 TiB")
+	// Validate storage limit is shown (98304 GB = 96 TiB)
+	assert.Contains(t, out, "96.00 TiB")
+	// Validate auto-expand is shown
+	assert.Contains(t, out, "Auto-Expand Storage")
+	assert.Contains(t, out, "false")
 
 	// Detailed view
 	buf.Reset()
@@ -347,5 +388,10 @@ func TestPrintHeatWaveDbInfo_ECPUShapeAndStorage(t *testing.T) {
 	// Validate detailed view also shows correct info
 	assert.Contains(t, detailedOut, "ECPUs")
 	assert.Contains(t, detailedOut, "Memory")
-	assert.Contains(t, detailedOut, "3.00 TiB")
+	assert.Contains(t, detailedOut, "Storage Used")
+	assert.Contains(t, detailedOut, "Storage Allocated")
+	assert.Contains(t, detailedOut, "Storage Limit")
+	assert.Contains(t, detailedOut, "1.00 TiB")
+	assert.Contains(t, detailedOut, "96.00 TiB")
+	assert.Contains(t, detailedOut, "Prod Orion Midtier MySQL Database service")
 }

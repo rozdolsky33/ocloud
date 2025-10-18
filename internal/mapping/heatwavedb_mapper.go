@@ -23,6 +23,7 @@ type HeatWaveDatabaseAttributes struct {
 	Endpoints                  []mysql.DbSystemEndpoint
 	ShapeName                  *string
 	DataStorageSizeInGBs       *int
+	DataStorage                *mysql.DataStorage
 	IsHighlyAvailable          *bool
 	HostnameLabel              *string
 	IpAddress                  *string
@@ -67,6 +68,7 @@ func NewHeatWaveDatabaseAttributesFromOCIDbSystem(db mysql.DbSystem) *HeatWaveDa
 		Endpoints:                  db.Endpoints,
 		ShapeName:                  db.ShapeName,
 		DataStorageSizeInGBs:       db.DataStorageSizeInGBs,
+		DataStorage:                db.DataStorage,
 		IsHighlyAvailable:          db.IsHighlyAvailable,
 		HostnameLabel:              db.HostnameLabel,
 		IpAddress:                  db.IpAddress,
@@ -158,6 +160,7 @@ func NewDomainHeatWaveDatabaseFromAttrs(attrs *HeatWaveDatabaseAttributes) *doma
 		Endpoints:                  attrs.Endpoints,
 		ShapeName:                  val(attrs.ShapeName),
 		DataStorageSizeInGBs:       attrs.DataStorageSizeInGBs,
+		DataStorage:                attrs.DataStorage,
 		IsHighlyAvailable:          attrs.IsHighlyAvailable,
 		HostnameLabel:              val(attrs.HostnameLabel),
 		IpAddress:                  val(attrs.IpAddress),

@@ -30,7 +30,8 @@ type HeatWaveDatabase struct {
 
 	// Capacity & storage
 	ShapeName            string
-	DataStorageSizeInGBs *int
+	DataStorageSizeInGBs *int // DEPRECATED: Use DataStorage.DataStorageSizeInGBs instead
+	DataStorage          *mysql.DataStorage
 	IsHighlyAvailable    *bool
 
 	// Primary endpoint connection details

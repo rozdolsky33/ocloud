@@ -18,19 +18,29 @@ func TestNewHeatWaveDatabaseAttributesFromOCIDbSystem(t *testing.T) {
 	subnetID := "ocid1.subnet.test"
 	shapeName := "MySQL.VM.Standard.E4.4.128GB"
 	storage := 100
+	allocated := 100
+	limit := 98304
+	autoExpand := false
 	isHA := true
 	isHeatWaveAttached := true
 	clusterSize := 2
 	now := common.SDKTime{Time: time.Now()}
 
 	dbSystem := mysql.DbSystem{
-		Id:                        &id,
-		DisplayName:               &displayName,
-		CompartmentId:             &compartmentID,
-		MysqlVersion:              &mysqlVersion,
-		SubnetId:                  &subnetID,
-		ShapeName:                 &shapeName,
-		DataStorageSizeInGBs:      &storage,
+		Id:                   &id,
+		DisplayName:          &displayName,
+		CompartmentId:        &compartmentID,
+		MysqlVersion:         &mysqlVersion,
+		SubnetId:             &subnetID,
+		ShapeName:            &shapeName,
+		DataStorageSizeInGBs: &storage,
+		DataStorage: &mysql.DataStorage{
+			IsAutoExpandStorageEnabled: &autoExpand,
+			MaxStorageSizeInGBs:        nil,
+			AllocatedStorageSizeInGBs:  &allocated,
+			DataStorageSizeInGBs:       &storage,
+			DataStorageSizeLimitInGBs:  &limit,
+		},
 		IsHighlyAvailable:         &isHA,
 		IsHeatWaveClusterAttached: &isHeatWaveAttached,
 		HeatWaveCluster: &mysql.HeatWaveClusterSummary{
@@ -56,6 +66,11 @@ func TestNewHeatWaveDatabaseAttributesFromOCIDbSystem(t *testing.T) {
 	assert.Equal(t, &subnetID, attrs.SubnetId)
 	assert.Equal(t, &shapeName, attrs.ShapeName)
 	assert.Equal(t, &storage, attrs.DataStorageSizeInGBs)
+	assert.NotNil(t, attrs.DataStorage)
+	assert.Equal(t, &autoExpand, attrs.DataStorage.IsAutoExpandStorageEnabled)
+	assert.Equal(t, &allocated, attrs.DataStorage.AllocatedStorageSizeInGBs)
+	assert.Equal(t, &storage, attrs.DataStorage.DataStorageSizeInGBs)
+	assert.Equal(t, &limit, attrs.DataStorage.DataStorageSizeLimitInGBs)
 	assert.Equal(t, &isHA, attrs.IsHighlyAvailable)
 	assert.Equal(t, &isHeatWaveAttached, attrs.IsHeatWaveClusterAttached)
 	assert.NotNil(t, attrs.HeatWaveCluster)

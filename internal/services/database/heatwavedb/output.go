@@ -70,12 +70,33 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		nsgVal = fmt.Sprintf("%v", db.NsgNames)
 	} else if len(db.NsgIds) > 0 {
 		nsgVal = fmt.Sprintf("%v", db.NsgIds)
+	} else {
+		nsgVal = "No"
 	}
 
-	// Storage formatting
-	storage := ""
-	if db.DataStorageSizeInGBs != nil {
-		// Convert GB to bytes for proper human-readable formatting (e.g., 3072 GB -> 3.00 TiB)
+	// Storage formatting - prefer DataStorage object if available
+	var storage, allocatedStorage, storageLimit string
+	var autoExpandEnabled bool
+
+	if db.DataStorage != nil {
+		// Use the new DataStorage object for detailed information
+		if db.DataStorage.DataStorageSizeInGBs != nil {
+			sizeInBytes := int64(*db.DataStorage.DataStorageSizeInGBs) * 1024 * 1024 * 1024
+			storage = util.HumanizeBytesIEC(sizeInBytes)
+		}
+		if db.DataStorage.AllocatedStorageSizeInGBs != nil {
+			allocatedInBytes := int64(*db.DataStorage.AllocatedStorageSizeInGBs) * 1024 * 1024 * 1024
+			allocatedStorage = util.HumanizeBytesIEC(allocatedInBytes)
+		}
+		if db.DataStorage.DataStorageSizeLimitInGBs != nil {
+			limitInBytes := int64(*db.DataStorage.DataStorageSizeLimitInGBs) * 1024 * 1024 * 1024
+			storageLimit = util.HumanizeBytesIEC(limitInBytes)
+		}
+		if db.DataStorage.IsAutoExpandStorageEnabled != nil {
+			autoExpandEnabled = *db.DataStorage.IsAutoExpandStorageEnabled
+		}
+	} else if db.DataStorageSizeInGBs != nil {
+		// Fallback to the deprecated field
 		sizeInBytes := int64(*db.DataStorageSizeInGBs) * 1024 * 1024 * 1024
 		storage = util.HumanizeBytesIEC(sizeInBytes)
 	}
@@ -110,7 +131,6 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 			"Lifecycle State":   db.LifecycleState,
 			"MySQL Version":     db.MysqlVersion,
 			"Shape":             db.ShapeName,
-			"Storage":           storage,
 			"High Availability": highAvailability,
 			"HeatWave Cluster":  heatwaveCluster,
 			"Database Mode":     db.DatabaseMode,
@@ -127,12 +147,27 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 			summary["Memory"] = fmt.Sprintf("%d GB", memory)
 		}
 
+		// Add storage details
+		if storage != "" {
+			summary["Storage Used"] = storage
+		}
+		if allocatedStorage != "" && allocatedStorage != storage {
+			summary["Storage Allocated"] = allocatedStorage
+		}
+		if storageLimit != "" {
+			summary["Storage Limit"] = storageLimit
+		}
+		if db.DataStorage != nil && db.DataStorage.IsAutoExpandStorageEnabled != nil {
+			summary["Auto-Expand Storage"] = boolToString(db.DataStorage.IsAutoExpandStorageEnabled)
+		}
+
 		if db.TimeCreated != nil {
 			summary["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
 		}
 
 		ordered := []string{
-			"Lifecycle State", "MySQL Version", "Shape", "ECPUs", "Memory", "Storage",
+			"Lifecycle State", "MySQL Version", "Shape", "ECPUs", "Memory",
+			"Storage Used", "Storage Allocated", "Storage Limit", "Auto-Expand Storage",
 			"High Availability", "HeatWave Cluster", "Database Mode", "Access Mode",
 			"Private IP", "Port", "Subnet", "VCN", "Time Created",
 		}
@@ -163,9 +198,33 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		details["ECPUs"] = fmt.Sprintf("%d", ecpu)
 		details["Memory"] = fmt.Sprintf("%d GB", memory)
 	}
-	details["Storage"] = storage
 	details["High Availability"] = highAvailability
-	orderedKeys = append(orderedKeys, "Shape", "ECPUs", "Memory", "Storage", "High Availability")
+	orderedKeys = append(orderedKeys, "Shape", "ECPUs", "Memory", "High Availability")
+
+	// Storage - detailed information
+	if storage != "" {
+		details["Storage Used"] = storage
+		orderedKeys = append(orderedKeys, "Storage Used")
+	}
+	if allocatedStorage != "" {
+		details["Storage Allocated"] = allocatedStorage
+		orderedKeys = append(orderedKeys, "Storage Allocated")
+	}
+	if storageLimit != "" {
+		details["Storage Limit"] = storageLimit
+		orderedKeys = append(orderedKeys, "Storage Limit")
+	}
+	if db.DataStorage != nil {
+		if db.DataStorage.IsAutoExpandStorageEnabled != nil {
+			details["Auto-Expand Storage"] = boolToString(db.DataStorage.IsAutoExpandStorageEnabled)
+			orderedKeys = append(orderedKeys, "Auto-Expand Storage")
+		}
+		if db.DataStorage.MaxStorageSizeInGBs != nil && autoExpandEnabled {
+			maxInBytes := int64(*db.DataStorage.MaxStorageSizeInGBs) * 1024 * 1024 * 1024
+			details["Max Expand Size"] = util.HumanizeBytesIEC(maxInBytes)
+			orderedKeys = append(orderedKeys, "Max Expand Size")
+		}
+	}
 
 	// HeatWave Cluster
 	details["HeatWave Cluster"] = heatwaveCluster
@@ -339,25 +398,26 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 //-------------------------------------------------Helpers--------------------------------------------------------------
 
 // getMySQLShapeDetails returns ECPU count and memory in GB for a given MySQL shape.
-// MySQL ECPU shapes follow the pattern: MySQL.X where X is NOT the ECPU count but a shape identifier.
-// The actual ECPU and memory allocation varies per shape based on Oracle specifications.
+// MySQL ECPU shapes follow the pattern where memory = ECPU count × 8 GB.
 // Returns (ecpuCount, memoryGB, found)
 func getMySQLShapeDetails(shapeName string) (int, int, bool) {
 	// Map of MySQL shapes to their ECPU and memory specifications
-	// Based on Oracle Cloud Infrastructure MySQL HeatWave ECPU shapes
+	// Based on Oracle Cloud Infrastructure MySQL HeatWave ECPU shapes (Table 5-1)
 	// Source: https://docs.oracle.com/en-us/iaas/mysql-database/doc/supported-shapes.html
+	// All shapes follow the 8 GB per ECPU ratio
 	shapeSpecs := map[string]struct {
 		ecpu   int
 		memory int
 	}{
-		"MySQL.2":   {ecpu: 6, memory: 48},     // MySQL.2: 6 ECPUs, 48 GB (ratio: 8 GB/ECPU)
-		"MySQL.4":   {ecpu: 12, memory: 96},    // MySQL.4: 12 ECPUs, 96 GB (ratio: 8 GB/ECPU)
-		"MySQL.8":   {ecpu: 24, memory: 192},   // MySQL.8: 24 ECPUs, 192 GB (ratio: 8 GB/ECPU)
-		"MySQL.16":  {ecpu: 48, memory: 384},   // MySQL.16: 48 ECPUs, 384 GB (ratio: 8 GB/ECPU)
-		"MySQL.32":  {ecpu: 96, memory: 768},   // MySQL.32: 96 ECPUs, 768 GB (ratio: 8 GB/ECPU)
-		"MySQL.64":  {ecpu: 192, memory: 1536}, // MySQL.64: 192 ECPUs, 1536 GB (ratio: 8 GB/ECPU)
-		"MySQL.128": {ecpu: 384, memory: 3072}, // MySQL.128: 384 ECPUs, 3072 GB (ratio: 8 GB/ECPU)
-		"MySQL.256": {ecpu: 768, memory: 6144}, // MySQL.256: 768 ECPUs, 6144 GB (ratio: 8 GB/ECPU)
+		"MySQL.Free": {ecpu: 2, memory: 8},      // Free tier: 2 ECPUs, 8 GB
+		"MySQL.2":    {ecpu: 2, memory: 16},     // MySQL.2: 2 ECPUs, 16 GB
+		"MySQL.4":    {ecpu: 4, memory: 32},     // MySQL.4: 4 ECPUs, 32 GB
+		"MySQL.8":    {ecpu: 8, memory: 64},     // MySQL.8: 8 ECPUs, 64 GB
+		"MySQL.16":   {ecpu: 16, memory: 128},   // MySQL.16: 16 ECPUs, 128 GB
+		"MySQL.32":   {ecpu: 32, memory: 256},   // MySQL.32: 32 ECPUs, 256 GB
+		"MySQL.48":   {ecpu: 48, memory: 384},   // MySQL.48: 48 ECPUs, 384 GB
+		"MySQL.64":   {ecpu: 64, memory: 512},   // MySQL.64: 64 ECPUs, 512 GB
+		"MySQL.256":  {ecpu: 256, memory: 1024}, // MySQL.256: 256 ECPUs, 1024 GB (2 x 50 Gbps)
 	}
 
 	if spec, exists := shapeSpecs[shapeName]; exists {
