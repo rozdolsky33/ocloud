@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/oracle/oci-go-sdk/v65/mysql"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/domain/database"
 	"github.com/rozdolsky33/ocloud/internal/logger"
@@ -173,6 +174,169 @@ func TestFetchPaginatedHeatWaveDb_SecondPage(t *testing.T) {
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, "hw-db3", databases[0].DisplayName)
 	assert.Equal(t, "hw-db4", databases[1].DisplayName)
+
+	mockRepo.AssertExpectations(t)
+}
+
+// TestFuzzySearch tests the FuzzySearch function with various patterns
+func TestFuzzySearch(t *testing.T) {
+	mockRepo := new(MockHeatWaveDatabaseRepository)
+	appCtx := &app.ApplicationContext{
+		CompartmentID: "test-compartment-id",
+		Logger:        logger.NewTestLogger(),
+	}
+	service := NewService(mockRepo, appCtx)
+	ctx := context.Background()
+
+	storage := 1024
+	clusterSize := 3
+
+	expectedDBs := []database.HeatWaveDatabase{
+		{
+			DisplayName:    "prod-mysql-db",
+			ID:             "ocid1.mysqldbsystem.oc1..prod",
+			LifecycleState: "ACTIVE",
+			MysqlVersion:   "8.4.6",
+			ShapeName:      "MySQL.4",
+			VcnName:        "prod-vcn",
+			SubnetName:     "database-subnet",
+			IpAddress:      "10.0.20.175",
+			HeatWaveCluster: &mysql.HeatWaveClusterSummary{
+				ClusterSize: &clusterSize,
+			},
+			DataStorage: &mysql.DataStorage{
+				DataStorageSizeInGBs: &storage,
+			},
+			FreeformTags: map[string]string{"env": "production"},
+		},
+		{
+			DisplayName:    "dev-mysql-db",
+			ID:             "ocid1.mysqldbsystem.oc1..dev",
+			LifecycleState: "INACTIVE",
+			MysqlVersion:   "8.0.35",
+			ShapeName:      "MySQL.2",
+			VcnName:        "dev-vcn",
+			SubnetName:     "dev-subnet",
+			IpAddress:      "10.0.10.100",
+			FreeformTags:   map[string]string{"env": "development"},
+		},
+		{
+			DisplayName:    "test-heatwave",
+			ID:             "ocid1.mysqldbsystem.oc1..test",
+			LifecycleState: "ACTIVE",
+			MysqlVersion:   "8.4.6",
+			ShapeName:      "MySQL.8",
+			VcnName:        "test-vcn",
+			SubnetName:     "test-subnet",
+			IpAddress:      "10.0.30.50",
+		},
+	}
+
+	mockRepo.On("ListEnrichedHeatWaveDatabases", ctx, appCtx.CompartmentID).Return(expectedDBs, nil)
+
+	// Test search by name
+	t.Run("search by name", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "prod")
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 1)
+		// Should find prod-mysql-db
+		found := false
+		for _, db := range results {
+			if db.DisplayName == "prod-mysql-db" {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "should find prod-mysql-db")
+	})
+
+	// Test search by version
+	t.Run("search by version", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "8.4.6")
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 2, "should find at least 2 databases with version 8.4.6")
+	})
+
+	// Test search by VCN name
+	t.Run("search by VCN name", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "dev-vcn")
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 1)
+		found := false
+		for _, db := range results {
+			if db.VcnName == "dev-vcn" {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "should find database in dev-vcn")
+	})
+
+	// Test search by IP address
+	t.Run("search by IP address", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "10.0.20")
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 1)
+		found := false
+		for _, db := range results {
+			if db.IpAddress == "10.0.20.175" {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "should find database with IP 10.0.20.175")
+	})
+
+	// Test search by shape
+	t.Run("search by shape", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "MySQL.4")
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 1)
+		found := false
+		for _, db := range results {
+			if db.ShapeName == "MySQL.4" {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "should find MySQL.4 database")
+	})
+
+	// Test search by tag value
+	t.Run("search by tag value", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "production")
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(results), 1)
+		found := false
+		for _, db := range results {
+			if db.DisplayName == "prod-mysql-db" {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found, "should find database with production tag")
+	})
+
+	// Test empty search pattern returns all
+	t.Run("empty search returns all", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "")
+		assert.NoError(t, err)
+		assert.Len(t, results, 3, "empty search should return all databases")
+	})
+
+	// Test whitespace-only search pattern returns all
+	t.Run("whitespace search returns all", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "   ")
+		assert.NoError(t, err)
+		assert.Len(t, results, 3, "whitespace-only search should return all databases")
+	})
+
+	// Test search with no matches
+	t.Run("search with no matches", func(t *testing.T) {
+		results, err := service.FuzzySearch(ctx, "zzz-completely-nonexistent-xyz-999")
+		assert.NoError(t, err)
+		assert.Len(t, results, 0, "should return empty results for non-matching pattern")
+	})
 
 	mockRepo.AssertExpectations(t)
 }
