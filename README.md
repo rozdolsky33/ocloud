@@ -23,7 +23,7 @@ Whether you're exploring instances, working with databases, or need to quickly f
 
 ### Database Services
 - **Autonomous Database**: List, search, and explore ADB instances
-- **HeatWave MySQL**: Manage HeatWave database instances with detailed configuration info
+- **HeatWave MySQL**: Explore HeatWave database instances with detailed configuration info
 
 ### Networking
 - **VCNs**: Virtual Cloud Networks with gateways, subnets, NSGs, route tables, and security lists
@@ -40,7 +40,7 @@ Whether you're exploring instances, working with databases, or need to quickly f
 
 ### Core Capabilities
 - **Powerful Search**: Fuzzy, prefix, and substring matching using Bleve indexing
-- **Interactive TUI**: Navigate resources with terminal user interface for select commands
+- **Interactive TUI**: Navigate resources with the terminal user interface for select commands
 - **JSON Output**: Consistent structured output across all commands
 - **Pagination**: Unified pagination support (`--limit`, `--page`)
 - **Authentication**: Interactive OCI Auth with automatic session refresh
@@ -116,7 +116,56 @@ ocloud network vcn list
 
 ## Configuration
 
-OCloud can be configured via (precedence: highest to lowest):
+Running `ocloud` without any arguments displays the configuration details and available commands.
+
+Example output (values will vary by version, time, and your environment):
+
+```
+ ██████╗  ██████╗██╗      ██████╗ ██╗   ██╗██████╗
+██╔═══██╗██╔════╝██║     ██╔═══██╗██║   ██║██╔══██╗
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+██║   ██║██║     ██║     ██║   ██║██║   ██║██║  ██║
+╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
+ ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
+
+	      Version: v0.1.0
+
+Configuration Details: Valid until <timestamp>
+  OCI_CLI_PROFILE: DEFAULT
+  OCI_TENANCY_NAME: cloudops
+  OCI_COMPARTMENT_NAME: cnopslabsdev1
+  OCI_AUTH_AUTO_REFRESHER: ON [<pid>]
+  OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
+
+Interact with Oracle Cloud Infrastructure
+
+Usage:
+  ocloud [flags]
+  ocloud [command]
+
+Available Commands:
+  compute     Explore OCI compute services
+  config      Configure ocloud CLI and authentication
+  database    Explore OCI Database services
+  help        Help about any command
+  identity    Explore OCI identity services
+  network     Explore OCI networking services
+  version     Print the version information
+
+Flags:
+      --color                 Enable colored log messages.
+  -c, --compartment string    OCI compartment name
+  -d, --debug                 Enable debug logging
+  -h, --help                  help for ocloud (shorthand: -h)
+  -j, --json                  Output information in JSON format
+      --log-level string      Set the log verbosity debug, (default "info")
+  -t, --tenancy-id string     OCI tenancy OCID
+      --tenancy-name string   Tenancy name
+  -v, --version               Print the version number of ocloud CLI
+```
+
+OCloud can be configured in multiple ways, with the following precedence (highest to lowest):
+
 1. Command-line flags
 2. Environment variables
 3. OCI configuration file (`~/.oci/config`)
