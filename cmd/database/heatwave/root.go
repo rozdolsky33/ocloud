@@ -19,6 +19,7 @@ func NewHeatWaveDatabaseCmd(appCtx *app.ApplicationContext) *cobra.Command {
 
 	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewListCmd(appCtx))
+	cmd.AddCommand(NewSearchCmd(appCtx))
 
 	return cmd
 }
