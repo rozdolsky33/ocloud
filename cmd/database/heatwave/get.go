@@ -1,12 +1,11 @@
 package heatwave
 
 import (
-	"fmt"
-
 	databaseFlags "github.com/rozdolsky33/ocloud/cmd/shared/flags"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
 	"github.com/rozdolsky33/ocloud/internal/logger"
+	"github.com/rozdolsky33/ocloud/internal/services/database/heatwavedb"
 	"github.com/spf13/cobra"
 )
 
@@ -69,6 +68,5 @@ func runGetCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	limit := flags.GetIntFlag(cmd, flags.FlagNameLimit, databaseFlags.FlagDefaultLimit)
 	page := flags.GetIntFlag(cmd, flags.FlagNamePage, databaseFlags.FlagDefaultPage)
 	showAll := flags.GetBoolFlag(cmd, flags.FlagNameAll, false)
-	fmt.Println(useJSON, limit, page, showAll, appCtx)
-	return nil
+	return heatwavedb.GetHeatWaveDatabase(appCtx, useJSON, limit, page, showAll)
 }
