@@ -8,7 +8,7 @@ import (
 	domain "github.com/rozdolsky33/ocloud/internal/domain/database"
 )
 
-// HeatWaveDatabaseAttributes holds intermediate attributes for mapping from OCI SDK to domain model.
+// HeatWaveDatabaseAttributes holds intermediate attributes for mapping from OCI SDK to a domain model.
 type HeatWaveDatabaseAttributes struct {
 	ID                         *string
 	DisplayName                *string

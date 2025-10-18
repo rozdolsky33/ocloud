@@ -224,3 +224,128 @@ func TestBoolToString(t *testing.T) {
 	assert.Equal(t, "false", boolToString(ptrBool(false)))
 	assert.Equal(t, "", boolToString(nil))
 }
+
+// Test getMySQLShapeDetails helper
+func TestGetMySQLShapeDetails(t *testing.T) {
+	tests := []struct {
+		name       string
+		shapeName  string
+		wantECPU   int
+		wantMemory int
+		wantFound  bool
+	}{
+		{
+			name:       "MySQL.2 shape",
+			shapeName:  "MySQL.2",
+			wantECPU:   6,
+			wantMemory: 48,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.4 shape",
+			shapeName:  "MySQL.4",
+			wantECPU:   12,
+			wantMemory: 96,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.8 shape",
+			shapeName:  "MySQL.8",
+			wantECPU:   24,
+			wantMemory: 192,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.16 shape",
+			shapeName:  "MySQL.16",
+			wantECPU:   48,
+			wantMemory: 384,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.32 shape",
+			shapeName:  "MySQL.32",
+			wantECPU:   96,
+			wantMemory: 768,
+			wantFound:  true,
+		},
+		{
+			name:       "MySQL.128 shape",
+			shapeName:  "MySQL.128",
+			wantECPU:   384,
+			wantMemory: 3072,
+			wantFound:  true,
+		},
+		{
+			name:       "Unknown shape",
+			shapeName:  "MySQL.Unknown",
+			wantECPU:   0,
+			wantMemory: 0,
+			wantFound:  false,
+		},
+		{
+			name:       "Legacy OCPU shape",
+			shapeName:  "MySQL.VM.Standard.E4.4.128GB",
+			wantECPU:   0,
+			wantMemory: 0,
+			wantFound:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ecpu, memory, found := getMySQLShapeDetails(tt.shapeName)
+			assert.Equal(t, tt.wantECPU, ecpu, "ECPU count mismatch")
+			assert.Equal(t, tt.wantMemory, memory, "Memory mismatch")
+			assert.Equal(t, tt.wantFound, found, "Found flag mismatch")
+		})
+	}
+}
+
+// Test storage size formatting with new ECPU shapes
+func TestPrintHeatWaveDbInfo_ECPUShapeAndStorage(t *testing.T) {
+	db := database.HeatWaveDatabase{
+		DisplayName:               "prod-orion-midtier",
+		ID:                        "ocid1.mysqldbsystem.oc2..test",
+		LifecycleState:            "ACTIVE",
+		MysqlVersion:              "8.4.6",
+		ShapeName:                 "MySQL.4",    // 12 ECPUs, 96 GB memory
+		DataStorageSizeInGBs:      ptrInt(3072), // 3072 GB = 3 TB
+		IsHighlyAvailable:         ptrBool(true),
+		IsHeatWaveClusterAttached: ptrBool(false),
+		DatabaseMode:              "READ_WRITE",
+		AccessMode:                "UNRESTRICTED",
+		IpAddress:                 "217.142.42.138",
+		Port:                      ptrInt(3306),
+		SubnetName:                "database",
+		VcnName:                   "vcn-luf-rho-udeprod1-1",
+		TimeCreated:               ptrTime(time.Date(2025, 10, 8, 19, 49, 26, 0, time.UTC)),
+	}
+
+	var buf bytes.Buffer
+	appCtx := &app.ApplicationContext{Logger: logger.NewTestLogger(), Stdout: &buf}
+
+	// Summary view
+	err := PrintHeatWaveDbInfo(&db, appCtx, false, false)
+	assert.NoError(t, err)
+	out := buf.String()
+
+	// Validate ECPU shape info is displayed
+	assert.Contains(t, out, "MySQL.4")
+	assert.Contains(t, out, "12")    // ECPU count (MySQL.4 has 12 ECPUs)
+	assert.Contains(t, out, "96 GB") // Memory
+
+	// Validate storage is shown in TiB (3072 GB = 3 TiB)
+	assert.Contains(t, out, "3.00 TiB")
+
+	// Detailed view
+	buf.Reset()
+	err = PrintHeatWaveDbInfo(&db, appCtx, false, true)
+	assert.NoError(t, err)
+	detailedOut := buf.String()
+
+	// Validate detailed view also shows correct info
+	assert.Contains(t, detailedOut, "ECPUs")
+	assert.Contains(t, detailedOut, "Memory")
+	assert.Contains(t, detailedOut, "3.00 TiB")
+}

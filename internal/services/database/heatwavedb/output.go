@@ -75,7 +75,9 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	// Storage formatting
 	storage := ""
 	if db.DataStorageSizeInGBs != nil {
-		storage = fmt.Sprintf("%d GB", *db.DataStorageSizeInGBs)
+		// Convert GB to bytes for proper human-readable formatting (e.g., 3072 GB -> 3.00 TiB)
+		sizeInBytes := int64(*db.DataStorageSizeInGBs) * 1024 * 1024 * 1024
+		storage = util.HumanizeBytesIEC(sizeInBytes)
 	}
 
 	// HeatWave cluster info
@@ -118,13 +120,21 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 			"Subnet":            subnetVal,
 			"VCN":               vcnVal,
 		}
+
+		// Add ECPU and memory info if shape details are available
+		if ecpu, memory, found := getMySQLShapeDetails(db.ShapeName); found {
+			summary["ECPUs"] = fmt.Sprintf("%d", ecpu)
+			summary["Memory"] = fmt.Sprintf("%d GB", memory)
+		}
+
 		if db.TimeCreated != nil {
 			summary["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
 		}
+
 		ordered := []string{
-			"Lifecycle State", "MySQL Version", "Shape", "Storage", "High Availability",
-			"HeatWave Cluster", "Database Mode", "Access Mode", "Private IP", "Port",
-			"Subnet", "VCN", "Time Created",
+			"Lifecycle State", "MySQL Version", "Shape", "ECPUs", "Memory", "Storage",
+			"High Availability", "HeatWave Cluster", "Database Mode", "Access Mode",
+			"Private IP", "Port", "Subnet", "VCN", "Time Created",
 		}
 		p.PrintKeyValues(title, summary, ordered)
 		return nil
@@ -148,9 +158,14 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 
 	// Capacity
 	details["Shape"] = db.ShapeName
+	// Add ECPU and memory info if shape details are available
+	if ecpu, memory, found := getMySQLShapeDetails(db.ShapeName); found {
+		details["ECPUs"] = fmt.Sprintf("%d", ecpu)
+		details["Memory"] = fmt.Sprintf("%d GB", memory)
+	}
 	details["Storage"] = storage
 	details["High Availability"] = highAvailability
-	orderedKeys = append(orderedKeys, "Shape", "Storage", "High Availability")
+	orderedKeys = append(orderedKeys, "Shape", "ECPUs", "Memory", "Storage", "High Availability")
 
 	// HeatWave Cluster
 	details["HeatWave Cluster"] = heatwaveCluster
@@ -322,6 +337,34 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 }
 
 //-------------------------------------------------Helpers--------------------------------------------------------------
+
+// getMySQLShapeDetails returns ECPU count and memory in GB for a given MySQL shape.
+// MySQL ECPU shapes follow the pattern: MySQL.X where X is NOT the ECPU count but a shape identifier.
+// The actual ECPU and memory allocation varies per shape based on Oracle specifications.
+// Returns (ecpuCount, memoryGB, found)
+func getMySQLShapeDetails(shapeName string) (int, int, bool) {
+	// Map of MySQL shapes to their ECPU and memory specifications
+	// Based on Oracle Cloud Infrastructure MySQL HeatWave ECPU shapes
+	// Source: https://docs.oracle.com/en-us/iaas/mysql-database/doc/supported-shapes.html
+	shapeSpecs := map[string]struct {
+		ecpu   int
+		memory int
+	}{
+		"MySQL.2":   {ecpu: 6, memory: 48},     // MySQL.2: 6 ECPUs, 48 GB (ratio: 8 GB/ECPU)
+		"MySQL.4":   {ecpu: 12, memory: 96},    // MySQL.4: 12 ECPUs, 96 GB (ratio: 8 GB/ECPU)
+		"MySQL.8":   {ecpu: 24, memory: 192},   // MySQL.8: 24 ECPUs, 192 GB (ratio: 8 GB/ECPU)
+		"MySQL.16":  {ecpu: 48, memory: 384},   // MySQL.16: 48 ECPUs, 384 GB (ratio: 8 GB/ECPU)
+		"MySQL.32":  {ecpu: 96, memory: 768},   // MySQL.32: 96 ECPUs, 768 GB (ratio: 8 GB/ECPU)
+		"MySQL.64":  {ecpu: 192, memory: 1536}, // MySQL.64: 192 ECPUs, 1536 GB (ratio: 8 GB/ECPU)
+		"MySQL.128": {ecpu: 384, memory: 3072}, // MySQL.128: 384 ECPUs, 3072 GB (ratio: 8 GB/ECPU)
+		"MySQL.256": {ecpu: 768, memory: 6144}, // MySQL.256: 768 ECPUs, 6144 GB (ratio: 8 GB/ECPU)
+	}
+
+	if spec, exists := shapeSpecs[shapeName]; exists {
+		return spec.ecpu, spec.memory, true
+	}
+	return 0, 0, false
+}
 
 func boolToString(v *bool) string {
 	if v == nil {
