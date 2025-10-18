@@ -10,8 +10,6 @@ import (
 )
 
 // PrintHeatWaveDbInfo prints a single HeatWave DB.
-// - useJSON: if true, prints the single DB as JSON (no pagination envelope)
-// - showAll: if true, prints the detailed view; otherwise, prints the summary view
 func PrintHeatWaveDbInfo(db *database.HeatWaveDatabase, appCtx *app.ApplicationContext, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 	if useJSON {
@@ -22,9 +20,6 @@ func PrintHeatWaveDbInfo(db *database.HeatWaveDatabase, appCtx *app.ApplicationC
 }
 
 // PrintHeatWaveDbsInfo prints a list of HeatWave DBs.
-// - pagination: optional, will be adjusted and logged if provided
-// - useJSON: if true, prints databases with util.MarshalDataToJSONResponse
-// - showAll: if true, prints detailed view; otherwise summary view
 func PrintHeatWaveDbsInfo(databases []database.HeatWaveDatabase, appCtx *app.ApplicationContext, pagination *util.PaginationInfo, useJSON bool, showAll bool) error {
 	p := printer.New(appCtx.Stdout)
 
@@ -56,7 +51,6 @@ func PrintHeatWaveDbsInfo(databases []database.HeatWaveDatabase, appCtx *app.App
 func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *database.HeatWaveDatabase, showAll bool) error {
 	title := util.FormatColoredTitle(appCtx, db.DisplayName)
 
-	// Prefer names to IDs when available
 	subnetVal := db.SubnetId
 	if db.SubnetName != "" {
 		subnetVal = db.SubnetName
@@ -79,7 +73,6 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	var autoExpandEnabled bool
 
 	if db.DataStorage != nil {
-		// Use the new DataStorage object for detailed information
 		if db.DataStorage.DataStorageSizeInGBs != nil {
 			sizeInBytes := int64(*db.DataStorage.DataStorageSizeInGBs) * 1024 * 1024 * 1024
 			storage = util.HumanizeBytesIEC(sizeInBytes)
@@ -96,12 +89,10 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 			autoExpandEnabled = *db.DataStorage.IsAutoExpandStorageEnabled
 		}
 	} else if db.DataStorageSizeInGBs != nil {
-		// Fallback to the deprecated field
 		sizeInBytes := int64(*db.DataStorageSizeInGBs) * 1024 * 1024 * 1024
 		storage = util.HumanizeBytesIEC(sizeInBytes)
 	}
 
-	// HeatWave cluster info
 	heatwaveCluster := "No"
 	if db.IsHeatWaveClusterAttached != nil && *db.IsHeatWaveClusterAttached {
 		heatwaveCluster = "Yes"
@@ -110,10 +101,8 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		}
 	}
 
-	// High availability
 	highAvailability := boolToString(db.IsHighlyAvailable)
 
-	// Primary endpoint info
 	primaryIP := db.IpAddress
 	primaryPort := ""
 	if db.Port != nil {
@@ -182,18 +171,26 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	// General
 	details["Lifecycle State"] = db.LifecycleState
 	details["MySQL Version"] = db.MysqlVersion
-	details["Description"] = db.Description
+	// Only show description if not empty
+	if db.Description != "" {
+		details["Description"] = db.Description
+	}
 	if db.TimeCreated != nil {
 		details["Time Created"] = db.TimeCreated.Format("2006-01-02 15:04:05")
 	}
 	if db.TimeUpdated != nil {
 		details["Time Updated"] = db.TimeUpdated.Format("2006-01-02 15:04:05")
 	}
-	orderedKeys = append(orderedKeys, "Lifecycle State", "MySQL Version", "Description", "Time Created", "Time Updated")
+
+	generalKeys := []string{"Lifecycle State", "MySQL Version"}
+	if db.Description != "" {
+		generalKeys = append(generalKeys, "Description")
+	}
+	generalKeys = append(generalKeys, "Time Created", "Time Updated")
+	orderedKeys = append(orderedKeys, generalKeys...)
 
 	// Capacity
 	details["Shape"] = db.ShapeName
-	// Add ECPU and memory info if shape details are available
 	if ecpu, memory, found := getMySQLShapeDetails(db.ShapeName); found {
 		details["ECPUs"] = fmt.Sprintf("%d", ecpu)
 		details["Memory"] = fmt.Sprintf("%d GB", memory)
@@ -201,32 +198,36 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	details["High Availability"] = highAvailability
 	orderedKeys = append(orderedKeys, "Shape", "ECPUs", "Memory", "High Availability")
 
-	// Storage - detailed information
-	if storage != "" {
+	// Storage - consolidate when used == allocated
+	if storage != "" && allocatedStorage != "" && storage != allocatedStorage {
+		// Show both when different (expansion occurred)
 		details["Storage Used"] = storage
-		orderedKeys = append(orderedKeys, "Storage Used")
-	}
-	if allocatedStorage != "" {
 		details["Storage Allocated"] = allocatedStorage
-		orderedKeys = append(orderedKeys, "Storage Allocated")
+		orderedKeys = append(orderedKeys, "Storage Used", "Storage Allocated")
+	} else if storage != "" {
+		details["Storage"] = storage
+		orderedKeys = append(orderedKeys, "Storage")
 	}
+
+	// Storage limit (show max capacity)
 	if storageLimit != "" {
 		details["Storage Limit"] = storageLimit
 		orderedKeys = append(orderedKeys, "Storage Limit")
 	}
+
+	// Auto-expand settings (only show if enabled or if max size is set)
 	if db.DataStorage != nil {
-		if db.DataStorage.IsAutoExpandStorageEnabled != nil {
-			details["Auto-Expand Storage"] = boolToString(db.DataStorage.IsAutoExpandStorageEnabled)
-			orderedKeys = append(orderedKeys, "Auto-Expand Storage")
-		}
-		if db.DataStorage.MaxStorageSizeInGBs != nil && autoExpandEnabled {
-			maxInBytes := int64(*db.DataStorage.MaxStorageSizeInGBs) * 1024 * 1024 * 1024
-			details["Max Expand Size"] = util.HumanizeBytesIEC(maxInBytes)
-			orderedKeys = append(orderedKeys, "Max Expand Size")
+		if autoExpandEnabled {
+			details["Auto-Expand"] = "Enabled"
+			orderedKeys = append(orderedKeys, "Auto-Expand")
+			if db.DataStorage.MaxStorageSizeInGBs != nil {
+				maxInBytes := int64(*db.DataStorage.MaxStorageSizeInGBs) * 1024 * 1024 * 1024
+				details["Max Expand Size"] = util.HumanizeBytesIEC(maxInBytes)
+				orderedKeys = append(orderedKeys, "Max Expand Size")
+			}
 		}
 	}
 
-	// HeatWave Cluster
 	details["HeatWave Cluster"] = heatwaveCluster
 	orderedKeys = append(orderedKeys, "HeatWave Cluster")
 	if db.HeatWaveCluster != nil {
@@ -243,57 +244,38 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 	// Configuration & Mode
 	details["Database Mode"] = db.DatabaseMode
 	details["Access Mode"] = db.AccessMode
-	details["Configuration ID"] = db.ConfigurationId
 	details["Crash Recovery"] = db.CrashRecovery
-	orderedKeys = append(orderedKeys, "Database Mode", "Access Mode", "Configuration ID", "Crash Recovery")
+	orderedKeys = append(orderedKeys, "Database Mode", "Access Mode", "Crash Recovery")
 
-	// Network
 	details["Subnet"] = subnetVal
-	details["Subnet Type"] = "Regional" // HeatWave DB systems use regional subnets
 	details["VCN"] = vcnVal
-	details["NSGs"] = nsgVal
-	orderedKeys = append(orderedKeys, "Subnet", "Subnet Type", "VCN", "NSGs")
+	if nsgVal != "" && nsgVal != "No" {
+		details["NSGs"] = nsgVal
+		orderedKeys = append(orderedKeys, "Subnet", "VCN", "NSGs")
+	} else {
+		orderedKeys = append(orderedKeys, "Subnet", "VCN")
+	}
 
-	// Primary Endpoint - Critical connection info
-	details["Private IP"] = primaryIP
+	// Connection Endpoint - Consolidate connection info
+	connectionInfo := primaryIP
 	if primaryPort != "" {
-		details["Database Port"] = primaryPort
-	}
-	if db.PortX != nil {
-		details["X Protocol Port"] = fmt.Sprintf("%d", *db.PortX)
-	}
-	if primaryFQDN != "" {
-		details["Internal FQDN"] = primaryFQDN
-	}
-	orderedKeys = append(orderedKeys, "Private IP", "Database Port", "X Protocol Port", "Internal FQDN")
-
-	// Additional Endpoints
-	if len(db.Endpoints) > 0 {
-		for i, endpoint := range db.Endpoints {
-			if endpoint.IpAddress != nil {
-				key := fmt.Sprintf("Endpoint %d IP", i+1)
-				details[key] = *endpoint.IpAddress
-				orderedKeys = append(orderedKeys, key)
-			}
-			if endpoint.Hostname != nil {
-				key := fmt.Sprintf("Endpoint %d Hostname", i+1)
-				details[key] = *endpoint.Hostname
-				orderedKeys = append(orderedKeys, key)
-			}
-			if endpoint.Port != nil {
-				key := fmt.Sprintf("Endpoint %d Port", i+1)
-				details[key] = fmt.Sprintf("%d", *endpoint.Port)
-				orderedKeys = append(orderedKeys, key)
-			}
+		connectionInfo = fmt.Sprintf("%s:%s", primaryIP, primaryPort)
+		if db.PortX != nil {
+			connectionInfo = fmt.Sprintf("%s:%s (X: %d)", primaryIP, primaryPort, *db.PortX)
 		}
 	}
+	details["Endpoint"] = connectionInfo
+	if primaryFQDN != "" {
+		details["Internal FQDN"] = primaryFQDN
+		orderedKeys = append(orderedKeys, "Endpoint", "Internal FQDN")
+	} else {
+		orderedKeys = append(orderedKeys, "Endpoint")
+	}
 
-	// Placement
 	details["Availability Domain"] = db.AvailabilityDomain
 	details["Fault Domain"] = db.FaultDomain
 	orderedKeys = append(orderedKeys, "Availability Domain", "Fault Domain")
 
-	// Backup Policy - Critical for SREs
 	if db.BackupPolicy != nil {
 		if db.BackupPolicy.IsEnabled != nil {
 			details["Automatic Backups"] = boolToString(db.BackupPolicy.IsEnabled)
@@ -309,16 +291,22 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		}
 	}
 
-	// Point-in-time recovery
-	if db.PointInTimeRecoveryDetails != nil {
-		details["Point-in-time Recovery"] = "Enabled"
+	if db.PointInTimeRecoveryDetails != nil && db.PointInTimeRecoveryDetails.TimeEarliestRecoveryPoint != nil {
+		pitrKeys := []string{}
+		details["PITR"] = "Enabled"
+		pitrKeys = append(pitrKeys, "PITR")
+
 		if db.PointInTimeRecoveryDetails.TimeEarliestRecoveryPoint != nil {
-			details["Earliest Recovery Point"] = db.PointInTimeRecoveryDetails.TimeEarliestRecoveryPoint.Format("2006-01-02 15:04:05")
+			details["Earliest Recovery"] = db.PointInTimeRecoveryDetails.TimeEarliestRecoveryPoint.Format("2006-01-02 15:04:05")
+			pitrKeys = append(pitrKeys, "Earliest Recovery")
 		}
-		orderedKeys = append(orderedKeys, "Point-in-time Recovery", "Earliest Recovery Point")
+		if db.PointInTimeRecoveryDetails.TimeLatestRecoveryPoint != nil {
+			details["Latest Recovery"] = db.PointInTimeRecoveryDetails.TimeLatestRecoveryPoint.Format("2006-01-02 15:04:05")
+			pitrKeys = append(pitrKeys, "Latest Recovery")
+		}
+		orderedKeys = append(orderedKeys, pitrKeys...)
 	}
 
-	// Deletion protection
 	if db.DeletionPolicy != nil {
 		if db.DeletionPolicy.IsDeleteProtected != nil {
 			details["Delete Protected"] = boolToString(db.DeletionPolicy.IsDeleteProtected)
@@ -330,13 +318,11 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		}
 	}
 
-	// Maintenance window
 	if db.MaintenanceInfo != nil && db.MaintenanceInfo.WindowStartTime != nil {
 		details["Maintenance Window"] = *db.MaintenanceInfo.WindowStartTime
 		orderedKeys = append(orderedKeys, "Maintenance Window")
 	}
 
-	// Encryption
 	if db.EncryptData != nil {
 		if db.EncryptData.KeyId != nil {
 			details["Encryption Key"] = *db.EncryptData.KeyId
@@ -346,7 +332,6 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		orderedKeys = append(orderedKeys, "Encryption Key")
 	}
 
-	// Security certificates
 	if db.SecureConnections != nil {
 		if db.SecureConnections.CertificateGenerationType != "" {
 			details["Security Certificate"] = string(db.SecureConnections.CertificateGenerationType)
@@ -354,7 +339,6 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		}
 	}
 
-	// Read endpoint
 	if db.ReadEndpoint != nil {
 		if db.ReadEndpoint.ReadEndpointIpAddress != nil {
 			details["Read Endpoint IP"] = *db.ReadEndpoint.ReadEndpointIpAddress
@@ -365,13 +349,11 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		}
 	}
 
-	// Database Management
 	if db.DatabaseManagement != "" {
 		details["Database Management"] = db.DatabaseManagement
 		orderedKeys = append(orderedKeys, "Database Management")
 	}
 
-	// Customer contacts
 	if len(db.CustomerContacts) > 0 {
 		var contacts []string
 		for _, contact := range db.CustomerContacts {
@@ -385,7 +367,7 @@ func printOneHeatWaveDb(p *printer.Printer, appCtx *app.ApplicationContext, db *
 		}
 	}
 
-	// Lifecycle details (useful for troubleshooting)
+	// useful for troubleshooting
 	if db.LifecycleDetails != "" {
 		details["Lifecycle Details"] = db.LifecycleDetails
 		orderedKeys = append(orderedKeys, "Lifecycle Details")
@@ -409,15 +391,15 @@ func getMySQLShapeDetails(shapeName string) (int, int, bool) {
 		ecpu   int
 		memory int
 	}{
-		"MySQL.Free": {ecpu: 2, memory: 8},      // Free tier: 2 ECPUs, 8 GB
-		"MySQL.2":    {ecpu: 2, memory: 16},     // MySQL.2: 2 ECPUs, 16 GB
-		"MySQL.4":    {ecpu: 4, memory: 32},     // MySQL.4: 4 ECPUs, 32 GB
-		"MySQL.8":    {ecpu: 8, memory: 64},     // MySQL.8: 8 ECPUs, 64 GB
-		"MySQL.16":   {ecpu: 16, memory: 128},   // MySQL.16: 16 ECPUs, 128 GB
-		"MySQL.32":   {ecpu: 32, memory: 256},   // MySQL.32: 32 ECPUs, 256 GB
-		"MySQL.48":   {ecpu: 48, memory: 384},   // MySQL.48: 48 ECPUs, 384 GB
-		"MySQL.64":   {ecpu: 64, memory: 512},   // MySQL.64: 64 ECPUs, 512 GB
-		"MySQL.256":  {ecpu: 256, memory: 1024}, // MySQL.256: 256 ECPUs, 1024 GB (2 x 50 Gbps)
+		"MySQL.Free": {ecpu: 2, memory: 8},
+		"MySQL.2":    {ecpu: 2, memory: 16},
+		"MySQL.4":    {ecpu: 4, memory: 32},
+		"MySQL.8":    {ecpu: 8, memory: 64},
+		"MySQL.16":   {ecpu: 16, memory: 128},
+		"MySQL.32":   {ecpu: 32, memory: 256},
+		"MySQL.48":   {ecpu: 48, memory: 384},
+		"MySQL.64":   {ecpu: 64, memory: 512},
+		"MySQL.256":  {ecpu: 256, memory: 1024},
 	}
 
 	if spec, exists := shapeSpecs[shapeName]; exists {

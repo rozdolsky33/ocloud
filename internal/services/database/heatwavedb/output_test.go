@@ -148,13 +148,13 @@ func TestPrintHeatWaveDbsInfo_DetailedView(t *testing.T) {
 	assert.Contains(t, out, "Production HeatWave Database")
 	assert.Contains(t, out, "HeatWave Shape")
 	assert.Contains(t, out, "HeatWave State")
-	assert.Contains(t, out, "Configuration ID")
+	// Configuration ID removed - too technical for summary view
 	assert.Contains(t, out, "Availability Domain")
 	assert.Contains(t, out, "Fault Domain")
 	assert.Contains(t, out, "Automatic Backups")
 	assert.Contains(t, out, "Retention Days")
-	assert.Contains(t, out, "Endpoint 1 IP")
-	assert.Contains(t, out, "Endpoint 1 Hostname")
+	// Endpoint consolidated - removed duplicate endpoint fields
+	assert.Contains(t, out, "Endpoint")
 	assert.Contains(t, out, "Time Created")
 	assert.Contains(t, out, "Time Updated")
 }
@@ -388,10 +388,12 @@ func TestPrintHeatWaveDbInfo_ECPUShapeAndStorage(t *testing.T) {
 	// Validate detailed view also shows correct info
 	assert.Contains(t, detailedOut, "ECPUs")
 	assert.Contains(t, detailedOut, "Memory")
-	assert.Contains(t, detailedOut, "Storage Used")
-	assert.Contains(t, detailedOut, "Storage Allocated")
+	// Storage should be consolidated when used == allocated
+	assert.Contains(t, detailedOut, "Storage")
 	assert.Contains(t, detailedOut, "Storage Limit")
 	assert.Contains(t, detailedOut, "1.00 TiB")
 	assert.Contains(t, detailedOut, "96.00 TiB")
 	assert.Contains(t, detailedOut, "Prod Orion Midtier MySQL Database service")
+	// Endpoint should be consolidated
+	assert.Contains(t, detailedOut, "Endpoint")
 }
