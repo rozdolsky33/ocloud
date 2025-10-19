@@ -28,23 +28,23 @@ Additional Information:
 // Examples for the list command
 var getExamples = `
   # Get all HeatWave Databases with default pagination (20 per page)
-  ocloud database HeatWave get
+  ocloud database heatwave get
 
   # Get HeatWave Databases with custom pagination (10 per page, page 2)
-  ocloud database HeatWave get --limit 10 --page 2
+  ocloud database heatwave get --limit 10 --page 2
 
   # Get HeatWave Databases and output in JSON format
-  ocloud database HeatWave get --json
+  ocloud database heatwave get --json
 
   # Get HeatWave Databases with custom pagination and JSON output
-  ocloud database HeatWave get --limit 5 --page 3 --json
+  ocloud database heatwave get --limit 5 --page 3 --json
 `
 
 // NewGetCmd creates a "list" subcommand for listing all databases in the specified compartment with pagination support.
 func NewGetCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:           "get",
-		Short:         "Get all Databases",
+		Short:         "Get all HeatWave Databases",
 		Long:          getLong,
 		Example:       getExamples,
 		SilenceUsage:  true,

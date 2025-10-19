@@ -18,7 +18,7 @@ func TestGetCommand(t *testing.T) {
 
 	// Test that the get command is properly configured
 	assert.Equal(t, "get", cmd.Use)
-	assert.Equal(t, "Get all Databases", cmd.Short)
+	assert.Equal(t, "Get all HeatWave Databases", cmd.Short)
 	assert.Equal(t, getLong, cmd.Long)
 	assert.Equal(t, getExamples, cmd.Example)
 	assert.True(t, cmd.SilenceUsage)

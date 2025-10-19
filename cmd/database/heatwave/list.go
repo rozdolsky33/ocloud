@@ -21,8 +21,8 @@ After you pick an HeatWave Database, the tool prints detailed information about 
 
 var listExamples = `
   # Launch the interactive images browser
-   ocloud database HeatWave list
-   ocloud database HeatWave list --json
+   ocloud database heatwave list
+   ocloud database heatwave list --json
 `
 
 // NewListCmd creates a new command for listing HeatWave Databases
