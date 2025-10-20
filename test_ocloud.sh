@@ -337,6 +337,27 @@ run_command ./bin/ocloud database heatwave search "prod" -A -j
 run_command ./bin/ocloud db hw s "prod"
 run_command ./bin/ocloud db hw s "8.4" -j
 
+# Test database cache-cluster command
+print_header "Testing database cache-cluster command"
+run_command ./bin/ocloud database cache-cluster --help
+run_command ./bin/ocloud database cachecluster --help
+run_command ./bin/ocloud db cc --help
+
+# Test database cache-cluster get command
+print_header "Testing database cache-cluster get command"
+run_command ./bin/ocloud database cache-cluster get
+run_command ./bin/ocloud database cache-cluster get --limit 10 --page 1 --json
+run_command ./bin/ocloud database cache-cluster get -m 10 -p 1 -j
+run_command ./bin/ocloud database cache-cluster get --all
+run_command ./bin/ocloud db cc get -A -j
+
+# Test database cache-cluster search command
+print_header "Testing database cache-cluster search command"
+run_command ./bin/ocloud database cache-cluster search "prod"
+run_command ./bin/ocloud database cache-cluster search "prod" --json
+run_command ./bin/ocloud database cache-cluster search "VALKEY_7_2" --all
+run_command ./bin/ocloud db cc s "VALKEY_7_2" -j
+
 # Test version command and flag
 print_header "Testing ocloud settings"
 run_command ./bin/ocloud
