@@ -47,16 +47,15 @@ func (a *Adapter) GetEnrichedInstance(ctx context.Context, instanceID string) (*
 	return dm, nil
 }
 
-// ListInstances fetches all running instances in a compartment.
+// ListInstances fetches all instances in a compartment.
 func (a *Adapter) ListInstances(ctx context.Context, compartmentID string) ([]domain.Instance, error) {
 	var allInstances []domain.Instance
 	var page *string
 
 	for {
 		resp, err := a.computeClient.ListInstances(ctx, core.ListInstancesRequest{
-			CompartmentId:  &compartmentID,
-			LifecycleState: core.InstanceLifecycleStateRunning,
-			Page:           page,
+			CompartmentId: &compartmentID,
+			Page:          page,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing instances from OCI: %w", err)
@@ -74,16 +73,15 @@ func (a *Adapter) ListInstances(ctx context.Context, compartmentID string) ([]do
 	return allInstances, nil
 }
 
-// ListEnrichedInstances fetches all running instances in a compartment and enriches them with network and image details.
+// ListEnrichedInstances fetches all instances in a compartment and enriches them with network and image details.
 func (a *Adapter) ListEnrichedInstances(ctx context.Context, compartmentID string) ([]domain.Instance, error) {
 	var allInstances []core.Instance
 	var page *string
 
 	for {
 		resp, err := a.computeClient.ListInstances(ctx, core.ListInstancesRequest{
-			CompartmentId:  &compartmentID,
-			LifecycleState: core.InstanceLifecycleStateRunning,
-			Page:           page,
+			CompartmentId: &compartmentID,
+			Page:          page,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing instances from OCI: %w", err)
