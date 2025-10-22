@@ -2,10 +2,14 @@ package setup
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
 	appConfig "github.com/rozdolsky33/ocloud/internal/config"
@@ -15,6 +19,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ErrCancelled is returned when user cancels an operation via Ctrl+C
+var ErrCancelled = errors.New("operation cancelled by user")
+
 // NewService initializes a new Service instance with the provided application context.
 func NewService() *Service {
 	appCtx := &app.ApplicationContext{
@@ -23,13 +30,31 @@ func NewService() *Service {
 	service := &Service{
 		logger: appCtx.Logger,
 	}
-	logger.Logger.V(logger.Info).Info("Creating new configuration setup service.")
+	logger.Logger.V(logger.Debug).Info("Creating new configuration setup service.")
 	return service
 }
 
 // ConfigureTenancyFile creates or updates a tenancy mapping configuration file with user-provided inputs.
-func (s *Service) ConfigureTenancyFile() (err error) {
-	logger.Logger.V(logger.Info).Info("Starting tenancy map configuration.")
+// The context allows for graceful cancellation via Ctrl+C.
+func (s *Service) ConfigureTenancyFile(ctx context.Context) (err error) {
+	logger.Logger.V(logger.Debug).Info("Starting tenancy map configuration.")
+
+	// Set up signal handling for Ctrl+C
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		select {
+		case <-sigChan:
+			fmt.Println("\n\nOperation cancelled by user. Exiting...")
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+	defer signal.Stop(sigChan)
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("getting user home directory: %w", err)
@@ -51,7 +76,7 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 		}
 	} else {
 		fmt.Println("\nTenancy mapping file not found at:", configFile)
-		logger.Logger.V(logger.Info).Info("Tenancy mapping file not found.", "path", configFile)
+		logger.Logger.V(logger.Debug).Info("Tenancy mapping file not found.", "path", configFile)
 		if !util.PromptYesNo("Do you want to create the file and set up tenancy mapping?") {
 			fmt.Println("Setup cancelled. Exiting.")
 			return nil
@@ -60,15 +85,22 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 		if err := os.MkdirAll(configDir, 0o755); err != nil {
 			return fmt.Errorf("creating directory: %w", err)
 		}
-		logger.Logger.V(logger.Info).Info("Configuration directory created.", "dir", configDir)
+		logger.Logger.V(logger.Debug).Info("Configuration directory created.", "dir", configDir)
 
 		logger.LogWithLevel(s.logger, logger.Trace, "Creating new tenancy map")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
 
-	logger.Logger.V(logger.Info).Info("Prompting for new tenancy records.")
+	logger.Logger.V(logger.Debug).Info("Prompting for new tenancy records.")
 	for {
+		// Check if context was cancelled before starting a new record
+		select {
+		case <-ctx.Done():
+			return ErrCancelled
+		default:
+		}
+
 		fmt.Println("\t--- Add a new tenancy record ---")
 
 		type PromptField struct {
@@ -91,14 +123,21 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 		values := make(map[string]interface{})
 
 		for _, field := range promptFields {
+			var err error
 			if field.isMulti {
-				values[field.name] = promptMulti(reader, field.promptText)
+				values[field.name], err = promptMulti(ctx, reader, field.promptText)
 			} else if field.name == "realm" {
-				values[field.name] = promptWithValidation(reader, field.promptText, validateRealm)
+				values[field.name], err = promptWithValidation(ctx, reader, field.promptText, validateRealm)
 			} else if field.name == "tenancy_id" {
-				values[field.name] = promptWithValidation(reader, field.promptText, validateTenancyID)
+				values[field.name], err = promptWithValidation(ctx, reader, field.promptText, validateTenancyID)
 			} else {
-				values[field.name] = prompt(reader, field.promptText)
+				values[field.name], err = prompt(ctx, reader, field.promptText)
+			}
+			if err != nil {
+				if errors.Is(err, ErrCancelled) {
+					return ErrCancelled
+				}
+				return fmt.Errorf("reading input for %s: %w", field.name, err)
 			}
 		}
 
@@ -145,19 +184,77 @@ func (s *Service) ConfigureTenancyFile() (err error) {
 }
 
 // prompt reads user input from the provided reader with a label and returns the trimmed input as a string.
-func prompt(reader *bufio.Reader, label string) string {
+// Returns ErrCancelled if the context is cancelled during input.
+func prompt(ctx context.Context, reader *bufio.Reader, label string) (string, error) {
 	logger.Logger.V(logger.Debug).Info("Prompting for input.", "label", label)
+
+	// Check context before prompting
+	select {
+	case <-ctx.Done():
+		return "", ErrCancelled
+	default:
+	}
+
 	fmt.Printf("%s: ", label)
-	text, _ := reader.ReadString('\n')
-	return strings.TrimSpace(text)
+
+	// Read input in a goroutine so we can monitor context cancellation
+	resultChan := make(chan string, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			errChan <- err
+			return
+		}
+		resultChan <- strings.TrimSpace(text)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return "", ErrCancelled
+	case err := <-errChan:
+		return "", err
+	case text := <-resultChan:
+		return text, nil
+	}
 }
 
 // promptMulti reads a line of input for a given label and returns the input split into a slice of strings.
-func promptMulti(reader *bufio.Reader, label string) []string {
+// Returns ErrCancelled if the context is cancelled during input.
+func promptMulti(ctx context.Context, reader *bufio.Reader, label string) ([]string, error) {
 	logger.Logger.V(logger.Debug).Info("Prompting for multi-input.", "label", label)
+
+	// Check context before prompting
+	select {
+	case <-ctx.Done():
+		return nil, ErrCancelled
+	default:
+	}
+
 	fmt.Printf("%s: ", label)
-	text, _ := reader.ReadString('\n')
-	return strings.Fields(strings.TrimSpace(text))
+
+	// Read input in a goroutine so we can monitor context cancellation
+	resultChan := make(chan string, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			errChan <- err
+			return
+		}
+		resultChan <- strings.TrimSpace(text)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ErrCancelled
+	case err := <-errChan:
+		return nil, err
+	case text := <-resultChan:
+		return strings.Fields(text), nil
+	}
 }
 
 // validateRealm ensures the realm is properly formatted
@@ -183,13 +280,41 @@ func validateTenancyID(tenancyID string) (string, error) {
 	return tenancyID, nil
 }
 
-// promptWithValidation prompts for input and validates it using the provided validation function
-func promptWithValidation(reader *bufio.Reader, label string, validate func(string) (string, error)) string {
+// promptWithValidation prompts for input and validates it using the provided validation function.
+// Returns ErrCancelled if the context is cancelled during input.
+func promptWithValidation(ctx context.Context, reader *bufio.Reader, label string, validate func(string) (string, error)) (string, error) {
 	logger.Logger.V(logger.Debug).Info("Prompting for input with validation.", "label", label)
 	for {
+		// Check context before each prompt attempt
+		select {
+		case <-ctx.Done():
+			return "", ErrCancelled
+		default:
+		}
+
 		fmt.Printf("%s: ", label)
-		text, _ := reader.ReadString('\n')
-		input := strings.TrimSpace(text)
+
+		// Read input in a goroutine so we can monitor context cancellation
+		resultChan := make(chan string, 1)
+		errChan := make(chan error, 1)
+
+		go func() {
+			text, err := reader.ReadString('\n')
+			if err != nil {
+				errChan <- err
+				return
+			}
+			resultChan <- strings.TrimSpace(text)
+		}()
+
+		var input string
+		select {
+		case <-ctx.Done():
+			return "", ErrCancelled
+		case err := <-errChan:
+			return "", err
+		case input = <-resultChan:
+		}
 
 		validated, err := validate(input)
 		if err != nil {
@@ -199,6 +324,6 @@ func promptWithValidation(reader *bufio.Reader, label string, validate func(stri
 		}
 
 		logger.Logger.V(logger.Debug).Info("Validation successful.", "value", validated)
-		return validated
+		return validated, nil
 	}
 }
