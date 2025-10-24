@@ -12,6 +12,7 @@ import (
 	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	hwdbSvc "github.com/rozdolsky33/ocloud/internal/services/database/heatwavedb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
@@ -38,6 +39,14 @@ type SessionType string
 const (
 	TypeManagedSSH     SessionType = "Managed SSH"
 	TypePortForwarding SessionType = "Port-Forwarding"
+)
+
+// DatabaseType identifies the type of database to connect to.
+type DatabaseType string
+
+const (
+	DatabaseHeatWave   DatabaseType = "HeatWave"
+	DatabaseAutonomous DatabaseType = "AutonomousDatabase"
 )
 
 //-----------------------------------Bastion/Session Creation Selection-------------------------------------------------
@@ -216,6 +225,65 @@ func (m SessionTypeModel) View() string {
 	return b.String()
 }
 
+//------------------------------------------Database Type Selection-----------------------------------------------------
+
+// DatabaseTypeModel Database Type Selection
+type DatabaseTypeModel struct {
+	Cursor int
+	Choice DatabaseType
+	Types  []DatabaseType
+}
+
+// NewDatabaseTypeModel creates a DatabaseTypeModel instance with HeatWave and Autonomous Database options.
+func NewDatabaseTypeModel() DatabaseTypeModel {
+	return DatabaseTypeModel{
+		Types:  []DatabaseType{DatabaseHeatWave, DatabaseAutonomous},
+		Cursor: 0,
+	}
+}
+
+// Init initializes the DatabaseTypeModel and returns an optional command to execute.
+func (m DatabaseTypeModel) Init() tea.Cmd { return nil }
+
+// Update processes incoming messages, updates the model's state, and determines the next command to execute.
+func (m DatabaseTypeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q", "esc":
+			return m, tea.Quit
+		case "enter":
+			if m.Cursor >= 0 && m.Cursor < len(m.Types) {
+				m.Choice = m.Types[m.Cursor]
+			}
+			return m, tea.Quit
+		case "down", "j":
+			m.Cursor = (m.Cursor + 1) % len(m.Types)
+		case "up", "k":
+			m.Cursor--
+			if m.Cursor < 0 {
+				m.Cursor = len(m.Types) - 1
+			}
+		}
+	}
+	return m, nil
+}
+
+// View returns a string representation of the model's state.
+func (m DatabaseTypeModel) View() string {
+	var b strings.Builder
+	b.WriteString("Select database type:\n\n")
+	for i, t := range m.Types {
+		mark := "( ) "
+		if m.Cursor == i {
+			mark = "(•) "
+		}
+		b.WriteString(mark + string(t) + "\n")
+	}
+	b.WriteString("\n(press q to quit)\n")
+	return b.String()
+}
+
 //------------------------------------------Target Type Selection-------------------------------------------------------
 
 // TargetTypeModel Target Type Selection
@@ -375,6 +443,16 @@ func NewDBListModelFancy(dbs []adbSvc.AutonomousDatabase) ResourceListModel {
 		items = append(items, resourceItem{id: d.ID, title: d.Name, description: desc})
 	}
 	return newResourceList("Autonomous Databases", items)
+}
+
+// NewHeatWaveDBListModelFancy creates a ResourceListModel populated with a list of HeatWave databases for TUI display.
+func NewHeatWaveDBListModelFancy(dbs []hwdbSvc.HeatWaveDatabase) ResourceListModel {
+	items := make([]list.Item, 0, len(dbs))
+	for _, d := range dbs {
+		desc := d.IpAddress
+		items = append(items, resourceItem{id: d.ID, title: d.DisplayName, description: desc})
+	}
+	return newResourceList("HeatWave Databases", items)
 }
 
 //---------------------------------------SSH Keys----------------------------------------------------------------------

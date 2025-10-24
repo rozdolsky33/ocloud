@@ -11,7 +11,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/rozdolsky33/ocloud/internal/app"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
-	"github.com/rozdolsky33/ocloud/internal/services/util"
 )
 
 // SelectBastionType runs a simple TUI to choose between Bastion mgmt or Session.
@@ -98,9 +97,7 @@ func ConnectTarget(ctx context.Context, appCtx *app.ApplicationContext, svc *bas
 	case TargetInstance:
 		return connectInstance(ctx, appCtx, svc, b, sType)
 	case TargetDatabase:
-		util.ShowConstructionAnimation()
-		//return connectDatabase(ctx, appCtx, svc, b, sType)
-		return nil
+		return connectDatabase(ctx, appCtx, svc, b, sType)
 	case TargetOKE:
 		return connectOKE(ctx, appCtx, svc, b, sType)
 	default:
