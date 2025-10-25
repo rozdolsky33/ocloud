@@ -13,7 +13,7 @@ func GetBastions(ctx context.Context, appCtx *app.ApplicationContext, useJSON bo
 
 	logger.LogWithLevel(appCtx.Logger, logger.Debug, "Listing bastions")
 
-	service, err := NewService(appCtx)
+	service, err := NewServiceFromAppContext(appCtx)
 	if err != nil {
 		return fmt.Errorf("creating bastion service: %w", err)
 	}

@@ -108,7 +108,6 @@ func connectHeatWaveDatabase(ctx context.Context, appCtx *app.ApplicationContext
 		return err
 	}
 
-	// Get region
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
 		return fmt.Errorf("get region: %w", regErr)
@@ -126,7 +125,7 @@ func connectHeatWaveDatabase(ctx context.Context, appCtx *app.ApplicationContext
 	}
 
 	// Create a port forwarding session
-	sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, db.IpAddress, port, pubKey)
+	sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, db.IpAddress, port, pubKey)
 	if err != nil {
 		return fmt.Errorf("ensure port forward: %w", err)
 	}
@@ -235,7 +234,7 @@ func connectAutonomousDatabase(ctx context.Context, appCtx *app.ApplicationConte
 	}
 
 	// Create a port forwarding session
-	sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, targetIP, port, pubKey)
+	sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, targetIP, port, pubKey)
 	if err != nil {
 		return fmt.Errorf("ensure port forward: %w", err)
 	}

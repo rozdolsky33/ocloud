@@ -70,7 +70,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return nil
 	}
 
-	logger.Logger.Info("Validated session on Bastion to Instance", "session_type", sType, "bastion_name", b.Name, "bastion_id", b.ID, "instance_name", inst.DisplayName)
+	logger.Logger.Info("Validated session on Bastion to Instance", "session_type", sType, "bastion_name", b.DisplayName, "bastion_id", b.OCID, "instance_name", inst.DisplayName)
 
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
@@ -83,7 +83,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("read ssh username: %w", err)
 		}
-		sessID, err := svc.EnsureManagedSSHSession(ctx, b.ID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
+		sessID, err := svc.EnsureManagedSSHSession(ctx, b.OCID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
 		if err != nil {
 			return fmt.Errorf("ensure managed SSH: %w", err)
 		}
@@ -96,7 +96,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("read port: %w", err)
 		}
-		sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, inst.PrimaryIP, port, pubKey)
+		sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, inst.PrimaryIP, port, pubKey)
 		if err != nil {
 			return fmt.Errorf("ensure port forward: %w", err)
 		}

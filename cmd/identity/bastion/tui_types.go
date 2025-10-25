@@ -134,7 +134,7 @@ func (m BastionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case "enter":
 			if m.Cursor >= 0 && m.Cursor < len(m.Bastions) {
-				m.Choice = m.Bastions[m.Cursor].ID
+				m.Choice = m.Bastions[m.Cursor].OCID
 			}
 			return m, tea.Quit
 		case "down", "j":
@@ -158,7 +158,7 @@ func (m BastionModel) View() string {
 		if m.Cursor == i {
 			mark = "(•) "
 		}
-		b.WriteString(mark + ba.Name + "\n")
+		b.WriteString(mark + ba.DisplayName + "\n")
 	}
 	b.WriteString("\n(press q to quit)\n")
 	return b.String()

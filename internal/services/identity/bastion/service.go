@@ -4,15 +4,29 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oracle/oci-go-sdk/v65/bastion"
-	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/go-logr/logr"
 	"github.com/rozdolsky33/ocloud/internal/app"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/identity"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/rozdolsky33/ocloud/internal/oci"
+	ocibastion "github.com/rozdolsky33/ocloud/internal/oci/identity/bastion"
 )
 
-// NewService creates a new bastion service
-func NewService(appCtx *app.ApplicationContext) (*Service, error) {
+// NewService creates a new bastion service with a repository pattern.
+// This is the new constructor that uses the repository interface.
+func NewService(repo domain.BastionRepository, logger logr.Logger, compartmentID string) *Service {
+	return &Service{
+		bastionRepo:   repo,
+		logger:        logger,
+		compartmentID: compartmentID,
+	}
+}
+
+// NewServiceFromAppContext creates a bastion service from ApplicationContext.
+// This is a convenience constructor that maintains backward compatibility with existing code
+// while using the repository pattern internally. For new code, prefer using NewService()
+// with explicit adapter creation (see compartment/get.go for a reference pattern).
+func NewServiceFromAppContext(appCtx *app.ApplicationContext) (*Service, error) {
 	bc, err := oci.NewBastionClient(appCtx.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bastion client: %w", err)
@@ -25,110 +39,46 @@ func NewService(appCtx *app.ApplicationContext) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute client: %w", err)
 	}
-	return &Service{
-		bastionClient: bc,
+
+	// Create the adapter
+	adapter := ocibastion.NewBastionAdapter(bc, nc, appCtx.CompartmentID)
+
+	// Create service with repository
+	service := &Service{
+		bastionRepo:   adapter,
+		bastionClient: bc, // Temporarily kept for session management
 		networkClient: nc,
 		computeClient: cc,
 		logger:        appCtx.Logger,
 		compartmentID: appCtx.CompartmentID,
-		vcnCache:      make(map[string]*core.Vcn),
-		subnetCache:   make(map[string]*core.Subnet),
-	}, nil
+	}
+
+	return service, nil
 }
 
-// List retrieves and returns all bastion hosts from the given compartment in the OCI account.
-func (s *Service) List(ctx context.Context) (bastions []Bastion, err error) {
+// List retrieves and returns all bastion hosts from the given compartment.
+// The enrichment with VCN and Subnet names is now handled by the repository adapter.
+func (s *Service) List(ctx context.Context) ([]Bastion, error) {
 	logger.LogWithLevel(s.logger, logger.Debug, "Listing Bastions in compartment", "compartmentID", s.compartmentID)
-	request := bastion.ListBastionsRequest{
-		CompartmentId: &s.compartmentID,
-	}
-	response, err := s.bastionClient.ListBastions(ctx, request)
 
+	bastions, err := s.bastionRepo.ListBastions(ctx, s.compartmentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list bastions: %w", err)
 	}
-	logger.Logger.V(logger.Debug).Info("Successfully listed bastions.", "count", len(response.Items))
-	var allBastions []Bastion
 
-	for _, b := range response.Items {
-		logger.Logger.V(logger.Debug).Info("Processing bastion", "bastionID", *b.Id, "bastionName", *b.Name)
-		toBastion := mapToBastion(b)
-		if b.TargetVcnId != nil && *b.TargetVcnId != "" {
-			vcn, err := s.fetchVcnDetails(ctx, *b.TargetVcnId)
-			if err != nil {
-				logger.LogWithLevel(s.logger, logger.Trace, "Failed to fetch VCN details", "vcnID", *b.TargetVcnId, "error", err)
-			} else if vcn.DisplayName != nil {
-				toBastion.TargetVcnName = *vcn.DisplayName
-			}
-		}
-
-		// Fetch Subnet details
-		if b.TargetSubnetId != nil && *b.TargetSubnetId != "" {
-			subnet, err := s.fetchSubnetDetails(ctx, *b.TargetSubnetId)
-			if err != nil {
-				logger.LogWithLevel(s.logger, logger.Trace, "Failed to fetch Subnet details", "subnetID", *b.TargetSubnetId, "error", err)
-			} else if subnet.DisplayName != nil {
-				toBastion.TargetSubnetName = *subnet.DisplayName
-			}
-		}
-
-		allBastions = append(allBastions, toBastion)
-	}
-
-	return allBastions, nil
+	logger.Logger.V(logger.Debug).Info("Successfully listed bastions.", "count", len(bastions))
+	return bastions, nil
 }
 
-// fetchVcnDetails retrieves the VCN details for the given VCN ID.
-func (s *Service) fetchVcnDetails(ctx context.Context, vcnID string) (*core.Vcn, error) {
+// Get retrieves a specific bastion by ID.
+func (s *Service) Get(ctx context.Context, bastionID string) (*Bastion, error) {
+	logger.LogWithLevel(s.logger, logger.Debug, "Getting Bastion", "bastionID", bastionID)
 
-	if vcn, ok := s.vcnCache[vcnID]; ok {
-		logger.LogWithLevel(s.logger, logger.Trace, "VCN cache hit", "vcnID", vcnID)
-		return vcn, nil
-	}
-
-	logger.LogWithLevel(s.logger, logger.Trace, "VCN cache miss", "vcnID", vcnID)
-	logger.Logger.V(logger.Debug).Info("Calling OCI API to get VCN details.", "vcnID", vcnID)
-	resp, err := s.networkClient.GetVcn(ctx, core.GetVcnRequest{
-		VcnId: &vcnID,
-	})
+	bastion, err := s.bastionRepo.GetBastion(ctx, bastionID)
 	if err != nil {
-		return nil, fmt.Errorf("getting VCN details: %w", err)
+		return nil, fmt.Errorf("failed to get bastion: %w", err)
 	}
 
-	s.vcnCache[vcnID] = &resp.Vcn
-	return &resp.Vcn, nil
-}
-
-// fetchSubnetDetails retrieves the subnet details for the given subnet ID.
-// It uses a cache to avoid making repeated API calls for the same subnet.
-func (s *Service) fetchSubnetDetails(ctx context.Context, subnetID string) (*core.Subnet, error) {
-	if subnet, ok := s.subnetCache[subnetID]; ok {
-		logger.LogWithLevel(s.logger, logger.Trace, "subnet cache hit", "subnetID", subnetID)
-		return subnet, nil
-	}
-
-	// Cache miss, fetch from API
-	logger.LogWithLevel(s.logger, logger.Trace, "subnet cache miss", "subnetID", subnetID)
-	logger.Logger.V(logger.Debug).Info("Calling OCI API to get Subnet details.", "subnetID", subnetID)
-	resp, err := s.networkClient.GetSubnet(ctx, core.GetSubnetRequest{
-		SubnetId: &subnetID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("getting subnet details: %w", err)
-	}
-
-	s.subnetCache[subnetID] = &resp.Subnet
-	return &resp.Subnet, nil
-}
-
-// mapToBastion converts a BastionSummary object to a Bastion object with relevant fields populated.
-func mapToBastion(bastion bastion.BastionSummary) Bastion {
-	return Bastion{
-		ID:             *bastion.Id,
-		Name:           *bastion.Name,
-		BastionType:    *bastion.BastionType,
-		LifecycleState: bastion.LifecycleState,
-		TargetVcnId:    *bastion.TargetVcnId,
-		TargetSubnetId: *bastion.TargetSubnetId,
-	}
+	logger.Logger.V(logger.Debug).Info("Successfully retrieved bastion.", "bastionID", bastionID)
+	return bastion, nil
 }

@@ -30,7 +30,7 @@ func NewCreateCmd(appCtx *app.ApplicationContext) *cobra.Command {
 func runCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error {
 	ctx := cmd.Context()
 
-	svc, err := bastionSvc.NewService(appCtx)
+	svc, err := bastionSvc.NewServiceFromAppContext(appCtx)
 	if err != nil {
 		return fmt.Errorf("create bastion service: %w", err)
 	}
@@ -50,14 +50,14 @@ func runCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	if err != nil {
 		return err
 	}
-	if b.ID == "" {
+	if b.OCID == "" {
 		return ErrAborted
 	}
-	tType, err := SelectTargetType(ctx, b.ID)
+	tType, err := SelectTargetType(ctx, b.OCID)
 	if err != nil {
 		return err
 	}
-	sType, err := SelectSessionType(ctx, b.ID)
+	sType, err := SelectSessionType(ctx, b.OCID)
 	if err != nil {
 		return err
 	}
