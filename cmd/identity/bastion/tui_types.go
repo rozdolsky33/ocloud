@@ -45,8 +45,8 @@ const (
 type DatabaseType string
 
 const (
-	DatabaseHeatWave   DatabaseType = "HeatWave"
-	DatabaseAutonomous DatabaseType = "AutonomousDatabase"
+	DatabaseHeatWave   DatabaseType = "MySQL HeatWave"
+	DatabaseAutonomous DatabaseType = "Autonomous Database"
 )
 
 //-----------------------------------Bastion/Session Creation Selection-------------------------------------------------
