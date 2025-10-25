@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/config"
 
 	"github.com/rozdolsky33/ocloud/internal/config/flags"
+	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 )
 
 var (
@@ -128,13 +130,49 @@ func CheckOCIAuthRefresherStatus() RefresherStatus {
 	}
 }
 
+// PortForwardingStatus represents the status of active port-forwarding sessions
+type PortForwardingStatus struct {
+	IsActive bool
+	Ports    []int
+	Display  string
+}
+
+// CheckPortForwardingStatus checks for active SSH port-forwarding tunnels
+func CheckPortForwardingStatus() PortForwardingStatus {
+	tunnels, err := bastionSvc.GetActiveTunnels()
+	if err != nil || len(tunnels) == 0 {
+		return PortForwardingStatus{
+			IsActive: false,
+			Ports:    []int{},
+			Display:  redStyle.Sprint("OFF"),
+		}
+	}
+
+	var ports []int
+	for _, tunnel := range tunnels {
+		ports = append(ports, tunnel.LocalPort)
+	}
+	sort.Ints(ports)
+
+	portStrs := make([]string, len(ports))
+	for i, port := range ports {
+		portStrs[i] = fmt.Sprintf("%d", port)
+	}
+	portsDisplay := strings.Join(portStrs, ", ")
+
+	return PortForwardingStatus{
+		IsActive: true,
+		Ports:    ports,
+		Display:  greenStyle.Sprintf("ON [%s]", portsDisplay),
+	}
+}
+
 // PrintOCIConfiguration displays the current configuration details
 func PrintOCIConfiguration() {
 	displayBanner()
 
 	profile := os.Getenv(flags.EnvKeyProfile)
 
-	// Handle session status and profile display together to avoid redundancy
 	var sessionStatus string
 	if profile == "" {
 		sessionStatus = redStyle.Sprint("Not set - Please set profile")
@@ -172,6 +210,11 @@ func PrintOCIConfiguration() {
 
 	refresherStatus := CheckOCIAuthRefresherStatus()
 	fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyAutoRefresher), refresherStatus.Display)
+
+	portForwardingStatus := CheckPortForwardingStatus()
+	if portForwardingStatus.IsActive {
+		fmt.Printf("  %s: %s\n", yellowStyle.Sprint(flags.EnvKeyPortForwarding), portForwardingStatus.Display)
+	}
 
 	path := config.TenancyMapPath()
 	_, err = os.Stat(path)

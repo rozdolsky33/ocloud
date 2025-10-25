@@ -125,6 +125,7 @@ const (
 	EnvKeyAutoRefresher  = "OCI_AUTH_AUTO_REFRESHER"
 	EnvKeyRegion         = "OCI_REGION"
 	EnvKeyTenancyMapPath = "OCI_TENANCY_MAP_PATH"
+	EnvKeyPortForwarding = "PORT_FORWARDING"
 )
 
 // ============================================================================

@@ -4,29 +4,22 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/core"
+	domain "github.com/rozdolsky33/ocloud/internal/domain/identity"
 )
 
-// Bastion represents a bastion host in the system
-type Bastion struct {
-	ID               string
-	Name             string
-	BastionType      string
-	TargetVcnId      string
-	TargetVcnName    string
-	TargetSubnetId   string
-	TargetSubnetName string
-	LifecycleState   bastion.BastionLifecycleStateEnum
-}
+// Bastion is an alias to the domain.Bastion type.
+// This maintains backward compatibility while using the domain model.
+type Bastion = domain.Bastion
 
-// Service represents a service that interacts with OCI Bastion and Virtual Network APIs to manage resources.
+// Service represents a service that manages bastion operations.
+// It now depends on the BastionRepository interface instead of concrete OCI clients.
 type Service struct {
-	bastionClient bastion.BastionClient
+	bastionRepo   domain.BastionRepository
+	bastionClient bastion.BastionClient // Temporarily kept for session management
 	networkClient core.VirtualNetworkClient
 	computeClient core.ComputeClient
 	logger        logr.Logger
 	compartmentID string
-	vcnCache      map[string]*core.Vcn
-	subnetCache   map[string]*core.Subnet
 }
 
 // Config represents the configuration for the bastion service.
