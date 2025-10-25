@@ -17,14 +17,14 @@ Whether you're exploring instances, working with databases, or need to quickly f
 ## Features
 
 ### Compute Resources
-- **Instances**: List, search, and explore compute instances
+- **Instances**: List, search, and explore compute instances with interactive TUI
 - **Images**: Browse and search compute images
-- **OKE Clusters**: Manage Kubernetes clusters and node pools
+- **OKE Clusters**: List, search, and explore Kubernetes clusters with node pool details
 
 ### Database Services
-- **Autonomous Database**: List, search, and explore ADB instances
-- **HeatWave MySQL**: Explore HeatWave database instances with detailed configuration info
-- **OCI Cache Cluster**: Explore OCI Cache Clusters (Redis/Valkey) with detailed configuration info
+- **Autonomous Database**: List, search, and explore ADB instances with interactive TUI
+- **HeatWave MySQL**: List, search, and explore HeatWave database instances with interactive TUI
+- **OCI Cache Cluster**: List, search, and explore OCI Cache Clusters (Redis/Valkey) with interactive TUI
 
 ### Networking
 - **VCNs**: Virtual Cloud Networks with gateways, subnets, NSGs, route tables, and security lists
@@ -34,7 +34,15 @@ Whether you're exploring instances, working with databases, or need to quickly f
 ### Identity & Access
 - **Compartments**: Navigate compartment hierarchy with tenancy-level scope support
 - **Policies**: Explore IAM policies across compartments
-- **Bastion Sessions**: Manage OCI Bastion sessions with interactive SSH key picker (TUI)
+- **Bastion**: Comprehensive bastion and session management
+    - List and explore existing bastions
+    - Create interactive bastion sessions with TUI-guided flows
+    - Connect to Compute Instances (Managed SSH & Port Forwarding)
+    - Connect to Databases (Autonomous DB & HeatWave via Port Forwarding)
+    - Connect to OKE Clusters (Managed SSH to nodes & Port Forwarding to API server)
+    - Automatic SSH tunnel management with background processes
+    - Interactive SSH key pair selection
+    - Automatic kubeconfig setup for OKE connections
 
 ### Storage
 - **Object Storage**: Browse and search buckets with interactive TUI
@@ -113,6 +121,9 @@ ocloud database autonomous search "test" --json
 
 # Interactive VCN list (TUI)
 ocloud network vcn list
+
+# Create bastion session with interactive TUI flow
+ocloud identity bastion create
 ```
 
 ## Configuration
@@ -136,6 +147,7 @@ Configuration Details: Valid until <timestamp>
   OCI_TENANCY_NAME: cloudops
   OCI_COMPARTMENT_NAME: cnopslabsdev1
   OCI_AUTH_AUTO_REFRESHER: ON [<pid>]
+  PORT_FORWARDING: ON [1521, 3306, 6443]
   OCI_TENANCY_MAP_PATH: /Users/<name>/.oci/.ocloud/tenancy-map.yaml
 
 Interact with Oracle Cloud Infrastructure
@@ -285,6 +297,86 @@ ocloud network vcn get -G -S -N -R -L
 ocloud network vcn search prod -A -j
 ```
 
+## Bastion Session Management
+
+OCloud provides comprehensive bastion session management with interactive TUI-guided flows for secure access to OCI resources.
+
+### Creating Bastion Sessions
+
+The `ocloud identity bastion create` command launches an interactive flow that guides you through:
+
+1. **Session Type Selection**: Choose between Bastion management or creating a new session
+2. **Bastion Selection**: Pick from your active bastions via TUI
+3. **Target Type Selection**: Choose your connection target (Instance, Database, or OKE)
+4. **Session Type**: Select Managed SSH or Port Forwarding
+5. **Resource Selection**: Interactive TUI to pick the specific resource
+6. **SSH Key Selection**: Choose your SSH key pair from `~/.ssh`
+7. **Connection Setup**: Automatic tunnel creation and configuration
+
+### Supported Connection Types
+
+#### Compute Instance Connections
+
+**Managed SSH**: Direct interactive SSH session to compute instances
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Instance → Managed SSH → Pick Instance → Select Keys
+```
+
+**Port Forwarding**: Create an SSH tunnel to instance ports (e.g., VNC, RDP, custom apps)
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Instance → Port Forwarding → Pick Instance → Enter Port
+# SSH tunnel runs in background, logs written to ~/.oci/.ocloud/logs/
+```
+
+#### Database Connections
+
+**Autonomous Database**: Secure port forwarding to Autonomous DB private endpoints
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Database → Autonomous → Pick ADB → Enter Port (default: 1521)
+# Tunnel runs in background, connect to localhost:<port>
+```
+
+**HeatWave MySQL**: Secure port forwarding to HeatWave database instances
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Database → HeatWave → Pick HeatWave DB → Enter Port (default: 3306)
+# Tunnel runs in background, connect to localhost:<port>
+```
+
+#### OKE Cluster Connections
+
+**Managed SSH to Node**: Direct SSH access to OKE worker nodes
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → OKE → Managed SSH → Pick Cluster → Pick Node → Select Keys
+```
+
+**Port Forwarding to API Server**: Access Kubernetes API server via bastion
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → OKE → Port Forwarding → Pick Cluster → Enter Port (default: 6443)
+# Automatically offers to create/merge kubeconfig
+# kubectl commands work via the tunnel to localhost:<port>
+```
+
+### SSH Tunnel Management
+
+- Tunnels run as **background processes** and persist after CLI exits
+- **Logs** written to `~/.oci/sessions/<profile>/logs/ssh-tunnel-<port>-<date>.log`
+- **State tracking** in `~/.oci/sessions/<profile>/tunnel/tunnel-<port>.json`
+- Automatic **port availability** checking
+- **Connection verification** with a 30-second timeout
+
+### Listing Existing Bastions
+
+```bash
+ocloud identity bastion get              # List all bastions in compartment
+ocloud identity bastion get --json       # JSON output
+```
+
 ## Command Categories
 
 ### Compute
@@ -292,16 +384,19 @@ ocloud network vcn search prod -A -j
 ```bash
 # Instances
 ocloud compute instance get
+ocloud compute instance list  # Interactive TUI
 ocloud compute instance search "roster" --json
 ocloud comp inst s "roster" -j
 
 # Images
 ocloud compute image get --limit 10
+ocloud compute image list  # Interactive TUI
 ocloud compute image search "Oracle-Linux"
 ocloud comp img s "Oracle-Linux" -j
 
 # OKE Clusters
 ocloud compute oke get
+ocloud compute oke list  # Interactive TUI
 ocloud compute oke search "orion" --json
 ```
 
@@ -310,14 +405,22 @@ ocloud compute oke search "orion" --json
 ```bash
 # Autonomous Database
 ocloud database autonomous get --limit 10 --page 1
+ocloud database autonomous list  # Interactive TUI
 ocloud database autonomous search "test" --json
 ocloud db adb s "test" -j
 
 # HeatWave MySQL
 ocloud database heatwave get --all
-ocloud database heatwave search "prod" --json
 ocloud database heatwave list  # Interactive TUI
+ocloud database heatwave search "prod" --json
 ocloud db hw s "8.4" -j
+
+# OCI Cache Cluster (Redis/Valkey)
+ocloud database cache-cluster get --all
+ocloud database cache-cluster list  # Interactive TUI
+ocloud database cache-cluster search "prod" --json
+ocloud db cc s "VALKEY_7_2" -j
+# Alternative aliases: cachecluster, cc
 ```
 
 ### Network
@@ -325,16 +428,17 @@ ocloud db hw s "8.4" -j
 ```bash
 # VCNs
 ocloud network vcn get --all
-ocloud network vcn search "prod" -A -j
 ocloud network vcn list  # Interactive TUI
+ocloud network vcn search "prod" -A -j
 
 # Load Balancers
 ocloud network load-balancer get
+ocloud network load-balancer list  # Interactive TUI
 ocloud network load-balancer search "prod" --all
 ocloud net lb s "prod" -A -j
 
 # Subnets
-ocloud network subnet list
+ocloud network subnet list  # Interactive TUI
 ocloud network subnet find "pub" --json
 ```
 
@@ -343,12 +447,19 @@ ocloud network subnet find "pub" --json
 ```bash
 # Compartments
 ocloud identity compartment get
-ocloud identity compartment get -T  # Tenancy scope
+ocloud identity compartment list             # Interactive TUI
+ocloud identity compartment get -T           # Tenancy scope
 ocloud identity compartment search "sandbox" --json
 
 # Policies
 ocloud identity policy get
+ocloud identity policy list                  # Interactive TUI
 ocloud identity policy search "monitor" -T
+
+# Bastion
+ocloud identity bastion get                  # List existing bastions
+ocloud identity bastion create               # Interactive bastion session creation
+ocloud ident b create                        # Short alias
 ```
 
 ### Storage
@@ -359,6 +470,67 @@ ocloud storage object-storage get
 ocloud storage object-storage search "prod" --json
 ocloud storage object-storage list  # Interactive TUI
 ocloud storage os s "prod" -j
+```
+
+## Practical Examples
+
+### Secure Database Access via Bastion
+
+Connect to a private Autonomous Database through a bastion session:
+
+```bash
+# 1. Authenticate with OCI
+ocloud config session authenticate
+
+# 2. Create bastion session with interactive flow
+ocloud identity bastion create
+# Select: Session → Choose Active Bastion → Database → Autonomous → Pick ADB
+# The tunnel runs in the background on localhost:1521 (or custom port)
+
+# 3. Connect using SQL client
+sqlplus admin@localhost:1521/mydb_high
+```
+
+### OKE Cluster Management via Bastion
+
+Access a private OKE cluster's API server through port forwarding:
+
+```bash
+# Create port forwarding session to OKE API server
+ocloud identity bastion create
+# Select: Session → Choose Bastion → OKE → Port Forwarding → Pick Cluster
+# Accept kubeconfig creation/merge when prompted
+
+# Tunnel runs in background, kubectl now works via localhost:6443
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
+### SSH to Compute Instance via Bastion
+
+Interactive SSH session to a private compute instance:
+
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Instance → Managed SSH → Pick Instance
+# Provides direct interactive SSH shell
+```
+
+### Search and Connect Workflow
+
+Combine search with bastion for quick access:
+
+```bash
+# 1. Search for HeatWave databases
+ocloud database heatwave search "prod" --json | jq '.[] | select(.lifecycleState=="ACTIVE")'
+
+# 2. Create connection to selected database
+ocloud identity bastion create
+# Select: Session → Bastion → Database → HeatWave → Pick the prod DB
+# Tunnel established to localhost:3306
+
+# 3. Connect with MySQL client
+mysql -h 127.0.0.1 -P 3306 -u admin -p
 ```
 
 ## Development
@@ -401,6 +573,9 @@ The script tests:
 - **JSON Output**: Use `--json` for scripting and automation.
 - **Debug Logging**: Run with `--log-level debug` or `-d` for troubleshooting.
 - **Colored Output**: Use `--color` for better readability in terminals.
+- **Bastion Tunnels**: Background SSH tunnels persist after CLI exits. Check logs in `~/.oci/sessions/<profile>/logs/` if connection fails.
+- **OKE Access**: Port forwarding to the OKE API server automatically offers kubeconfig setup for seamless kubectl access.
+- **Database Connections**: Use bastion port forwarding for secure access to private Autonomous DB and HeatWave instances without exposing public endpoints.
 
 ## Error Handling
 
