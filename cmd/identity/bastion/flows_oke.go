@@ -62,7 +62,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		return nil
 	}
 
-	logger.Logger.Info("Validated session on Bastion to OKE cluster", "session_type", sType, "bastion_name", b.Name, "bastion_id", b.ID, "cluster_name", cluster.DisplayName)
+	logger.Logger.Info("Validated session on Bastion to OKE cluster", "session_type", sType, "bastion_name", b.DisplayName, "bastion_id", b.OCID, "cluster_name", cluster.DisplayName)
 
 	switch sType {
 	case TypeManagedSSH:
@@ -129,7 +129,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		if err != nil {
 			return fmt.Errorf("read ssh username: %w", err)
 		}
-		sessID, err := svc.EnsureManagedSSHSession(ctx, b.ID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
+		sessID, err := svc.EnsureManagedSSHSession(ctx, b.OCID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
 		if err != nil {
 			return fmt.Errorf("ensure managed SSH: %w", err)
 		}
@@ -170,7 +170,7 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		}
 
 		okeTargetPort := 6443
-		sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, targetIP, okeTargetPort, pubKey)
+		sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, targetIP, okeTargetPort, pubKey)
 		if err != nil {
 			return fmt.Errorf("ensure port forward: %w", err)
 		}
@@ -205,26 +205,39 @@ func connectOKE(ctx context.Context, appCtx *app.ApplicationContext, svc *bastio
 		}
 
 		localPort := port
-		logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", localPort)
 		sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, targetIP, localPort, okeTargetPort)
 
 		if err != nil {
 			return fmt.Errorf("build args: %w", err)
 		}
 
-		pid, err := bastionSvc.SpawnDetached(sshTunnelArgs, "/tmp/ssh-tunnel.log")
+		pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, localPort, targetIP)
 		if err != nil {
 			return fmt.Errorf("spawn detached: %w", err)
 		}
 		logger.Logger.V(logger.Debug).Info("spawned tunnel", "pid", pid)
 
-		if err := bastionSvc.WaitForListen(okeTargetPort, 5*time.Second); err != nil {
-			logger.Logger.Error(err, "warning")
+		// Save tunnel state for tracking
+		tunnelInfo := bastionSvc.TunnelInfo{
+			PID:       pid,
+			LocalPort: localPort,
+			TargetIP:  targetIP,
+			StartedAt: time.Now(),
+			LogFile:   logFile,
+		}
+		if err := bastionSvc.SaveTunnelState(tunnelInfo); err != nil {
+			logger.Logger.Error(err, "failed to save tunnel state")
 		}
 
-		logger.Logger.Info("Starting background OKE API tunnel", "args", sshTunnelArgs)
+		logger.Logger.Info("SSH tunnel process started, waiting for connection to be ready...")
+		if err := bastionSvc.WaitForListen(localPort, 30*time.Second); err != nil {
+			logger.Logger.Info("Tunnel verification timed out, but the tunnel may still be establishing in the background", "port", localPort)
+			logger.Logger.Info("Check the tunnel status and logs if you experience connection issues")
+		} else {
+			logger.Logger.Info("Tunnel is ready and accepting connections")
+		}
 
-		logger.Logger.Info("SSH tunnel to OKE API started", "access", fmt.Sprintf("https://127.0.0.1:%d (kube-apiserver)", localPort), "logs", logFile)
+		logger.Logger.Info("SSH tunnel to OKE API running", "access", fmt.Sprintf("https://127.0.0.1:%d (kube-apiserver)", localPort), "logs", logFile)
 		return nil
 	default:
 		return fmt.Errorf("unsupported session type: %s", sType)

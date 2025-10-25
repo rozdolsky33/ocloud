@@ -2,18 +2,21 @@ package bastion
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/rozdolsky33/ocloud/internal/config/flags"
 )
 
 // Defaults used for session wait and ttl
@@ -21,6 +24,175 @@ var (
 	waitPollInterval = 3 * time.Second
 	defaultTTL       = 10800 // seconds (3 hours)
 )
+
+// TunnelInfo stores information about an active SSH tunnel
+type TunnelInfo struct {
+	PID       int       `json:"pid"`
+	LocalPort int       `json:"local_port"`
+	TargetIP  string    `json:"target_ip"`
+	StartedAt time.Time `json:"started_at"`
+	LogFile   string    `json:"log_file"`
+}
+
+// getTunnelsDir returns the directory where tunnel state files are stored
+func getTunnelsDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	profile := os.Getenv(flags.EnvKeyProfile)
+	tunnelsDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, "tunnels")
+	return tunnelsDir, nil
+}
+
+// SaveTunnelState saves tunnel information to a state file
+func SaveTunnelState(tunnel TunnelInfo) error {
+	tunnelsDir, err := getTunnelsDir()
+	if err != nil {
+		return fmt.Errorf("get tunnels dir: %w", err)
+	}
+
+	if err := os.MkdirAll(tunnelsDir, 0o755); err != nil {
+		return fmt.Errorf("create tunnels dir: %w", err)
+	}
+
+	stateFile := filepath.Join(tunnelsDir, fmt.Sprintf("tunnel-%d.json", tunnel.LocalPort))
+	data, err := json.MarshalIndent(tunnel, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal tunnel state: %w", err)
+	}
+
+	if err := os.WriteFile(stateFile, data, 0o644); err != nil {
+		return fmt.Errorf("write tunnel state: %w", err)
+	}
+
+	return nil
+}
+
+// GetActiveTunnels returns a list of currently active SSH tunnels
+// It checks both state files and running processes for backward compatibility
+func GetActiveTunnels() ([]TunnelInfo, error) {
+	tunnelsMap := make(map[int]TunnelInfo)
+
+	// 1. First, load tunnels from state files
+	tunnelsDir, err := getTunnelsDir()
+	if err == nil {
+		if _, err := os.Stat(tunnelsDir); err == nil {
+			entries, err := os.ReadDir(tunnelsDir)
+			if err == nil {
+				for _, entry := range entries {
+					if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+						continue
+					}
+
+					stateFile := filepath.Join(tunnelsDir, entry.Name())
+					data, err := os.ReadFile(stateFile)
+					if err != nil {
+						continue
+					}
+
+					var tunnel TunnelInfo
+					if err := json.Unmarshal(data, &tunnel); err != nil {
+						_ = os.Remove(stateFile)
+						continue
+					}
+
+					if isProcessRunning(tunnel.PID) {
+						tunnelsMap[tunnel.LocalPort] = tunnel
+					} else {
+						_ = os.Remove(stateFile)
+					}
+				}
+			}
+		}
+	}
+
+	// 2.Detect running SSH tunnels from a process list
+	// This catches tunnels created before state file tracking was implemented
+	cmd := exec.Command("pgrep", "-fl", "ssh")
+	out, err := cmd.CombinedOutput()
+	if err == nil {
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			// Look for SSH port forwarding: "ssh ... -N ... -L port:target:port ..."
+			if !strings.Contains(line, "-N") || !strings.Contains(line, "-L") {
+				continue
+			}
+			// Parse PID and local port
+			fields := strings.Fields(line)
+			if len(fields) < 2 {
+				continue
+			}
+
+			pid, err := strconv.Atoi(fields[0])
+			if err != nil {
+				continue
+			}
+
+			localPort := extractLocalPortFromSSHCommand(line)
+			if localPort == 0 {
+				continue
+			}
+
+			if _, exists := tunnelsMap[localPort]; !exists {
+				tunnelsMap[localPort] = TunnelInfo{
+					PID:       pid,
+					LocalPort: localPort,
+					TargetIP:  "unknown",
+					StartedAt: time.Time{},
+					LogFile:   "",
+				}
+			}
+		}
+	}
+
+	// Convert map to slice
+	var activeTunnels []TunnelInfo
+	for _, tunnel := range tunnelsMap {
+		activeTunnels = append(activeTunnels, tunnel)
+	}
+
+	return activeTunnels, nil
+}
+
+// extractLocalPortFromSSHCommand parses an SSH command line to extract the local port from -L flag
+// Example: "-L 3306:10.0.0.156:3306" returns 3306
+func extractLocalPortFromSSHCommand(cmdLine string) int {
+	// Find the -L flag and extract the port
+	parts := strings.Fields(cmdLine)
+	for i, part := range parts {
+		if part == "-L" && i+1 < len(parts) {
+			// The next field should be "localport:host:remoteport"
+			portMapping := parts[i+1]
+			colonIdx := strings.Index(portMapping, ":")
+			if colonIdx > 0 {
+				portStr := portMapping[:colonIdx]
+				port, err := strconv.Atoi(portStr)
+				if err == nil {
+					return port
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// isProcessRunning checks if a process with the given PID is running
+func isProcessRunning(pid int) bool {
+	cmd := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "pid=")
+	return cmd.Run() == nil
+}
+
+// RemoveTunnelState removes the state file for a tunnel on a given port
+func RemoveTunnelState(localPort int) error {
+	tunnelsDir, err := getTunnelsDir()
+	if err != nil {
+		return err
+	}
+
+	stateFile := filepath.Join(tunnelsDir, fmt.Sprintf("tunnel-%d.json", localPort))
+	return os.Remove(stateFile)
+}
 
 // sanitizeDisplayName ensures the given string is a valid and safe display name by removing invalid characters and truncating the length.
 func sanitizeDisplayName(s string) string {
@@ -211,7 +383,6 @@ func BuildManagedSSHCommand(privateKeyPath, sessionID, region, targetIP, targetU
 // BuildPortForwardArgs constructs SSH command arguments for establishing a secure port-forwarding tunnel.
 // It handles path expansion for the private key, determines the correct realm domain, and formats connection options.
 func BuildPortForwardArgs(privateKeyPath, sessionID, region, targetIP string, localPort, remotePort int) ([]string, error) {
-	// Expand "~" if present
 	key, err := expandTilde(privateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("expand key path: %w", err)
@@ -251,36 +422,59 @@ func expandTilde(p string) (string, error) {
 	return p, nil
 }
 
-// SpawnDetached starts ssh in the background, detaches from your process, and returns its PID.
-func SpawnDetached(args []string, logfile string) (int, error) {
+// SpawnDetached starts ssh in the background, detaches from your process, and returns its PID and log file path.
+// localPort is used to generate a unique log file name.
+func SpawnDetached(args []string, localPort int, targetIP string) (int, string, error) {
 	sshPath, err := exec.LookPath("ssh")
 	if err != nil {
-		return 0, fmt.Errorf("ssh not found in PATH: %w", err)
+		return 0, "", fmt.Errorf("ssh not found in PATH: %w", err)
 	}
 
-	// Ensure log dir exists
-	if err := os.MkdirAll(filepath.Dir(logfile), 0o755); err != nil {
-		return 0, fmt.Errorf("create log dir: %w", err)
+	// Create a log directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return 0, "", fmt.Errorf("get home dir: %w", err)
 	}
+	profile := os.Getenv(flags.EnvKeyProfile)
+	logDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		return 0, "", fmt.Errorf("create log dir: %w", err)
+	}
+
+	// Create a unique log file with a timestamp
+	timestamp := time.Now().Format("20060102-150405")
+	logfile := filepath.Join(logDir, fmt.Sprintf("ssh-tunnel-%d-%s.log", localPort, timestamp))
+
 	f, err := os.OpenFile(logfile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		return 0, fmt.Errorf("open log file: %w", err)
+		return 0, "", fmt.Errorf("open log file: %w", err)
 	}
 	defer f.Close()
 
-	cmd := exec.Command(sshPath, args...)
+	// Write header to a log file
+	header := fmt.Sprintf("=== SSH Tunnel Started ===\nTimestamp: %s\nLocal Port: %d\nTarget: %s\nSSH Command: %s %s\n\n",
+		time.Now().Format(time.RFC3339),
+		localPort,
+		targetIP,
+		sshPath,
+		strings.Join(args, " "))
+	_, _ = f.WriteString(header)
+
+	verboseArgs := append([]string{"-v"}, args...)
+
+	cmd := exec.Command(sshPath, verboseArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} // detach from our session/TTY
 	cmd.Stdout = f
 	cmd.Stderr = f
 	cmd.Stdin = nil
 
 	if err := cmd.Start(); err != nil {
-		return 0, fmt.Errorf("start ssh: %w", err)
+		return 0, "", fmt.Errorf("start ssh: %w", err)
 	}
 	pid := cmd.Process.Pid
 	_ = cmd.Process.Release()
 
-	return pid, nil
+	return pid, logfile, nil
 }
 
 // WaitForListen wait until the localPort is listening (nice UX).

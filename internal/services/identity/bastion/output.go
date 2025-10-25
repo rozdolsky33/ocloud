@@ -1,6 +1,9 @@
 package bastion
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/printer"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -19,9 +22,9 @@ func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSO
 
 	for _, b := range bastions {
 		bastionInfo := map[string]string{
-			"Name":           b.Name,
-			"BastionType":    string(b.BastionType),
-			"LifecycleState": string(b.LifecycleState),
+			"Name":           b.DisplayName,
+			"BastionType":    b.BastionType,
+			"LifecycleState": b.LifecycleState,
 			"TargetVcn":      b.TargetVcnName,
 			"TargetSubnet":   b.TargetSubnetName,
 		}
@@ -30,7 +33,23 @@ func PrintBastionInfo(bastions []Bastion, appCtx *app.ApplicationContext, useJSO
 			"Name", "BastionType", "LifecycleState", "TargetVcn", "TargetSubnet",
 		}
 
-		title := util.FormatColoredTitle(appCtx, b.Name)
+		if b.MaxSessionTTL > 0 {
+			hours := b.MaxSessionTTL / 3600
+			bastionInfo["MaxSessionTTL"] = fmt.Sprintf("%d hours (%d seconds)", hours, b.MaxSessionTTL)
+			orderedKeys = append(orderedKeys, "MaxSessionTTL")
+		}
+
+		if len(b.ClientCidrBlockAllowList) > 0 {
+			bastionInfo["CIDRAllowList"] = strings.Join(b.ClientCidrBlockAllowList, ", ")
+			orderedKeys = append(orderedKeys, "CIDRAllowList")
+		}
+
+		if b.PrivateEndpointIpAddress != "" {
+			bastionInfo["PrivateEndpointIP"] = b.PrivateEndpointIpAddress
+			orderedKeys = append(orderedKeys, "PrivateEndpointIP")
+		}
+
+		title := util.FormatColoredTitle(appCtx, b.DisplayName)
 
 		p.PrintKeyValues(title, bastionInfo, orderedKeys)
 	}

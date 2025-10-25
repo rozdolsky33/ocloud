@@ -70,7 +70,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return nil
 	}
 
-	logger.Logger.Info("Validated session on Bastion to Instance", "session_type", sType, "bastion_name", b.Name, "bastion_id", b.ID, "instance_name", inst.DisplayName)
+	logger.Logger.Info("Validated session on Bastion to Instance", "session_type", sType, "bastion_name", b.DisplayName, "bastion_id", b.OCID, "instance_name", inst.DisplayName)
 
 	region, regErr := appCtx.Provider.Region()
 	if regErr != nil {
@@ -83,7 +83,7 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("read ssh username: %w", err)
 		}
-		sessID, err := svc.EnsureManagedSSHSession(ctx, b.ID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
+		sessID, err := svc.EnsureManagedSSHSession(ctx, b.OCID, inst.OCID, inst.PrimaryIP, sshUser, 22, pubKey, 0)
 		if err != nil {
 			return fmt.Errorf("ensure managed SSH: %w", err)
 		}
@@ -96,31 +96,43 @@ func connectInstance(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		if err != nil {
 			return fmt.Errorf("read port: %w", err)
 		}
-		sessID, err := svc.EnsurePortForwardSession(ctx, b.ID, inst.PrimaryIP, port, pubKey)
+		sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, inst.PrimaryIP, port, pubKey)
 		if err != nil {
 			return fmt.Errorf("ensure port forward: %w", err)
 		}
-		logFile := fmt.Sprintf("~/.oci/.ocloud/ssh-tunnel-%d.log", port)
 		sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, inst.PrimaryIP, port, port)
 		if err != nil {
 			return fmt.Errorf("build args: %w", err)
 		}
 
-		logger.Logger.Info("Starting background tunnel", "args", sshTunnelArgs)
-		pid, err := bastionSvc.SpawnDetached(sshTunnelArgs, "/tmp/ssh-tunnel.log")
+		pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, port, inst.PrimaryIP)
 
 		if err != nil {
 			return fmt.Errorf("spawn detached: %w", err)
 		}
 		logger.Logger.V(logger.Debug).Info("spawned tunnel", "pid", pid)
 
-		if err := bastionSvc.WaitForListen(defaultPort, 5*time.Second); err != nil {
-			logger.Logger.Error(err, "warning")
+		// Save tunnel state for tracking
+		tunnelInfo := bastionSvc.TunnelInfo{
+			PID:       pid,
+			LocalPort: port,
+			TargetIP:  inst.PrimaryIP,
+			StartedAt: time.Now(),
+			LogFile:   logFile,
+		}
+		if err := bastionSvc.SaveTunnelState(tunnelInfo); err != nil {
+			logger.Logger.Error(err, "failed to save tunnel state")
 		}
 
-		logger.Logger.Info("Starting background tunnel", "args", sshTunnelArgs)
+		logger.Logger.Info("SSH tunnel process started, waiting for connection to be ready...")
+		if err := bastionSvc.WaitForListen(port, 30*time.Second); err != nil {
+			logger.Logger.Info("Tunnel verification timed out, but the tunnel may still be establishing in the background", "port", port)
+			logger.Logger.Info("Check the tunnel status and logs if you experience connection issues")
+		} else {
+			logger.Logger.Info("Tunnel is ready and accepting connections")
+		}
 
-		logger.Logger.Info("SSH tunnel started in background", "logs", logFile)
+		logger.Logger.Info("SSH tunnel running in background", "logs", logFile)
 		return nil
 	default:
 		return fmt.Errorf("unsupported session type: %s", sType)

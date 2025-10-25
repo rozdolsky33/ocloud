@@ -16,7 +16,7 @@ func NewBastionCmd(appCtx *app.ApplicationContext) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
-	cmd.AddCommand(NewListCmd(appCtx))
+	cmd.AddCommand(NewGetCmd(appCtx))
 	cmd.AddCommand(NewCreateCmd(appCtx))
 	return cmd
 }
