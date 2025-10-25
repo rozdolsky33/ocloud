@@ -25,6 +25,6 @@ func TestListCommand(t *testing.T) {
 	assert.True(t, cmd.SilenceUsage)
 	assert.True(t, cmd.SilenceErrors)
 
-	// Note: The JSON flag is a global flag and is not directly added to the command in the list.go file.
+	// Note: The JSON flag is a global flag and is not directly added to the command in the get.go file.
 	// It's added at a higher level in the command hierarchy.
 }

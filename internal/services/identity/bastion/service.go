@@ -13,17 +13,15 @@ import (
 
 // NewService creates a new bastion service
 func NewService(appCtx *app.ApplicationContext) (*Service, error) {
-	logger.Logger.V(logger.Info).Info("Creating new Bastion service.")
-	cfg := appCtx.Provider
-	bc, err := oci.NewBastionClient(cfg)
+	bc, err := oci.NewBastionClient(appCtx.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bastion client: %w", err)
 	}
-	nc, err := oci.NewNetworkClient(cfg)
+	nc, err := oci.NewNetworkClient(appCtx.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create network client: %w", err)
 	}
-	cc, err := oci.NewComputeClient(cfg)
+	cc, err := oci.NewComputeClient(appCtx.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute client: %w", err)
 	}
