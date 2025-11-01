@@ -36,6 +36,7 @@ type InstanceOutput struct {
 	SecurityListNames []string               `json:"SecurityListNames,omitempty"`
 	NsgIDs            []string               `json:"NsgIDs,omitempty"`
 	NsgNames          []string               `json:"NsgNames,omitempty"`
+	IsMtlsRequired    *bool                  `json:"IsMtlsRequired,omitempty"`
 }
 
 // Placement represents the location of an instance.
@@ -97,6 +98,7 @@ func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationCon
 				SecurityListNames: inst.SecurityListNames,
 				NsgIDs:            inst.NsgIDs,
 				NsgNames:          inst.NsgNames,
+				IsMtlsRequired:    inst.IsMtlsRequired,
 			}
 		}
 		return util.MarshalDataToJSONResponse(p, outputInstances, pagination)
@@ -153,6 +155,11 @@ func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationCon
 				instanceData["NSGs"] = "None"
 			}
 
+			// Add mTLS requirement
+			if instance.IsMtlsRequired != nil {
+				instanceData["mTLS Required"] = fmt.Sprintf("%t", *instance.IsMtlsRequired)
+			}
+
 			imageKeys := []string{
 				"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name", "Security Lists",
 			}
@@ -164,6 +171,10 @@ func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationCon
 			// Add dynamic NSG keys
 			for i := range instance.NsgNames {
 				imageKeys = append(imageKeys, fmt.Sprintf("  NSG %d", i+1))
+			}
+			// Add mTLS if present
+			if instance.IsMtlsRequired != nil {
+				imageKeys = append(imageKeys, "mTLS Required")
 			}
 			orderedKeys = append(orderedKeys, imageKeys...)
 		}
@@ -219,6 +230,7 @@ func PrintInstanceInfo(instance *compute.Instance, appCtx *app.ApplicationContex
 			SecurityListNames: instance.SecurityListNames,
 			NsgIDs:            instance.NsgIDs,
 			NsgNames:          instance.NsgNames,
+			IsMtlsRequired:    instance.IsMtlsRequired,
 		}
 		return p.MarshalToJSON(out)
 	}
@@ -269,6 +281,11 @@ func PrintInstanceInfo(instance *compute.Instance, appCtx *app.ApplicationContex
 			instanceData["NSGs"] = "None"
 		}
 
+		// Add mTLS requirement
+		if instance.IsMtlsRequired != nil {
+			instanceData["mTLS Required"] = fmt.Sprintf("%t", *instance.IsMtlsRequired)
+		}
+
 		imageKeys := []string{
 			"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name", "Security Lists",
 		}
@@ -280,6 +297,10 @@ func PrintInstanceInfo(instance *compute.Instance, appCtx *app.ApplicationContex
 		// Add dynamic NSG keys
 		for i := range instance.NsgNames {
 			imageKeys = append(imageKeys, fmt.Sprintf("  NSG %d", i+1))
+		}
+		// Add mTLS if present
+		if instance.IsMtlsRequired != nil {
+			imageKeys = append(imageKeys, "mTLS Required")
 		}
 		orderedKeys = append(orderedKeys, imageKeys...)
 	}

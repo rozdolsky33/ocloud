@@ -98,12 +98,14 @@ func TestNewVnicAttributesFromOCIVnic(t *testing.T) {
 	subnet := "ocid1.subnet.oc1..xyz"
 	host := "web-1"
 	skip := true
+	nsgIds := []string{"ocid1.nsg.oc1..nsg1", "ocid1.nsg.oc1..nsg2"}
 
 	v := core.Vnic{
 		PrivateIp:           &ip,
 		SubnetId:            &subnet,
 		HostnameLabel:       &host,
 		SkipSourceDestCheck: &skip,
+		NsgIds:              nsgIds,
 	}
 
 	got := mapping.NewVnicAttributesFromOCIVnic(v)
@@ -111,4 +113,38 @@ func TestNewVnicAttributesFromOCIVnic(t *testing.T) {
 	require.Equal(t, &subnet, got.SubnetId)
 	require.Equal(t, &host, got.HostnameLabel)
 	require.Equal(t, &skip, got.SkipSourceDestCheck)
+	require.Equal(t, nsgIds, got.NsgIds)
+}
+
+func TestNewVnicAttributesFromOCIVnic_EmptyNsgIds(t *testing.T) {
+	ip := "10.0.0.10"
+	subnet := "ocid1.subnet.oc1..xyz"
+
+	v := core.Vnic{
+		PrivateIp: &ip,
+		SubnetId:  &subnet,
+		NsgIds:    []string{},
+	}
+
+	got := mapping.NewVnicAttributesFromOCIVnic(v)
+	require.Equal(t, &ip, got.PrivateIp)
+	require.Equal(t, &subnet, got.SubnetId)
+	require.NotNil(t, got.NsgIds)
+	require.Empty(t, got.NsgIds)
+}
+
+func TestNewVnicAttributesFromOCIVnic_NilNsgIds(t *testing.T) {
+	ip := "10.0.0.10"
+	subnet := "ocid1.subnet.oc1..xyz"
+
+	v := core.Vnic{
+		PrivateIp: &ip,
+		SubnetId:  &subnet,
+		NsgIds:    nil,
+	}
+
+	got := mapping.NewVnicAttributesFromOCIVnic(v)
+	require.Equal(t, &ip, got.PrivateIp)
+	require.Equal(t, &subnet, got.SubnetId)
+	require.Nil(t, got.NsgIds)
 }
