@@ -32,6 +32,11 @@ type Instance struct {
 	PrivateDNSEnabled bool
 	RouteTableName    string
 	RouteTableID      string
+	SecurityListIDs   []string
+	SecurityListNames []string
+	NsgIDs            []string
+	NsgNames          []string
+	IsMtlsRequired    *bool
 }
 
 // InstanceRepository defines the port for interacting with instance storage.

@@ -104,6 +104,7 @@ type VnicAttributes struct {
 	SubnetId            *string
 	HostnameLabel       *string
 	SkipSourceDestCheck *bool
+	NsgIds              []string
 }
 
 func NewVnicAttributesFromOCIVnic(v core.Vnic) *VnicAttributes {
@@ -112,5 +113,6 @@ func NewVnicAttributesFromOCIVnic(v core.Vnic) *VnicAttributes {
 		SubnetId:            v.SubnetId,
 		HostnameLabel:       v.HostnameLabel,
 		SkipSourceDestCheck: v.SkipSourceDestCheck,
+		NsgIds:              v.NsgIds,
 	}
 }
