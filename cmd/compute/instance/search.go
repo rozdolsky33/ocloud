@@ -25,6 +25,8 @@ Searchable fields:
 - OCID: Instance OCID
 - VcnName: Name of the VCN the instance is attached to
 - SubnetName: Name of the subnet the instance is attached to
+- SecurityLists: Names of attached security lists
+- NSGs: Names of attached network security groups
 - FD: Fault domain
 - AD: Availability domain
 - TagsKV: All tags in key=value form, flattened
@@ -58,6 +60,10 @@ var searchExamples = `
   # Search by VCN or Subnet names
   ocloud compute instance search my-vcn
   ocloud compute instance search app-subnet
+
+  # Search by Security List or NSG names
+  ocloud compute instance search web-security-list
+  ocloud compute instance search production-nsg
 
   # Search by Availability/Fault Domain
   ocloud compute instance search AD-1
