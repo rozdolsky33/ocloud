@@ -153,6 +153,20 @@ func (a *Adapter) enrichDomainInstance(ctx context.Context, dm *domain.Instance,
 			dm.Hostname = *vnicAttrs.HostnameLabel
 		}
 		dm.PrivateDNSEnabled = vnicAttrs.SkipSourceDestCheck == nil || !*vnicAttrs.SkipSourceDestCheck
+
+		// Extract NSG IDs from VNIC and resolve to names
+		dm.NsgIDs = vnicAttrs.NsgIds
+		if len(vnicAttrs.NsgIds) > 0 {
+			dm.NsgNames = make([]string, 0, len(vnicAttrs.NsgIds))
+			for _, nsgID := range vnicAttrs.NsgIds {
+				nsgName, err := a.getNsgName(ctx, nsgID)
+				if err != nil {
+					return fmt.Errorf("enriching instance %s with NSG name for %s: %w", dm.OCID, nsgID, err)
+				}
+				dm.NsgNames = append(dm.NsgNames, nsgName)
+			}
+		}
+
 		subnet, err := a.getSubnet(ctx, *vnicAttrs.SubnetId)
 		if err != nil {
 			return fmt.Errorf("enriching instance %s with subnet: %w", dm.OCID, err)
@@ -161,6 +175,20 @@ func (a *Adapter) enrichDomainInstance(ctx context.Context, dm *domain.Instance,
 			subnetAttrs := mapping.NewSubnetAttributesFromOCISubnet(*subnet)
 			dm.SubnetName = *subnetAttrs.DisplayName
 			dm.VcnID = *subnet.VcnId
+
+			// Extract Security List IDs from subnet and resolve to names
+			dm.SecurityListIDs = subnetAttrs.SecurityListIds
+			if len(subnetAttrs.SecurityListIds) > 0 {
+				dm.SecurityListNames = make([]string, 0, len(subnetAttrs.SecurityListIds))
+				for _, slID := range subnetAttrs.SecurityListIds {
+					slName, err := a.getSecurityListName(ctx, slID)
+					if err != nil {
+						return fmt.Errorf("enriching instance %s with security list name for %s: %w", dm.OCID, slID, err)
+					}
+					dm.SecurityListNames = append(dm.SecurityListNames, slName)
+				}
+			}
+
 			if subnetAttrs.RouteTableId != nil {
 				dm.RouteTableID = *subnetAttrs.RouteTableId
 				rt, err := a.getRouteTable(ctx, *subnetAttrs.RouteTableId)
@@ -293,6 +321,44 @@ func (a *Adapter) getRouteTable(ctx context.Context, rtID string) (*core.RouteTa
 		return nil, err
 	}
 	return &resp.RouteTable, nil
+}
+
+// getSecurityListName fetches the display name for a security list by OCID.
+func (a *Adapter) getSecurityListName(ctx context.Context, securityListID string) (string, error) {
+	var resp core.GetSecurityListResponse
+	var err error
+
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.networkClient.GetSecurityList(ctx, core.GetSecurityListRequest{SecurityListId: &securityListID})
+		return e
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp.SecurityList.DisplayName != nil {
+		return *resp.SecurityList.DisplayName, nil
+	}
+	return "", nil
+}
+
+// getNsgName fetches the display name for a network security group by OCID.
+func (a *Adapter) getNsgName(ctx context.Context, nsgID string) (string, error) {
+	var resp core.GetNetworkSecurityGroupResponse
+	var err error
+
+	err = retryOnRateLimit(ctx, defaultMaxRetries, defaultInitialBackoff, defaultMaxBackoff, func() error {
+		var e error
+		resp, e = a.networkClient.GetNetworkSecurityGroup(ctx, core.GetNetworkSecurityGroupRequest{NetworkSecurityGroupId: &nsgID})
+		return e
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp.NetworkSecurityGroup.DisplayName != nil {
+		return *resp.NetworkSecurityGroup.DisplayName, nil
+	}
+	return "", nil
 }
 
 // retryOnRateLimit retries the provided operation when OCI responds with HTTP 429 rate limited.

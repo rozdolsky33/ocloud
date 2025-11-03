@@ -32,6 +32,10 @@ type InstanceOutput struct {
 	PrivateDNSEnabled bool                   `json:"PrivateDNSEnabled,omitempty"`
 	RouteTableID      string                 `json:"RouteTableID,omitempty"`
 	RouteTableName    string                 `json:"RouteTableName,omitempty"`
+	SecurityListIDs   []string               `json:"SecurityListIDs,omitempty"`
+	SecurityListNames []string               `json:"SecurityListNames,omitempty"`
+	NsgIDs            []string               `json:"NsgIDs,omitempty"`
+	NsgNames          []string               `json:"NsgNames,omitempty"`
 }
 
 // Placement represents the location of an instance.
@@ -89,6 +93,10 @@ func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationCon
 				PrivateDNSEnabled: inst.PrivateDNSEnabled,
 				RouteTableID:      inst.RouteTableID,
 				RouteTableName:    inst.RouteTableName,
+				SecurityListIDs:   inst.SecurityListIDs,
+				SecurityListNames: inst.SecurityListNames,
+				NsgIDs:            inst.NsgIDs,
+				NsgNames:          inst.NsgNames,
 			}
 		}
 		return util.MarshalDataToJSONResponse(p, outputInstances, pagination)
@@ -125,8 +133,37 @@ func PrintInstancesInfo(instances []compute.Instance, appCtx *app.ApplicationCon
 			instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
 			instanceData["Route Table Name"] = instance.RouteTableName
 
+			// Add Security Lists
+			if len(instance.SecurityListNames) > 0 {
+				instanceData["Security Lists"] = fmt.Sprintf("%d attached", len(instance.SecurityListNames))
+				for i, slName := range instance.SecurityListNames {
+					instanceData[fmt.Sprintf("  Security List %d", i+1)] = slName
+				}
+			} else {
+				instanceData["Security Lists"] = "None"
+			}
+
+			// Add NSGs
+			if len(instance.NsgNames) > 0 {
+				instanceData["NSGs"] = fmt.Sprintf("%d attached", len(instance.NsgNames))
+				for i, nsgName := range instance.NsgNames {
+					instanceData[fmt.Sprintf("  NSG %d", i+1)] = nsgName
+				}
+			} else {
+				instanceData["NSGs"] = "None"
+			}
+
 			imageKeys := []string{
-				"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name",
+				"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name", "Security Lists",
+			}
+			// Add dynamic security list keys
+			for i := range instance.SecurityListNames {
+				imageKeys = append(imageKeys, fmt.Sprintf("  Security List %d", i+1))
+			}
+			imageKeys = append(imageKeys, "NSGs")
+			// Add dynamic NSG keys
+			for i := range instance.NsgNames {
+				imageKeys = append(imageKeys, fmt.Sprintf("  NSG %d", i+1))
 			}
 			orderedKeys = append(orderedKeys, imageKeys...)
 		}
@@ -178,6 +215,10 @@ func PrintInstanceInfo(instance *compute.Instance, appCtx *app.ApplicationContex
 			PrivateDNSEnabled: instance.PrivateDNSEnabled,
 			RouteTableID:      instance.RouteTableID,
 			RouteTableName:    instance.RouteTableName,
+			SecurityListIDs:   instance.SecurityListIDs,
+			SecurityListNames: instance.SecurityListNames,
+			NsgIDs:            instance.NsgIDs,
+			NsgNames:          instance.NsgNames,
 		}
 		return p.MarshalToJSON(out)
 	}
@@ -208,8 +249,37 @@ func PrintInstanceInfo(instance *compute.Instance, appCtx *app.ApplicationContex
 		instanceData["Private DNS Enabled"] = fmt.Sprintf("%t", instance.PrivateDNSEnabled)
 		instanceData["Route Table Name"] = instance.RouteTableName
 
+		// Add Security Lists
+		if len(instance.SecurityListNames) > 0 {
+			instanceData["Security Lists"] = fmt.Sprintf("%d attached", len(instance.SecurityListNames))
+			for i, slName := range instance.SecurityListNames {
+				instanceData[fmt.Sprintf("  Security List %d", i+1)] = slName
+			}
+		} else {
+			instanceData["Security Lists"] = "None"
+		}
+
+		// Add NSGs
+		if len(instance.NsgNames) > 0 {
+			instanceData["NSGs"] = fmt.Sprintf("%d attached", len(instance.NsgNames))
+			for i, nsgName := range instance.NsgNames {
+				instanceData[fmt.Sprintf("  NSG %d", i+1)] = nsgName
+			}
+		} else {
+			instanceData["NSGs"] = "None"
+		}
+
 		imageKeys := []string{
-			"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name",
+			"Image Name", "Operating System", "AD", "FD", "Region", "Subnet Name", "VCN Name", "Hostname", "Private DNS Enabled", "Route Table Name", "Security Lists",
+		}
+		// Add dynamic security list keys
+		for i := range instance.SecurityListNames {
+			imageKeys = append(imageKeys, fmt.Sprintf("  Security List %d", i+1))
+		}
+		imageKeys = append(imageKeys, "NSGs")
+		// Add dynamic NSG keys
+		for i := range instance.NsgNames {
+			imageKeys = append(imageKeys, fmt.Sprintf("  NSG %d", i+1))
 		}
 		orderedKeys = append(orderedKeys, imageKeys...)
 	}

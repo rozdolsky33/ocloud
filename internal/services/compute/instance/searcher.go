@@ -18,20 +18,26 @@ func (s SearchableInstance) ToIndexable() map[string]any {
 	tagsKV, _ := util.FlattenTags(s.FreeformTags, s.DefinedTags)
 	tagsVal, _ := util.ExtractTagValues(s.FreeformTags, s.DefinedTags)
 
+	// Join the security list and NSG names for searchability
+	securityListNames := strings.Join(s.SecurityListNames, " ")
+	nsgNames := strings.Join(s.NsgNames, " ")
+
 	return map[string]any{
-		"Name":       strings.ToLower(s.DisplayName),
-		"Hostname":   strings.ToLower(s.Hostname),
-		"PrimaryIP":  strings.ToLower(s.PrimaryIP),
-		"ImageName":  strings.ToLower(s.ImageName),
-		"ImageOS":    strings.ToLower(s.ImageOS),
-		"Shape":      strings.ToLower(s.Shape),
-		"OCID":       strings.ToLower(s.OCID),
-		"FD":         strings.ToLower(s.FaultDomain),
-		"AD":         strings.ToLower(s.AvailabilityDomain),
-		"VcnName":    strings.ToLower(s.VcnName),
-		"SubnetName": strings.ToLower(s.SubnetName),
-		"TagsKV":     strings.ToLower(tagsKV),
-		"TagsVal":    strings.ToLower(tagsVal),
+		"Name":          strings.ToLower(s.DisplayName),
+		"Hostname":      strings.ToLower(s.Hostname),
+		"PrimaryIP":     strings.ToLower(s.PrimaryIP),
+		"ImageName":     strings.ToLower(s.ImageName),
+		"ImageOS":       strings.ToLower(s.ImageOS),
+		"Shape":         strings.ToLower(s.Shape),
+		"OCID":          strings.ToLower(s.OCID),
+		"FD":            strings.ToLower(s.FaultDomain),
+		"AD":            strings.ToLower(s.AvailabilityDomain),
+		"VcnName":       strings.ToLower(s.VcnName),
+		"SubnetName":    strings.ToLower(s.SubnetName),
+		"SecurityLists": strings.ToLower(securityListNames),
+		"NSGs":          strings.ToLower(nsgNames),
+		"TagsKV":        strings.ToLower(tagsKV),
+		"TagsVal":       strings.ToLower(tagsVal),
 	}
 }
 
@@ -40,6 +46,7 @@ func GetSearchableFields() []string {
 	return []string{
 		"Name", "Hostname", "ImageName", "ImageOS", "Shape",
 		"PrimaryIP", "OCID", "VcnName", "SubnetName", "FD", "AD",
+		"SecurityLists", "NSGs",
 		"TagsKV", "TagsVal",
 	}
 }
