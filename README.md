@@ -612,3 +612,15 @@ For questions, use [Discussions](https://github.com/rozdolsky33/ocloud/discussio
 ## License
 
 This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
+
+
+## Third-Party Attributions
+
+OCloud uses third-party open-source software, including:
+
+- **Oracle Cloud Infrastructure Go SDK** - Dual-licensed under UPL-1.0 or Apache-2.0
+  Copyright (c) 2016, 2024, Oracle and/or its affiliates
+
+For a complete list of third-party software and their licenses, see:
+- [NOTICE](NOTICE) - Third-party software notices and attributions
+- [third_party/](third_party/) - Full license texts for dependencies

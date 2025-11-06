@@ -1,0 +1,49 @@
+OCloud - Oracle Cloud Infrastructure CLI Tool
+Copyright (c) 2025 Volodymyr Rozdolsky
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+================================================================================
+
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+
+This project incorporates components from the projects listed below. The original
+copyright notices and licenses under which Volodymyr Rozdolsky received such
+components are set forth below.
+
+================================================================================
+
+1. Oracle Cloud Infrastructure Go SDK (oci-go-sdk)
+   https://github.com/oracle/oci-go-sdk
+
+   Copyright (c) 2016, 2024, Oracle and/or its affiliates. All rights reserved.
+
+   Licensed under the Universal Permissive License v1.0 or Apache License 2.0
+   (Dual License - you may choose either license)
+
+   This project uses the Oracle OCI Go SDK under the terms of either:
+   - The Universal Permissive License v1.0 as shown at https://oss.oracle.com/licenses/upl
+   OR
+   - Apache License 2.0 as shown at http://www.apache.org/licenses/LICENSE-2.0
+
+   Full license text is available in: third_party/oracle-oci-go-sdk/LICENSE.txt
+
+================================================================================
+
+2. Other Open Source Components
+
+This project also uses other open source components. A complete list can be
+found in the go.mod file. Key dependencies include:
+
+- Cobra CLI framework (Apache-2.0)
+- Charm Bracelet Bubble Tea TUI (MIT)
+- Bleve search indexing (Apache-2.0)
+- Go Pretty table formatting (MIT)
+- Viper configuration (MIT)
+
+For a complete list of dependencies and their licenses, see go.mod and the
+third_party directory.
+
+================================================================================
+
+All third-party software licenses are available in the third_party/ directory.
