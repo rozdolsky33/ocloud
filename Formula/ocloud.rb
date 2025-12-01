@@ -5,12 +5,12 @@
 class Ocloud < Formula
   desc "Tool for finding and connecting to OCI instances"
   homepage "https://github.com/rozdolsky33/ocloud"
-  version "0.1.6"
+  version "0.1.7"
   license "MIT"
 
   on_macos do
-    url "https://github.com/rozdolsky33/ocloud/releases/download/v0.1.6/ocloud_0.1.6_darwin_all.tar.gz"
-    sha256 "c1d0918cf337feff025c353de674938c4fb538bb4c8ec4ba14d50e90138c85b8"
+    url "https://github.com/rozdolsky33/ocloud/releases/download/v0.1.7/ocloud_0.1.7_darwin_all.tar.gz"
+    sha256 "7b77bde0c3443fa6e4f4d1e1c9311eea2e729e3588cae9bbac556abad95b7296"
 
     def install
       bin.install "ocloud"
@@ -19,15 +19,15 @@ class Ocloud < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/rozdolsky33/ocloud/releases/download/v0.1.6/ocloud_0.1.6_linux_amd64.tar.gz"
-      sha256 "565cf29cd0858fdb4cdf9103838e500bc4431ecd920a6d630994f942d67f166c"
+      url "https://github.com/rozdolsky33/ocloud/releases/download/v0.1.7/ocloud_0.1.7_linux_amd64.tar.gz"
+      sha256 "c8830b590fd95686bd4c6bb61cdecff73ba1263ea3cb14635b13e5ed94335b0f"
       def install
         bin.install "ocloud"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/rozdolsky33/ocloud/releases/download/v0.1.6/ocloud_0.1.6_linux_arm64.tar.gz"
-      sha256 "d0d8524717193b989e5af374294d80143eb7b9936cc4c462b0a32efe7e1d8d03"
+      url "https://github.com/rozdolsky33/ocloud/releases/download/v0.1.7/ocloud_0.1.7_linux_arm64.tar.gz"
+      sha256 "d99c40ca471a09e97353e5dd8b09ac1783112523615691aa8514523eeaa6ebc2"
       def install
         bin.install "ocloud"
       end
