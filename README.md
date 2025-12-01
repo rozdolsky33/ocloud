@@ -7,6 +7,7 @@
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/rozdolsky33/ocloud/main/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rozdolsky33/ocloud)](https://goreportcard.com/report/github.com/rozdolsky33/ocloud)
 [![Go Coverage](https://github.com/rozdolsky33/ocloud/wiki/coverage.svg)](https://raw.githack.com/wiki/rozdolsky33/ocloud/coverage.html)
+[![code-scanner](https://github.com/rozdolsky33/ocloud/actions/workflows/code-scanner.yaml/badge.svg)](https://github.com/rozdolsky33/ocloud/actions/workflows/code-scanner.yaml)
 
 ## Overview
 
