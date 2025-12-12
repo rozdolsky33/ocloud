@@ -1,12 +1,14 @@
 package display
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -27,29 +29,113 @@ var (
 	regularStyle = color.New(color.FgWhite)
 )
 
-var validRe = regexp.MustCompile(`(?i)^Session is valid until\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$`)
-var expiredRe = regexp.MustCompile(`(?i)^Session has expired\s*$`)
+// jwtClaims represents the claims in a JWT token
+type jwtClaims struct {
+	Exp int64 `json:"exp"`
+}
 
-// CheckOCISessionValidity checks the validity of the OCI session
-func CheckOCISessionValidity(profile string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+// getSecurityTokenFile reads the OCI config file and extracts the security_token_file path for the given profile.
+func getSecurityTokenFile(profile string) (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("get home directory: %w", err)
+	}
 
-	cmd := exec.CommandContext(ctx, "oci", "session", "validate", "--profile", profile)
-	out, err := cmd.CombinedOutput()
-	raw := strings.TrimSpace(string(out))
+	configPath := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCIConfigFileName)
+	file, err := os.Open(configPath)
+	if err != nil {
+		return "", fmt.Errorf("open config file: %w", err)
+	}
+	defer file.Close()
 
-	if matches := validRe.FindStringSubmatch(raw); len(matches) > 1 {
-		return greenStyle.Sprintf("Valid until %s", matches[1])
-	} else if expiredRe.MatchString(raw) {
-		return redStyle.Sprint("Session Expired")
-	} else {
-		if err != nil {
-			return redStyle.Sprintf("Error checking session: %v", err)
-		} else {
-			return yellowStyle.Sprintf("Unknown status: %s", raw)
+	scanner := bufio.NewScanner(file)
+	inTargetProfile := false
+	targetHeader := "[" + profile + "]"
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Check for the profile header
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			inTargetProfile = (line == targetHeader)
+			continue
+		}
+
+		// If we're in the target profile, look for security_token_file
+		if inTargetProfile {
+			if strings.HasPrefix(line, "security_token_file") {
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					return strings.TrimSpace(parts[1]), nil
+				}
+			}
 		}
 	}
+
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("scan config file: %w", err)
+	}
+
+	// Fallback to a default path if not found in config
+	return filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, "token"), nil
+}
+
+// sessionExpiryFromTokenFile reads a JWT token file and extracts the expiration time.
+func sessionExpiryFromTokenFile(tokenPath string) (time.Time, error) {
+	data, err := os.ReadFile(tokenPath)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("read token file: %w", err)
+	}
+
+	token := strings.TrimSpace(string(data))
+	parts := strings.Split(token, ".")
+	if len(parts) < 2 {
+		return time.Time{}, fmt.Errorf("invalid token format")
+	}
+
+	payload := parts[1]
+	// base64url without padding -> add padding if needed
+	if m := len(payload) % 4; m != 0 {
+		payload += strings.Repeat("=", 4-m)
+	}
+
+	payloadBytes, err := base64.URLEncoding.DecodeString(payload)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("decode payload: %w", err)
+	}
+
+	var claims jwtClaims
+	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
+		return time.Time{}, fmt.Errorf("unmarshal payload: %w", err)
+	}
+	if claims.Exp == 0 {
+		return time.Time{}, fmt.Errorf("no exp claim in token")
+	}
+
+	return time.Unix(claims.Exp, 0), nil
+}
+
+// CheckOCISessionValidity checks the validity of the OCI session by parsing the JWT token directly.
+// This avoids issues with debug output from the OCI CLI.
+func CheckOCISessionValidity(profile string) string {
+	tokenPath, err := getSecurityTokenFile(profile)
+	if err != nil {
+		return yellowStyle.Sprintf("Cannot find token: %v", err)
+	}
+
+	exp, err := sessionExpiryFromTokenFile(tokenPath)
+	if err != nil {
+		return yellowStyle.Sprintf("Cannot parse session token: %v", err)
+	}
+
+	now := time.Now()
+	if now.After(exp) {
+		return redStyle.Sprint("Session Expired")
+	}
+
+	// Format the expiry time in the same format as the old OCI CLI output
+	ts := exp.Local().Format("2006-01-02 15:04:05")
+	return greenStyle.Sprintf("Valid until %s", ts)
 }
 
 // RefresherStatus represents the status of the OCI auth refresher
