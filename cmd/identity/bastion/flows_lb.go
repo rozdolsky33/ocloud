@@ -83,13 +83,20 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	}
 
 	// Check bastion reachability to load balancer's VCN
-	_, reason := svc.CanReach(ctx, b, lb.VcnID, "")
+	subnetID := ""
+	if len(lb.Subnets) > 0 {
+		subnetID = lb.Subnets[0]
+	}
+	_, reason := svc.CanReach(ctx, b, lb.VcnID, subnetID)
 	logger.Logger.Info("Reachability to Load Balancer cannot be automatically verified", "reason", reason)
 	logger.Logger.Info("Validated session on Bastion to Load Balancer",
 		"session_type", sType,
 		"bastion_name", b.DisplayName,
 		"bastion_id", b.OCID,
-		"lb_name", lb.Name)
+		"lb_name", lb.Name,
+		"lb_ip_addresses", lb.IPAddresses,
+		"lb_subnets", lb.Subnets,
+		"lb_vcn_id", lb.VcnID)
 
 	// Get SSH key pair
 	pubKey, privKey, err := SelectSSHKeyPair(ctx)
@@ -104,10 +111,11 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	}
 
 	// Determine target IP from load balancer
+	// Note: IPAddresses may contain suffix like " (private)" or " (public)" from mapping
 	if len(lb.IPAddresses) == 0 {
 		return fmt.Errorf("no IP addresses found for load balancer %s", lb.Name)
 	}
-	targetIP := lb.IPAddresses[0]
+	targetIP := extractIPAddress(lb.IPAddresses[0])
 
 	// Determine default port based on listeners
 	defaultPort := 443
@@ -133,6 +141,10 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	}
 
 	// Create a port forwarding session
+	logger.Logger.Info("Creating port forwarding session",
+		"bastion_id", b.OCID,
+		"target_ip", targetIP,
+		"target_port", defaultPort)
 	sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, targetIP, defaultPort, pubKey)
 	if err != nil {
 		return fmt.Errorf("ensure port forward: %w", err)
@@ -214,4 +226,14 @@ func parsePort(s string, defaultVal int) int {
 		return defaultVal
 	}
 	return p
+}
+
+// extractIPAddress extracts just the IP address from a string that may contain
+// a suffix like " (private)" or " (public)" added by the mapping layer.
+func extractIPAddress(ipWithSuffix string) string {
+	// Handle formats like "217.142.42.8 (private)" or "155.248.24.108 (public)"
+	if idx := strings.Index(ipWithSuffix, " "); idx > 0 {
+		return ipWithSuffix[:idx]
+	}
+	return ipWithSuffix
 }
