@@ -99,6 +99,8 @@ func ConnectTarget(ctx context.Context, appCtx *app.ApplicationContext, svc *bas
 		return connectDatabase(ctx, appCtx, svc, b, sType)
 	case TargetOKE:
 		return connectOKE(ctx, appCtx, svc, b, sType)
+	case TargetLoadBalancer:
+		return connectLoadBalancer(ctx, appCtx, svc, b, sType)
 	default:
 		fmt.Printf("Prepared %s session on %s (%s) -> %s\n", sType, b.DisplayName, b.OCID, tType)
 		return nil

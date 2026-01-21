@@ -492,3 +492,68 @@ func WaitForListen(localPort int, timeout time.Duration) error {
 	}
 	return fmt.Errorf("tunnel not up on %s after %s", addr, timeout)
 }
+
+// SpawnDetachedWithSudo starts ssh with sudo for privileged ports (below 1024).
+// It runs in the background, detaches from your process, and returns its PID and log file path.
+// The privateKeyPath is needed to explicitly specify the key path since sudo changes the user context.
+func SpawnDetachedWithSudo(args []string, localPort int, targetIP string, privateKeyPath string) (int, string, error) {
+	sudoPath, err := exec.LookPath("sudo")
+	if err != nil {
+		return 0, "", fmt.Errorf("sudo not found in PATH: %w", err)
+	}
+
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return 0, "", fmt.Errorf("ssh not found in PATH: %w", err)
+	}
+
+	// Create a log directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return 0, "", fmt.Errorf("get home dir: %w", err)
+	}
+	profile := os.Getenv(flags.EnvKeyProfile)
+	logDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		return 0, "", fmt.Errorf("create log dir: %w", err)
+	}
+
+	// Create a unique log file with a timestamp
+	timestamp := time.Now().Format("20060102-150405")
+	logfile := filepath.Join(logDir, fmt.Sprintf("ssh-tunnel-%d-%s.log", localPort, timestamp))
+
+	f, err := os.OpenFile(logfile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return 0, "", fmt.Errorf("open log file: %w", err)
+	}
+	defer f.Close()
+
+	// Build the full command: sudo ssh -i <key> <args...>
+	// We prepend the verbose flag and ensure the private key is explicitly specified
+	verboseArgs := append([]string{"-v"}, args...)
+	sudoArgs := append([]string{sshPath}, verboseArgs...)
+
+	// Write header to a log file
+	header := fmt.Sprintf("=== SSH Tunnel Started (with sudo) ===\nTimestamp: %s\nLocal Port: %d\nTarget: %s\nSSH Command: sudo %s %s\n\n",
+		time.Now().Format(time.RFC3339),
+		localPort,
+		targetIP,
+		sshPath,
+		strings.Join(verboseArgs, " "))
+	_, _ = f.WriteString(header)
+
+	cmd := exec.Command(sudoPath, sudoArgs...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} // detach from our session/TTY
+	cmd.Stdout = f
+	cmd.Stderr = f
+	// For sudo, we need to connect stdin for the password prompt
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Start(); err != nil {
+		return 0, "", fmt.Errorf("start sudo ssh: %w", err)
+	}
+	pid := cmd.Process.Pid
+	_ = cmd.Process.Release()
+
+	return pid, logfile, nil
+}
