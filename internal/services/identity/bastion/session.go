@@ -493,6 +493,14 @@ func WaitForListen(localPort int, timeout time.Duration) error {
 	return fmt.Errorf("tunnel not up on %s after %s", addr, timeout)
 }
 
+// BuildSudoSSHCommand constructs a sudo ssh command string for interactive execution.
+// This is used for privileged ports that require sudo and need the user to enter their password.
+func BuildSudoSSHCommand(privateKeyPath string, sshArgs []string) string {
+	// Build: sudo ssh -i <key> <args...>
+	args := append([]string{"ssh"}, sshArgs...)
+	return "sudo " + strings.Join(args, " ")
+}
+
 // SpawnDetachedWithSudo starts ssh with sudo for privileged ports (below 1024).
 // It runs in the background, detaches from your process, and returns its PID and log file path.
 // The privateKeyPath is needed to explicitly specify the key path since sudo changes the user context.

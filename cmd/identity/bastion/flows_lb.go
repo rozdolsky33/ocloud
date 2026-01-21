@@ -156,16 +156,21 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 		return fmt.Errorf("build args: %w", err)
 	}
 
-	// Spawn the SSH tunnel (with sudo if needed for privileged ports)
-	var pid int
-	var logFile string
-
+	// For privileged ports (< 1024), run interactively with sudo so user can enter password
 	if port < 1024 {
-		// For privileged ports, use sudo
-		pid, logFile, err = bastionSvc.SpawnDetachedWithSudo(sshTunnelArgs, port, targetIP, privKey)
-	} else {
-		pid, logFile, err = bastionSvc.SpawnDetached(sshTunnelArgs, port, targetIP)
+		logger.Logger.Info("Running SSH tunnel with sudo (privileged port requires interactive mode)")
+		logger.Logger.Info("The tunnel will run in the foreground - press Ctrl+C to stop")
+		logger.Logger.Info("SSH tunnel to Load Balancer starting",
+			"access", fmt.Sprintf("https://127.0.0.1:%d", port),
+			"lb_name", lb.Name)
+
+		// Build the sudo ssh command string for interactive execution
+		sshCmd := bastionSvc.BuildSudoSSHCommand(privKey, sshTunnelArgs)
+		return bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
 	}
+
+	// For non-privileged ports, spawn detached in background
+	pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, port, targetIP)
 	if err != nil {
 		return fmt.Errorf("spawn detached: %w", err)
 	}
