@@ -3,6 +3,7 @@ package bastion
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -42,12 +43,21 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	lbService := lbSvc.NewService(adapter, appCtx)
 
 	// Fetch load balancers
-	lbs, err := lbService.ListLoadBalancers(ctx)
+	allLBs, err := lbService.ListLoadBalancers(ctx)
 	if err != nil {
 		return fmt.Errorf("list load balancers: %w", err)
 	}
+
+	// Filter to only private load balancers (bastion can only reach private IPs)
+	var lbs []lbSvc.LoadBalancer
+	for _, lb := range allLBs {
+		if strings.ToLower(lb.Type) == "private" {
+			lbs = append(lbs, lb)
+		}
+	}
+
 	if len(lbs) == 0 {
-		logger.Logger.Info("No Load Balancers found.")
+		logger.Logger.Info("No private Load Balancers found. Note: Only private Load Balancers can be accessed via bastion port forwarding.")
 		return nil
 	}
 
