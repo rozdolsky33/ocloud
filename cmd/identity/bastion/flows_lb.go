@@ -117,17 +117,9 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	}
 	targetIP := extractIPAddress(lb.IPAddresses[0])
 
-	// Determine default port based on listeners
-	defaultPort := 443
-	if len(lb.Listeners) > 0 {
-		// Try to find a common port from listeners
-		for _, port := range lb.Listeners {
-			if port == "443" || port == "8443" || port == "80" {
-				defaultPort = parsePort(port, 443)
-				break
-			}
-		}
-	}
+	// Determine default port - use 8443 to avoid sudo requirement by default
+	// User can still choose a privileged port like 443 if needed
+	defaultPort := 8443
 
 	// Prompt for port with privileged port warning
 	port, err := promptPortWithPrivilegedWarning("Enter port to forward (local:target)", defaultPort)
@@ -164,9 +156,8 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 			"access", fmt.Sprintf("https://127.0.0.1:%d", port),
 			"lb_name", lb.Name)
 
-		// Build the sudo ssh command string for interactive execution
-		sshCmd := bastionSvc.BuildSudoSSHCommand(privKey, sshTunnelArgs)
-		return bastionSvc.RunShell(ctx, appCtx.Stdout, appCtx.Stderr, sshCmd)
+		// Run sudo ssh interactively - needs direct terminal access for password prompt
+		return bastionSvc.RunSudoSSH(ctx, sshTunnelArgs)
 	}
 
 	// For non-privileged ports, spawn detached in background
@@ -222,15 +213,6 @@ func promptPortWithPrivilegedWarning(question string, defaultPort int) (int, err
 	}
 
 	return port, nil
-}
-
-// parsePort parses a string port to int, returning defaultVal on error.
-func parsePort(s string, defaultVal int) int {
-	var p int
-	if _, err := fmt.Sscanf(s, "%d", &p); err != nil {
-		return defaultVal
-	}
-	return p
 }
 
 // extractIPAddress extracts just the IP address from a string that may contain

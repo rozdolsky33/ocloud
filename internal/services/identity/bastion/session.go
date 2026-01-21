@@ -493,12 +493,29 @@ func WaitForListen(localPort int, timeout time.Duration) error {
 	return fmt.Errorf("tunnel not up on %s after %s", addr, timeout)
 }
 
-// BuildSudoSSHCommand constructs a sudo ssh command string for interactive execution.
-// This is used for privileged ports that require sudo and need the user to enter their password.
-func BuildSudoSSHCommand(privateKeyPath string, sshArgs []string) string {
-	// Build: sudo ssh -i <key> <args...>
-	args := append([]string{"ssh"}, sshArgs...)
-	return "sudo " + strings.Join(args, " ")
+// RunSudoSSH runs ssh with sudo interactively, allowing the user to enter their password.
+// This is used for privileged ports (< 1024) that require root access.
+func RunSudoSSH(ctx context.Context, sshArgs []string) error {
+	sudoPath, err := exec.LookPath("sudo")
+	if err != nil {
+		return fmt.Errorf("sudo not found in PATH: %w", err)
+	}
+
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return fmt.Errorf("ssh not found in PATH: %w", err)
+	}
+
+	// Build args: sudo ssh <sshArgs...>
+	args := append([]string{sshPath}, sshArgs...)
+
+	cmd := exec.CommandContext(ctx, sudoPath, args...)
+	// Connect directly to terminal for password prompt and SSH output
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 // SpawnDetachedWithSudo starts ssh with sudo for privileged ports (below 1024).
