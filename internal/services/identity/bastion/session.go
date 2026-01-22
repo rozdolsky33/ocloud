@@ -492,3 +492,82 @@ func WaitForListen(localPort int, timeout time.Duration) error {
 	}
 	return fmt.Errorf("tunnel not up on %s after %s", addr, timeout)
 }
+
+// ValidateSudoPassword validates the sudo password by running `sudo -S -v`.
+func ValidateSudoPassword(password string) error {
+	// Run a simple sudo command to validate credentials
+	cmd := exec.Command("sudo", "-S", "-v")
+	cmd.Stdin = strings.NewReader(password + "\n")
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("sudo authentication failed: %w", err)
+	}
+	return nil
+}
+
+// SpawnDetachedWithSudo starts ssh with sudo in the background using the provided password.
+func SpawnDetachedWithSudo(args []string, localPort int, targetIP string, sudoPassword string) (int, string, error) {
+	sudoPath, err := exec.LookPath("sudo")
+	if err != nil {
+		return 0, "", fmt.Errorf("sudo not found in PATH: %w", err)
+	}
+
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return 0, "", fmt.Errorf("ssh not found in PATH: %w", err)
+	}
+
+	// Create a log directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return 0, "", fmt.Errorf("get home dir: %w", err)
+	}
+	profile := os.Getenv(flags.EnvKeyProfile)
+	logDir := filepath.Join(homeDir, flags.OCIConfigDirName, flags.OCISessionsDirName, profile, "logs")
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		return 0, "", fmt.Errorf("create log dir: %w", err)
+	}
+
+	// Create a unique log file with a timestamp
+	timestamp := time.Now().Format("20060102-150405")
+	logfile := filepath.Join(logDir, fmt.Sprintf("ssh-tunnel-%d-%s.log", localPort, timestamp))
+
+	f, err := os.OpenFile(logfile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return 0, "", fmt.Errorf("open log file: %w", err)
+	}
+	defer f.Close()
+
+	// Write header to a log file
+	header := fmt.Sprintf("=== SSH Tunnel Started (SUDO) ===\nTimestamp: %s\nLocal Port: %d\nTarget: %s\nSSH Command: sudo %s %s\n\n",
+		time.Now().Format(time.RFC3339),
+		localPort,
+		targetIP,
+		sshPath,
+		strings.Join(args, " "))
+	_, _ = f.WriteString(header)
+
+	// Add -v to args
+	verboseArgs := append([]string{"-v"}, args...)
+
+	// Construct sudo command: sudo -S -p '' ssh -v ...
+	// -S: read password from stdin
+	// -p '': no prompt
+	sudoArgs := append([]string{"-S", "-p", "", sshPath}, verboseArgs...)
+
+	cmd := exec.Command(sudoPath, sudoArgs...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} // detach from our session/TTY
+	cmd.Stdout = f
+	cmd.Stderr = f
+
+	// Pass password via stdin
+	cmd.Stdin = strings.NewReader(sudoPassword + "\n")
+
+	if err := cmd.Start(); err != nil {
+		return 0, "", fmt.Errorf("start sudo ssh: %w", err)
+	}
+	pid := cmd.Process.Pid
+	_ = cmd.Process.Release()
+
+	return pid, logfile, nil
+}

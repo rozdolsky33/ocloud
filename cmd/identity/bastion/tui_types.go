@@ -14,6 +14,7 @@ import (
 	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
 	hwdbSvc "github.com/rozdolsky33/ocloud/internal/services/database/heatwavedb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
+	lbSvc "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
 )
 
 // BastionType identifies the top-level action.
@@ -28,9 +29,10 @@ const (
 type TargetType string
 
 const (
-	TargetOKE      TargetType = "OKE"
-	TargetDatabase TargetType = "Database"
-	TargetInstance TargetType = "Instance"
+	TargetOKE          TargetType = "OKE"
+	TargetDatabase     TargetType = "Database"
+	TargetInstance     TargetType = "Instance"
+	TargetLoadBalancer TargetType = "Load Balancer"
 )
 
 // SessionType identifies how the bastion session behaves.
@@ -297,7 +299,7 @@ type TargetTypeModel struct {
 // NewTargetTypeModel creates a TargetTypeModel instance with the provided list of bastions and initializes the cursor to 0.
 func NewTargetTypeModel(bastionID string) TargetTypeModel {
 	var types []TargetType
-	types = []TargetType{TargetOKE, TargetDatabase, TargetInstance}
+	types = []TargetType{TargetOKE, TargetDatabase, TargetInstance, TargetLoadBalancer}
 	return TargetTypeModel{Types: types, Cursor: 0, BastionID: bastionID}
 }
 
@@ -468,6 +470,16 @@ func NewHeatWaveDBListModelFancy(dbs []hwdbSvc.HeatWaveDatabase) ResourceListMod
 		items = append(items, resourceItem{id: d.ID, title: d.DisplayName, description: desc})
 	}
 	return newResourceList("HeatWave Databases", items)
+}
+
+// NewLoadBalancerListModelFancy creates a ResourceListModel populated with a list of load balancers for TUI display.
+func NewLoadBalancerListModelFancy(lbs []lbSvc.LoadBalancer) ResourceListModel {
+	items := make([]list.Item, 0, len(lbs))
+	for _, lb := range lbs {
+		desc := describeLoadBalancer(lb)
+		items = append(items, resourceItem{id: lb.OCID, title: lb.Name, description: desc})
+	}
+	return newResourceList("Load Balancers", items)
 }
 
 //---------------------------------------SSH Keys----------------------------------------------------------------------
@@ -734,4 +746,41 @@ func filterNonEmpty(vals ...string) []string {
 		}
 	}
 	return out
+}
+
+// describeLoadBalancer builds a rich description string for a load balancer.
+func describeLoadBalancer(lb lbSvc.LoadBalancer) string {
+	var parts []string
+
+	// IP address(es)
+	if len(lb.IPAddresses) > 0 {
+		ipInfo := lb.IPAddresses[0]
+		if lb.Type != "" {
+			ipInfo += " (" + strings.ToLower(lb.Type) + ")"
+		}
+		parts = append(parts, ipInfo)
+	}
+
+	// Health summary
+	if len(lb.BackendHealth) > 0 {
+		total := len(lb.BackendHealth)
+		ok := 0
+		for _, s := range lb.BackendHealth {
+			if strings.ToUpper(s) == "OK" {
+				ok++
+			}
+		}
+		if ok == total {
+			parts = append(parts, fmt.Sprintf("Health OK (%d/%d)", ok, total))
+		} else {
+			parts = append(parts, fmt.Sprintf("UNHEALTHY (%d/%d)", total-ok, total))
+		}
+	}
+
+	// VCN name
+	if lb.VcnName != "" {
+		parts = append(parts, lb.VcnName)
+	}
+
+	return strings.Join(parts, " • ")
 }
