@@ -6,6 +6,9 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
+
+	"golang.org/x/term"
 )
 
 // PromptYesNo prompts the user with a yes or no question and returns true for 'yes' and false for 'no'.
@@ -26,6 +29,17 @@ func PromptYesNo(question string) bool {
 			fmt.Println("Please enter y or n.")
 		}
 	}
+}
+
+// PromptPassword prompts the user to enter a password. The input is masked.
+func PromptPassword(question string) (string, error) {
+	fmt.Printf("%s: ", question)
+	bytePassword, err := term.ReadPassword(int(syscall.Stdin))
+	fmt.Println() // Newline after entering password
+	if err != nil {
+		return "", err
+	}
+	return string(bytePassword), nil
 }
 
 // PromptPort prompts the user to enter a TCP port. If the user enters empty input, the defaultPort is returned.
