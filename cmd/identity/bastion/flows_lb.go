@@ -117,51 +117,66 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	}
 	targetIP := extractIPAddress(lb.IPAddresses[0])
 
-	// Determine default port - use 8443 to avoid sudo requirement by default
-	// User can still choose a privileged port like 443 if needed
-	defaultPort := 8443
+	// The LB target port (what the LB is listening to on) - typically 443
+	lbTargetPort := 443
 
-	// Prompt for port with privileged port warning
-	port, err := promptPortWithPrivilegedWarning("Enter port to forward (local:target)", defaultPort)
+	// The default local port is 8443 to avoid sudo requirement
+	// User can choose 443 if they want to match the LB port (requires sudo)
+	defaultLocalPort := 8443
+
+	// Prompt for local port
+	localPort, err := promptPortWithPrivilegedWarning("Enter local port to forward", defaultLocalPort)
 	if err != nil {
 		return fmt.Errorf("read port: %w", err)
 	}
 
 	// Check if the local port is already in use
-	if util.IsLocalTCPPortInUse(port) {
-		return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", port)
+	if util.IsLocalTCPPortInUse(localPort) {
+		return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", localPort)
 	}
 
-	// Create a port forwarding session
+	// For privileged ports, validate sudo access first
+	if localPort < 1024 {
+		logger.Logger.Info("Validating sudo access for privileged port...")
+		if err := bastionSvc.ValidateSudoAccess(); err != nil {
+			return fmt.Errorf("sudo validation failed: %w", err)
+		}
+		logger.Logger.Info("Sudo access validated successfully")
+	}
+
+	// Create a port forwarding session to the LB's target port
 	logger.Logger.Info("Creating port forwarding session",
 		"bastion_id", b.OCID,
 		"target_ip", targetIP,
-		"target_port", defaultPort)
-	sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, targetIP, defaultPort, pubKey)
+		"lb_target_port", lbTargetPort,
+		"local_port", localPort)
+	sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, targetIP, lbTargetPort, pubKey)
 	if err != nil {
 		return fmt.Errorf("ensure port forward: %w", err)
 	}
 
-	// Build SSH tunnel arguments
-	sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, targetIP, port, defaultPort)
+	// Build SSH tunnel arguments: localPort -> targetIP:lbTargetPort
+	sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, targetIP, localPort, lbTargetPort)
 	if err != nil {
 		return fmt.Errorf("build args: %w", err)
 	}
 
-	// For privileged ports (< 1024), run interactively with sudo so user can enter password
-	if port < 1024 {
-		logger.Logger.Info("Running SSH tunnel with sudo (privileged port requires interactive mode)")
-		logger.Logger.Info("The tunnel will run in the foreground - press Ctrl+C to stop")
-		logger.Logger.Info("SSH tunnel to Load Balancer starting",
-			"access", fmt.Sprintf("https://127.0.0.1:%d", port),
-			"lb_name", lb.Name)
+	logger.Logger.Info("Starting SSH tunnel",
+		"local_port", localPort,
+		"target", fmt.Sprintf("%s:%d", targetIP, lbTargetPort),
+		"lb_name", lb.Name)
 
-		// Run sudo ssh interactively - needs direct terminal access for password prompt
+	// For privileged ports (< 1024), run with sudo
+	if localPort < 1024 {
+		logger.Logger.Info("Running SSH tunnel with sudo (privileged port)")
+		logger.Logger.Info("The tunnel will run in the foreground - press Ctrl+C to stop")
+
+		// Run sudo ssh interactively
 		return bastionSvc.RunSudoSSH(ctx, sshTunnelArgs)
 	}
 
 	// For non-privileged ports, spawn detached in background
-	pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, port, targetIP)
+	pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, localPort, targetIP)
 	if err != nil {
 		return fmt.Errorf("spawn detached: %w", err)
 	}
@@ -170,7 +185,7 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	// Save tunnel state for tracking
 	tunnelInfo := bastionSvc.TunnelInfo{
 		PID:       pid,
-		LocalPort: port,
+		LocalPort: localPort,
 		TargetIP:  targetIP,
 		StartedAt: time.Now(),
 		LogFile:   logFile,
@@ -180,15 +195,15 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	}
 
 	logger.Logger.Info("SSH tunnel process started, waiting for connection to be ready...")
-	if err := bastionSvc.WaitForListen(port, 30*time.Second); err != nil {
-		logger.Logger.Info("Tunnel verification timed out, but the tunnel may still be establishing in the background", "port", port)
+	if err := bastionSvc.WaitForListen(localPort, 30*time.Second); err != nil {
+		logger.Logger.Info("Tunnel verification timed out, but the tunnel may still be establishing in the background", "port", localPort)
 		logger.Logger.Info("Check the tunnel status and logs if you experience connection issues")
 	} else {
 		logger.Logger.Info("Tunnel is ready and accepting connections")
 	}
 
 	logger.Logger.Info("SSH tunnel to Load Balancer running",
-		"access", fmt.Sprintf("https://127.0.0.1:%d", port),
+		"access", fmt.Sprintf("https://127.0.0.1:%d", localPort),
 		"lb_name", lb.Name,
 		"logs", logFile)
 	return nil
@@ -199,7 +214,7 @@ func promptPortWithPrivilegedWarning(question string, defaultPort int) (int, err
 	// First, warn if the default port is privileged
 	if defaultPort < 1024 {
 		logger.Logger.Info("Note: Ports below 1024 require sudo/root privileges")
-		logger.Logger.Info("You will be prompted for your password when the tunnel is created")
+		logger.Logger.Info(`You will be prompted for your password when the tunnel is created`)
 	}
 
 	port, err := util.PromptPort(question, defaultPort)
