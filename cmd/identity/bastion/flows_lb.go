@@ -191,7 +191,6 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	return nil
 }
 
-
 // extractIPAddress extracts just the IP address from a string that may contain
 // a suffix like " (private)" or " (public)" added by the mapping layer.
 func extractIPAddress(ipWithSuffix string) string {
