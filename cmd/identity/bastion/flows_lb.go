@@ -173,13 +173,15 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 		"lb_name", lb.Name)
 
 	var pid int
-	var logFile string
+	var (
+		logFile string
+	)
 
 	if localPort < 1024 {
-		// Run with sudo in background
+		// Run with sudo in the background
 		pid, logFile, err = bastionSvc.SpawnDetachedWithSudo(sshTunnelArgs, localPort, targetIP, sudoPassword)
 	} else {
-		// Run normally in background
+		// Run normally in the background
 		pid, logFile, err = bastionSvc.SpawnDetached(sshTunnelArgs, localPort, targetIP)
 	}
 
@@ -237,9 +239,8 @@ func promptPortWithPrivilegedWarning(question string, defaultPort int) (int, err
 }
 
 // extractIPAddress extracts just the IP address from a string that may contain
-// a suffix like " (private)" or " (public)" added by the mapping layer.
+// a suffix like "(private)" or "(public)" added by the mapping layer.
 func extractIPAddress(ipWithSuffix string) string {
-	// Handle formats like "217.142.42.8 (private)" or "155.248.24.108 (public)"
 	if idx := strings.Index(ipWithSuffix, " "); idx > 0 {
 		return ipWithSuffix[:idx]
 	}
