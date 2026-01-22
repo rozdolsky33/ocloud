@@ -493,16 +493,11 @@ func WaitForListen(localPort int, timeout time.Duration) error {
 	return fmt.Errorf("tunnel not up on %s after %s", addr, timeout)
 }
 
-// ValidateSudoAccess prompts for sudo password and validates it works.
-// This is called before creating the bastion session to ensure sudo works.
-func ValidateSudoAccess() error {
-	fmt.Print("Password: ")
-
-	// Run a simple sudo command to validate and cache credentials
-	cmd := exec.Command("sudo", "-v")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+// ValidateSudoPassword validates the sudo password by running `sudo -S -v`.
+func ValidateSudoPassword(password string) error {
+	// Run a simple sudo command to validate credentials
+	cmd := exec.Command("sudo", "-S", "-v")
+	cmd.Stdin = strings.NewReader(password + "\n")
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("sudo authentication failed: %w", err)
@@ -510,34 +505,8 @@ func ValidateSudoAccess() error {
 	return nil
 }
 
-// RunSudoSSH runs ssh with sudo interactively, allowing the user to enter their password.
-// This is used for privileged ports (< 1024) that require root access.
-func RunSudoSSH(ctx context.Context, sshArgs []string) error {
-	sudoPath, err := exec.LookPath("sudo")
-	if err != nil {
-		return fmt.Errorf("sudo not found in PATH: %w", err)
-	}
-
-	sshPath, err := exec.LookPath("ssh")
-	if err != nil {
-		return fmt.Errorf("ssh not found in PATH: %w", err)
-	}
-
-	// Build args: sudo ssh <sshArgs...>
-	args := append([]string{sshPath}, sshArgs...)
-
-	cmd := exec.CommandContext(ctx, sudoPath, args...)
-	// Connect directly to the terminal for password prompt and SSH output
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
-}
-
-// SpawnDetachedWithSudo starts ssh with sudo in the background.
-// It assumes ValidateSudoAccess() was called recently to cache credentials.
-func SpawnDetachedWithSudo(args []string, localPort int, targetIP string) (int, string, error) {
+// SpawnDetachedWithSudo starts ssh with sudo in the background using the provided password.
+func SpawnDetachedWithSudo(args []string, localPort int, targetIP string, sudoPassword string) (int, string, error) {
 	sudoPath, err := exec.LookPath("sudo")
 	if err != nil {
 		return 0, "", fmt.Errorf("sudo not found in PATH: %w", err)
@@ -581,15 +550,18 @@ func SpawnDetachedWithSudo(args []string, localPort int, targetIP string) (int, 
 	// Add -v to args
 	verboseArgs := append([]string{"-v"}, args...)
 
-	// Construct sudo command: sudo -n ssh -v ...
-	// -n: non-interactive (fails if password needed)
-	sudoArgs := append([]string{"-n", sshPath}, verboseArgs...)
+	// Construct sudo command: sudo -S -p '' ssh -v ...
+	// -S: read password from stdin
+	// -p '': no prompt
+	sudoArgs := append([]string{"-S", "-p", "", sshPath}, verboseArgs...)
 
 	cmd := exec.Command(sudoPath, sudoArgs...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true} // detach from our session/TTY
 	cmd.Stdout = f
 	cmd.Stderr = f
-	cmd.Stdin = nil
+
+	// Pass password via stdin
+	cmd.Stdin = strings.NewReader(sudoPassword + "\n")
 
 	if err := cmd.Start(); err != nil {
 		return 0, "", fmt.Errorf("start sudo ssh: %w", err)

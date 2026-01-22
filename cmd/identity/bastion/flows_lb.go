@@ -135,10 +135,16 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 		return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", localPort)
 	}
 
-	// For privileged ports, validate sudo access first
+	var sudoPassword string
+	// For privileged ports, prompt for sudo password and validate
 	if localPort < 1024 {
 		logger.Logger.Info("Validating sudo access for privileged port...")
-		if err := bastionSvc.ValidateSudoAccess(); err != nil {
+		var err error
+		sudoPassword, err = util.PromptPassword("Password")
+		if err != nil {
+			return fmt.Errorf("read password: %w", err)
+		}
+		if err := bastionSvc.ValidateSudoPassword(sudoPassword); err != nil {
 			return fmt.Errorf("sudo validation failed: %w", err)
 		}
 		logger.Logger.Info("Sudo access validated successfully")
@@ -171,7 +177,7 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 
 	if localPort < 1024 {
 		// Run with sudo in background
-		pid, logFile, err = bastionSvc.SpawnDetachedWithSudo(sshTunnelArgs, localPort, targetIP)
+		pid, logFile, err = bastionSvc.SpawnDetachedWithSudo(sshTunnelArgs, localPort, targetIP, sudoPassword)
 	} else {
 		// Run normally in background
 		pid, logFile, err = bastionSvc.SpawnDetached(sshTunnelArgs, localPort, targetIP)
