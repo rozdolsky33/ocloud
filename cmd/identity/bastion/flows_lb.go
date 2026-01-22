@@ -125,7 +125,7 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	defaultLocalPort := 8443
 
 	// Prompt for local port
-	localPort, err := util.PromptPort("Enter local port to forward", defaultLocalPort)
+	localPort, err := promptPortWithPrivilegedWarning("Enter local port to forward", defaultLocalPort)
 	if err != nil {
 		return fmt.Errorf("read port: %w", err)
 	}
@@ -133,6 +133,15 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 	// Check if the local port is already in use
 	if util.IsLocalTCPPortInUse(localPort) {
 		return fmt.Errorf("local port %d is already in use on 127.0.0.1; choose another port", localPort)
+	}
+
+	// For privileged ports, validate sudo access first
+	if localPort < 1024 {
+		logger.Logger.Info("Validating sudo access for privileged port...")
+		if err := bastionSvc.ValidateSudoAccess(); err != nil {
+			return fmt.Errorf("sudo validation failed: %w", err)
+		}
+		logger.Logger.Info("Sudo access validated successfully")
 	}
 
 	// Create a port forwarding session to the LB's target port
@@ -157,8 +166,17 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 		"target", fmt.Sprintf("%s:%d", targetIP, lbTargetPort),
 		"lb_name", lb.Name)
 
-	// Spawn detached in background
-	pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, localPort, targetIP)
+	var pid int
+	var logFile string
+
+	if localPort < 1024 {
+		// Run with sudo in background
+		pid, logFile, err = bastionSvc.SpawnDetachedWithSudo(sshTunnelArgs, localPort, targetIP)
+	} else {
+		// Run normally in background
+		pid, logFile, err = bastionSvc.SpawnDetached(sshTunnelArgs, localPort, targetIP)
+	}
+
 	if err != nil {
 		return fmt.Errorf("spawn detached: %w", err)
 	}
@@ -189,6 +207,27 @@ func connectLoadBalancer(ctx context.Context, appCtx *app.ApplicationContext, sv
 		"lb_name", lb.Name,
 		"logs", logFile)
 	return nil
+}
+
+// promptPortWithPrivilegedWarning prompts for a port and warns about sudo requirement for privileged ports.
+func promptPortWithPrivilegedWarning(question string, defaultPort int) (int, error) {
+	// First, warn if the default port is privileged
+	if defaultPort < 1024 {
+		logger.Logger.Info("Note: Ports below 1024 require sudo/root privileges")
+		logger.Logger.Info(`You will be prompted for your password when the tunnel is created`)
+	}
+
+	port, err := util.PromptPort(question, defaultPort)
+	if err != nil {
+		return 0, err
+	}
+
+	// Warn if the chosen port is privileged
+	if port < 1024 {
+		logger.Logger.Info("Port requires sudo/root privileges - you may be prompted for your password", "port", port)
+	}
+
+	return port, nil
 }
 
 // extractIPAddress extracts just the IP address from a string that may contain
