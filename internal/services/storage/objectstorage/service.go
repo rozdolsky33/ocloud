@@ -106,3 +106,33 @@ func (s *Service) FuzzySearch(ctx context.Context, searchPattern string) ([]Buck
 	}
 	return results, nil
 }
+
+// GetNamespace retrieves the object storage namespace for the compartment.
+func (s *Service) GetNamespace(ctx context.Context) (string, error) {
+	s.logger.V(logger.Debug).Info("getting object storage namespace")
+	return s.osRepo.GetNamespace(ctx, s.CompartmentID)
+}
+
+// ListObjects retrieves all objects in a bucket.
+func (s *Service) ListObjects(ctx context.Context, namespace, bucketName string) ([]Object, error) {
+	s.logger.V(logger.Debug).Info("listing objects in bucket", "bucket", bucketName)
+	return s.osRepo.ListObjects(ctx, namespace, bucketName)
+}
+
+// GetObjectDetails retrieves detailed metadata for an object.
+func (s *Service) GetObjectDetails(ctx context.Context, namespace, bucketName, objectName string) (*Object, error) {
+	s.logger.V(logger.Debug).Info("getting object details", "bucket", bucketName, "object", objectName)
+	return s.osRepo.GetObjectHead(ctx, namespace, bucketName, objectName)
+}
+
+// DownloadObject downloads an object to the specified destination path.
+func (s *Service) DownloadObject(ctx context.Context, namespace, bucketName, objectName, destPath string, progressFn func(storage.TransferProgress)) error {
+	s.logger.V(logger.Debug).Info("downloading object", "bucket", bucketName, "object", objectName, "destination", destPath)
+	return s.osRepo.DownloadObject(ctx, namespace, bucketName, objectName, destPath, progressFn)
+}
+
+// UploadObject uploads a file to the specified bucket.
+func (s *Service) UploadObject(ctx context.Context, namespace, bucketName, objectName, filePath string, progressFn func(storage.TransferProgress)) error {
+	s.logger.V(logger.Debug).Info("uploading object", "bucket", bucketName, "object", objectName, "file", filePath)
+	return s.osRepo.UploadObject(ctx, namespace, bucketName, objectName, filePath, progressFn)
+}
