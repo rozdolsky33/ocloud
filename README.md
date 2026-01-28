@@ -47,7 +47,11 @@ Whether you're exploring instances, working with databases, or need to quickly f
     - Automatic kubeconfig setup for OKE connections
 
 ### Storage
-- **Object Storage**: Browse and search buckets with interactive TUI
+- **Object Storage**: Comprehensive management with interactive TUI
+    - Browse and search buckets and objects
+    - Interactive **upload** with file browser and multipart support
+    - Interactive **download** with real-time progress tracking
+    - Human-readable file sizes and visual progress bars
 
 ### Core Capabilities
 - **Powerful Search**: Fuzzy, prefix, and substring matching using Bleve indexing
@@ -124,6 +128,12 @@ ocloud database autonomous search "test" --json
 # Interactive VCN list (TUI)
 ocloud network vcn list
 
+# Interactive bucket and object browsing
+ocloud storage object-storage list
+
+# Upload file to Object Storage (Interactive TUI)
+ocloud storage object-storage upload
+
 # Create bastion session with interactive TUI flow
 ocloud identity bastion create
 
@@ -145,7 +155,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: v0.1.9
+	      Version: v0.1.10
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -481,10 +491,12 @@ ocloud ident b create                        # Short alias
 
 ```bash
 # Object Storage
-ocloud storage object-storage get
+ocloud storage object-storage get      # List buckets
+ocloud storage object-storage list     # Interactive TUI (browse buckets & objects)
 ocloud storage object-storage search "prod" --json
-ocloud storage object-storage list  # Interactive TUI
-ocloud storage os s "prod" -j
+ocloud storage object-storage upload   # Interactive TUI upload
+ocloud storage object-storage download # Interactive TUI download
+ocloud storage os s "prod" -j          # Search alias
 ```
 
 ## Practical Examples
@@ -591,6 +603,7 @@ The script tests:
 - **Bastion Tunnels**: Background SSH tunnels persist after CLI exits. Check logs in `~/.oci/sessions/<profile>/logs/` if connection fails.
 - **OKE Access**: Port forwarding to the OKE API server automatically offers kubeconfig setup for seamless kubectl access.
 - **Database Connections**: Use bastion port forwarding for secure access to private Autonomous DB and HeatWave instances without exposing public endpoints.
+- **Object Storage**: The `list` command allows interactive browsing of objects within buckets. Use `upload` and `download` for easy file transfers with progress feedback.
 
 ## Error Handling
 
