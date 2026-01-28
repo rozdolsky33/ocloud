@@ -20,6 +20,39 @@ func NewBucketListModel(b []domain.Bucket) tui.Model {
 	})
 }
 
+// NewObjectListModel builds a TUI list for Objects in a bucket.
+func NewObjectListModel(objects []domain.Object, bucketName string) tui.Model {
+	title := fmt.Sprintf("Objects in %s", bucketName)
+	return tui.NewModel(title, objects, func(o domain.Object) tui.ResourceItemData {
+		return tui.ResourceItemData{
+			ID:          o.Name, // Use name as ID since objects don't have OCIDs
+			Title:       o.Name,
+			Description: describeObject(o),
+		}
+	})
+}
+
+// describeObject formats a single-line description for an object.
+func describeObject(o domain.Object) string {
+	size := util.HumanizeBytesIEC(o.Size)
+	tier := firstNonEmpty(o.StorageTier, "Standard")
+	modified := ""
+	if !o.LastModified.IsZero() {
+		modified = o.LastModified.Format("2006-01-02 15:04")
+	}
+	return join(" • ", size, tier, modified)
+}
+
+// NewActionPickerModel builds a radio-button style picker for action selection.
+func NewActionPickerModel(objectName string) tui.PickerModel {
+	options := []tui.PickerOption{
+		{ID: "view", Label: "View object details", Description: "Display object metadata and properties"},
+		{ID: "download", Label: "Download", Description: "Download object to current directory"},
+	}
+	title := fmt.Sprintf("Action for %s", objectName)
+	return tui.NewPickerModel(title, options)
+}
+
 func describeBucket(b domain.Bucket) string {
 	size := ""
 	if b.ApproximateSize > 0 {
