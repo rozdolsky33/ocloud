@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rozdolsky33/ocloud/internal/app"
+	storage "github.com/rozdolsky33/ocloud/internal/domain/storage/objectstorage"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,6 +43,26 @@ func (f *fakeRepo) ListBuckets(ctx context.Context, compartmentID string) ([]Buc
 	out := make([]Bucket, len(f.list))
 	copy(out, f.list)
 	return out, nil
+}
+
+func (f *fakeRepo) GetNamespace(ctx context.Context, compartmentID string) (string, error) {
+	return "test-namespace", nil
+}
+
+func (f *fakeRepo) ListObjects(ctx context.Context, namespace, bucketName string) ([]Object, error) {
+	return nil, nil
+}
+
+func (f *fakeRepo) GetObjectHead(ctx context.Context, namespace, bucketName, objectName string) (*Object, error) {
+	return nil, assert.AnError
+}
+
+func (f *fakeRepo) DownloadObject(ctx context.Context, namespace, bucketName, objectName, destPath string, progressFn func(storage.TransferProgress)) error {
+	return nil
+}
+
+func (f *fakeRepo) UploadObject(ctx context.Context, namespace, bucketName, objectName, filePath string, progressFn func(storage.TransferProgress)) error {
+	return nil
 }
 
 func makeBucket(i int) Bucket {
