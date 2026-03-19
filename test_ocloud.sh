@@ -208,6 +208,36 @@ run_command ./bin/ocloud identity policy search "monitor" --json -T
 run_command ./bin/ocloud identity policy search "monitor" -j -T
 run_command ./bin/ocloud ident pol s "monitor" --tenancy-scope
 
+# Test identity dynamic-group command
+print_header "Testing identity dynamic-group command"
+run_command ./bin/ocloud identity dynamic-group --help
+run_command ./bin/ocloud identity dg --help
+run_command ./bin/ocloud ident dg --help
+
+# Test identity dynamic-group get command
+print_header "Testing identity dynamic-group get command"
+run_command ./bin/ocloud identity dynamic-group get
+run_command ./bin/ocloud identity dynamic-group get --limit 10 --page 1 --json
+run_command ./bin/ocloud identity dynamic-group get -m 10 -p 1 -j
+
+# Test identity dynamic-group search command
+print_header "Testing identity dynamic-group search command"
+run_command ./bin/ocloud identity dynamic-group search "dg"
+run_command ./bin/ocloud identity dynamic-group search "dg" --json
+run_command ./bin/ocloud identity dynamic-group search "dg" -j
+run_command ./bin/ocloud ident dg s "dg"
+
+# Test identity dynamic-group command in tenancy scope
+print_header "Testing identity dynamic-group command in tenancy scope"
+run_command ./bin/ocloud identity dynamic-group get -T
+run_command ./bin/ocloud identity dynamic-group get --limit 10 --page 1 --json --scope tenancy
+run_command ./bin/ocloud identity dynamic-group get -m 10 -p 1 -j --tenancy-scope
+
+run_command ./bin/ocloud identity dynamic-group search "dg" --scope tenancy
+run_command ./bin/ocloud identity dynamic-group search "dg" --json -T
+run_command ./bin/ocloud identity dynamic-group search "dg" -j -T
+run_command ./bin/ocloud ident dg s "dg" --tenancy-scope
+
 # Test network command
 print_header "Testing network command"
 run_command ./bin/ocloud network --help
