@@ -9,6 +9,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/bastion"
 	"github.com/oracle/oci-go-sdk/v65/certificatesmanagement"
 	"github.com/oracle/oci-go-sdk/v65/identity"
+	"github.com/oracle/oci-go-sdk/v65/identitydomains"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 
@@ -123,5 +124,15 @@ func NewObjectStorageClient(provider common.ConfigurationProvider) (objectstorag
 	if err != nil {
 		return client, fmt.Errorf("creating object storage client: %w", err)
 	}
+	return client, nil
+}
+
+// NewIdentityDomainsClient creates and returns a new IdentityDomainsClient.
+func NewIdentityDomainsClient(provider common.ConfigurationProvider, domainURL string) (identitydomains.IdentityDomainsClient, error) {
+	client, err := identitydomains.NewIdentityDomainsClientWithConfigurationProvider(provider, domainURL)
+	if err != nil {
+		return client, fmt.Errorf("creating identity domains client: %w", err)
+	}
+	applySharedTransport(&client.BaseClient)
 	return client, nil
 }
