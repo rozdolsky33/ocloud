@@ -39,6 +39,7 @@ const (
 type SessionType string
 
 const (
+	TypeSCP            SessionType = "SCP"
 	TypeManagedSSH     SessionType = "Managed SSH"
 	TypePortForwarding SessionType = "Port-Forwarding"
 )
@@ -176,10 +177,24 @@ type SessionTypeModel struct {
 	BastionID string
 }
 
-// NewSessionTypeModel creates a SessionTypeModel instance with the provided list of bastions and initializes the cursor to 0.
-func NewSessionTypeModel(bastionID string) SessionTypeModel {
+// SessionTypesForTarget returns the session types available for a given target type.
+func SessionTypesForTarget(tType TargetType) []SessionType {
+	switch tType {
+	case TargetInstance:
+		return []SessionType{TypeSCP, TypeManagedSSH, TypePortForwarding}
+	case TargetOKE:
+		return []SessionType{TypeManagedSSH, TypePortForwarding}
+	case TargetDatabase, TargetLoadBalancer:
+		return []SessionType{TypePortForwarding}
+	default:
+		return []SessionType{TypeManagedSSH, TypePortForwarding}
+	}
+}
+
+// NewSessionTypeModel creates a SessionTypeModel instance with session types appropriate for the target.
+func NewSessionTypeModel(bastionID string, tType TargetType) SessionTypeModel {
 	return SessionTypeModel{
-		Types:     []SessionType{TypeManagedSSH, TypePortForwarding},
+		Types:     SessionTypesForTarget(tType),
 		Cursor:    0,
 		BastionID: bastionID,
 	}

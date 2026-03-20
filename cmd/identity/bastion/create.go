@@ -57,14 +57,14 @@ func runCreateCommand(cmd *cobra.Command, appCtx *app.ApplicationContext) error 
 	if err != nil {
 		return err
 	}
-	sType, err := SelectSessionType(ctx, b.OCID)
+	if tType == "" {
+		return ErrAborted
+	}
+	sType, err := SelectSessionType(ctx, b.OCID, tType)
 	if err != nil {
 		return err
 	}
 	if sType == "" {
-		return ErrAborted
-	}
-	if tType == "" {
 		return ErrAborted
 	}
 
