@@ -2,6 +2,7 @@ package network
 
 import (
 	lbcmd "github.com/rozdolsky33/ocloud/cmd/network/loadbalancer"
+	nlbcmd "github.com/rozdolsky33/ocloud/cmd/network/networklb"
 	"github.com/rozdolsky33/ocloud/cmd/network/subnet"
 	vcncmd "github.com/rozdolsky33/ocloud/cmd/network/vcn"
 	"github.com/rozdolsky33/ocloud/internal/app"
@@ -22,6 +23,7 @@ func NewNetworkCmd(appCtx *app.ApplicationContext) *cobra.Command {
 	cmd.AddCommand(subnet.NewSubnetCmd(appCtx))
 	cmd.AddCommand(vcncmd.NewVcnCmd(appCtx))
 	cmd.AddCommand(lbcmd.NewLoadBalancerCmd(appCtx))
+	cmd.AddCommand(nlbcmd.NewNetworkLoadBalancerCmd(appCtx))
 
 	return cmd
 }
