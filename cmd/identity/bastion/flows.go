@@ -73,9 +73,14 @@ func SelectTargetType(ctx context.Context, bastionID string) (TargetType, error)
 	return out.Choice, nil
 }
 
-// SelectSessionType chooses a session type for the selected bastion.
-func SelectSessionType(ctx context.Context, bastionID string) (SessionType, error) {
-	m := NewSessionTypeModel(bastionID)
+// SelectSessionType chooses a session type for the selected bastion and target type.
+// If only one session type is valid for the target, it is auto-selected.
+func SelectSessionType(ctx context.Context, bastionID string, tType TargetType) (SessionType, error) {
+	m := NewSessionTypeModel(bastionID, tType)
+	// Auto-select if only one option
+	if len(m.Types) == 1 {
+		return m.Types[0], nil
+	}
 	p := tea.NewProgram(m, tea.WithContext(ctx))
 	res, err := p.Run()
 	if err != nil {
@@ -91,6 +96,11 @@ func SelectSessionType(ctx context.Context, bastionID string) (SessionType, erro
 // ConnectTarget switches to the correct flow for the chosen target.
 func ConnectTarget(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType, tType TargetType) error {
+
+	// SCP has its own dedicated flow
+	if sType == TypeSCP {
+		return connectSCP(ctx, appCtx, svc, b)
+	}
 
 	switch tType {
 	case TargetInstance:
