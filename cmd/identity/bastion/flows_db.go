@@ -9,8 +9,10 @@ import (
 	"github.com/rozdolsky33/ocloud/internal/app"
 	"github.com/rozdolsky33/ocloud/internal/logger"
 	ociadb "github.com/rozdolsky33/ocloud/internal/oci/database/autonomousdb"
+	ocicache "github.com/rozdolsky33/ocloud/internal/oci/database/cacheclusterdb"
 	ocihwdb "github.com/rozdolsky33/ocloud/internal/oci/database/heatwavedb"
 	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	cacheSvc "github.com/rozdolsky33/ocloud/internal/services/database/cacheclusterdb"
 	hwdbSvc "github.com/rozdolsky33/ocloud/internal/services/database/heatwavedb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	"github.com/rozdolsky33/ocloud/internal/services/util"
@@ -55,6 +57,8 @@ func connectDatabase(ctx context.Context, appCtx *app.ApplicationContext, svc *b
 		return connectHeatWaveDatabase(ctx, appCtx, svc, b)
 	case DatabaseAutonomous:
 		return connectAutonomousDatabase(ctx, appCtx, svc, b)
+	case DatabaseCache:
+		return connectCacheCluster(ctx, appCtx, svc, b)
 	default:
 		return fmt.Errorf("unknown database type: %s", dbType)
 	}
@@ -272,5 +276,112 @@ func connectAutonomousDatabase(ctx context.Context, appCtx *app.ApplicationConte
 	}
 
 	logger.Logger.Info("SSH tunnel running in background", "logs", logFile, "local_port", port, "database", db.Name)
+	return nil
+}
+
+// connectCacheCluster handles the OCI Cache (Redis) cluster connection flow.
+func connectCacheCluster(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
+	b bastionSvc.Bastion) error {
+
+	adapter, err := ocicache.NewAdapter(appCtx.Provider)
+	if err != nil {
+		return fmt.Errorf("error creating OCI Cache adapter: %w", err)
+	}
+	cacheService := cacheSvc.NewService(adapter, appCtx)
+
+	clusters, _, _, err := cacheService.FetchPaginatedCacheClusters(ctx, 1000, 0)
+	if err != nil {
+		return fmt.Errorf("list OCI Cache clusters: %w", err)
+	}
+	if len(clusters) == 0 {
+		logger.Logger.Info("No OCI Cache clusters found.")
+		return nil
+	}
+
+	cm := NewCacheClusterListModelFancy(clusters)
+	cp := tea.NewProgram(cm, tea.WithContext(ctx))
+	cres, err := cp.Run()
+	if err != nil {
+		return fmt.Errorf("OCI Cache cluster selection TUI: %w", err)
+	}
+	chosen, ok := cres.(ResourceListModel)
+	if !ok || chosen.Choice() == "" {
+		return ErrAborted
+	}
+
+	var cluster cacheSvc.CacheCluster
+	for _, c := range clusters {
+		if c.ID == chosen.Choice() {
+			cluster = c
+			break
+		}
+	}
+
+	_, reason := svc.CanReach(ctx, b, cluster.VcnID, cluster.SubnetId)
+	logger.Logger.Info("Reachability to OCI Cache cluster cannot be automatically verified", "reason", reason)
+	logger.Logger.Info("Selected OCI Cache cluster", "name", cluster.DisplayName, "id", cluster.ID)
+
+	// Get SSH key pair
+	pubKey, privKey, err := SelectSSHKeyPair(ctx)
+	if err != nil {
+		return err
+	}
+
+	region, regErr := appCtx.Provider.Region()
+	if regErr != nil {
+		return fmt.Errorf("get region: %w", regErr)
+	}
+
+	// Default port for Redis
+	defaultPort := 6379
+	targetIP := cluster.PrimaryEndpointIpAddress
+	if targetIP == "" {
+		return fmt.Errorf("no primary endpoint IP available for OCI Cache cluster %s", cluster.DisplayName)
+	}
+
+	port, err := util.PromptPort("Enter port to forward (local:target)", defaultPort)
+	if err != nil {
+		return fmt.Errorf("read port: %w", err)
+	}
+
+	// Create a port forwarding session
+	sessID, err := svc.EnsurePortForwardSession(ctx, b.OCID, targetIP, port, pubKey)
+	if err != nil {
+		return fmt.Errorf("ensure port forward: %w", err)
+	}
+
+	// Build and spawn SSH tunnel
+	sshTunnelArgs, err := bastionSvc.BuildPortForwardArgs(privKey, sessID, region, targetIP, port, port)
+	if err != nil {
+		return fmt.Errorf("build args: %w", err)
+	}
+
+	pid, logFile, err := bastionSvc.SpawnDetached(sshTunnelArgs, port, targetIP)
+	if err != nil {
+		return fmt.Errorf("spawn detached: %w", err)
+	}
+	logger.Logger.V(logger.Debug).Info("spawned tunnel", "pid", pid)
+
+	// Save tunnel state for tracking
+	tunnelInfo := bastionSvc.TunnelInfo{
+		PID:       pid,
+		LocalPort: port,
+		TargetIP:  targetIP,
+		StartedAt: time.Now(),
+		LogFile:   logFile,
+	}
+	if err := bastionSvc.SaveTunnelState(tunnelInfo); err != nil {
+		logger.Logger.Error(err, "failed to save tunnel state")
+	}
+
+	logger.Logger.Info("SSH tunnel process started, waiting for connection to be ready...")
+	if err := bastionSvc.WaitForListen(port, 30*time.Second); err != nil {
+		logger.Logger.Info("Tunnel verification timed out, but the tunnel may still be establishing in the background", "port", port)
+		logger.Logger.Info("Check the tunnel status and logs if you experience connection issues")
+	} else {
+		logger.Logger.Info("Tunnel is ready and accepting connections")
+	}
+
+	logger.Logger.Info("SSH tunnel running in background", "logs", logFile, "local_port", port, "cache_cluster", cluster.DisplayName)
 	return nil
 }

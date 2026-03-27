@@ -12,6 +12,7 @@ import (
 	instSvc "github.com/rozdolsky33/ocloud/internal/services/compute/instance"
 	okeSvc "github.com/rozdolsky33/ocloud/internal/services/compute/oke"
 	adbSvc "github.com/rozdolsky33/ocloud/internal/services/database/autonomousdb"
+	cacheSvc "github.com/rozdolsky33/ocloud/internal/services/database/cacheclusterdb"
 	hwdbSvc "github.com/rozdolsky33/ocloud/internal/services/database/heatwavedb"
 	bastionSvc "github.com/rozdolsky33/ocloud/internal/services/identity/bastion"
 	lbSvc "github.com/rozdolsky33/ocloud/internal/services/network/loadbalancer"
@@ -49,6 +50,7 @@ type DatabaseType string
 const (
 	DatabaseHeatWave   DatabaseType = "MySQL HeatWave"
 	DatabaseAutonomous DatabaseType = "Autonomous Database"
+	DatabaseCache      DatabaseType = "OCI Cache (Redis)"
 )
 
 //-----------------------------------Bastion/Session Creation Selection-------------------------------------------------
@@ -239,7 +241,7 @@ type DatabaseTypeModel struct {
 // NewDatabaseTypeModel creates a DatabaseTypeModel instance with HeatWave and Autonomous Database options.
 func NewDatabaseTypeModel() DatabaseTypeModel {
 	return DatabaseTypeModel{
-		Types:  []DatabaseType{DatabaseHeatWave, DatabaseAutonomous},
+		Types:  []DatabaseType{DatabaseHeatWave, DatabaseAutonomous, DatabaseCache},
 		Cursor: 0,
 	}
 }
@@ -480,6 +482,16 @@ func NewLoadBalancerListModelFancy(lbs []lbSvc.LoadBalancer) ResourceListModel {
 		items = append(items, resourceItem{id: lb.OCID, title: lb.Name, description: desc})
 	}
 	return newResourceList("Load Balancers", items)
+}
+
+// NewCacheClusterListModelFancy creates a ResourceListModel populated with a list of OCI Cache clusters for TUI display.
+func NewCacheClusterListModelFancy(clusters []cacheSvc.CacheCluster) ResourceListModel {
+	items := make([]list.Item, 0, len(clusters))
+	for _, c := range clusters {
+		desc := describeCacheCluster(c)
+		items = append(items, resourceItem{id: c.ID, title: c.DisplayName, description: desc})
+	}
+	return newResourceList("OCI Cache Clusters", items)
 }
 
 //---------------------------------------SSH Keys----------------------------------------------------------------------
@@ -746,6 +758,29 @@ func filterNonEmpty(vals ...string) []string {
 		}
 	}
 	return out
+}
+
+// describeCacheCluster builds a rich description string for an OCI Cache cluster showing lifecycle state and key attributes.
+func describeCacheCluster(c cacheSvc.CacheCluster) string {
+	var parts []string
+
+	if c.LifecycleState != "" {
+		parts = append(parts, c.LifecycleState)
+	}
+	if c.SoftwareVersion != "" {
+		parts = append(parts, c.SoftwareVersion)
+	}
+	if c.ClusterMode != "" {
+		parts = append(parts, c.ClusterMode)
+	}
+	if c.NodeCount > 0 {
+		parts = append(parts, fmt.Sprintf("%d nodes", c.NodeCount))
+	}
+	if c.PrimaryEndpointIpAddress != "" {
+		parts = append(parts, c.PrimaryEndpointIpAddress)
+	}
+
+	return strings.Join(parts, " • ")
 }
 
 // describeLoadBalancer builds a rich description string for a load balancer.

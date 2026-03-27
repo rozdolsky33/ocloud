@@ -33,6 +33,7 @@ Whether you're exploring instances, working with databases, or need to quickly f
 
 ### Identity & Access
 - **Compartments**: Navigate compartment hierarchy with tenancy-level scope support
+- **Dynamic Groups**: Explore IAM Dynamic Groups and Identity Domain-based Dynamic Resource Groups
 - **Policies**: Explore IAM policies across compartments
 - **Bastion**: Comprehensive bastion and session management
     - List and explore existing bastions
@@ -128,6 +129,9 @@ ocloud database autonomous search "test" --json
 # Interactive VCN list (TUI)
 ocloud network vcn list
 
+# Interactive Dynamic Groups browser (Identity Domains support)
+ocloud identity dynamic-group list -T
+
 # Interactive bucket and object browsing
 ocloud storage object-storage list
 
@@ -155,7 +159,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: v0.1.10
+	      Version: v0.1.11
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -476,6 +480,12 @@ ocloud identity compartment list             # Interactive TUI
 ocloud identity compartment get -T           # Tenancy scope
 ocloud identity compartment search "sandbox" --json
 
+# Dynamic Groups
+ocloud identity dynamic-group get
+ocloud identity dynamic-group list -T        # Interactive TUI (Tenancy scope)
+ocloud identity dynamic-group search "dg" -T
+# Alternative alias: dg
+
 # Policies
 ocloud identity policy get
 ocloud identity policy list                  # Interactive TUI
@@ -588,7 +598,7 @@ The script tests:
 - Root commands and global flags
 - Configuration commands (info, map-file, session)
 - Compute commands (instance, image, oke)
-- Identity commands (compartment, policy)
+- Identity commands (compartment, dynamic-group, policy)
 - Network commands (subnet, vcn, load-balancer)
 - Storage commands (object-storage)
 - Database commands (autonomous, heatwave, cache-cluster)
