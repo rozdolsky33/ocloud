@@ -29,7 +29,8 @@ Whether you're exploring instances, working with databases, or need to quickly f
 ### Networking
 - **VCNs**: Virtual Cloud Networks with gateways, subnets, NSGs, route tables, and security lists
 - **Subnets**: Network subnet management
-- **Load Balancers**: Explore and search load balancer configurations with health summaries
+- **Load Balancers**: Explore and search load balancer configurations (L7) with health summaries
+- **Network Load Balancers**: Explore and search Network Load Balancer (L4) configurations
 
 ### Identity & Access
 - **Compartments**: Navigate compartment hierarchy with tenancy-level scope support
@@ -39,7 +40,7 @@ Whether you're exploring instances, working with databases, or need to quickly f
     - List and explore existing bastions
     - Create interactive bastion sessions with TUI-guided flows
     - Connect to Compute Instances (Managed SSH & Port Forwarding)
-    - Connect to Databases (Autonomous DB & HeatWave via Port Forwarding)
+    - Connect to Databases (Autonomous DB, HeatWave, and OCI Cache via Port Forwarding)
     - Connect to OKE Clusters (Managed SSH to nodes & Port Forwarding to API server)
     - Connect to Load Balancers (Port Forwarding with TUI selection and health summaries)
     - Enhanced privileged port handling with sudo password validation
@@ -48,11 +49,11 @@ Whether you're exploring instances, working with databases, or need to quickly f
     - Automatic kubeconfig setup for OKE connections
 
 ### Storage
-- **Object Storage**: Comprehensive management with interactive TUI
-    - Browse and search buckets and objects
-    - Interactive **upload** with file browser and multipart support
-    - Interactive **download** with real-time progress tracking
-    - Human-readable file sizes and visual progress bars
+- **Object Storage**: Comprehensive interactive TUI for bucket exploration and object management
+    - Browse and search buckets with tenancy-level scope support
+    - **TUI-driven Uploads**: Interactive file picker with automatic multipart upload for large files (>10MB)
+    - **TUI-driven Downloads**: Interactive bucket and object selection with local directory browser
+    - **Real-time Progress**: Visual progress bars for both upload and download operations
 
 ### Core Capabilities
 - **Powerful Search**: Fuzzy, prefix, and substring matching using Bleve indexing
@@ -132,17 +133,21 @@ ocloud network vcn list
 # Interactive Dynamic Groups browser (Identity Domains support)
 ocloud identity dynamic-group list -T
 
-# Interactive bucket and object browsing
-ocloud storage object-storage list
-
-# Upload file to Object Storage (Interactive TUI)
+# Interactive object upload and download
 ocloud storage object-storage upload
+ocloud storage object-storage download
 
 # Create bastion session with interactive TUI flow
 ocloud identity bastion create
 
 # List private Load Balancers and health status
 ocloud network load-balancer list
+
+# List Network Load Balancers (NLB)
+ocloud network network-load-balancer list
+
+# List Dynamic Groups
+ocloud identity dynamic-group list
 ```
 
 ## Configuration
@@ -159,7 +164,7 @@ Example output (values will vary by version, time, and your environment):
 ╚██████╔╝╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝
  ╚═════╝  ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝
 
-	      Version: v0.1.11
+          Version: v0.1.12
 
 Configuration Details: Valid until <timestamp>
   OCI_CLI_PROFILE: DEFAULT
@@ -176,24 +181,26 @@ Usage:
   ocloud [command]
 
 Available Commands:
+  completion  Generate the autocompletion script for the specified shell
   compute     Explore OCI compute services
-  config      Configure ocloud CLI and authentication
+  config      Manage ocloud CLI configurations file and authentication
   database    Explore OCI Database services
   help        Help about any command
   identity    Explore OCI identity services
-  network     Explore OCI networking services
+  network     Explore OCI network services
+  storage     Explore OCI Storage services
   version     Print the version information
 
 Flags:
       --color                 Enable colored log messages.
-  -c, --compartment string    OCI compartment name
+  -c, --compartment string    OCI compartment name or OCID
   -d, --debug                 Enable debug logging
-  -h, --help                  help for ocloud (shorthand: -h)
+  -h, --help                  Show help
   -j, --json                  Output information in JSON format
-      --log-level string      Set the log verbosity debug, (default "info")
+      --log-level string      Set the log verbosity (e.g., info, debug) (default "info")
   -t, --tenancy-id string     OCI tenancy OCID
       --tenancy-name string   Tenancy name
-  -v, --version               Print the version number of ocloud CLI
+  -v, --version               Print the ocloud CLI version
 ```
 
 OCloud can be configured in multiple ways, with the following precedence (highest to lowest):
@@ -365,6 +372,13 @@ ocloud identity bastion create
 # Tunnel runs in background, connect to localhost:<port>
 ```
 
+**OCI Cache (Redis)**: Secure port forwarding to OCI Cache clusters
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Database → OCI Cache (Redis) → Pick Cache Cluster → Enter Port (default: 6379)
+# Tunnel runs in background, connect to localhost:<port>
+```
+
 #### OKE Cluster Connections
 
 **Managed SSH to Node**: Direct SSH access to OKE worker nodes
@@ -460,11 +474,18 @@ ocloud network vcn get --all
 ocloud network vcn list  # Interactive TUI
 ocloud network vcn search "prod" -A -j
 
-# Load Balancers
+# Load Balancers (L7)
 ocloud network load-balancer get
 ocloud network load-balancer list  # Interactive TUI
 ocloud network load-balancer search "prod" --all
 ocloud net lb s "prod" -A -j
+
+# Network Load Balancers (L4)
+ocloud network network-load-balancer get
+ocloud network network-load-balancer list  # Interactive TUI
+ocloud network network-load-balancer search "prod" --all
+ocloud net nlb s "prod" -A -j
+# Alternative aliases: networkloadbalancer, nlb
 
 # Subnets
 ocloud network subnet list  # Interactive TUI
@@ -482,9 +503,9 @@ ocloud identity compartment search "sandbox" --json
 
 # Dynamic Groups
 ocloud identity dynamic-group get
-ocloud identity dynamic-group list -T        # Interactive TUI (Tenancy scope)
-ocloud identity dynamic-group search "dg" -T
-# Alternative alias: dg
+ocloud identity dynamic-group list           # Interactive TUI
+ocloud identity dynamic-group search "prod" --json
+ocloud ident dg s "prod" -j
 
 # Policies
 ocloud identity policy get
@@ -570,6 +591,26 @@ ocloud identity bastion create
 mysql -h 127.0.0.1 -P 3306 -u admin -p
 ```
 
+### Interactive Object Storage Management
+
+Effortlessly manage your files in OCI Object Storage with TUI-guided flows:
+
+#### Uploading Files
+```bash
+ocloud storage object-storage upload
+# 1. Select destination bucket from list
+# 2. Browse local filesystem to pick a file
+# 3. Monitor upload progress (multipart used for files >10MiB)
+```
+
+#### Downloading Objects
+```bash
+ocloud storage object-storage download
+# 1. Select source bucket
+# 2. Pick object(s) from the bucket list
+# 3. Choose local destination and monitor download progress
+```
+
 ## Development
 
 ### Build Commands
@@ -612,8 +653,7 @@ The script tests:
 - **Colored Output**: Use `--color` for better readability in terminals.
 - **Bastion Tunnels**: Background SSH tunnels persist after CLI exits. Check logs in `~/.oci/sessions/<profile>/logs/` if connection fails.
 - **OKE Access**: Port forwarding to the OKE API server automatically offers kubeconfig setup for seamless kubectl access.
-- **Database Connections**: Use bastion port forwarding for secure access to private Autonomous DB and HeatWave instances without exposing public endpoints.
-- **Object Storage**: The `list` command allows interactive browsing of objects within buckets. Use `upload` and `download` for easy file transfers with progress feedback.
+- **Database Connections**: Use bastion port forwarding for secure access to private Autonomous DB, HeatWave, and OCI Cache instances without exposing public endpoints.
 
 ## Error Handling
 

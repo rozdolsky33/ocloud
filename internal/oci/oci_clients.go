@@ -11,6 +11,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/oracle/oci-go-sdk/v65/identitydomains"
 	"github.com/oracle/oci-go-sdk/v65/loadbalancer"
+	"github.com/oracle/oci-go-sdk/v65/networkloadbalancer"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -105,6 +106,15 @@ func NewLoadBalancerClient(provider common.ConfigurationProvider) (loadbalancer.
 	client, err := loadbalancer.NewLoadBalancerClientWithConfigurationProvider(provider)
 	if err != nil {
 		return client, fmt.Errorf("creating load balancer client: %w", err)
+	}
+	return client, nil
+}
+
+// NewNetworkLoadBalancerClient creates and returns a new NetworkLoadBalancerClient using the provided configuration provider.
+func NewNetworkLoadBalancerClient(provider common.ConfigurationProvider) (networkloadbalancer.NetworkLoadBalancerClient, error) {
+	client, err := networkloadbalancer.NewNetworkLoadBalancerClientWithConfigurationProvider(provider)
+	if err != nil {
+		return client, fmt.Errorf("creating network load balancer client: %w", err)
 	}
 	return client, nil
 }
