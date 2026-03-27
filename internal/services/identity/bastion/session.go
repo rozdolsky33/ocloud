@@ -367,17 +367,41 @@ func (s *Service) EnsureManagedSSHSession(ctx context.Context, bastionID, target
 	return sessionID, nil
 }
 
+// bastionHostKeyOpts are SSH options to handle OCI Bastion's ephemeral host keys.
+// Each bastion session presents a different host key on the same hostname, so we
+// must disable strict checking and avoid polluting known_hosts.
+const bastionHostKeyOpts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+// bastionRealm returns the realm domain suffix for the given session OCID.
+func bastionRealm(sessionID string) string {
+	if strings.Contains(sessionID, ".oc2.") || strings.Contains(sessionID, ".oc3.") {
+		return "oraclegovcloud"
+	}
+	return "oraclecloud"
+}
+
+// bastionHost returns the full bastion hostname for a session.
+func bastionHost(sessionID, region string) string {
+	return fmt.Sprintf("host.bastion.%s.oci.%s.com", region, bastionRealm(sessionID))
+}
+
+// BuildSCPCommand constructs an SCP command that tunnels through the bastion Managed SSH session.
+// It uses the same ProxyCommand technique as BuildManagedSSHCommand.
+func BuildSCPCommand(privateKeyPath, sessionID, region, targetIP, targetUser, localFile, remotePath string) string {
+	host := bastionHost(sessionID, region)
+	proxy := fmt.Sprintf("ssh -i %s %s -W %%h:%%p -p 22 %s@%s", privateKeyPath, bastionHostKeyOpts, sessionID, host)
+	return fmt.Sprintf("scp -i %s %s -o ProxyCommand=\"%s\" -P 22 %s %s@%s:%s",
+		privateKeyPath, bastionHostKeyOpts, proxy, localFile, targetUser, targetIP, remotePath)
+}
+
 // BuildManagedSSHCommand constructs the SSH command that uses ProxyCommand with the bastion Managed SSH session.
 // It opens only a direct-tcpip channel on the bastion (accepted), while authenticating to bastion with the session OCID.
 // The outer SSH connects to the target instance as targetUser@targetIP.
 func BuildManagedSSHCommand(privateKeyPath, sessionID, region, targetIP, targetUser string) string {
-	realm := "oraclecloud"
-	parts := strings.Split(sessionID, ".")
-	if len(parts) > 2 && strings.Contains(parts[2], "2") {
-		realm = "oraclegovcloud"
-	}
-	proxy := fmt.Sprintf("ssh -i %s -W %%h:%%p -p 22 %s@host.bastion.%s.oci.%s.com", privateKeyPath, sessionID, region, realm)
-	return fmt.Sprintf("ssh -i %s -o ProxyCommand=\"%s\" -p 22 %s@%s", privateKeyPath, proxy, targetUser, targetIP)
+	host := bastionHost(sessionID, region)
+	proxy := fmt.Sprintf("ssh -i %s %s -W %%h:%%p -p 22 %s@%s", privateKeyPath, bastionHostKeyOpts, sessionID, host)
+	return fmt.Sprintf("ssh -i %s %s -o ProxyCommand=\"%s\" -p 22 %s@%s",
+		privateKeyPath, bastionHostKeyOpts, proxy, targetUser, targetIP)
 }
 
 // BuildPortForwardArgs constructs SSH command arguments for establishing a secure port-forwarding tunnel.
@@ -388,18 +412,13 @@ func BuildPortForwardArgs(privateKeyPath, sessionID, region, targetIP string, lo
 		return nil, fmt.Errorf("expand key path: %w", err)
 	}
 
-	// Decide realm domain based on OCID (oc2/oc3 => gov)
-	realmDomain := "oraclecloud.com"
-	if strings.Contains(sessionID, ".oc2.") || strings.Contains(sessionID, ".oc3.") {
-		realmDomain = "oraclegovcloud.com"
-	}
-
-	bastionUser := fmt.Sprintf("%s@host.bastion.%s.oci.%s", sessionID, region, realmDomain)
+	host := bastionHost(sessionID, region)
+	bastionUser := fmt.Sprintf("%s@%s", sessionID, host)
 
 	args := []string{
 		"-i", key,
-		"-o", "StrictHostKeyChecking=accept-new",
-		// keepalives help the tunnel auto-detect dead links
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "ServerAliveInterval=30",
 		"-o", "ServerAliveCountMax=3",
 		"-N",
