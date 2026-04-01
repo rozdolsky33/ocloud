@@ -20,11 +20,7 @@ func ListDynamicGroups(appCtx *app.ApplicationContext, tenancyOCID string, useJS
 		return fmt.Errorf("listing dynamic groups: %w", err)
 	}
 
-	if useJSON {
-		return PrintDynamicGroupsTable(dynamicGroups, appCtx, nil, true)
-	}
-
-	// TUI
+	// TUI — always show interactive picker, then output selected group
 	model := dynamicgroup.NewDynamicGroupListModel(dynamicGroups)
 	id, err := tui.Run(model)
 	if err != nil {
