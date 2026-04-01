@@ -73,8 +73,8 @@ print_header "Testing compute instance command"
 run_command ./bin/ocloud compute instance --help
 run_command ./bin/ocloud comp inst --help
 
-# Test compute instance list command
-print_header "Testing compute instance list command"
+# Test compute instance get command
+print_header "Testing compute instance get command"
 run_command ./bin/ocloud compute instance get
 run_command ./bin/ocloud compute instance get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute instance get -m 10 -p 1 -j
@@ -112,7 +112,7 @@ run_command ./bin/ocloud compute oke --help
 run_command ./bin/ocloud comp oke --help
 
 # Test compute oke get command
-print_header "Testing compute oke list command"
+print_header "Testing compute oke get command"
 run_command ./bin/ocloud compute oke get
 run_command ./bin/ocloud compute oke get --limit 10 --page 1 --json
 run_command ./bin/ocloud compute oke get -m 10 -p 1 -j
@@ -147,7 +147,7 @@ run_command ./bin/ocloud identity compart --help
 run_command ./bin/ocloud ident compart --help
 
 
-# Test identity compartment list command
+# Test identity compartment get command
 print_header "Testing identity compartment get command"
 run_command ./bin/ocloud identity compartment get
 run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json
@@ -161,14 +161,14 @@ run_command ./bin/ocloud identity compartment search "sandbox" --json
 run_command ./bin/ocloud identity compartment search "sandbox" -j
 run_command ./bin/ocloud ident compart s "sandbox" -T
 
-# Test identity compartment list command
+# Test identity compartment get command in tenancy scope
 print_header "Testing identity compartment get command in tenancy scope"
 run_command ./bin/ocloud identity compartment get -T
 run_command ./bin/ocloud identity compartment get --limit 10 --page 1 --json --scope tenancy
 run_command ./bin/ocloud identity compartment get -m 10 -p 1 -j --tenancy-scope
 
 
-# Test identity compartment search command
+# Test identity compartment search command in tenancy
 print_header "Testing identity compartment search command in tenancy"
 run_command ./bin/ocloud identity compartment search "sandbox" --tenancy-scope
 run_command ./bin/ocloud identity compartment search "sandbox" --json -T
@@ -249,13 +249,6 @@ run_command ./bin/ocloud network subnet --help
 run_command ./bin/ocloud network sub --help
 run_command ./bin/ocloud net sub --help
 
-# Test network subnet list command
-print_header "Testing network subnet list command"
-run_command ./bin/ocloud network subnet list
-run_command ./bin/ocloud network subnet list --limit 10 --page 1 --json
-run_command ./bin/ocloud network subnet list -m 10 -p 1 -j
-run_command ./bin/ocloud net sub l
-
 # Test network subnet find command
 print_header "Testing network subnet find command"
 run_command ./bin/ocloud network subnet find "pub"
@@ -268,7 +261,7 @@ print_header "Testing network vcn command"
 run_command ./bin/ocloud network vcn --help
 run_command ./bin/ocloud net vcn --help
 
-# Test network vcn get command (no interactive list)
+# Test network vcn get command
 print_header "Testing network vcn get command"
 run_command ./bin/ocloud network vcn get
 run_command ./bin/ocloud network vcn get --limit 10 --page 1 --json
@@ -304,6 +297,23 @@ run_command ./bin/ocloud network load-balancer search "prod" --all
 run_command ./bin/ocloud net lb s "prod"
 run_command ./bin/ocloud net lb s "prod" -A -j
 
+# Test network network-load-balancer get command
+print_header "Testing network network-load-balancer get command"
+run_command ./bin/ocloud network network-load-balancer get
+run_command ./bin/ocloud network network-load-balancer get --limit 10 --page 1 --json
+run_command ./bin/ocloud network network-load-balancer get -m 10 -p 1 -j
+run_command ./bin/ocloud network network-load-balancer get --all
+run_command ./bin/ocloud net nlb get
+run_command ./bin/ocloud net nlb get -A -j
+
+# Test network network-load-balancer search command
+print_header "Testing network network-load-balancer search command"
+run_command ./bin/ocloud network network-load-balancer search "prod"
+run_command ./bin/ocloud network network-load-balancer search "prod" --json
+run_command ./bin/ocloud network network-load-balancer search "prod" --all
+run_command ./bin/ocloud net nlb s "prod"
+run_command ./bin/ocloud net nlb s "prod" -A -j
+
 # Test storage object-storage get command
 print_header "Testing storage object-storage get command"
 run_command ./bin/ocloud storage object-storage get
@@ -330,8 +340,8 @@ run_command ./bin/ocloud database autonomous --help
 run_command ./bin/ocloud database adb --help
 run_command ./bin/ocloud db adb --help
 
-# Test database autonomousdb list command
-print_header "Testing database autonomousdb list command"
+# Test database autonomousdb get command
+print_header "Testing database autonomousdb get command"
 run_command ./bin/ocloud database autonomous get
 run_command ./bin/ocloud database autonomous get --limit 10 --page 1 --json
 run_command ./bin/ocloud database autonomous get -m 10 -p 1 -j
@@ -387,6 +397,12 @@ run_command ./bin/ocloud database cache-cluster search "prod"
 run_command ./bin/ocloud database cache-cluster search "prod" --json
 run_command ./bin/ocloud database cache-cluster search "VALKEY_7_2" --all
 run_command ./bin/ocloud db cc s "VALKEY_7_2" -j
+
+# Test identity bastion get command
+print_header "Testing identity bastion get command"
+run_command ./bin/ocloud identity bastion get
+run_command ./bin/ocloud identity bastion get --json
+run_command ./bin/ocloud ident b get -j
 
 # Test version command and flag
 print_header "Testing ocloud settings"
