@@ -97,9 +97,12 @@ func SelectSessionType(ctx context.Context, bastionID string, tType TargetType) 
 func ConnectTarget(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
 	b bastionSvc.Bastion, sType SessionType, tType TargetType) error {
 
-	// SCP has its own dedicated flow
+	// SCP flows have their own dedicated orchestrators
 	if sType == TypeSCP {
 		return connectSCP(ctx, appCtx, svc, b)
+	}
+	if sType == TypeSCPDownload {
+		return connectSCPDownload(ctx, appCtx, svc, b)
 	}
 
 	switch tType {

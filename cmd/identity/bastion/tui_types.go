@@ -40,7 +40,8 @@ const (
 type SessionType string
 
 const (
-	TypeSCP            SessionType = "SCP"
+	TypeSCP            SessionType = "SCP Upload"
+	TypeSCPDownload    SessionType = "SCP Download"
 	TypeManagedSSH     SessionType = "Managed SSH"
 	TypePortForwarding SessionType = "Port-Forwarding"
 )
@@ -183,7 +184,7 @@ type SessionTypeModel struct {
 func SessionTypesForTarget(tType TargetType) []SessionType {
 	switch tType {
 	case TargetInstance:
-		return []SessionType{TypeSCP, TypeManagedSSH, TypePortForwarding}
+		return []SessionType{TypeSCP, TypeSCPDownload, TypeManagedSSH, TypePortForwarding}
 	case TargetOKE:
 		return []SessionType{TypeManagedSSH, TypePortForwarding}
 	case TargetDatabase, TargetLoadBalancer:
