@@ -20,8 +20,8 @@ import (
 // connectSCPDownload runs the SCP download flow for an Instance target:
 // 1. Select instance
 // 2. Select SSH key pair
-// 3. Prompt for remote file/directory path to download
-// 4. Prompt for local destination path
+// 3. Enter remote file/directory path (TUI text input)
+// 4. Enter local destination path (TUI text input)
 // 5. Create managed SSH session
 // 6. Execute SCP download with progress
 func connectSCPDownload(ctx context.Context, appCtx *app.ApplicationContext, svc *bastionSvc.Service,
@@ -80,25 +80,38 @@ func connectSCPDownload(ctx context.Context, appCtx *app.ApplicationContext, svc
 		return nil
 	}
 
-	// Step 3: Prompt for remote file/directory path to download
-	remotePath, err := util.PromptString("Enter remote file or directory path to download", "")
+	// Step 3: Enter remote file/directory path to download (TUI text input)
+	remoteInput := tui.NewTextInputModel(
+		"Enter remote file or directory path to download",
+		"/home/opc/example.log",
+		"",
+	)
+	remotePath, err := tui.RunTextInput(remoteInput)
 	if err != nil {
-		return fmt.Errorf("read remote path: %w", err)
+		return ErrAborted
 	}
 	if remotePath == "" {
 		logger.Logger.Info("No remote path specified, aborting.")
 		return nil
 	}
 
-	// Step 4: Prompt for local destination path
+	// Step 4: Enter local destination path (TUI text input)
 	cwd, err := os.Getwd()
 	if err != nil {
 		cwd = "."
 	}
 	defaultLocal := filepath.Join(cwd, filepath.Base(remotePath))
-	localPath, err := util.PromptString("Enter local destination path", defaultLocal)
+	localInput := tui.NewTextInputModel(
+		"Enter local destination path",
+		defaultLocal,
+		defaultLocal,
+	)
+	localPath, err := tui.RunTextInput(localInput)
 	if err != nil {
-		return fmt.Errorf("read local path: %w", err)
+		return ErrAborted
+	}
+	if localPath == "" {
+		localPath = defaultLocal
 	}
 
 	// Step 5: Prompt for SSH username
