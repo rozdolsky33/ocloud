@@ -39,11 +39,12 @@ Whether you're exploring instances, working with databases, or need to quickly f
 - **Bastion**: Comprehensive bastion and session management
     - List and explore existing bastions
     - Create interactive bastion sessions with TUI-guided flows
-    - Connect to Compute Instances (Managed SSH, Port Forwarding & SCP)
+    - Connect to Compute Instances (Managed SSH, Port Forwarding, SCP Upload & SCP Download)
     - Connect to Databases (Autonomous DB, HeatWave, and OCI Cache via Port Forwarding)
     - Connect to OKE Clusters (Managed SSH to nodes & Port Forwarding to API server)
     - Connect to Load Balancers (Port Forwarding with TUI selection and health summaries)
-    - **TUI-driven SCP**: Securely copy files to private compute instances with interactive file picker and real-time progress
+    - **TUI-driven SCP Upload**: Securely copy files to private compute instances with interactive file picker and real-time progress
+    - **TUI-driven SCP Download**: Securely copy files or directories from private compute instances with real-time progress
     - Enhanced privileged port handling with sudo password validation
     - Automatic SSH tunnel management with background processes
     - Interactive SSH key pair selection
@@ -335,7 +336,7 @@ The `ocloud identity bastion create` command launches an interactive flow that g
 1. **Session Type Selection**: Choose between Bastion management or creating a new session
 2. **Bastion Selection**: Pick from your active bastions via TUI
 3. **Target Type Selection**: Choose your connection target (Instance, Database, OKE, or Load Balancer)
-4. **Session Type**: Select Managed SSH or Port Forwarding
+4. **Session Type**: Select Managed SSH, Port Forwarding, SCP Upload, or SCP Download
 5. **Resource Selection**: Interactive TUI to pick the specific resource
 6. **SSH Key Selection**: Choose your SSH key pair from `~/.ssh`
 7. **Connection Setup**: Automatic tunnel creation and configuration
@@ -350,11 +351,18 @@ ocloud identity bastion create
 # Select: Session → Choose Bastion → Instance → Managed SSH → Pick Instance → Select Keys
 ```
 
-**SCP (Secure Copy)**: Interactive file upload to private compute instances
+**SCP Upload**: Interactive file upload to private compute instances
 ```bash
 ocloud identity bastion create
-# Select: Session → Choose Bastion → Instance → SCP → Pick Instance → Select Keys → Select Local File → Enter Remote Path
+# Select: Session → Choose Bastion → Instance → SCP Upload → Pick Instance → Select Keys → Select Local File → Enter Remote Path
 # Uses TUI file picker and displays real-time progress
+```
+
+**SCP Download**: Interactive file or directory download from private compute instances
+```bash
+ocloud identity bastion create
+# Select: Session → Choose Bastion → Instance → SCP Download → Pick Instance → Select Keys → Enter Remote Path → Enter Local Path
+# Supports both files and directories (recursive copy) with real-time progress
 ```
 
 **Port Forwarding**: Create an SSH tunnel to instance ports (e.g., VNC, RDP, custom apps)

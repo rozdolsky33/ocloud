@@ -394,6 +394,16 @@ func BuildSCPCommand(privateKeyPath, sessionID, region, targetIP, targetUser, lo
 		privateKeyPath, bastionHostKeyOpts, proxy, localFile, targetUser, targetIP, remotePath)
 }
 
+// BuildSCPDownloadCommand constructs an SCP command that downloads a file or directory
+// from a remote instance through the bastion Managed SSH session.
+// The -r flag enables recursive copy so both files and directories work.
+func BuildSCPDownloadCommand(privateKeyPath, sessionID, region, targetIP, targetUser, remotePath, localPath string) string {
+	host := bastionHost(sessionID, region)
+	proxy := fmt.Sprintf("ssh -i %s %s -W %%h:%%p -p 22 %s@%s", privateKeyPath, bastionHostKeyOpts, sessionID, host)
+	return fmt.Sprintf("scp -r -i %s %s -o ProxyCommand=\"%s\" -P 22 %s@%s:%s %s",
+		privateKeyPath, bastionHostKeyOpts, proxy, targetUser, targetIP, remotePath, localPath)
+}
+
 // BuildManagedSSHCommand constructs the SSH command that uses ProxyCommand with the bastion Managed SSH session.
 // It opens only a direct-tcpip channel on the bastion (accepted), while authenticating to bastion with the session OCID.
 // The outer SSH connects to the target instance as targetUser@targetIP.
